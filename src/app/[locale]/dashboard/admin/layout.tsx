@@ -1,13 +1,20 @@
+// src/app/[locale]/dashboard/admin/layout.tsx
 import type { ReactNode } from "react";
 
-export default function AdminLayout({
+type Params = { locale: string };
+
+export default async function AdminLayout({
   children,
+  params,
 }: {
   children: ReactNode;
-  params: { locale: string };
+  params: Params | Promise<Params>;
 }) {
-  // ✅ IMPORTANT:
-  // Your main dashboard layout already wraps /dashboard/admin/* with <AdminShell />
-  // So this admin layout must NOT render another sidebar/nav.
+  // Next.js can pass params as a Promise in some builds
+  const { locale } = await Promise.resolve(params);
+
+  // If you need locale later, you have it here:
+  // console.log("admin locale:", locale);
+
   return <>{children}</>;
 }
