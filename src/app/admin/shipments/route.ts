@@ -1,47 +1,43 @@
-export { NextRequest, NextResponse } from 'next/server';
-
-// MongoDB connection
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const client = new MongoClient(uri);
-
-async function getShipmentsCollection(): Promise<Collection> {
-  await client.connect();
-  const db = client.db('exodus_logistics');
-  return db.collection('shipments');
-}
+// src/app/admin/shipments/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import clientPromise from "@/lib/mongodb";
+import type { Collection } from "mongodb";
 
 async function getTrackingHistoryCollection(): Promise<Collection> {
-  await client.connect();
-  const db = client.db('exodus_logistics');
-  return db.collection('tracking_history');
+  const client = await clientPromise;
+  const dbName = process.env.MONGODB_DB || "exodus_logistics";
+  return client.db(dbName).collection("tracking_history");
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { shipmentId } = await request.json();
-    
+    const body = await request.json().catch(() => ({}));
+    const shipmentId = String(body?.shipmentId || "").trim();
+
     if (!shipmentId) {
-      return NextResponse.json({
-        error: 'Shipment ID is required'
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Shipment ID is required" },
+        { status: 400 }
+      );
     }
 
     const historyCollection = await getTrackingHistoryCollection();
-    
-    const history = await historyCollection.find({ shipmentId }).toArray();
-    
-    return NextResponse.json({
-      success: true,
-      data: history
-    });
+    const history = await historyCollection
+      .find({ shipmentId })
+      .sort({ timestamp: 1 })
+      .toArray();
 
+    return NextResponse.json({ success: true, data: history }, { status: 200 });
   } catch (error) {
-    console.error('Admin API Error:', error);
+    console.error("Admin Tracking API Error:", error);
+
     return NextResponse.json(
-      error: 'Internal server error',
-      message: 'Unable to fetch tracking history. Please try again.'
+      {
+        success: false,
+        error: "Internal server error",
+        message: "Unable to fetch tracking history. Please try again.",
+      },
+      { status: 500 }
     );
-  } finally {
-    await client.close();
   }
 }
