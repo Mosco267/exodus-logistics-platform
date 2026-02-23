@@ -101,7 +101,7 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
 </html>`;
 
   return resend.emails.send({
-    from: "Exodus Logistics <onboarding@exoduslogistics.com>",
+    from: "Exodus Logistics <onboarding@resend.dev>",
     to,
     subject,
     html,
