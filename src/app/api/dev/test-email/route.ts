@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
     const name = String(url.searchParams.get("name") || "Gabriel");
 
-    const result = await sendBanEmail(to, { to, name });
+    const result = await sendBanEmail(to, { name });
 
     return NextResponse.json({ ok: true, sentTo: to, name, result });
   } catch (err: any) {
