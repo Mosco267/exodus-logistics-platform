@@ -1,0 +1,23 @@
+{
+  "Header.Home": "Startseite",
+"Header.About": "Über uns",
+"Header.Services": "Dienstleistungen",
+"Header.Contact": "Kontakt",
+"Header.Track": "Verfolgen",
+"Header.Invoice": "Rechnung",
+"Header.Quote": "Angebot anfordern",
+"Header.Sign-in": "Anmelden",
+"Header.Menu": "Menü",
+
+  "signIn": "Anmelden",
+  "emailAddress": "E-Mail-Adresse",
+  "password": "Passwort",
+  "enterPassword": "Geben Sie Ihr Passwort ein",
+  "forgotPassword": "Passwort vergessen?",
+  "dontHaveAccount": "Sie haben noch kein Konto?",
+  "signUp": "Registrieren",
+  "emailRequired": "E-Mail-Adresse ist erforderlich.",
+  "invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+  "passwordRequired": "Passwort ist erforderlich.",
+  "enterEmail": "du@beispiel.com"
+}

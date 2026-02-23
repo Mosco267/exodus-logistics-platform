@@ -1,0 +1,23 @@
+{
+"Header.Home": "Accueil",
+"Header.About": "À propos",
+"Header.Services": "Services",
+"Header.Contact": "Contact",
+"Header.Track": "Suivi",
+"Header.Invoice": "Facture",
+"Header.Quote": "Obtenir un devis",
+"Header.Sign-in": "Connexion",
+"Header.Menu": "Menu",
+
+  "signIn": "Connexion",
+  "emailAddress": "Adresse e-mail",
+  "password": "Mot de passe",
+  "enterPassword": "Entrez votre mot de passe",
+  "forgotPassword": "Mot de passe oublié?",
+  "dontHaveAccount": "Vous n'avez pas de compte?",
+  "signUp": "S'inscrire",
+  "emailRequired": "L'adresse e-mail est requise.",
+  "invalidEmail": "Veuillez entrer une adresse e-mail valide.",
+  "passwordRequired": "Le mot de passe est requis.",
+  "enterEmail": "vous@exemple.com"
+}

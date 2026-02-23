@@ -1,0 +1,40 @@
+<svg width="220" height="60" viewBox="0 0 220 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Premium Globe Icon -->
+  <defs>
+    <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Circular Globe Background -->
+  <circle cx="30" cy="30" r="28" fill="url(#globeGradient)" opacity="0.1"/>
+  <circle cx="30" cy="30" r="24" fill="none" stroke="url(#globeGradient)" stroke-width="2"/>
+  
+  <!-- Globe Meridians -->
+  <ellipse cx="30" cy="30" rx="24" ry="10" fill="none" stroke="url(#globeGradient)" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="30" cy="30" rx="10" ry="24" fill="none" stroke="url(#globeGradient)" stroke-width="1.5" opacity="0.6"/>
+  <line x1="6" y1="30" x2="54" y2="30" stroke="url(#globeGradient)" stroke-width="1.5" opacity="0.6"/>
+  <line x1="30" y1="6" x2="30" y2="54" stroke="url(#globeGradient)" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Dynamic Arrow/Path -->
+  <path d="M15 20 Q25 15, 35 25 T45 30" stroke="url(#arrowGradient)" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <polygon points="43,27 48,30 43,33" fill="url(#arrowGradient)"/>
+  
+  <!-- Premium Typography -->
+  <text x="68" y="28" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#1e293b">Exodus</text>
+  <text x="68" y="42" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="16" font-weight="500" fill="#64748b">LOGISTICS</text>
+  
+  <!-- Premium Accent Line -->
+  <rect x="68" y="45" width="40" height="2" fill="url(#arrowGradient)" rx="1"/>
+  
+  <!-- Small Brand Elements -->
+  <circle cx="150" cy="30" r="3" fill="url(#arrowGradient)"/>
+  <circle cx="160" cy="30" r="3" fill="#3b82f6" opacity="0.5"/>
+  <circle cx="170" cy="30" r="3" fill="#3b82f6" opacity="0.3"/>
+</svg>

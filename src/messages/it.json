@@ -1,0 +1,23 @@
+{
+"Header.Home": "Home",
+"Header.About": "Chi siamo",
+"Header.Services": "Servizi",
+"Header.Contact": "Contatto",
+"Header.Track": "Traccia",
+"Header.Invoice": "Fattura",
+"Header.Quote": "Richiedi preventivo",
+"Header.Sign-in": "Accedi",
+"Header.Menu": "Menu",
+
+  "signIn": "Accedi",
+  "emailAddress": "Indirizzo email",
+  "password": "Password",
+  "enterPassword": "Inserisci la tua password",
+  "forgotPassword": "Password dimenticata?",
+  "dontHaveAccount": "Non hai un account?",
+  "signUp": "Registrati",
+  "emailRequired": "L'indirizzo email è obbligatorio.",
+  "invalidEmail": "Inserisci un indirizzo email valido.",
+  "passwordRequired": "La password è obbligatoria.",
+  "enterEmail": "tuo@email.com"
+}

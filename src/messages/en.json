@@ -1,0 +1,23 @@
+{
+  "Header.Home": "Home",
+  "Header.About": "About",
+  "Header.Services": "Services",
+  "Header.Contact": "Contact",
+  "Header.Track": "Track",
+  "Header.Invoice": "Invoice",
+  "Header.Quote": "Get Quote",
+  "Header.Sign-in": "Sign-in",
+  "Header.Menu": "Menu",
+
+  "signIn": "Sign In",
+  "emailAddress": "Email Address",
+  "password": "Password",
+  "enterPassword": "Enter your password",
+  "forgotPassword": "Forgot Password?",
+  "dontHaveAccount": "Don’t have an account?",
+  "signUp": "Sign Up",
+  "emailRequired": "Email address is required.",
+  "invalidEmail": "Please enter a valid email address.",
+  "passwordRequired": "Password is required.",
+  "enterEmail": "you@example.com"
+}

@@ -1,0 +1,23 @@
+{
+"Header.Home": "首页",
+"Header.About": "关于我们",
+"Header.Services": "服务",
+"Header.Contact": "联系我们",
+"Header.Track": "追踪",
+"Header.Invoice": "发票",
+"Header.Quote": "获取报价",
+"Header.Sign-in": "登录",
+"Header.Menu": "菜单",
+
+  "signIn": "登录",
+  "emailAddress": "电子邮箱",
+  "password": "密码",
+  "enterPassword": "请输入您的密码",
+  "forgotPassword": "忘记密码？",
+  "dontHaveAccount": "没有账户？",
+  "signUp": "注册",
+  "emailRequired": "需要填写电子邮箱地址。",
+  "invalidEmail": "请输入有效的电子邮箱地址。",
+  "passwordRequired": "需要填写密码。",
+  "enterEmail": "你@邮箱.com"
+}

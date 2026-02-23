@@ -1,0 +1,22 @@
+{
+  "Header.Home": "Inicio",
+"Header.About": "Acerca de",
+"Header.Services": "Servicios",
+"Header.Contact": "Contacto",
+"Header.Track": "Rastrear",
+"Header.Invoice": "Factura",
+"Header.Quote": "Cotización",
+"Header.Sign-in": "Iniciar sesión",
+"Header.Menu": "Menú",
+ "signIn": "Iniciar sesión",
+  "emailAddress": "Correo electrónico",
+  "password": "Contraseña",
+  "enterPassword": "Ingrese su contraseña",
+  "forgotPassword": "¿Olvidaste tu contraseña?",
+  "dontHaveAccount": "¿No tienes una cuenta?",
+  "signUp": "Regístrate",
+  "emailRequired": "Se requiere la dirección de correo electrónico.",
+  "invalidEmail": "Por favor ingrese una dirección de correo electrónico válida.",
+  "passwordRequired": "Se requiere contraseña.",
+  "enterEmail": "tu@correo.com"
+}
