@@ -96,7 +96,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // ✅ Admin pages should NOT use user layout at all
   if (isAdmin) {
-  return <AdminShell locale={locale}>{children}</AdminShell>;
+  return <AdminShell>{children}</AdminShell>;
 }
 
   return (
