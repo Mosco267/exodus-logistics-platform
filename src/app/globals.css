@@ -98,3 +98,9 @@ input[type="password"]::-webkit-credentials-auto-fill-button,
 input[type="password"]::-webkit-textfield-decoration-container {
   display: none !important;
 }
+
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+}
