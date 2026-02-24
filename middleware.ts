@@ -34,9 +34,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(signInPath, nextUrl));
   }
 
-  if (isSignIn && isLoggedIn) {
-    return NextResponse.redirect(new URL(dashboardPrefix, nextUrl));
-  }
+  
 
   if (isDashboard) {
     const res = NextResponse.next();

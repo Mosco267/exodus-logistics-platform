@@ -27,6 +27,9 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
+  // ✅ prevents auto-fill into password on load, but allows suggestions on tap
+  const [passwordLocked, setPasswordLocked] = useState(true);
+
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +73,6 @@ export default function SignInPage() {
         return;
       }
 
-      // ✅ Read role from session and route correctly
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
@@ -82,7 +84,6 @@ export default function SignInPage() {
       router.replace(nextUrl);
       router.refresh();
 
-      // ✅ Fallback for Safari/iOS odd navigation cases
       setTimeout(() => {
         window.location.assign(nextUrl);
       }, 150);
@@ -111,9 +112,8 @@ export default function SignInPage() {
           <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>
         )}
 
-        {/* ✅ Let the browser/password manager do normal autofill */}
         <form onSubmit={handleSignIn} autoComplete="on" noValidate className="space-y-5">
-          {/* Email */}
+          {/* Email (keep normal suggestions/autofill) */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               {messages.emailAddress}
@@ -152,7 +152,7 @@ export default function SignInPage() {
             </AnimatePresence>
           </div>
 
-          {/* Password */}
+          {/* Password (no auto-fill on load, suggestions on tap) */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               {messages.password}
@@ -164,8 +164,11 @@ export default function SignInPage() {
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
+                readOnly={passwordLocked}
                 value={password}
                 placeholder={messages.enterPassword}
+                onFocus={() => setPasswordLocked(false)}
+                onClick={() => setPasswordLocked(false)}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setErrors((prev) => ({ ...prev, password: '', general: '' }));
