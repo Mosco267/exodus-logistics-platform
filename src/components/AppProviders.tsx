@@ -24,9 +24,9 @@ function LocaleConsumer({ children }: { children: ReactNode }) {
   return (
     <IntlProvider locale={locale} messages={messages}>
       <AuthSessionProvider>
-        <Header />
+        
         {children}
-        <Footer />
+        
       </AuthSessionProvider>
     </IntlProvider>
   );
