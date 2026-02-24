@@ -3,8 +3,6 @@
 import { ReactNode, useContext } from 'react';
 import { IntlProvider } from 'react-intl';
 import AuthSessionProvider from '@/components/SessionProvider';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { LocaleProvider, LocaleContext } from '@/context/LocaleContext';
 
 import en from '@/messages/en.json';
@@ -15,19 +13,23 @@ import zh from '@/messages/zh.json';
 import it from '@/messages/it.json';
 
 type Locale = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'it';
-const messagesMap: Record<Locale, Record<string, any>> = { en, es, fr, de, zh, it };
 
-function LocaleConsumer({ children }: { children: ReactNode }) {
+const messagesMap: Record<Locale, Record<string, any>> = {
+  en,
+  es,
+  fr,
+  de,
+  zh,
+  it,
+};
+
+function InnerProviders({ children }: { children: ReactNode }) {
   const { locale } = useContext(LocaleContext);
-  const messages = messagesMap[(locale as Locale) || 'en'] || en;
+  const safeLocale = (locale as Locale) || 'en';
 
   return (
-    <IntlProvider locale={locale} messages={messages}>
-      <AuthSessionProvider>
-        
-        {children}
-        
-      </AuthSessionProvider>
+    <IntlProvider locale={safeLocale} messages={messagesMap[safeLocale] || en}>
+      <AuthSessionProvider>{children}</AuthSessionProvider>
     </IntlProvider>
   );
 }
@@ -35,7 +37,7 @@ function LocaleConsumer({ children }: { children: ReactNode }) {
 export default function AppProviders({ children }: { children: ReactNode }) {
   return (
     <LocaleProvider>
-      <LocaleConsumer>{children}</LocaleConsumer>
+      <InnerProviders>{children}</InnerProviders>
     </LocaleProvider>
   );
 }

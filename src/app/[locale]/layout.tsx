@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import AppProviders from '../../components/AppProviders';
+import { ReactNode } from 'react';
+import RootLayoutClient from './RootLayoutClient';
 
 export default function LocaleLayout({ children }: { children: ReactNode }) {
-  return <AppProviders>{children}</AppProviders>;
+  return <RootLayoutClient>{children}</RootLayoutClient>;
 }
