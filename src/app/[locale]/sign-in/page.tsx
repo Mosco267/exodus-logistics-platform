@@ -27,8 +27,8 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
-  // ✅ prevents auto-fill into password on load, but allows suggestions on tap
-  const [passwordLocked, setPasswordLocked] = useState(true);
+  // ✅ email autofill normal, password stays empty until user focuses it
+  const [pwAutoComplete, setPwAutoComplete] = useState<'off' | 'current-password'>('off');
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -50,7 +50,7 @@ export default function SignInPage() {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    let newErrors = { email: '', password: '', general: '' };
+    const newErrors = { email: '', password: '', general: '' };
 
     if (!cleanEmail) newErrors.email = messages.emailRequired;
     else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) newErrors.email = messages.invalidEmail;
@@ -73,20 +73,20 @@ export default function SignInPage() {
         return;
       }
 
+      // ✅ route based on role
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
       const nextUrl =
-        role === 'ADMIN'
-          ? `/${locale}/dashboard/admin/users`
-          : `/${locale}/dashboard`;
+        role === 'ADMIN' ? `/${locale}/dashboard/admin/users` : `/${locale}/dashboard`;
 
       router.replace(nextUrl);
       router.refresh();
 
+      // fallback (Safari/iOS)
       setTimeout(() => {
-        window.location.assign(nextUrl);
-      }, 150);
+        window.location.href = nextUrl;
+      }, 200);
     } finally {
       setIsSubmitting(false);
     }
@@ -112,8 +112,8 @@ export default function SignInPage() {
           <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>
         )}
 
-        <form onSubmit={handleSignIn} autoComplete="on" noValidate className="space-y-5">
-          {/* Email (keep normal suggestions/autofill) */}
+        <form onSubmit={handleSignIn} noValidate className="space-y-5">
+          {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               {messages.emailAddress}
@@ -123,11 +123,7 @@ export default function SignInPage() {
               id="email"
               name="email"
               type="email"
-              inputMode="email"
               autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
               value={email}
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={(e) => {
@@ -152,23 +148,22 @@ export default function SignInPage() {
             </AnimatePresence>
           </div>
 
-          {/* Password (no auto-fill on load, suggestions on tap) */}
+          {/* Password */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               {messages.password}
             </label>
+
             <div className="relative mt-1">
               <input
                 ref={passwordRef}
                 id="password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                readOnly={passwordLocked}
+                autoComplete={pwAutoComplete} // ✅ stays off until focus
+                onFocus={() => setPwAutoComplete('current-password')} // ✅ allow autofill only when user taps/clicks
                 value={password}
                 placeholder={messages.enterPassword}
-                onFocus={() => setPasswordLocked(false)}
-                onClick={() => setPasswordLocked(false)}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setErrors((prev) => ({ ...prev, password: '', general: '' }));
@@ -177,13 +172,15 @@ export default function SignInPage() {
                   errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                 } pr-10`}
               />
+
               {password.length > 0 && (
                 <button
                   type="button"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={toggleShowPassword}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -202,6 +199,28 @@ export default function SignInPage() {
                 </motion.p>
               )}
             </AnimatePresence>
+
+            {/* ✅ Forgot + Sign up under password (like before) */}
+            <div className="mt-3 flex items-center justify-between">
+              <button
+                type="button"
+                className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
+                onClick={() => router.push(`/${locale}/forgot-password`)}
+              >
+                {messages.forgotPassword || 'Forgot password?'}
+              </button>
+
+              <p className="text-sm text-gray-600">
+                {messages.noAccount || "Don't have an account?"}{' '}
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
+                  onClick={() => router.push(`/${locale}/signup`)}
+                >
+                  {messages.signUp || 'Sign up'}
+                </button>
+              </p>
+            </div>
           </div>
 
           <motion.button
