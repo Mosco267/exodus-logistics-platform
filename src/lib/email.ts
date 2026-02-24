@@ -116,10 +116,10 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
 </html>`;
 
   return resend.emails.send({
-    from: FROM_EMAIL,
-    to,
-    subject,
-    replyTo: REPLY_TO_EMAIL,
-    html,
-  });
+  from: `Exodus Logistics <support@goexoduslogistics.com>`,
+  to,
+  subject,
+  replyTo: "support@goexoduslogistics.com",
+  html,
+});
 }
