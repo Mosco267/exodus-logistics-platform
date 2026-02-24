@@ -2,7 +2,7 @@
 
 import { ReactNode, useContext } from 'react';
 import { IntlProvider } from 'react-intl';
-import AuthSessionProvider from '@/components/SessionProvider';
+import { SessionProvider } from 'next-auth/react';
 import { LocaleProvider, LocaleContext } from '@/context/LocaleContext';
 
 import en from '@/messages/en.json';
@@ -13,23 +13,15 @@ import zh from '@/messages/zh.json';
 import it from '@/messages/it.json';
 
 type Locale = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'it';
-
-const messagesMap: Record<Locale, Record<string, any>> = {
-  en,
-  es,
-  fr,
-  de,
-  zh,
-  it,
-};
+const messagesMap: Record<Locale, any> = { en, es, fr, de, zh, it };
 
 function InnerProviders({ children }: { children: ReactNode }) {
   const { locale } = useContext(LocaleContext);
-  const safeLocale = (locale as Locale) || 'en';
+  const messages = messagesMap[(locale as Locale) || 'en'] || en;
 
   return (
-    <IntlProvider locale={safeLocale} messages={messagesMap[safeLocale] || en}>
-      <AuthSessionProvider>{children}</AuthSessionProvider>
+    <IntlProvider locale={locale} messages={messages}>
+      <SessionProvider>{children}</SessionProvider>
     </IntlProvider>
   );
 }
