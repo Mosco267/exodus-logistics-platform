@@ -9,7 +9,6 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
 
-    // Optional protection
     const requiredToken = process.env.EMAIL_TEST_TOKEN;
     if (requiredToken) {
       const token = String(url.searchParams.get("token") || "");
@@ -23,12 +22,8 @@ export async function GET(req: Request) {
     if (!to.includes("@")) return jsonError("Invalid 'to' email address");
 
     const result = await sendBanEmail(to, { name });
-
     return NextResponse.json({ ok: true, sentTo: to, name, result });
   } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, error: err?.message || "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: err?.message || "Unknown error" }, { status: 500 });
   }
 }
