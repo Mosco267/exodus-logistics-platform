@@ -70,7 +70,7 @@ export default function SignInPage() {
         return;
       }
 
-      // ✅ read role from session and route correctly
+      // ✅ Read role from session and route correctly
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
@@ -82,10 +82,10 @@ export default function SignInPage() {
       router.replace(nextUrl);
       router.refresh();
 
-      // fallback (Safari/iOS)
+      // ✅ Fallback for Safari/iOS odd navigation cases
       setTimeout(() => {
-        window.location.href = nextUrl;
-      }, 200);
+        window.location.assign(nextUrl);
+      }, 150);
     } finally {
       setIsSubmitting(false);
     }
@@ -111,7 +111,8 @@ export default function SignInPage() {
           <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>
         )}
 
-        <form onSubmit={handleSignIn} noValidate className="space-y-5">
+        {/* ✅ Let the browser/password manager do normal autofill */}
+        <form onSubmit={handleSignIn} autoComplete="on" noValidate className="space-y-5">
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -122,7 +123,11 @@ export default function SignInPage() {
               id="email"
               name="email"
               type="email"
+              inputMode="email"
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={email}
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={(e) => {
@@ -172,7 +177,7 @@ export default function SignInPage() {
               {password.length > 0 && (
                 <button
                   type="button"
-                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={toggleShowPassword}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
