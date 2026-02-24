@@ -28,7 +28,7 @@ export default function SignInPage() {
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
   // ✅ email autofill normal, password stays empty until user focuses it
-  const [pwAutoComplete, setPwAutoComplete] = useState<'off' | 'current-password'>('off');
+  
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -156,22 +156,25 @@ export default function SignInPage() {
 
             <div className="relative mt-1">
               <input
-                ref={passwordRef}
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete={pwAutoComplete} // ✅ stays off until focus
-                onFocus={() => setPwAutoComplete('current-password')} // ✅ allow autofill only when user taps/clicks
-                value={password}
-                placeholder={messages.enterPassword}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setErrors((prev) => ({ ...prev, password: '', general: '' }));
-                }}
-                className={`block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
-                  errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                } pr-10`}
-              />
+  ref={passwordRef}
+  id="password"
+  name="password"
+  type={showPassword ? 'text' : 'password'}
+  value={password}
+  placeholder={messages.enterPassword}
+  autoComplete="new-password"   // ✅ stops browser from autofilling on load
+  onFocus={(e) => {
+    // ✅ allow browser password manager ONLY after user clicks/taps the field
+    e.currentTarget.setAttribute('autocomplete', 'current-password');
+  }}
+  onChange={(e) => {
+    setPassword(e.target.value);
+    setErrors((prev) => ({ ...prev, password: '', general: '' }));
+  }}
+  className={`block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
+    errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+  } pr-10`}
+/>
 
               {password.length > 0 && (
                 <button
