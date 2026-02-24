@@ -280,7 +280,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="border-t my-1 dark:border-gray-800" />
 
                     <button
-                      onClick={() => signOut({ callbackUrl: `/${locale}/signin` })}
+                      onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left cursor-pointer
                                  text-red-600 hover:bg-red-50 dark:hover:bg-white/10"
                     >
