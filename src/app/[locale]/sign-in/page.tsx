@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useContext } from 'react';
+import { useEffect, useRef, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
@@ -21,41 +21,51 @@ export default function SignInPage() {
   const messagesMap: Record<string, any> = { en, es, fr, de, zh, it };
   const messages = messagesMap[locale] || en;
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // We do NOT control the inputs with React values (so browser autofill works properly).
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
-  // ✅ email autofill normal, password stays empty until user focuses it
-  
+  // Only used to decide when to show the eye icon (doesn't control password value)
+  const [hasPassword, setHasPassword] = useState(false);
 
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  // If the browser autofills email on load, sync it into UI behaviors (optional)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const emailVal = emailRef.current?.value || '';
+      const passVal = passwordRef.current?.value || '';
+      if (passVal) setHasPassword(true);
+      // no state needed for email since we read from ref on submit
+      void emailVal;
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, []);
 
   const toggleShowPassword = () => {
-    if (passwordRef.current) {
-      const pos = passwordRef.current.selectionStart;
-      setShowPassword((v) => !v);
-      setTimeout(() => {
-        passwordRef.current?.setSelectionRange(pos ?? 0, pos ?? 0);
-      }, 0);
-    } else {
-      setShowPassword((v) => !v);
-    }
+    if (!passwordRef.current) return;
+    const pos = passwordRef.current.selectionStart ?? 0;
+    setShowPassword((v) => !v);
+    setTimeout(() => {
+      passwordRef.current?.setSelectionRange(pos, pos);
+    }, 0);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const cleanEmail = email.trim().toLowerCase();
+    const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
+    const rawPassword = passwordRef.current?.value || '';
 
-    const newErrors = { email: '', password: '', general: '' };
+    let newErrors = { email: '', password: '', general: '' };
 
-    if (!cleanEmail) newErrors.email = messages.emailRequired;
-    else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) newErrors.email = messages.invalidEmail;
+    if (!rawEmail) newErrors.email = messages.emailRequired;
+    else if (!/^\S+@\S+\.\S+$/.test(rawEmail)) newErrors.email = messages.invalidEmail;
 
-    if (!password) newErrors.password = messages.passwordRequired;
+    if (!rawPassword) newErrors.password = messages.passwordRequired;
 
     setErrors(newErrors);
     if (newErrors.email || newErrors.password) return;
@@ -63,8 +73,8 @@ export default function SignInPage() {
     setIsSubmitting(true);
     try {
       const res = await signIn('credentials', {
-        email: cleanEmail,
-        password,
+        email: rawEmail,
+        password: rawPassword,
         redirect: false,
       });
 
@@ -73,17 +83,17 @@ export default function SignInPage() {
         return;
       }
 
-      // ✅ route based on role
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
       const nextUrl =
-        role === 'ADMIN' ? `/${locale}/dashboard/admin/users` : `/${locale}/dashboard`;
+        role === 'ADMIN'
+          ? `/${locale}/dashboard/admin/users`
+          : `/${locale}/dashboard`;
 
       router.replace(nextUrl);
       router.refresh();
 
-      // fallback (Safari/iOS)
       setTimeout(() => {
         window.location.href = nextUrl;
       }, 200);
@@ -123,13 +133,9 @@ export default function SignInPage() {
               id="email"
               name="email"
               type="email"
-              autoComplete="username"
-              value={email}
+              autoComplete="email"
               placeholder={messages.enterEmail || 'you@example.com'}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setErrors((prev) => ({ ...prev, email: '', general: '' }));
-              }}
+              onChange={() => setErrors((prev) => ({ ...prev, email: '', general: '' }))}
               className={`mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
                 errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
               } text-gray-700 placeholder-gray-400`}
@@ -156,34 +162,36 @@ export default function SignInPage() {
 
             <div className="relative mt-1">
               <input
-  ref={passwordRef}
-  id="password"
-  name="password"
-  type={showPassword ? 'text' : 'password'}
-  value={password}
-  placeholder={messages.enterPassword}
-  autoComplete="new-password"   // ✅ stops browser from autofilling on load
-  onFocus={(e) => {
-    // ✅ allow browser password manager ONLY after user clicks/taps the field
-    e.currentTarget.setAttribute('autocomplete', 'current-password');
-  }}
-  onChange={(e) => {
-    setPassword(e.target.value);
-    setErrors((prev) => ({ ...prev, password: '', general: '' }));
-  }}
-  className={`block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
-    errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-  } pr-10`}
-/>
+                ref={passwordRef}
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder={messages.enterPassword || 'Enter your password'}
+                onChange={(e) => {
+                  setHasPassword(!!e.target.value);
+                  setErrors((prev) => ({ ...prev, password: '', general: '' }));
+                }}
+                onFocus={() => {
+                  // Helps some browsers/password managers offer suggestions on focus
+                  setTimeout(() => {
+                    const v = passwordRef.current?.value || '';
+                    setHasPassword(!!v);
+                  }, 50);
+                }}
+                className={`block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
+                  errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                } pr-10`}
+              />
 
-              {password.length > 0 && (
+              {hasPassword && (
                 <button
                   type="button"
                   tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={toggleShowPassword}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label="Toggle password visibility"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -203,8 +211,8 @@ export default function SignInPage() {
               )}
             </AnimatePresence>
 
-            {/* ✅ Forgot + Sign up under password (like before) */}
-            <div className="mt-3 flex items-center justify-between">
+            {/* Forgot + Sign up row (like before) */}
+            <div className="flex items-center justify-between mt-3">
               <button
                 type="button"
                 className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
