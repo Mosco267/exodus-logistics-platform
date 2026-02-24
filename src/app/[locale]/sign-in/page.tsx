@@ -59,26 +59,47 @@ export default function SignInPage() {
     if (newErrors.email || newErrors.password) return;
 
     setIsSubmitting(true);
+
     try {
+      const callbackUrl = `/${locale}/dashboard`;
+
       const res = await signIn('credentials', {
         email,
         password,
         redirect: false,
+        callbackUrl,
       });
 
-      if (!res || res.error) {
+      if (!res) {
+        setErrors({
+          email: '',
+          password: '',
+          general: 'No response from server. Please try again.',
+        });
+        return;
+      }
+
+      if (res.error) {
         setErrors({ email: '', password: '', general: 'Invalid email or password.' });
         return;
       }
 
-      router.push(`/${locale}/dashboard`);
+      const nextUrl = res.url || callbackUrl;
+
+      // ✅ App Router sometimes needs refresh to re-render auth-protected layouts
+      router.replace(nextUrl);
+      router.refresh();
+
+      // ✅ fallback if router navigation gets stuck
+      setTimeout(() => {
+        window.location.href = nextUrl;
+      }, 300);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleProviderSignIn = async (provider: 'google' | 'apple') => {
-    // This will only work after you add the provider in NextAuth config + env vars.
     await signIn(provider, { callbackUrl: `/${locale}/dashboard` });
   };
 
@@ -98,8 +119,6 @@ export default function SignInPage() {
           <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>
         )}
 
-        
-
         <form onSubmit={handleSignIn} noValidate className="space-y-5">
           {/* Email */}
           <div>
@@ -112,10 +131,10 @@ export default function SignInPage() {
               type="email"
               value={email}
               placeholder={messages.enterEmail || 'you@example.com'}
-             onChange={(e) => {
-  setEmail(e.target.value);
-  setErrors((prev) => ({ ...prev, email: '', general: '' }));
-}}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((prev) => ({ ...prev, email: '', general: '' }));
+              }}
               className={`mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
                 errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
               } text-gray-700 placeholder-gray-400`}
@@ -147,9 +166,9 @@ export default function SignInPage() {
                 value={password}
                 placeholder={messages.enterPassword}
                 onChange={(e) => {
-  setPassword(e.target.value);
-  setErrors((prev) => ({ ...prev, password: '', general: '' }));
-}}
+                  setPassword(e.target.value);
+                  setErrors((prev) => ({ ...prev, password: '', general: '' }));
+                }}
                 className={`block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
                   errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                 } pr-10`}
@@ -166,6 +185,7 @@ export default function SignInPage() {
                 </button>
               )}
             </div>
+
             <AnimatePresence>
               {errors.password && (
                 <motion.p
@@ -181,25 +201,25 @@ export default function SignInPage() {
           </div>
 
           <div className="flex items-center justify-between">
-  <button
-    type="button"
-    className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
-    onClick={() => router.push(`/${locale}/forgot-password`)}
-  >
-    {messages.forgotPassword || 'Forgot password?'}
-  </button>
+            <button
+              type="button"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
+              onClick={() => router.push(`/${locale}/forgot-password`)}
+            >
+              {messages.forgotPassword || 'Forgot password?'}
+            </button>
 
-  <p className="text-sm text-gray-600">
-    {messages.noAccount || "Don't have an account?"}{' '}
-    <button
-      type="button"
-      className="text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
-      onClick={() => router.push(`/${locale}/signup`)}
-    >
-      {messages.signUp || 'Sign up'}
-    </button>
-  </p>
-</div>
+            <p className="text-sm text-gray-600">
+              {messages.noAccount || "Don't have an account?"}{' '}
+              <button
+                type="button"
+                className="text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
+                onClick={() => router.push(`/${locale}/signup`)}
+              >
+                {messages.signUp || 'Sign up'}
+              </button>
+            </p>
+          </div>
 
           <motion.button
             type="submit"
@@ -213,27 +233,27 @@ export default function SignInPage() {
           </motion.button>
 
           <div className="flex items-center gap-3 my-4">
-  <div className="h-px bg-gray-200 flex-1" />
-  <span className="text-xs text-gray-500">OR</span>
-  <div className="h-px bg-gray-200 flex-1" />
-</div>
+            <div className="h-px bg-gray-200 flex-1" />
+            <span className="text-xs text-gray-500">OR</span>
+            <div className="h-px bg-gray-200 flex-1" />
+          </div>
 
-{/* Google Sign In */}
-<div className="mt-4">
-  <motion.button
-  type="button"
-  whileHover={{ scale: 1.05 }}
-  onClick={() => handleProviderSignIn('google')}
-  className="w-full flex justify-center items-center gap-2 px-4 py-2 
-             border border-gray-300 rounded-lg 
-             font-semibold text-gray-700 
-             shadow-lg transition-all duration-300 
-             cursor-pointer
-             hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:font-bold hover:shadow-2xl"
->
-  Continue with Google
-</motion.button>
-</div>
+          {/* Google Sign In */}
+          <div className="mt-4">
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.05 }}
+              onClick={() => handleProviderSignIn('google')}
+              className="w-full flex justify-center items-center gap-2 px-4 py-2 
+                         border border-gray-300 rounded-lg 
+                         font-semibold text-gray-700 
+                         shadow-lg transition-all duration-300 
+                         cursor-pointer
+                         hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:font-bold hover:shadow-2xl"
+            >
+              Continue with Google
+            </motion.button>
+          </div>
         </form>
       </motion.div>
     </div>
