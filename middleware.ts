@@ -5,7 +5,7 @@ export function middleware(req: NextRequest) {
   const { nextUrl, cookies } = req;
   const pathname = nextUrl.pathname;
 
-  // ✅ Force non-www -> www (ONLY for your real domain)
+  // ✅ Force non-www -> www (only for your domain)
   if (nextUrl.hostname === "goexoduslogistics.com") {
     const url = nextUrl.clone();
     url.hostname = "www.goexoduslogistics.com";
@@ -21,28 +21,27 @@ export function middleware(req: NextRequest) {
   const isDashboard = pathname.startsWith(dashboardPrefix);
   const isSignIn = pathname === signInPath;
 
-  // ✅ NextAuth session cookie names (http + https)
-  const nextAuthToken =
+  // ✅ Support BOTH NextAuth v4 cookie names AND Auth.js v5 cookie names
+  const sessionToken =
     cookies.get("__Secure-next-auth.session-token")?.value ||
-    cookies.get("next-auth.session-token")?.value;
+    cookies.get("next-auth.session-token")?.value ||
+    cookies.get("__Secure-authjs.session-token")?.value ||
+    cookies.get("authjs.session-token")?.value;
 
-  const isLoggedIn = !!nextAuthToken;
+  const isLoggedIn = !!sessionToken;
 
-  // 🔒 Block dashboard if not logged in
   if (isDashboard && !isLoggedIn) {
     return NextResponse.redirect(new URL(signInPath, nextUrl));
   }
 
-  // 🔁 Prevent logged in users from seeing sign-in
   if (isSignIn && isLoggedIn) {
     return NextResponse.redirect(new URL(dashboardPrefix, nextUrl));
   }
 
-  // 🚫 Prevent caching dashboard pages
   if (isDashboard) {
-    const response = NextResponse.next();
-    response.headers.set("Cache-Control", "no-store");
-    return response;
+    const res = NextResponse.next();
+    res.headers.set("Cache-Control", "no-store");
+    return res;
   }
 
   return NextResponse.next();
