@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef, useContext } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 
 import en from '@/messages/en.json';
 import es from '@/messages/es.json';
@@ -17,7 +17,6 @@ import it from '@/messages/it.json';
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const messagesMap: Record<string, any> = { en, es, fr, de, zh, it };
   const messages = messagesMap[locale] || en;
@@ -26,7 +25,6 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
   const emailRef = useRef<HTMLInputElement>(null);
@@ -36,23 +34,10 @@ export default function SignInPage() {
     if (passwordRef.current) {
       const pos = passwordRef.current.selectionStart;
       setShowPassword((v) => !v);
-      setTimeout(() => {
-        passwordRef.current?.setSelectionRange(pos ?? 0, pos ?? 0);
-      }, 0);
+      setTimeout(() => passwordRef.current?.setSelectionRange(pos ?? 0, pos ?? 0), 0);
     } else {
       setShowPassword((v) => !v);
     }
-  };
-
-  const hardNavigate = (url: string) => {
-    // App Router can sometimes get stuck after auth; this forces it.
-    try {
-      router.replace(url);
-      router.refresh();
-    } catch {}
-    setTimeout(() => {
-      window.location.assign(url);
-    }, 250);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -60,61 +45,43 @@ export default function SignInPage() {
 
     let newErrors = { email: '', password: '', general: '' };
 
-    // Email validation
     if (!email) newErrors.email = messages.emailRequired;
     else if (!/^\S+@\S+\.\S+$/.test(email)) newErrors.email = messages.invalidEmail;
 
-    // Password validation
     if (!password) newErrors.password = messages.passwordRequired;
 
     setErrors(newErrors);
     if (newErrors.email || newErrors.password) return;
 
     setIsSubmitting(true);
-
     try {
-      // Use NextAuth callbackUrl if present, otherwise go dashboard.
-      // (NextAuth sometimes passes callbackUrl in query string)
-      const qsCallback = searchParams?.get('callbackUrl') || '';
-      const callbackUrl =
-        qsCallback.trim() ||
-        `/${locale}/dashboard`;
-
       const res = await signIn('credentials', {
-        email,
+        email: email.trim().toLowerCase(),
         password,
         redirect: false,
-        callbackUrl,
       });
 
-      if (!res) {
-        setErrors({
-          email: '',
-          password: '',
-          general: 'No response from server. Please try again.',
-        });
-        return;
-      }
-
-      if (res.error) {
+      if (!res || res.error) {
         setErrors({ email: '', password: '', general: 'Invalid email or password.' });
         return;
       }
 
-      // ✅ Get session so we can route by role
-      const sessRes = await fetch('/api/auth/session', { cache: 'no-store' });
-      const sess = await sessRes.json().catch(() => null);
+      // ✅ Get session to route user/admin correctly
+      const sess = await getSession();
+      const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
-      const role = String(sess?.user?.role || 'USER').toUpperCase();
+      const nextUrl =
+        role === 'ADMIN'
+          ? `/${locale}/dashboard/admin/users`
+          : `/${locale}/dashboard`;
 
-      if (role === 'ADMIN') {
-        hardNavigate(`/${locale}/dashboard/admin/users`);
-        return;
-      }
+      router.replace(nextUrl);
+      router.refresh();
 
-      // Normal user: prefer NextAuth returned URL, else callbackUrl.
-      const nextUrl = res.url || callbackUrl || `/${locale}/dashboard`;
-      hardNavigate(nextUrl);
+      // fallback for Safari/iOS weirdness
+      setTimeout(() => {
+        window.location.href = nextUrl;
+      }, 200);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,22 +108,6 @@ export default function SignInPage() {
         )}
 
         <form onSubmit={handleSignIn} noValidate className="space-y-5">
-          {/* ✅ Autofill trap (helps stop browser auto-filling visible fields) */}
-          <input
-            type="text"
-            name="username"
-            autoComplete="username"
-            tabIndex={-1}
-            className="hidden"
-          />
-          <input
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            tabIndex={-1}
-            className="hidden"
-          />
-
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -165,9 +116,10 @@ export default function SignInPage() {
             <input
               ref={emailRef}
               id="email"
-              name="email-real"
+              name="email"
               type="email"
-              autoComplete="off"
+              autoComplete="username"
+              inputMode="email"
               value={email}
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={(e) => {
@@ -201,9 +153,9 @@ export default function SignInPage() {
               <input
                 ref={passwordRef}
                 id="password"
-                name="password-real"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
-                autoComplete="off"
+                autoComplete="current-password"
                 value={password}
                 placeholder={messages.enterPassword}
                 onChange={(e) => {
@@ -241,27 +193,6 @@ export default function SignInPage() {
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
-              onClick={() => router.push(`/${locale}/forgot-password`)}
-            >
-              {messages.forgotPassword || 'Forgot password?'}
-            </button>
-
-            <p className="text-sm text-gray-600">
-              {messages.noAccount || "Don't have an account?"}{' '}
-              <button
-                type="button"
-                className="text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
-                onClick={() => router.push(`/${locale}/signup`)}
-              >
-                {messages.signUp || 'Sign up'}
-              </button>
-            </p>
-          </div>
-
           <motion.button
             type="submit"
             whileHover={{ scale: 1.05 }}
@@ -279,16 +210,15 @@ export default function SignInPage() {
             <div className="h-px bg-gray-200 flex-1" />
           </div>
 
-          {/* Google Sign In */}
           <div className="mt-4">
             <motion.button
               type="button"
               whileHover={{ scale: 1.05 }}
               onClick={() => handleProviderSignIn('google')}
-              className="w-full flex justify-center items-center gap-2 px-4 py-2
-                         border border-gray-300 rounded-lg
-                         font-semibold text-gray-700
-                         shadow-lg transition-all duration-300
+              className="w-full flex justify-center items-center gap-2 px-4 py-2 
+                         border border-gray-300 rounded-lg 
+                         font-semibold text-gray-700 
+                         shadow-lg transition-all duration-300 
                          cursor-pointer
                          hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:font-bold hover:shadow-2xl"
             >
