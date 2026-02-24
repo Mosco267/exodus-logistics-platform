@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useContext } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
@@ -17,6 +17,7 @@ import it from '@/messages/it.json';
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const messagesMap: Record<string, any> = { en, es, fr, de, zh, it };
   const messages = messagesMap[locale] || en;
@@ -43,6 +44,17 @@ export default function SignInPage() {
     }
   };
 
+  const hardNavigate = (url: string) => {
+    // App Router can sometimes get stuck after auth; this forces it.
+    try {
+      router.replace(url);
+      router.refresh();
+    } catch {}
+    setTimeout(() => {
+      window.location.assign(url);
+    }, 250);
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -61,7 +73,12 @@ export default function SignInPage() {
     setIsSubmitting(true);
 
     try {
-      const callbackUrl = `/${locale}/dashboard`;
+      // Use NextAuth callbackUrl if present, otherwise go dashboard.
+      // (NextAuth sometimes passes callbackUrl in query string)
+      const qsCallback = searchParams?.get('callbackUrl') || '';
+      const callbackUrl =
+        qsCallback.trim() ||
+        `/${locale}/dashboard`;
 
       const res = await signIn('credentials', {
         email,
@@ -84,16 +101,20 @@ export default function SignInPage() {
         return;
       }
 
-      const nextUrl = res.url || callbackUrl;
+      // ✅ Get session so we can route by role
+      const sessRes = await fetch('/api/auth/session', { cache: 'no-store' });
+      const sess = await sessRes.json().catch(() => null);
 
-      // ✅ App Router sometimes needs refresh to re-render auth-protected layouts
-      router.replace(nextUrl);
-      router.refresh();
+      const role = String(sess?.user?.role || 'USER').toUpperCase();
 
-      // ✅ fallback if router navigation gets stuck
-      setTimeout(() => {
-        window.location.href = nextUrl;
-      }, 300);
+      if (role === 'ADMIN') {
+        hardNavigate(`/${locale}/dashboard/admin/users`);
+        return;
+      }
+
+      // Normal user: prefer NextAuth returned URL, else callbackUrl.
+      const nextUrl = res.url || callbackUrl || `/${locale}/dashboard`;
+      hardNavigate(nextUrl);
     } finally {
       setIsSubmitting(false);
     }
@@ -120,6 +141,22 @@ export default function SignInPage() {
         )}
 
         <form onSubmit={handleSignIn} noValidate className="space-y-5">
+          {/* ✅ Autofill trap (helps stop browser auto-filling visible fields) */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            tabIndex={-1}
+            className="hidden"
+          />
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            tabIndex={-1}
+            className="hidden"
+          />
+
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -128,7 +165,9 @@ export default function SignInPage() {
             <input
               ref={emailRef}
               id="email"
+              name="email-real"
               type="email"
+              autoComplete="off"
               value={email}
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={(e) => {
@@ -162,7 +201,9 @@ export default function SignInPage() {
               <input
                 ref={passwordRef}
                 id="password"
+                name="password-real"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="off"
                 value={password}
                 placeholder={messages.enterPassword}
                 onChange={(e) => {
@@ -244,10 +285,10 @@ export default function SignInPage() {
               type="button"
               whileHover={{ scale: 1.05 }}
               onClick={() => handleProviderSignIn('google')}
-              className="w-full flex justify-center items-center gap-2 px-4 py-2 
-                         border border-gray-300 rounded-lg 
-                         font-semibold text-gray-700 
-                         shadow-lg transition-all duration-300 
+              className="w-full flex justify-center items-center gap-2 px-4 py-2
+                         border border-gray-300 rounded-lg
+                         font-semibold text-gray-700
+                         shadow-lg transition-all duration-300
                          cursor-pointer
                          hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:font-bold hover:shadow-2xl"
             >
