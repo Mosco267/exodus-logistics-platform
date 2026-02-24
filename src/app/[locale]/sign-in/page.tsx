@@ -34,7 +34,9 @@ export default function SignInPage() {
     if (passwordRef.current) {
       const pos = passwordRef.current.selectionStart;
       setShowPassword((v) => !v);
-      setTimeout(() => passwordRef.current?.setSelectionRange(pos ?? 0, pos ?? 0), 0);
+      setTimeout(() => {
+        passwordRef.current?.setSelectionRange(pos ?? 0, pos ?? 0);
+      }, 0);
     } else {
       setShowPassword((v) => !v);
     }
@@ -43,10 +45,12 @@ export default function SignInPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const cleanEmail = email.trim().toLowerCase();
+
     let newErrors = { email: '', password: '', general: '' };
 
-    if (!email) newErrors.email = messages.emailRequired;
-    else if (!/^\S+@\S+\.\S+$/.test(email)) newErrors.email = messages.invalidEmail;
+    if (!cleanEmail) newErrors.email = messages.emailRequired;
+    else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) newErrors.email = messages.invalidEmail;
 
     if (!password) newErrors.password = messages.passwordRequired;
 
@@ -56,7 +60,7 @@ export default function SignInPage() {
     setIsSubmitting(true);
     try {
       const res = await signIn('credentials', {
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password,
         redirect: false,
       });
@@ -66,7 +70,7 @@ export default function SignInPage() {
         return;
       }
 
-      // ✅ Get session to route user/admin correctly
+      // ✅ read role from session and route correctly
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
@@ -78,7 +82,7 @@ export default function SignInPage() {
       router.replace(nextUrl);
       router.refresh();
 
-      // fallback for Safari/iOS weirdness
+      // fallback (Safari/iOS)
       setTimeout(() => {
         window.location.href = nextUrl;
       }, 200);
@@ -119,7 +123,6 @@ export default function SignInPage() {
               name="email"
               type="email"
               autoComplete="username"
-              inputMode="email"
               value={email}
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={(e) => {
@@ -195,9 +198,9 @@ export default function SignInPage() {
 
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.02 }}
             disabled={isSubmitting}
-            className={`w-full flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-2xl hover:font-bold hover:bg-blue-700 transition-all duration-300 cursor-pointer ${
+            className={`w-full flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer ${
               isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
@@ -213,14 +216,9 @@ export default function SignInPage() {
           <div className="mt-4">
             <motion.button
               type="button"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.02 }}
               onClick={() => handleProviderSignIn('google')}
-              className="w-full flex justify-center items-center gap-2 px-4 py-2 
-                         border border-gray-300 rounded-lg 
-                         font-semibold text-gray-700 
-                         shadow-lg transition-all duration-300 
-                         cursor-pointer
-                         hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:font-bold hover:shadow-2xl"
+              className="w-full flex justify-center items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-semibold text-gray-700 shadow-lg transition-all duration-300 cursor-pointer hover:bg-blue-600 hover:text-white hover:border-blue-600"
             >
               Continue with Google
             </motion.button>

@@ -37,10 +37,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const { data: session, status } = useSession();
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false });
-    window.location.replace(`/${locale}/sign-in`);
-  };
+const handleLogout = async () => {
+  // Let NextAuth clear cookies properly
+  await signOut({ callbackUrl: `/${locale}/sign-in` });
+};
 
   const userName = (session?.user?.name || 'User').trim();
   const firstName = useMemo(() => userName.split(' ')[0] || 'User', [userName]);
@@ -280,12 +280,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="border-t my-1 dark:border-gray-800" />
 
                     <button
-                      onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left cursor-pointer
-                                 text-red-600 hover:bg-red-50 dark:hover:bg-white/10"
-                    >
-                      <LogOut size={16} /> Logout
-                    </button>
+  onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
+  className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left cursor-pointer
+             text-red-600 hover:bg-red-50 dark:hover:bg-white/10"
+>
+  <LogOut size={16} /> Logout
+</button>
                   </div>
                 )}
               </div>
