@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendBanEmail } from "@/lib/emails";
+import { sendBanEmail } from "@/lib/email";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });

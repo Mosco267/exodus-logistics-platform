@@ -2,25 +2,21 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-/**
- * ✅ Your custom domain
- * This is the URL your app will live on (after domain is active + linked on Vercel).
- */
+// ✅ Your app URL (use env first, fallback to your domain, fallback to vercel)
 const APP_URL =
+  process.env.PUBLIC_APP_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  "https://exoduslogisticsltd.com"; // ✅ custom domain
+  "https://goexoduslogistics.com";
 
-/**
- * ✅ Your official support email
- */
+// ✅ Support email (use env first)
 const SUPPORT_EMAIL =
-  process.env.SUPPORT_EMAIL || "support@exoduslogisticsltd.com";
+  process.env.SUPPORT_EMAIL || "support@goexoduslogistics.com";
 
-/**
- * ✅ Your official FROM email (will work after Resend domain verification)
- */
+// ✅ FROM (IMPORTANT):
+// - Before Resend domain verification: must use onboarding@resend.dev (or another verified sender)
+// - After verification: set RESEND_FROM to "Exodus Logistics <support@goexoduslogistics.com>"
 const FROM_EMAIL =
-  process.env.FROM_EMAIL || "Exodus Logistics <support@exoduslogisticsltd.com>";
+  process.env.RESEND_FROM || "Exodus Logistics <onboarding@resend.dev>";
 
 const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || SUPPORT_EMAIL;
 
@@ -40,16 +36,13 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
   const safeName = escapeHtml(name);
   const safeTo = escapeHtml(to);
 
-  // ✅ When your domain is active, this will load from:
-  // https://exoduslogisticsltd.com/logo.png
-  const logoUrl = `${APP_URL.replace(/\/$/, "")}/logo.png`;
+  const baseUrl = APP_URL.replace(/\/$/, "");
+  const logoUrl = `${baseUrl}/logo.png`;
 
   const supportLink = `mailto:${SUPPORT_EMAIL}?subject=Account%20Review%20Request`;
   const year = new Date().getFullYear();
-
   const subject = "Exodus Logistics: Account access removed";
 
-  // Clean white email, centered logo, professional spacing
   const html = `<!doctype html>
 <html>
   <head>
@@ -123,7 +116,7 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
 </html>`;
 
   return resend.emails.send({
-    from: FROM_EMAIL, // ✅ custom domain sender
+    from: FROM_EMAIL,
     to,
     subject,
     replyTo: REPLY_TO_EMAIL,
