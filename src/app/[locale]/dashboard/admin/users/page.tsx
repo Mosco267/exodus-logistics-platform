@@ -220,9 +220,11 @@ export default function AdminUsersPage() {
                                 {/* ✅ Delete user */}
                                <button
   onClick={() => {
-    setOpenMenu(null);
+  setOpenMenu(null);
+  if (confirm("Delete this user permanently? This action cannot be undone.")) {
     deleteUser(u.id);
-  }}
+  }
+}}
   className="w-full text-left px-4 py-3 text-sm font-semibold hover:bg-red-50 dark:hover:bg-white/10 cursor-pointer"
   role="menuitem"
 >

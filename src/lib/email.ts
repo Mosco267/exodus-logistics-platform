@@ -18,6 +18,7 @@ function esc(s: string) {
     .replace(/'/g, "&#039;");
 }
 
+/** Existing: ban email */
 export async function sendBanEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
@@ -48,6 +49,51 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
     bodyHtml,
     calloutHtml:
       "If you believe this was a mistake, you can request a review by contacting support.",
+    button: { text: "Contact support", href: SUPPORT_URL },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+  });
+}
+
+/** NEW: deletion email */
+export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string }) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = (opts?.name || "Customer").trim();
+  const safeTo = esc(to);
+
+  const subject = "Exodus Logistics: Account deleted";
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      This email confirms that the Exodus Logistics account associated with
+      <strong>${safeTo}</strong> has been deleted by an administrator.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      If you believe this was done in error, please contact support for assistance.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Account deleted",
+    preheader: "Your account has been deleted. Contact support if you believe this was a mistake.",
+    bodyHtml,
+    calloutHtml: "If you believe this was a mistake, contact support and we will review it.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,

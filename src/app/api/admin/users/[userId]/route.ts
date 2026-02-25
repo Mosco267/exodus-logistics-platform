@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
+import { sendDeletedByAdminEmail } from "@/lib/email";
 
 export async function DELETE(_req: Request, ctx: any) {
   try {
@@ -37,9 +38,11 @@ export async function DELETE(_req: Request, ctx: any) {
     }
 
     const email = String((user as any)?.email || "").toLowerCase().trim();
+    const name = String((user as any)?.name || "").trim();
 
     const del = await db.collection("users").deleteOne({ _id: new ObjectId(raw) });
 
+    // Keep blocking email logic
     if (email) {
       await db.collection("blocked_emails").updateOne(
         { email },
@@ -48,10 +51,25 @@ export async function DELETE(_req: Request, ctx: any) {
       );
     }
 
+    // ✅ Send "account deleted" email (do NOT fail the delete if email fails)
+    let emailSent = false;
+    let emailError: string | null = null;
+
+    if (email) {
+      try {
+        await sendDeletedByAdminEmail(email, { name: name || undefined });
+        emailSent = true;
+      } catch (e: any) {
+        emailError = e?.message || "Email failed";
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       deletedCount: del.deletedCount,
       emailBlocked: !!email,
+      emailSent,
+      emailError,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
