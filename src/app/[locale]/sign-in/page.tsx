@@ -14,6 +14,9 @@ import de from '@/messages/de.json';
 import zh from '@/messages/zh.json';
 import it from '@/messages/it.json';
 
+const REMEMBER_KEY = 'exodus_remember_email';
+const REMEMBER_EMAIL_KEY = 'exodus_saved_email';
+
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
@@ -21,7 +24,7 @@ export default function SignInPage() {
   const messagesMap: Record<string, any> = { en, es, fr, de, zh, it };
   const messages = messagesMap[locale] || en;
 
-  // We do NOT control the inputs with React values (so browser autofill works properly).
+  // Uncontrolled inputs (browser autofill friendly)
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -29,17 +32,30 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
-  // Only used to decide when to show the eye icon (doesn't control password value)
   const [hasPassword, setHasPassword] = useState(false);
 
-  // If the browser autofills email on load, sync it into UI behaviors (optional)
+  // ✅ Remember me (email only)
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Restore saved email on load (if remember me was checked)
   useEffect(() => {
+    try {
+      const remembered = localStorage.getItem(REMEMBER_KEY) === '1';
+      const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
+
+      setRememberMe(remembered);
+
+      if (remembered && savedEmail && emailRef.current) {
+        emailRef.current.value = savedEmail;
+      }
+    } catch {
+      // ignore (privacy mode / blocked storage)
+    }
+
+    // sync password visibility icon if browser filled it
     const t = setTimeout(() => {
-      const emailVal = emailRef.current?.value || '';
       const passVal = passwordRef.current?.value || '';
       if (passVal) setHasPassword(true);
-      // no state needed for email since we read from ref on submit
-      void emailVal;
     }, 250);
 
     return () => clearTimeout(t);
@@ -49,9 +65,7 @@ export default function SignInPage() {
     if (!passwordRef.current) return;
     const pos = passwordRef.current.selectionStart ?? 0;
     setShowPassword((v) => !v);
-    setTimeout(() => {
-      passwordRef.current?.setSelectionRange(pos, pos);
-    }, 0);
+    setTimeout(() => passwordRef.current?.setSelectionRange(pos, pos), 0);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -70,6 +84,19 @@ export default function SignInPage() {
     setErrors(newErrors);
     if (newErrors.email || newErrors.password) return;
 
+    // ✅ Save/clear remembered email before redirect
+    try {
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_KEY, '1');
+        localStorage.setItem(REMEMBER_EMAIL_KEY, rawEmail);
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
+        localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      }
+    } catch {
+      // ignore
+    }
+
     setIsSubmitting(true);
     try {
       const res = await signIn('credentials', {
@@ -86,10 +113,7 @@ export default function SignInPage() {
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
 
-      const nextUrl =
-        role === 'ADMIN'
-          ? `/${locale}/dashboard/admin/users`
-          : `/${locale}/dashboard`;
+      const nextUrl = role === 'ADMIN' ? `/${locale}/dashboard/admin/users` : `/${locale}/dashboard`;
 
       router.replace(nextUrl);
       router.refresh();
@@ -173,7 +197,6 @@ export default function SignInPage() {
                   setErrors((prev) => ({ ...prev, password: '', general: '' }));
                 }}
                 onFocus={() => {
-                  // Helps some browsers/password managers offer suggestions on focus
                   setTimeout(() => {
                     const v = passwordRef.current?.value || '';
                     setHasPassword(!!v);
@@ -211,8 +234,18 @@ export default function SignInPage() {
               )}
             </AnimatePresence>
 
-            {/* Forgot + Sign up row (like before) */}
+            {/* ✅ Remember me + Forgot row */}
             <div className="flex items-center justify-between mt-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                {messages.rememberMe || 'Remember me'}
+              </label>
+
               <button
                 type="button"
                 className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
@@ -220,8 +253,11 @@ export default function SignInPage() {
               >
                 {messages.forgotPassword || 'Forgot password?'}
               </button>
+            </div>
 
-              <p className="text-sm text-gray-600">
+            {/* Sign up row */}
+            <div className="mt-3">
+              <p className="text-sm text-gray-600 text-right">
                 {messages.noAccount || "Don't have an account?"}{' '}
                 <button
                   type="button"
