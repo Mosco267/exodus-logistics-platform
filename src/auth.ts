@@ -25,7 +25,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.collection("users").findOne({ email });
         if (!user) return null;
 
-        const ok = await bcrypt.compare(password, String(user.passwordHash || ""));
+        const hash = String((user as any).passwordHash || (user as any).password || "");
+const ok = await bcrypt.compare(password, hash);
         if (!ok) return null;
 
         // ✅ IMPORTANT: include role here
