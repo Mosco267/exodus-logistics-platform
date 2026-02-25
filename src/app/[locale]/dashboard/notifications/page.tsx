@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Notif = {
@@ -16,47 +16,51 @@ type Notif = {
 export default function NotificationsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const locale = (params?.locale as string) || "en";
   const [toast, setToast] = useState<string | null>(null);
 
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
- 
 
+  // confirm modal state
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // ✅ details modal (opened when coming from bell with ?open=<id>)
+  const [openDetails, setOpenDetails] = useState<Notif | null>(null);
+
+  const openId = useMemo(() => {
+    return String(searchParams.get("open") || "").trim();
+  }, [searchParams]);
+
   const loadNotifications = async () => {
     setLoading(true);
-    
 
     try {
       const res = await fetch(`/api/notifications?limit=200`, {
         cache: "no-store",
-        credentials: "include", // ✅ important
+        credentials: "include",
       });
 
-      const text = await res.text(); // ✅ read raw first
+      const text = await res.text();
       let json: any = null;
       try {
         json = JSON.parse(text);
       } catch {
-        // keep json null
+        json = null;
       }
 
       if (!res.ok) {
         setItems([]);
-        
         return;
       }
 
       const list = Array.isArray(json?.notifications) ? json.notifications : [];
       setItems(list);
-
-      
-    } catch (e: any) {
+    } catch {
       setItems([]);
-      
     } finally {
       setLoading(false);
     }
@@ -66,28 +70,41 @@ export default function NotificationsPage() {
     loadNotifications();
   }, []);
 
+  // ✅ if we have ?open=<id>, open the details modal once items are loaded
+  useEffect(() => {
+    if (!openId) {
+      setOpenDetails(null);
+      return;
+    }
+    const found = items.find((x) => String(x._id) === String(openId));
+    if (found) setOpenDetails(found);
+  }, [openId, items]);
+
   const markRead = async (id: string) => {
     await fetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
       cache: "no-store",
-      credentials: "include", // ✅ important
+      credentials: "include",
     });
   };
 
   const openNotif = async (n: Notif) => {
-    setItems((prev) =>
-      prev.map((x) => (x._id === n._id ? { ...x, read: true } : x))
-    );
+    // UI first
+    setItems((prev) => prev.map((x) => (x._id === n._id ? { ...x, read: true } : x)));
 
+    // mark read in DB
     await markRead(String(n._id));
 
     if (n.shipmentId) {
-      router.push(
-        `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`
-      );
+      router.push(`/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`);
+      return;
     }
+
+    // ✅ no shipmentId => open details modal (and set URL open param)
+    setOpenDetails(n);
+    router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`);
   };
 
   const deleteNotif = async (id: string) => {
@@ -97,7 +114,7 @@ export default function NotificationsPage() {
     const res = await fetch(`/api/notifications/${encodeURIComponent(id)}`, {
       method: "DELETE",
       cache: "no-store",
-      credentials: "include", // ✅ important
+      credentials: "include",
     });
 
     if (!res.ok) {
@@ -110,17 +127,32 @@ export default function NotificationsPage() {
     return true;
   };
 
+  const closeDetails = () => {
+    setOpenDetails(null);
+    // remove ?open from URL
+    router.replace(`/${locale}/dashboard/notifications`);
+  };
+
   const confirmDelete = async () => {
     if (!confirmId) return;
     setDeleting(true);
     try {
       const ok = await deleteNotif(confirmId);
-setConfirmId(null);
 
-if (ok) {
-  setToast("Notification has been deleted.");
-  window.setTimeout(() => setToast(null), 2500);
-}
+      // close confirm modal
+      setConfirmId(null);
+
+      // if we were viewing details for this notif, close it + clean url
+      if (openDetails && String(openDetails._id) === String(confirmId)) {
+        closeDetails();
+      } else if (openId && String(openId) === String(confirmId)) {
+        closeDetails();
+      }
+
+      if (ok) {
+        setToast("Notification has been deleted.");
+        window.setTimeout(() => setToast(null), 2500);
+      }
     } finally {
       setDeleting(false);
     }
@@ -131,9 +163,7 @@ if (ok) {
       <div className="rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-md">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Notifications
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Notifications</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               All your shipment and invoice updates.
             </p>
@@ -160,16 +190,10 @@ if (ok) {
           </div>
         </div>
 
-        
-
         {loading ? (
-          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">
-            Loading…
-          </p>
+          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">
-            No notifications yet.
-          </p>
+          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">No notifications yet.</p>
         ) : (
           <div className="mt-2 divide-y divide-gray-100 dark:divide-white/10">
             {items.map((n) => (
@@ -177,9 +201,7 @@ if (ok) {
                 key={String(n._id)}
                 onClick={() => openNotif(n)}
                 className={`p-4 cursor-pointer hover:bg-blue-50/60 dark:hover:bg-white/5 transition ${
-                  n.read
-                    ? ""
-                    : "bg-blue-50/60 dark:bg-blue-500/10 border-l-[6px] border-l-blue-600"
+                  n.read ? "" : "bg-blue-50/60 dark:bg-blue-500/10 border-l-[6px] border-l-blue-600"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -187,7 +209,7 @@ if (ok) {
                     <p className="font-extrabold text-gray-900 dark:text-gray-100">
                       {n.title || "Notification"}
                     </p>
-                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
+                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-200 line-clamp-2">
                       {n.message || ""}
                     </p>
                   </div>
@@ -210,6 +232,52 @@ if (ok) {
         )}
       </div>
 
+      {/* ✅ DETAILS MODAL (for notifications without shipmentId, or when opened from bell) */}
+      {openDetails && (
+        <div className="fixed inset-0 z-[998] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={closeDetails} />
+
+          <div className="relative w-[92%] max-w-lg rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white truncate">
+                  {openDetails.title || "Notification"}
+                </h3>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {openDetails.createdAt ? new Date(openDetails.createdAt).toLocaleString() : ""}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeDetails}
+                className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10
+                           text-xs font-semibold text-gray-700 dark:text-gray-200
+                           hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
+              {openDetails.message || ""}
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmId(String(openDetails._id))}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold
+                           hover:bg-red-700 transition cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ CONFIRM DELETE MODAL */}
       {confirmId && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center">
           <div
@@ -218,9 +286,7 @@ if (ok) {
           />
 
           <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-5">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Delete notification?
-            </h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete notification?</h3>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-4 sm:justify-between">
               <button
@@ -247,7 +313,7 @@ if (ok) {
             </div>
           </div>
         </div>
-     )}
+      )}
 
       {/* ✅ TOAST MESSAGE */}
       {toast && (
@@ -257,7 +323,6 @@ if (ok) {
           </div>
         </div>
       )}
-
-    </div>   
+    </div>
   );
 }
