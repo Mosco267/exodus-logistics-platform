@@ -5,9 +5,16 @@ import { auth } from "@/auth";
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const role = String((session as any)?.user?.role || "");
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+    const who = String((session as any)?.user?.email || "").toLowerCase().trim();
+
+    // ✅ Only ADMIN can send admin notifications
     if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Helpful debug (remove later if you want)
+      return NextResponse.json(
+        { error: "Forbidden", debug: { role, who } },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -18,56 +25,43 @@ export async function POST(req: Request) {
     const title = String(body.title || "").trim();
     const message = String(body.message || "").trim();
 
-    // ✅ optional shipment reference
-    const shipmentIdInput = String(body.shipmentId || "").trim();        // EXS-...
-    const trackingInput = String(body.trackingNumber || "").trim();      // EX...
+    // ✅ shipmentId is OPTIONAL
+    const shipmentIdRaw = body.shipmentId ? String(body.shipmentId).trim() : "";
+    const shipmentId = shipmentIdRaw.length ? shipmentIdRaw : null;
 
     if (!userId && !userEmail) {
-      return NextResponse.json({ error: "userId or userEmail is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "userId or userEmail is required." },
+        { status: 400 }
+      );
     }
+
     if (!title || !message) {
-      return NextResponse.json({ error: "Title and message are required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Title and message are required." },
+        { status: 400 }
+      );
     }
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
-
-    // ✅ Resolve shipmentId if shipmentId or trackingNumber is provided
-    let resolvedShipmentId: string | null = null;
-
-    if (shipmentIdInput || trackingInput) {
-      const shipment = await db.collection("shipments").findOne(
-        shipmentIdInput
-          ? { shipmentId: shipmentIdInput }
-          : { trackingNumber: trackingInput },
-        { projection: { shipmentId: 1 } }
-      );
-
-      if (!shipment) {
-        return NextResponse.json(
-          { error: "Shipment not found. Check shipmentId/trackingNumber." },
-          { status: 404 }
-        );
-      }
-
-      resolvedShipmentId = String((shipment as any).shipmentId || null);
-    }
 
     const doc = {
       userId: userId || null,
       userEmail: userEmail || null,
       title,
       message,
-      shipmentId: resolvedShipmentId, // ✅ only stored if valid
+      shipmentId, // ✅ can be null
       read: false,
       createdAt: new Date(),
+      createdBy: who, // ✅ useful for audit
     };
 
     await db.collection("notifications").insertOne(doc);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
   }
 }
