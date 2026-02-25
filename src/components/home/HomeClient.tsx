@@ -36,6 +36,21 @@ const itemVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
 };
 
+// ✅ Put this hook ABOVE components that need it
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width:${breakpoint}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 function Section({
   id,
   className = '',
@@ -45,13 +60,20 @@ function Section({
   className?: string;
   children: React.ReactNode;
 }) {
+  const isMobile = useIsMobile();
+  const reduceMotion = useReducedMotion();
+
+  // ✅ On mobile: fewer scroll-triggered animations, less “jitter”
+  const viewportOnce = isMobile ? true : false;
+  const viewportAmount = isMobile ? 0.12 : 0.18;
+
   return (
     <section id={id} className={`py-20 md:py-24 ${className}`}>
       <motion.div
         variants={containerVariants}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: false, amount: 0.18 }}
+        initial={reduceMotion ? false : 'hidden'}
+        whileInView={reduceMotion ? undefined : 'show'}
+        viewport={{ once: viewportOnce, amount: viewportAmount }}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
       >
         {children}
@@ -69,11 +91,17 @@ function ClickCard({
   className?: string;
   onClick?: () => void;
 }) {
+  const isMobile = useIsMobile();
+  const reduceMotion = useReducedMotion();
+
+  // ✅ On mobile: disable hover lift (it can feel “laggy”)
+  const whileHover = !isMobile && !reduceMotion ? { y: -4 } : undefined;
+
   return (
     <motion.div
       variants={itemVariants}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.99 }}
+      whileHover={whileHover}
+      whileTap={reduceMotion ? undefined : { scale: 0.99 }}
       transition={{ duration: 0.2 }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
@@ -96,6 +124,7 @@ function ClickCard({
 export default function HomeClient() {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
+  const isMobile = useIsMobile(); // ✅ still useful inside HomeClient
 
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
@@ -112,63 +141,22 @@ export default function HomeClient() {
 
   const nav = (path: string) => router.push(path);
 
-  // Services (navigate instead of popup)
   const services = useMemo(
     () => [
-      {
-        icon: Plane,
-        title: 'Air Freight',
-        short: 'Fast international delivery with priority routing and tracking.',
-        href: '/services/air-freight',
-      },
-      {
-        icon: Ship,
-        title: 'Ocean Freight',
-        short: 'Cost efficient shipping for bulk cargo with customs support.',
-        href: '/services/ocean-freight',
-      },
-      {
-        icon: Truck,
-        title: 'Road Transport',
-        short: 'Reliable last mile delivery with optimized local dispatch.',
-        href: '/services/road-transport',
-      },
-      {
-        icon: Package,
-        title: 'Warehousing',
-        short: 'Secure storage, inventory handling, and fulfillment services.',
-        href: '/services/warehousing',
-      },
+      { icon: Plane, title: 'Air Freight', short: 'Fast international delivery with priority routing and tracking.', href: '/services/air-freight' },
+      { icon: Ship, title: 'Ocean Freight', short: 'Cost efficient shipping for bulk cargo with customs support.', href: '/services/ocean-freight' },
+      { icon: Truck, title: 'Road Transport', short: 'Reliable last mile delivery with optimized local dispatch.', href: '/services/road-transport' },
+      { icon: Package, title: 'Warehousing', short: 'Secure storage, inventory handling, and fulfillment services.', href: '/services/warehousing' },
     ],
     []
   );
 
   const features = useMemo(
     () => [
-      {
-        icon: Globe,
-        title: 'Global Network',
-        short: 'Coverage across key routes with trusted partners worldwide.',
-        href: '/features/global-network',
-      },
-      {
-        icon: Shield,
-        title: 'Fully Insured',
-        short: 'Protection options designed for valuables and sensitive cargo.',
-        href: '/features/insurance',
-      },
-      {
-        icon: Clock,
-        title: 'Real Time Tracking',
-        short: 'Accurate updates with clear milestones and ETA visibility.',
-        href: '/features/tracking',
-      },
-      {
-        icon: Users,
-        title: 'Expert Support',
-        short: 'Dedicated support whenever you need guidance or updates.',
-        href: '/support',
-      },
+      { icon: Globe, title: 'Global Network', short: 'Coverage across key routes with trusted partners worldwide.', href: '/features/global-network' },
+      { icon: Shield, title: 'Fully Insured', short: 'Protection options designed for valuables and sensitive cargo.', href: '/features/insurance' },
+      { icon: Clock, title: 'Real Time Tracking', short: 'Accurate updates with clear milestones and ETA visibility.', href: '/features/tracking' },
+      { icon: Users, title: 'Expert Support', short: 'Dedicated support whenever you need guidance or updates.', href: '/support' },
     ],
     []
   );
@@ -192,7 +180,8 @@ export default function HomeClient() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    // ✅ On mobile: typewriter can feel heavy; disable if you want ultra-smooth
+    if (reduceMotion || isMobile) return;
 
     const current = words[wordIndex];
     const speed = isDeleting ? 40 : 70;
@@ -213,9 +202,8 @@ export default function HomeClient() {
     }, speed);
 
     return () => clearTimeout(t);
-  }, [displayedText, isDeleting, wordIndex, words, reduceMotion]);
+  }, [displayedText, isDeleting, wordIndex, words, reduceMotion, isMobile]);
 
-  // FAQ (bigger writeups, no long dash)
   const faqs = useMemo(
     () => [
       {
@@ -256,7 +244,6 @@ export default function HomeClient() {
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Quote / invoice overrides
   if (showQuoteForm) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
@@ -283,16 +270,13 @@ export default function HomeClient() {
           >
             ← Back to Home
           </button>
-          <div className="text-center text-2xl font-bold text-gray-600">
-            Invoice View Page Coming Soon
-          </div>
+          <div className="text-center text-2xl font-bold text-gray-600">Invoice View Page Coming Soon</div>
         </div>
       </div>
     );
   }
 
   return (
-    // ✅ padding below header (works well even if header is sticky)
     <div className="min-h-screen bg-white pt-12 md:pt-14">
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden text-white">
@@ -300,16 +284,19 @@ export default function HomeClient() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600" />
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
 
-          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
-                <path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
+          {/* ✅ On mobile: remove the SVG grid (helps smooth scroll) */}
+          {!isMobile && (
+            <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+                  <path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+          )}
 
-          {!reduceMotion && (
+          {!reduceMotion && !isMobile && (
             <>
               <motion.div
                 className="absolute -top-10 left-12 w-36 h-36 bg-white/15 rounded-full blur-3xl"
@@ -328,8 +315,8 @@ export default function HomeClient() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-16 pb-16 md:pb-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: 'easeOut' }}
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-sm text-white/95 mb-5">
@@ -342,14 +329,13 @@ export default function HomeClient() {
               </h1>
 
               <p className="mt-4 text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed">
-                Reliable logistics built for businesses and individuals, transparent pricing, live tracking,
-                and delivery you can trust.
+                Reliable logistics built for businesses and individuals, transparent pricing, live tracking, and delivery you can trust.
               </p>
 
               <div className="mt-7 flex flex-col sm:flex-row gap-4">
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={isMobile || reduceMotion ? undefined : { scale: 1.03 }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   onClick={() => nav('/quote')}
                   className="bg-white text-blue-700 px-7 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer"
                 >
@@ -357,8 +343,8 @@ export default function HomeClient() {
                 </motion.button>
 
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={isMobile || reduceMotion ? undefined : { scale: 1.03 }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   onClick={() => nav('/track')}
                   className="bg-transparent text-white px-7 py-3.5 rounded-xl font-semibold border border-white/45 hover:bg-white/10 transition-all cursor-pointer"
                 >
@@ -366,7 +352,6 @@ export default function HomeClient() {
                 </motion.button>
               </div>
 
-              {/* Stats tiles */}
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
                 {stats.map((s) => (
                   <button
@@ -376,16 +361,14 @@ export default function HomeClient() {
                   >
                     <div className="text-xl font-bold">{s.value}</div>
                     <div className="text-xs text-white/90">{s.label}</div>
-                    
                   </button>
                 ))}
               </div>
             </motion.div>
 
-            {/* Right services cards */}
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: 'easeOut', delay: 0.08 }}
               className="hidden lg:block"
             >
@@ -400,7 +383,6 @@ export default function HomeClient() {
                       <s.icon className="w-6 h-6 text-cyan-100" />
                       <div className="mt-2 font-semibold">{s.title}</div>
                       <div className="text-sm text-white/90 mt-1">{s.short}</div>
-                      
                     </button>
                   ))}
                 </div>
@@ -412,11 +394,7 @@ export default function HomeClient() {
 
       {/* Quick Actions */}
       <div className="bg-gray-50">
-        <QuickActions
-          onTrackClick={() => nav('/track')}
-          onInvoiceClick={() => nav('/invoice')}
-          onQuoteClick={() => nav('/quote')}
-        />
+        <QuickActions onTrackClick={() => nav('/track')} onInvoiceClick={() => nav('/invoice')} onQuoteClick={() => nav('/quote')} />
       </div>
 
       {/* ================= FEATURES ================= */}
@@ -438,7 +416,6 @@ export default function HomeClient() {
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
               <p className="mt-2 text-gray-600">{f.short}</p>
-              
             </ClickCard>
           ))}
         </div>
@@ -461,8 +438,6 @@ export default function HomeClient() {
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
               <p className="mt-2 text-gray-600">{s.short}</p>
-              
-              
             </ClickCard>
           ))}
         </div>
@@ -472,9 +447,7 @@ export default function HomeClient() {
       <Section className="bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <motion.div variants={itemVariants}>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-              Global coverage, local precision
-            </h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Global coverage, local precision</h2>
             <p className="text-gray-600 mt-3 max-w-xl">
               We optimize routes using reliable carriers and clear milestones so you always know what happens next.
             </p>
@@ -494,16 +467,16 @@ export default function HomeClient() {
 
             <div className="mt-7 flex gap-3">
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={isMobile || reduceMotion ? undefined : { scale: 1.02 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 onClick={() => nav('/track')}
                 className="px-5 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all font-semibold text-gray-900 cursor-pointer"
               >
                 Track Shipment
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={isMobile || reduceMotion ? undefined : { scale: 1.02 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 onClick={() => nav('/quote')}
                 className="px-5 py-3 rounded-xl bg-cyan-600 text-white shadow hover:bg-cyan-700 transition-all font-semibold cursor-pointer"
               >
@@ -535,7 +508,6 @@ export default function HomeClient() {
                   >
                     <div className="text-sm text-gray-500">{x.label}</div>
                     <div className="font-semibold text-gray-900 mt-1">{x.value}</div>
-                    
                   </button>
                 ))}
               </div>
@@ -544,12 +516,10 @@ export default function HomeClient() {
         </div>
       </Section>
 
-      {/* ================= TESTIMONIALS (added back) ================= */}
+      {/* ================= TESTIMONIALS ================= */}
       <Section className="bg-gray-50">
         <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Trusted by Customers
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trusted by Customers</h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
             Reliable service, clear tracking, and professional support from pickup to delivery.
           </p>
@@ -560,22 +530,19 @@ export default function HomeClient() {
             {
               name: 'Business Client',
               role: 'Ecommerce Operations',
-              text:
-                'The tracking updates were clear and professional. Delivery was on time and support responded quickly when we needed a routing change.',
+              text: 'The tracking updates were clear and professional. Delivery was on time and support responded quickly when we needed a routing change.',
               href: '/testimonials',
             },
             {
               name: 'International Shipper',
               role: 'Personal Cargo',
-              text:
-                'The quote process was simple and the shipment status made sense. I always knew what the next step would be.',
+              text: 'The quote process was simple and the shipment status made sense. I always knew what the next step would be.',
               href: '/testimonials',
             },
             {
               name: 'SMB Owner',
               role: 'Import and Export',
-              text:
-                'Customs guidance helped us avoid delays. Communication was consistent and the delivery confirmation was fast.',
+              text: 'Customs guidance helped us avoid delays. Communication was consistent and the delivery confirmation was fast.',
               href: '/testimonials',
             },
           ].map((t) => (
@@ -590,21 +557,16 @@ export default function HomeClient() {
               <p className="mt-4 text-gray-700 leading-relaxed">{t.text}</p>
               <div className="mt-5 font-semibold text-gray-900">{t.name}</div>
               <div className="text-sm text-gray-500">{t.role}</div>
-              
             </ClickCard>
           ))}
         </div>
       </Section>
 
-      {/* ================= INDUSTRIES (extra section) ================= */}
+      {/* ================= INDUSTRIES ================= */}
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Logistics for Every Industry
-          </h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Designed for speed, safety, and consistent delivery performance.
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Logistics for Every Industry</h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">Designed for speed, safety, and consistent delivery performance.</p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -619,7 +581,6 @@ export default function HomeClient() {
               </div>
               <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
               <div className="mt-2 text-gray-600">{x.text}</div>
-              
             </ClickCard>
           ))}
         </div>
@@ -627,7 +588,7 @@ export default function HomeClient() {
 
       {/* ================= READY TO SHIP ================= */}
       <section className="relative py-24 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 overflow-hidden text-white">
-        {!reduceMotion && (
+        {!reduceMotion && !isMobile && (
           <>
             <motion.div
               className="absolute top-0 left-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"
@@ -644,36 +605,36 @@ export default function HomeClient() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.22 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: isMobile ? true : false, amount: isMobile ? 0.12 : 0.22 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
               Ready to Ship{' '}
               <span className={`${colors[wordIndex]} inline-block min-w-[280px]`}>
-                {displayedText}
+                {isMobile ? words[wordIndex] : displayedText}
                 <span className="border-r-2 border-white/90 ml-1 animate-pulse" />
               </span>
             </h2>
 
             <p className="text-lg md:text-xl max-w-3xl mx-auto mb-4 text-white/95">
-  Ship with solutions built for speed, safety, and consistent delivery performance.
-</p>
+              Ship with solutions built for speed, safety, and consistent delivery performance.
+            </p>
 
-<p className="text-base md:text-lg max-w-3xl mx-auto mb-4 text-white/90 leading-relaxed">
-  We coordinate pickup, routing, and delivery with reliable partners, and we keep every step clear so customers
-  understand exactly what is happening at each stage.
-</p>
+            <p className="text-base md:text-lg max-w-3xl mx-auto mb-4 text-white/90 leading-relaxed">
+              We coordinate pickup, routing, and delivery with reliable partners, and we keep every step clear so customers
+              understand exactly what is happening at each stage.
+            </p>
 
-<p className="text-base md:text-lg max-w-3xl mx-auto mb-8 text-white/90 leading-relaxed">
-  Whether you are sending personal packages or managing business shipments, you get transparent pricing, optional
-  insurance, and tracking updates that stay professional and easy to follow.
-</p>
+            <p className="text-base md:text-lg max-w-3xl mx-auto mb-8 text-white/90 leading-relaxed">
+              Whether you are sending personal packages or managing business shipments, you get transparent pricing, optional
+              insurance, and tracking updates that stay professional and easy to follow.
+            </p>
 
             <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={isMobile || reduceMotion ? undefined : { scale: 1.03 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
               onClick={() => nav('/quote')}
               className="bg-white text-blue-700 px-9 py-4 rounded-full font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer"
             >
@@ -696,11 +657,7 @@ export default function HomeClient() {
           {faqs.map((f, idx) => {
             const isOpen = openFaq === idx;
             return (
-              <ClickCard
-                key={f.q}
-                className="p-5"
-                onClick={() => setOpenFaq(isOpen ? null : idx)}
-              >
+              <ClickCard key={f.q} className="p-5" onClick={() => setOpenFaq(isOpen ? null : idx)}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="font-semibold text-gray-900">{f.q}</div>
                   <motion.div
@@ -722,7 +679,6 @@ export default function HomeClient() {
                       className="mt-3 text-gray-700 leading-relaxed whitespace-pre-line"
                     >
                       {f.a}
-                      
                     </motion.div>
                   )}
                 </AnimatePresence>
