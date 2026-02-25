@@ -293,7 +293,7 @@ export default function HomeClient() {
 
   return (
     // ✅ padding below header (works well even if header is sticky)
-    <div className="min-h-screen bg-white pt-20 md:pt-24">
+    <div className="min-h-screen bg-white pt-14 md:pt-16">
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden text-white">
         <div className="absolute inset-0">
@@ -376,9 +376,7 @@ export default function HomeClient() {
                   >
                     <div className="text-xl font-bold">{s.value}</div>
                     <div className="text-xs text-white/90">{s.label}</div>
-                    <div className="mt-2 text-xs text-white/90 font-semibold">
-                      View details →
-                    </div>
+                    
                   </button>
                 ))}
               </div>
@@ -402,9 +400,7 @@ export default function HomeClient() {
                       <s.icon className="w-6 h-6 text-cyan-100" />
                       <div className="mt-2 font-semibold">{s.title}</div>
                       <div className="text-sm text-white/90 mt-1">{s.short}</div>
-                      <div className="mt-3 text-xs text-white/95 font-semibold">
-                        View details →
-                      </div>
+                      
                     </button>
                   ))}
                 </div>
@@ -442,9 +438,7 @@ export default function HomeClient() {
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
               <p className="mt-2 text-gray-600">{f.short}</p>
-              <div className="mt-4 text-sm text-blue-700 font-semibold">
-                View details →
-              </div>
+              
             </ClickCard>
           ))}
         </div>
@@ -467,9 +461,8 @@ export default function HomeClient() {
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
               <p className="mt-2 text-gray-600">{s.short}</p>
-              <div className="mt-4 text-sm text-blue-700 font-semibold">
-                View details →
-              </div>
+              
+              
             </ClickCard>
           ))}
         </div>
@@ -542,9 +535,7 @@ export default function HomeClient() {
                   >
                     <div className="text-sm text-gray-500">{x.label}</div>
                     <div className="font-semibold text-gray-900 mt-1">{x.value}</div>
-                    <div className="text-xs text-blue-700 mt-2 font-semibold">
-                      View details →
-                    </div>
+                    
                   </button>
                 ))}
               </div>
@@ -599,9 +590,7 @@ export default function HomeClient() {
               <p className="mt-4 text-gray-700 leading-relaxed">{t.text}</p>
               <div className="mt-5 font-semibold text-gray-900">{t.name}</div>
               <div className="text-sm text-gray-500">{t.role}</div>
-              <div className="mt-4 text-sm text-blue-700 font-semibold">
-                View testimonials →
-              </div>
+              
             </ClickCard>
           ))}
         </div>
@@ -630,7 +619,7 @@ export default function HomeClient() {
               </div>
               <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
               <div className="mt-2 text-gray-600">{x.text}</div>
-              <div className="mt-4 text-sm text-blue-700 font-semibold">View details →</div>
+              
             </ClickCard>
           ))}
         </div>
@@ -726,17 +715,7 @@ export default function HomeClient() {
                       className="mt-3 text-gray-700 leading-relaxed whitespace-pre-line"
                     >
                       {f.a}
-                      <div className="mt-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            nav(f.href);
-                          }}
-                          className="text-blue-700 font-semibold hover:text-blue-800 transition cursor-pointer"
-                        >
-                          Go to page →
-                        </button>
-                      </div>
+                      
                     </motion.div>
                   )}
                 </AnimatePresence>
