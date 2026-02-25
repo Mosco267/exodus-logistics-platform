@@ -525,7 +525,9 @@ export default function HomeClient() {
       {/* ================= SERVICES SECTION ================= */}
 <Section className="bg-gradient-to-b from-white to-gray-50">
   <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Services that Scale</h2>
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+  Services that <span className="text-blue-700">Scale</span>
+</h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Flexible options for speed, cost, and security, for individuals and businesses.
     </p>
@@ -557,7 +559,9 @@ export default function HomeClient() {
       {/* ================= NEW: HOW IT WORKS ================= */}
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How Shipping Works</h2>
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+  How Shipping <span className="text-cyan-600">Works</span>
+</h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       A clear process designed to keep every step predictable, professional, and easy to follow.
     </p>
@@ -667,7 +671,9 @@ export default function HomeClient() {
       {/* ================= TESTIMONIALS ================= */}
 <Section className="bg-gradient-to-b from-gray-50 to-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trusted by Customers</h2>
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+  Trusted by <span className="text-orange-600">Customers</span>
+</h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Reliable service, clear tracking, and professional support from pickup to delivery.
     </p>
@@ -707,7 +713,9 @@ export default function HomeClient() {
       {/* ================= INDUSTRIES ================= */}
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Logistics for Every Industry</h2>
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+  Logistics for Every <span className="text-blue-700">Industry</span>
+</h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Designed for speed, safety, and consistent delivery performance.
     </p>
@@ -743,7 +751,9 @@ export default function HomeClient() {
       {/* ================= NEW: TRUST AND COMPLIANCE ================= */}
 <Section className="bg-gradient-to-b from-gray-50 to-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trust, Safety, and Compliance</h2>
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+  Trust, Safety, and <span className="text-cyan-600">Compliance</span>
+</h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Practical controls that help reduce risk and improve shipment confidence.
     </p>
@@ -779,7 +789,9 @@ export default function HomeClient() {
       {/* ================= NEW: LATEST UPDATES ================= */}
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Latest Updates</h2>
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+  Latest <span className="text-blue-700">Updates</span>
+</h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Helpful updates about routes, service improvements, and shipping tips.
     </p>
