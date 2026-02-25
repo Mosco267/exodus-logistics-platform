@@ -20,26 +20,47 @@ export default function NotificationsPage() {
 
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
+  const [debug, setDebug] = useState<string>("");
 
-  // confirm modal state
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const loadNotifications = async () => {
     setLoading(true);
+    setDebug("");
+
     try {
       const res = await fetch(`/api/notifications?limit=200`, {
         cache: "no-store",
+        credentials: "include", // ✅ important
       });
 
-      // if user is not logged in, your route may return 401
+      const text = await res.text(); // ✅ read raw first
+      let json: any = null;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        // keep json null
+      }
+
       if (!res.ok) {
         setItems([]);
+        setDebug(
+          `GET /api/notifications failed: ${res.status} ${res.statusText}\n` +
+            `Response: ${text?.slice(0, 400)}`
+        );
         return;
       }
 
-      const json = await res.json();
-      setItems(Array.isArray(json?.notifications) ? json.notifications : []);
+      const list = Array.isArray(json?.notifications) ? json.notifications : [];
+      setItems(list);
+
+      setDebug(
+        `GET ok (${res.status}). notifications=${list.length}, unread=${json?.unreadCount ?? "?"}`
+      );
+    } catch (e: any) {
+      setItems([]);
+      setDebug(`GET crashed: ${e?.message || String(e)}`);
     } finally {
       setLoading(false);
     }
@@ -55,6 +76,7 @@ export default function NotificationsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
       cache: "no-store",
+      credentials: "include", // ✅ important
     });
   };
 
@@ -73,19 +95,19 @@ export default function NotificationsPage() {
   };
 
   const deleteNotif = async (id: string) => {
-    // optimistic remove
     const snapshot = items;
     setItems((prev) => prev.filter((n) => String(n._id) !== String(id)));
 
-    const res = await fetch(
-      `/api/notifications/${encodeURIComponent(String(id))}`,
-      { method: "DELETE", cache: "no-store" }
-    );
+    const res = await fetch(`/api/notifications/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      cache: "no-store",
+      credentials: "include", // ✅ important
+    });
 
     if (!res.ok) {
-      setItems(snapshot); // rollback
-      const j = await res.json().catch(() => null);
-      alert(j?.error || "Failed to delete notification");
+      setItems(snapshot);
+      const t = await res.text().catch(() => "");
+      alert(`Failed to delete: ${res.status}\n${t?.slice(0, 300)}`);
       return false;
     }
 
@@ -106,7 +128,7 @@ export default function NotificationsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-md">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Notifications
@@ -116,15 +138,31 @@ export default function NotificationsPage() {
             </p>
           </div>
 
-          <Link
-            href={`/${locale}/dashboard`}
-            className="text-sm font-semibold px-4 py-2 border border-gray-300 dark:border-white/20 rounded-xl
-                       text-gray-700 dark:text-gray-300 hover:border-blue-600 hover:text-blue-700
-                       dark:hover:border-cyan-400 dark:hover:text-cyan-300 transition-all duration-200 cursor-pointer"
-          >
-            Back to Dashboard
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={loadNotifications}
+              className="text-sm font-semibold px-4 py-2 border border-gray-300 dark:border-white/20 rounded-xl
+                         text-gray-700 dark:text-gray-300 hover:border-blue-600 hover:text-blue-700
+                         dark:hover:border-cyan-400 dark:hover:text-cyan-300 transition cursor-pointer"
+            >
+              Refresh
+            </button>
+
+            <Link
+              href={`/${locale}/dashboard`}
+              className="text-sm font-semibold px-4 py-2 border border-gray-300 dark:border-white/20 rounded-xl
+                         text-gray-700 dark:text-gray-300 hover:border-blue-600 hover:text-blue-700
+                         dark:hover:border-cyan-400 dark:hover:text-cyan-300 transition cursor-pointer"
+            >
+              Back
+            </Link>
+          </div>
         </div>
+
+        {/* ✅ DEBUG BOX */}
+        <pre className="mb-4 whitespace-pre-wrap rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3 text-xs text-gray-700 dark:text-gray-200">
+{debug || "debug: (waiting)"}
+        </pre>
 
         {loading ? (
           <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">
@@ -135,7 +173,7 @@ export default function NotificationsPage() {
             No notifications yet.
           </p>
         ) : (
-          <div className="mt-6 divide-y divide-gray-100 dark:divide-white/10">
+          <div className="mt-2 divide-y divide-gray-100 dark:divide-white/10">
             {items.map((n) => (
               <div
                 key={String(n._id)}
@@ -185,22 +223,15 @@ export default function NotificationsPage() {
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Delete notification?
             </h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              Are you sure you want to delete this notification?
-            </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-4 sm:justify-between">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={confirmDelete}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl
-                           border-2 border-gray-300 dark:border-white/20
-                           text-gray-800 dark:text-gray-200
-                           hover:border-red-500 hover:text-red-600
-                           hover:bg-red-50 dark:hover:bg-red-500/10
-                           transition-all duration-200 font-semibold cursor-pointer
-                           disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-gray-300 dark:border-white/20
+                           hover:border-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10
+                           transition font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {deleting ? "Deleting…" : "Yes, delete"}
               </button>
@@ -209,10 +240,8 @@ export default function NotificationsPage() {
                 type="button"
                 disabled={deleting}
                 onClick={() => setConfirmId(null)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl
-                           bg-cyan-600 text-white
-                           hover:bg-cyan-700
-                           transition-all duration-200 font-semibold cursor-pointer
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-cyan-600 text-white
+                           hover:bg-cyan-700 transition font-semibold cursor-pointer
                            disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 No, keep it
