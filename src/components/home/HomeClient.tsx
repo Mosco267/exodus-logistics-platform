@@ -489,97 +489,107 @@ export default function HomeClient() {
       </div>
 
       {/* ================= FEATURES ================= */}
-      <Section className="bg-white">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Built for <span className="text-cyan-600">Reliable</span> Delivery
-          </h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Professional operations designed to reduce delays, improve visibility, and protect shipments.
-          </p>
-        </motion.div>
+<Section className="bg-white">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+      Built for <span className="text-cyan-600">Reliable</span> Delivery
+    </h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      Professional operations designed to reduce delays, improve visibility, and protect shipments.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((f) => (
-            <ClickCard key={f.title} onClick={() => nav(f.href)} className="p-6">
-              <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
-                <f.icon className="w-6 h-6 text-cyan-700" />
-              </div>
-              <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
-              <p className="mt-2 text-gray-600">{f.short}</p>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {features.map((f) => (
+      <ClickCard
+        key={f.title}
+        onClick={() => nav(f.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-cyan-200 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-600 via-cyan-500 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-xl bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center">
+            <f.icon className="w-6 h-6 text-cyan-700" />
+          </div>
+          <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
+          <p className="mt-2 text-gray-600 leading-relaxed">{f.short}</p>
+          <div className="mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
+      </ClickCard>
+    ))}
+  </div>
+</Section>
 
       {/* ================= SERVICES SECTION ================= */}
-      <Section className="bg-gray-50">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Services that Scale</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Flexible options for speed, cost, and security, for individuals and businesses.
-          </p>
-        </motion.div>
+<Section className="bg-gradient-to-b from-white to-gray-50">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Services that Scale</h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      Flexible options for speed, cost, and security, for individuals and businesses.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((s) => (
-            <ClickCard key={s.title} onClick={() => nav(s.href)} className="p-6">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                <s.icon className="w-6 h-6 text-blue-700" />
-              </div>
-              <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
-              <p className="mt-2 text-gray-600">{s.short}</p>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {services.map((s) => (
+      <ClickCard
+        key={s.title}
+        onClick={() => nav(s.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-blue-200 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-700 via-cyan-500 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
+            <s.icon className="w-6 h-6 text-blue-700" />
+          </div>
+          <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
+          <p className="mt-2 text-gray-600 leading-relaxed">{s.short}</p>
+          <div className="mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
+      </ClickCard>
+    ))}
+  </div>
+</Section>
 
       {/* ================= NEW: HOW IT WORKS ================= */}
-      <Section className="bg-white">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How Shipping Works</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            A clear process designed to keep every step predictable, professional, and easy to follow.
-          </p>
-        </motion.div>
+<Section className="bg-white">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How Shipping Works</h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      A clear process designed to keep every step predictable, professional, and easy to follow.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[
-            {
-              icon: FileText,
-              title: 'Request a Quote',
-              text: 'Enter route details, weight, and declared value to generate accurate pricing.',
-              href: '/quote',
-            },
-            {
-              icon: ClipboardCheck,
-              title: 'Confirm Shipment',
-              text: 'Confirm pickup details and documentation, then schedule dispatch.',
-              href: '/services',
-            },
-            {
-              icon: Route,
-              title: 'Track Progress',
-              text: 'Follow milestones and ETAs with updates that explain what happens next.',
-              href: '/track',
-            },
-            {
-              icon: ScanLine,
-              title: 'Delivery Confirmation',
-              text: 'Receive delivery confirmation and status history for your records.',
-              href: '/invoice',
-            },
-          ].map((x) => (
-            <ClickCard key={x.title} onClick={() => nav(x.href)} className="p-6">
-              <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center">
-                <x.icon className="w-6 h-6 text-gray-700" />
-              </div>
-              <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-              <div className="mt-2 text-gray-600">{x.text}</div>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    {[
+      { icon: FileText, title: 'Request a Quote', text: 'Enter route details, weight, and declared value to generate accurate pricing.', href: '/quote' },
+      { icon: ClipboardCheck, title: 'Confirm Shipment', text: 'Confirm pickup details and documentation, then schedule dispatch.', href: '/services' },
+      { icon: Route, title: 'Track Progress', text: 'Follow milestones and ETAs with updates that explain what happens next.', href: '/track' },
+      { icon: ScanLine, title: 'Delivery Confirmation', text: 'Receive delivery confirmation and status history for your records.', href: '/invoice' },
+    ].map((x) => (
+      <ClickCard
+        key={x.title}
+        onClick={() => nav(x.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-gray-300 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-cyan-500 via-blue-600 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-xl bg-gray-50 ring-1 ring-gray-200 flex items-center justify-center">
+            <x.icon className="w-6 h-6 text-gray-800" />
+          </div>
+          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
+          <div className="mt-4 text-sm font-medium text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
+      </ClickCard>
+    ))}
+  </div>
+</Section>
 
       {/* ================= COVERAGE ================= */}
       <Section className="bg-white">
@@ -655,176 +665,152 @@ export default function HomeClient() {
       </Section>
 
       {/* ================= TESTIMONIALS ================= */}
-      <Section className="bg-gray-50">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trusted by Customers</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Reliable service, clear tracking, and professional support from pickup to delivery.
-          </p>
-        </motion.div>
+<Section className="bg-gradient-to-b from-gray-50 to-white">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trusted by Customers</h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      Reliable service, clear tracking, and professional support from pickup to delivery.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {[
-            {
-              name: 'Business Client',
-              role: 'Ecommerce Operations',
-              text:
-                'The tracking updates were clear and professional. Delivery was on time and support responded quickly when we needed a routing change.',
-              href: '/testimonials',
-            },
-            {
-              name: 'International Shipper',
-              role: 'Personal Cargo',
-              text:
-                'The quote process was simple and the shipment status made sense. I always knew what the next step would be.',
-              href: '/testimonials',
-            },
-            {
-              name: 'SMB Owner',
-              role: 'Import and Export',
-              text:
-                'Customs guidance helped us avoid delays. Communication was consistent and the delivery confirmation was fast.',
-              href: '/testimonials',
-            },
-          ].map((t) => (
-            <ClickCard key={t.name} onClick={() => nav(t.href)} className="p-6">
-              <div className="flex items-center gap-1 text-orange-500">
-                <Star className="w-4 h-4" />
-                <Star className="w-4 h-4" />
-                <Star className="w-4 h-4" />
-                <Star className="w-4 h-4" />
-                <Star className="w-4 h-4" />
-              </div>
-              <p className="mt-4 text-gray-700 leading-relaxed">{t.text}</p>
-              <div className="mt-5 font-semibold text-gray-900">{t.name}</div>
-              <div className="text-sm text-gray-500">{t.role}</div>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {[
+      { name: 'Business Client', role: 'Ecommerce Operations', text: 'The tracking updates were clear and professional. Delivery was on time and support responded quickly when we needed a routing change.', href: '/testimonials' },
+      { name: 'International Shipper', role: 'Personal Cargo', text: 'The quote process was simple and the shipment status made sense. I always knew what the next step would be.', href: '/testimonials' },
+      { name: 'SMB Owner', role: 'Import and Export', text: 'Customs guidance helped us avoid delays. Communication was consistent and the delivery confirmation was fast.', href: '/testimonials' },
+    ].map((t) => (
+      <ClickCard
+        key={t.name}
+        onClick={() => nav(t.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-orange-200 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-cyan-500 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="flex items-center gap-1 text-orange-500">
+            <Star className="w-4 h-4" />
+            <Star className="w-4 h-4" />
+            <Star className="w-4 h-4" />
+            <Star className="w-4 h-4" />
+            <Star className="w-4 h-4" />
+          </div>
+          <p className="mt-4 text-gray-700 leading-relaxed">{t.text}</p>
+          <div className="mt-5 font-semibold text-gray-900">{t.name}</div>
+          <div className="text-sm text-gray-500">{t.role}</div>
+          <div className="mt-4 text-sm font-medium text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
-
+      </ClickCard>
+    ))}
+  </div>
+</Section>
       {/* ================= INDUSTRIES ================= */}
-      <Section className="bg-white">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Logistics for Every Industry</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Designed for speed, safety, and consistent delivery performance.
-          </p>
-        </motion.div>
+<Section className="bg-white">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Logistics for Every Industry</h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      Designed for speed, safety, and consistent delivery performance.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              icon: Building2,
-              title: 'Business Shipping',
-              text: 'Reliable routing and predictable delivery planning.',
-              href: '/industries/business',
-            },
-            {
-              icon: Boxes,
-              title: 'Ecommerce Fulfillment',
-              text: 'Warehousing support and delivery coordination.',
-              href: '/industries/ecommerce',
-            },
-            {
-              icon: BadgeCheck,
-              title: 'High Value Cargo',
-              text: 'Insurance options and secure handling processes.',
-              href: '/industries/high-value',
-            },
-          ].map((x) => (
-            <ClickCard key={x.title} onClick={() => nav(x.href)} className="p-6">
-              <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center">
-                <x.icon className="w-6 h-6 text-orange-600" />
-              </div>
-              <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-              <div className="mt-2 text-gray-600">{x.text}</div>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {[
+      { icon: Building2, title: 'Business Shipping', text: 'Reliable routing and predictable delivery planning.', href: '/industries/business' },
+      { icon: Boxes, title: 'Ecommerce Fulfillment', text: 'Warehousing support and delivery coordination.', href: '/industries/ecommerce' },
+      { icon: BadgeCheck, title: 'High Value Cargo', text: 'Insurance options and secure handling processes.', href: '/industries/high-value' },
+    ].map((x) => (
+      <ClickCard
+        key={x.title}
+        onClick={() => nav(x.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-orange-200 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-blue-600 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-xl bg-orange-50 ring-1 ring-orange-100 flex items-center justify-center">
+            <x.icon className="w-6 h-6 text-orange-600" />
+          </div>
+          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
+          <div className="mt-4 text-sm font-medium text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
+      </ClickCard>
+    ))}
+  </div>
+</Section>
 
       {/* ================= NEW: TRUST AND COMPLIANCE ================= */}
-      <Section className="bg-gray-50">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trust, Safety, and Compliance</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Practical controls that help reduce risk and improve shipment confidence.
-          </p>
-        </motion.div>
+<Section className="bg-gradient-to-b from-gray-50 to-white">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Trust, Safety, and Compliance</h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      Practical controls that help reduce risk and improve shipment confidence.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              icon: Lock,
-              title: 'Secure Handling',
-              text: 'Standard procedures designed to protect parcels through each stage.',
-              href: '/features/security',
-            },
-            {
-              icon: Shield,
-              title: 'Insurance Options',
-              text: 'Flexible protection based on shipment type and declared value.',
-              href: '/features/insurance',
-            },
-            {
-              icon: BadgeInfo,
-              title: 'Documentation Guidance',
-              text: 'Clear support for common paperwork and clearance requirements.',
-              href: '/services/customs',
-            },
-          ].map((x) => (
-            <ClickCard key={x.title} onClick={() => nav(x.href)} className="p-6">
-              <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center border border-gray-100">
-                <x.icon className="w-6 h-6 text-blue-700" />
-              </div>
-              <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-              <div className="mt-2 text-gray-600">{x.text}</div>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {[
+      { icon: Lock, title: 'Secure Handling', text: 'Standard procedures designed to protect parcels through each stage.', href: '/features/security' },
+      { icon: Shield, title: 'Insurance Options', text: 'Flexible protection based on shipment type and declared value.', href: '/features/insurance' },
+      { icon: BadgeInfo, title: 'Documentation Guidance', text: 'Clear support for common paperwork and clearance requirements.', href: '/services/customs' },
+    ].map((x) => (
+      <ClickCard
+        key={x.title}
+        onClick={() => nav(x.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-blue-200 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-700 via-cyan-500 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
+            <x.icon className="w-6 h-6 text-blue-700" />
+          </div>
+          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
+          <div className="mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
+      </ClickCard>
+    ))}
+  </div>
+</Section>
 
       {/* ================= NEW: LATEST UPDATES ================= */}
-      <Section className="bg-white">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Latest Updates</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Helpful updates about routes, service improvements, and shipping tips.
-          </p>
-        </motion.div>
+<Section className="bg-white">
+  <motion.div variants={itemVariants} className="text-center mb-12">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Latest Updates</h2>
+    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+      Helpful updates about routes, service improvements, and shipping tips.
+    </p>
+  </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              icon: TrendingUp,
-              title: 'Faster status updates',
-              text: 'Improved tracking milestones to make each step easier to understand.',
-              href: '/features/tracking',
-            },
-            {
-              icon: FileText,
-              title: 'Documentation checklist',
-              text: 'A simple checklist that helps reduce mistakes and avoid delays.',
-              href: '/services/customs',
-            },
-            {
-              icon: Package,
-              title: 'Packaging tips',
-              text: 'Best practices to help protect shipments and reduce damage risk.',
-              href: '/support',
-            },
-          ].map((x) => (
-            <ClickCard key={x.title} onClick={() => nav(x.href)} className="p-6">
-              <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center">
-                <x.icon className="w-6 h-6 text-gray-800" />
-              </div>
-              <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-              <div className="mt-2 text-gray-600">{x.text}</div>
-            </ClickCard>
-          ))}
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {[
+      { icon: TrendingUp, title: 'Faster status updates', text: 'Improved tracking milestones to make each step easier to understand.', href: '/features/tracking' },
+      { icon: FileText, title: 'Documentation checklist', text: 'A simple checklist that helps reduce mistakes and avoid delays.', href: '/services/customs' },
+      { icon: Package, title: 'Packaging tips', text: 'Best practices to help protect shipments and reduce damage risk.', href: '/support' },
+    ].map((x) => (
+      <ClickCard
+        key={x.title}
+        onClick={() => nav(x.href)}
+        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-cyan-200 transition-all"
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-cyan-500 via-blue-700 to-transparent opacity-90" />
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-xl bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center">
+            <x.icon className="w-6 h-6 text-cyan-700" />
+          </div>
+          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
+          <div className="mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity">
+            Tap to open
+          </div>
         </div>
-      </Section>
+      </ClickCard>
+    ))}
+  </div>
+</Section>
 
       {/* ================= READY TO SHIP (fixed: mobile + up/down) ================= */}
       <section className="relative py-24 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 overflow-hidden text-white">
