@@ -185,7 +185,7 @@ export default function HomeClient() {
 
   // Ready to ship typewriter
   const words = useMemo(() => ['With Confidence?', 'With Low Cost?', 'With Exodus Logistics?'], []);
-  const colors = useMemo(() => ['text-cyan-200', 'text-orange-300', 'text-white'], []);
+  const colors = useMemo(() => ['text-cyan-200', 'text-orange-500', 'text-white'], []);
 
   const [displayedText, setDisplayedText] = useState('');
   const [wordIndex, setWordIndex] = useState(0);
@@ -658,11 +658,18 @@ export default function HomeClient() {
             </h2>
 
             <p className="text-lg md:text-xl max-w-3xl mx-auto mb-4 text-white/95">
-              Ship with solutions designed for speed, security, and clear communication.
-            </p>
-            <p className="text-base md:text-lg max-w-2xl mx-auto mb-8 text-white/90">
-              From quote to delivery, we keep your shipment protected, tracked, and handled professionally.
-            </p>
+  Ship with solutions built for speed, safety, and consistent delivery performance.
+</p>
+
+<p className="text-base md:text-lg max-w-3xl mx-auto mb-4 text-white/90 leading-relaxed">
+  We coordinate pickup, routing, and delivery with reliable partners, and we keep every step clear so customers
+  understand exactly what is happening at each stage.
+</p>
+
+<p className="text-base md:text-lg max-w-3xl mx-auto mb-8 text-white/90 leading-relaxed">
+  Whether you are sending personal packages or managing business shipments, you get transparent pricing, optional
+  insurance, and tracking updates that stay professional and easy to follow.
+</p>
 
             <motion.button
               whileHover={{ scale: 1.03 }}
