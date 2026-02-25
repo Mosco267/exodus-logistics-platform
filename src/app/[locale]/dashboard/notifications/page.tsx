@@ -20,14 +20,14 @@ export default function NotificationsPage() {
 
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
-  const [debug, setDebug] = useState<string>("");
+ 
 
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const loadNotifications = async () => {
     setLoading(true);
-    setDebug("");
+    
 
     try {
       const res = await fetch(`/api/notifications?limit=200`, {
@@ -45,22 +45,17 @@ export default function NotificationsPage() {
 
       if (!res.ok) {
         setItems([]);
-        setDebug(
-          `GET /api/notifications failed: ${res.status} ${res.statusText}\n` +
-            `Response: ${text?.slice(0, 400)}`
-        );
+        
         return;
       }
 
       const list = Array.isArray(json?.notifications) ? json.notifications : [];
       setItems(list);
 
-      setDebug(
-        `GET ok (${res.status}). notifications=${list.length}, unread=${json?.unreadCount ?? "?"}`
-      );
+      
     } catch (e: any) {
       setItems([]);
-      setDebug(`GET crashed: ${e?.message || String(e)}`);
+      
     } finally {
       setLoading(false);
     }
@@ -159,10 +154,7 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* ✅ DEBUG BOX */}
-        <pre className="mb-4 whitespace-pre-wrap rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3 text-xs text-gray-700 dark:text-gray-200">
-{debug || "debug: (waiting)"}
-        </pre>
+        
 
         {loading ? (
           <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">

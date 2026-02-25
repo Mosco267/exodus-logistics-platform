@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
@@ -37,31 +37,26 @@ export default function NotificationsBell() {
   const [items, setItems] = useState<Notif[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ✅ Put your logged-in user email here (you already have it somewhere in your app)
-  // If you already store it in localStorage/session, keep same way you used before.
-  const email = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return String(localStorage.getItem("userEmail") || "").toLowerCase().trim();
-  }, []);
-
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   const fetchNotifs = async () => {
-    if (!email) return;
-    const res = await fetch(`/api/notifications?email=${encodeURIComponent(email)}&limit=5`, {
-      cache: "no-store",
-    });
-    const json = await res.json();
-    setItems(Array.isArray(json?.notifications) ? json.notifications : []);
-    setUnreadCount(Number(json?.unreadCount || 0));
+    try {
+      const res = await fetch(`/api/notifications?limit=5`, { cache: "no-store" });
+      const json = await res.json();
+
+      setItems(Array.isArray(json?.notifications) ? json.notifications : []);
+      setUnreadCount(Number(json?.unreadCount || 0));
+    } catch {
+      setItems([]);
+      setUnreadCount(0);
+    }
   };
 
   useEffect(() => {
     fetchNotifs();
     const t = window.setInterval(fetchNotifs, 8000); // poll every 8s
     return () => window.clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email]);
+  }, []);
 
   // close on outside click
   useEffect(() => {
@@ -75,26 +70,24 @@ export default function NotificationsBell() {
   }, [open]);
 
   const markRead = async (id: string) => {
-    if (!email) return;
     await fetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, id }),
+      body: JSON.stringify({ id }),
     });
   };
 
   const handleOpen = async () => {
     setOpen((v) => !v);
-    // refresh when opening
-    if (!open) await fetchNotifs();
+    if (!open) await fetchNotifs(); // refresh when opening
   };
 
   const openNotif = async (n: Notif) => {
-    // mark read instantly (UI first)
+    // UI first
     setItems((prev) => prev.map((x) => (x._id === n._id ? { ...x, read: true } : x)));
-    setUnreadCount((c) => Math.max(0, c - 1));
+    setUnreadCount((c) => (n.read ? c : Math.max(0, c - 1)));
 
-    await markRead(n._id);
+    await markRead(String(n._id));
 
     setOpen(false);
 
@@ -107,12 +100,12 @@ export default function NotificationsBell() {
 
   return (
     <div className="relative" ref={boxRef}>
-      {/* ✅ Trigger (cursor pointer + badge auto) */}
-      <div
+      {/* Trigger */}
+      <button
+        type="button"
         onClick={handleOpen}
-        className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer select-none"
+        className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer select-none focus:outline-none focus:ring-0"
         aria-label="Notifications"
-        role="button"
       >
         <Bell className="w-5 h-5 text-gray-700 dark:text-gray-200" />
 
@@ -121,11 +114,11 @@ export default function NotificationsBell() {
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
-      </div>
+      </button>
 
-      {/* ✅ Dropdown */}
+      {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-[360px] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-xl overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-[360px] max-w-[92vw] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-xl overflow-hidden z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10">
             <p className="font-extrabold text-gray-900 dark:text-gray-100">Notifications</p>
 
@@ -144,19 +137,23 @@ export default function NotificationsBell() {
             ) : (
               items.map((n) => (
                 <div
-                  key={n._id}
+                  key={String(n._id)}
                   onClick={() => openNotif(n)}
                   className={`px-4 py-3 border-b border-gray-100 dark:border-white/10 cursor-pointer hover:bg-blue-50/60 dark:hover:bg-white/5 transition ${
-                    n.read
-                      ? ""
-                      : "bg-blue-50/60 dark:bg-blue-500/10 border-l-4 border-l-blue-600" // ✅ thicker blue unread
+                    n.read ? "" : "bg-blue-50/60 dark:bg-blue-500/10 border-l-4 border-l-blue-600"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-bold text-gray-900 dark:text-gray-100">{n.title || "Notification"}</p>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{timeAgo(n.createdAt)}</span>
+                    <p className="font-bold text-gray-900 dark:text-gray-100 truncate">
+                      {n.title || "Notification"}
+                    </p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                      {timeAgo(n.createdAt)}
+                    </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">{n.message || ""}</p>
+                  <p className="mt-1 text-sm text-gray-700 dark:text-gray-200 line-clamp-2">
+                    {n.message || ""}
+                  </p>
                 </div>
               ))
             )}
