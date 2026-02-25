@@ -1,16 +1,36 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { auth } from "@/auth";
 
 const normalize = (s: string) =>
   (s || "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const role = String((session as any)?.user?.role || "USER").toUpperCase();
+  const uid = String((session as any)?.user?.id || "");
+  const email = String((session as any)?.user?.email || "").toLowerCase().trim();
+
+  const filter =
+    role === "ADMIN"
+      ? {}
+      : {
+          $or: [
+            ...(uid ? [{ userId: uid }] : []),
+            ...(email ? [{ userEmail: email }, { email }] : []),
+          ],
+        };
+
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
   const shipments = await db
     .collection("shipments")
-    .find({}, { projection: { status: 1, invoice: 1 } })
+    .find(filter, { projection: { status: 1, invoice: 1 } })
     .toArray();
 
   const total = shipments.length;
@@ -21,8 +41,6 @@ export async function GET() {
   let unclaimed = 0;
 
   let pendingInvoicesCount = 0;
-
-  // ✅ NEW: totals split by currency
   const pendingInvoicesByCurrency: Record<string, number> = {};
 
   for (const s of shipments) {
@@ -36,11 +54,8 @@ export async function GET() {
     const invoice = (s as any)?.invoice || {};
     const paid = Boolean(invoice?.paid);
 
-    const amountRaw = invoice?.amount;
-    const amount = Number(amountRaw ?? 0);
-
-    const currencyRaw = invoice?.currency;
-    const currency = String(currencyRaw || "USD").toUpperCase();
+    const amount = Number(invoice?.amount ?? 0);
+    const currency = String(invoice?.currency || "USD").toUpperCase();
 
     if (!paid && Number.isFinite(amount) && amount > 0) {
       pendingInvoicesCount++;
@@ -49,12 +64,10 @@ export async function GET() {
     }
   }
 
-  // Optional helper for UI ordering
   const pendingInvoicesCurrencies = Object.keys(pendingInvoicesByCurrency).sort(
-  (a, b) =>
-    (pendingInvoicesByCurrency[b] || 0) -
-    (pendingInvoicesByCurrency[a] || 0)
-);
+    (a, b) =>
+      (pendingInvoicesByCurrency[b] || 0) - (pendingInvoicesByCurrency[a] || 0)
+  );
 
   return NextResponse.json({
     total,
