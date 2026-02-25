@@ -52,11 +52,11 @@ export default function NotificationsPage() {
   }, [email]);
 
   const markRead = async (id: string) => {
-    await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, id }),
-    });
+   await fetch("/api/notifications", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ id }),
+});
   };
 
   const openNotif = async (n: Notif) => {
