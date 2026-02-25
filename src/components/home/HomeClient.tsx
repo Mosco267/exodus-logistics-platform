@@ -492,7 +492,7 @@ export default function HomeClient() {
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
     <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-      Built for <span className="text-cyan-600">Reliable</span> Delivery
+      Built for Reliable <span className="text-cyan-600">Delivery</span>
     </h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Professional operations designed to reduce delays, improve visibility, and protect shipments.
@@ -560,7 +560,7 @@ export default function HomeClient() {
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
     <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  How Shipping <span className="text-cyan-600">Works</span>
+  How Shipping Works
 </h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       A clear process designed to keep every step predictable, professional, and easy to follow.
@@ -672,7 +672,7 @@ export default function HomeClient() {
 <Section className="bg-gradient-to-b from-gray-50 to-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
     <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Trusted by <span className="text-orange-600">Customers</span>
+  Trusted by <span className="text-cyan-600">Customers</span>
 </h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Reliable service, clear tracking, and professional support from pickup to delivery.
@@ -714,7 +714,7 @@ export default function HomeClient() {
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
     <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Logistics for Every <span className="text-blue-700">Industry</span>
+  Logistics for Every <span className="text-orange-600">Industry</span>
 </h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Designed for speed, safety, and consistent delivery performance.
@@ -752,7 +752,7 @@ export default function HomeClient() {
 <Section className="bg-gradient-to-b from-gray-50 to-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
     <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Trust, Safety, and <span className="text-cyan-600">Compliance</span>
+  Trust, Safety, and <span className="text-blue-700">Compliance</span>
 </h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Practical controls that help reduce risk and improve shipment confidence.
@@ -790,7 +790,7 @@ export default function HomeClient() {
 <Section className="bg-white">
   <motion.div variants={itemVariants} className="text-center mb-12">
     <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Latest <span className="text-blue-700">Updates</span>
+  Latest <span className="text-cyan-600">Updates</span>
 </h2>
     <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
       Helpful updates about routes, service improvements, and shipping tips.
