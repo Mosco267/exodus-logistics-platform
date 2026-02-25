@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -25,20 +25,19 @@ export default function NotificationsPage() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const email = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return String(localStorage.getItem("userEmail") || "").toLowerCase().trim();
-  }, []);
-
   const loadNotifications = async () => {
-    if (!email) return;
     setLoading(true);
-
     try {
-      const res = await fetch(
-        `/api/notifications?email=${encodeURIComponent(email)}&limit=200`,
-        { cache: "no-store" }
-      );
+      const res = await fetch(`/api/notifications?limit=200`, {
+        cache: "no-store",
+      });
+
+      // if user is not logged in, your route may return 401
+      if (!res.ok) {
+        setItems([]);
+        return;
+      }
+
       const json = await res.json();
       setItems(Array.isArray(json?.notifications) ? json.notifications : []);
     } finally {
@@ -48,38 +47,39 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     loadNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email]);
+  }, []);
 
   const markRead = async (id: string) => {
-   await fetch("/api/notifications", {
-  method: "PATCH",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ id }),
-});
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+      cache: "no-store",
+    });
   };
 
   const openNotif = async (n: Notif) => {
     setItems((prev) =>
       prev.map((x) => (x._id === n._id ? { ...x, read: true } : x))
     );
+
     await markRead(String(n._id));
 
     if (n.shipmentId) {
-      router.push(`/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`);
+      router.push(
+        `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`
+      );
     }
   };
 
   const deleteNotif = async (id: string) => {
-    if (!email) return;
-
     // optimistic remove
     const snapshot = items;
     setItems((prev) => prev.filter((n) => String(n._id) !== String(id)));
 
     const res = await fetch(
-      `/api/notifications/${encodeURIComponent(String(id))}?email=${encodeURIComponent(email)}`,
-      { method: "DELETE" }
+      `/api/notifications/${encodeURIComponent(String(id))}`,
+      { method: "DELETE", cache: "no-store" }
     );
 
     if (!res.ok) {
@@ -97,7 +97,7 @@ export default function NotificationsPage() {
     setDeleting(true);
     try {
       await deleteNotif(confirmId);
-      setConfirmId(null); // ✅ close modal (DO NOT use n here)
+      setConfirmId(null);
     } finally {
       setDeleting(false);
     }
@@ -107,7 +107,6 @@ export default function NotificationsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-md">
         <div className="flex items-center justify-between mb-6">
-          {/* Left */}
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Notifications
@@ -117,7 +116,6 @@ export default function NotificationsPage() {
             </p>
           </div>
 
-          {/* Right */}
           <Link
             href={`/${locale}/dashboard`}
             className="text-sm font-semibold px-4 py-2 border border-gray-300 dark:border-white/20 rounded-xl
@@ -129,9 +127,13 @@ export default function NotificationsPage() {
         </div>
 
         {loading ? (
-          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">Loading…</p>
+          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">
+            Loading…
+          </p>
         ) : items.length === 0 ? (
-          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">No notifications yet.</p>
+          <p className="mt-6 text-sm text-gray-600 dark:text-gray-300">
+            No notifications yet.
+          </p>
         ) : (
           <div className="mt-6 divide-y divide-gray-100 dark:divide-white/10">
             {items.map((n) => (
@@ -139,7 +141,9 @@ export default function NotificationsPage() {
                 key={String(n._id)}
                 onClick={() => openNotif(n)}
                 className={`p-4 cursor-pointer hover:bg-blue-50/60 dark:hover:bg-white/5 transition ${
-                  n.read ? "" : "bg-blue-50/60 dark:bg-blue-500/10 border-l-[6px] border-l-blue-600"
+                  n.read
+                    ? ""
+                    : "bg-blue-50/60 dark:bg-blue-500/10 border-l-[6px] border-l-blue-600"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -170,7 +174,6 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* Confirm Delete Modal (like logout) */}
       {confirmId && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center">
           <div
@@ -187,7 +190,6 @@ export default function NotificationsPage() {
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-4 sm:justify-between">
-              {/* YES */}
               <button
                 type="button"
                 disabled={deleting}
@@ -203,7 +205,6 @@ export default function NotificationsPage() {
                 {deleting ? "Deleting…" : "Yes, delete"}
               </button>
 
-              {/* NO */}
               <button
                 type="button"
                 disabled={deleting}
