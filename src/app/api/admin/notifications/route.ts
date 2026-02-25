@@ -2,31 +2,12 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 
-function isAdminSession(session: any) {
-  const role = String(session?.user?.role || "").toUpperCase();
-  const email = String(session?.user?.email || "").toLowerCase().trim();
-
-  // optional: add your email here (or put in .env as ADMIN_EMAILS)
-  const allowed = String(process.env.ADMIN_EMAILS || "")
-    .toLowerCase()
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  return role === "ADMIN" || (email && allowed.includes(email));
-}
-
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!isAdminSession(session)) {
-      return NextResponse.json(
-        { error: "Forbidden", role: (session as any)?.user?.role || null },
-        { status: 403 }
-      );
+    const role = String((session as any)?.user?.role || "");
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -37,8 +18,9 @@ export async function POST(req: Request) {
     const title = String(body.title || "").trim();
     const message = String(body.message || "").trim();
 
-    // ✅ shipmentId is OPTIONAL
-    let shipmentId = body.shipmentId ? String(body.shipmentId).trim() : "";
+    // ✅ optional shipment reference
+    const shipmentIdInput = String(body.shipmentId || "").trim();        // EXS-...
+    const trackingInput = String(body.trackingNumber || "").trim();      // EX...
 
     if (!userId && !userEmail) {
       return NextResponse.json({ error: "userId or userEmail is required." }, { status: 400 });
@@ -50,27 +32,38 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // ✅ If admin typed a tracking number, convert to shipmentId (but only if shipmentId was provided)
-    const looksLikeShipmentId = /^EXS-\d{6}-[A-Z0-9]{6}$/i.test(shipmentId);
-    const looksLikeTracking = /^EX\d{2}[A-Z]{2}\d{7}[A-Z]$/i.test(shipmentId);
+    // ✅ Resolve shipmentId if shipmentId or trackingNumber is provided
+    let resolvedShipmentId: string | null = null;
 
-    if (shipmentId && (!looksLikeShipmentId || looksLikeTracking)) {
-      const byTracking = await db.collection("shipments").findOne(
-        { trackingNumber: shipmentId },
+    if (shipmentIdInput || trackingInput) {
+      const shipment = await db.collection("shipments").findOne(
+        shipmentIdInput
+          ? { shipmentId: shipmentIdInput }
+          : { trackingNumber: trackingInput },
         { projection: { shipmentId: 1 } }
       );
-      if (byTracking?.shipmentId) shipmentId = String((byTracking as any).shipmentId);
+
+      if (!shipment) {
+        return NextResponse.json(
+          { error: "Shipment not found. Check shipmentId/trackingNumber." },
+          { status: 404 }
+        );
+      }
+
+      resolvedShipmentId = String((shipment as any).shipmentId || null);
     }
 
-    await db.collection("notifications").insertOne({
+    const doc = {
       userId: userId || null,
       userEmail: userEmail || null,
       title,
       message,
-      shipmentId: shipmentId || null, // ✅ null when not provided
+      shipmentId: resolvedShipmentId, // ✅ only stored if valid
       read: false,
       createdAt: new Date(),
-    });
+    };
+
+    await db.collection("notifications").insertOne(doc);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

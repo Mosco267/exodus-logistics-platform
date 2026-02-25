@@ -54,7 +54,7 @@ export default function NotificationsBell() {
 
   useEffect(() => {
     fetchNotifs();
-    const t = window.setInterval(fetchNotifs, 8000); // poll every 8s
+    const t = window.setInterval(fetchNotifs, 8000);
     return () => window.clearInterval(t);
   }, []);
 
@@ -79,7 +79,7 @@ export default function NotificationsBell() {
 
   const handleOpen = async () => {
     setOpen((v) => !v);
-    if (!open) await fetchNotifs(); // refresh when opening
+    if (!open) await fetchNotifs();
   };
 
   const openNotif = async (n: Notif) => {
@@ -94,7 +94,8 @@ export default function NotificationsBell() {
     if (n.shipmentId) {
       router.push(`/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`);
     } else {
-      router.push(`/${locale}/dashboard/notifications`);
+      // ✅ If no shipmentId, still clickable: open details on notifications page
+      router.push(`/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`);
     }
   };
 
