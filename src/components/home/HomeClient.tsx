@@ -293,7 +293,7 @@ export default function HomeClient() {
 
   return (
     // ✅ padding below header (works well even if header is sticky)
-    <div className="min-h-screen bg-white pt-14 md:pt-16">
+    <div className="min-h-screen bg-white pt-12 md:pt-14">
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden text-white">
         <div className="absolute inset-0">
