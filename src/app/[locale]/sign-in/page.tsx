@@ -132,12 +132,12 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-10">
+    <div className="min-h-screen flex items-start sm:items-center justify-center bg-gray-50 px-4 pt-24 pb-10">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.45 }}
-        className="max-w-md w-full bg-white p-7 sm:p-8 rounded-2xl shadow-2xl border border-gray-100"
+        className="max-w-md w-full bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100"
       >
         <h2 className="text-3xl font-bold text-gray-900 text-center mb-6 flex items-center justify-center gap-2">
           <LogIn className="w-6 h-6 text-blue-600" /> {messages.signIn}
@@ -161,7 +161,7 @@ export default function SignInPage() {
               autoComplete="email"
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={() => setErrors((prev) => ({ ...prev, email: '', general: '' }))}
-              className={`mt-1 block w-full px-4 py-2.5 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
+              className={`mt-1 block w-full px-4 py-2.5 sm:py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
                 errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
               } text-gray-800 placeholder-gray-400`}
             />
@@ -203,7 +203,7 @@ export default function SignInPage() {
                     setHasPassword(!!v);
                   }, 50);
                 }}
-                className={`block w-full px-4 py-2.5 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
+                className={`block w-full px-4 py-2.5 sm:py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
                   errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                 } pr-11 text-gray-800 placeholder-gray-400`}
               />
@@ -236,7 +236,7 @@ export default function SignInPage() {
             </AnimatePresence>
 
             {/* Remember + Forgot (fixed checkbox focus + better layout + mobile friendly) */}
-            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mt-4 flex items-center justify-between">
               <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -258,7 +258,7 @@ export default function SignInPage() {
             </div>
 
             {/* Sign up row (more spacing, centered like your mobile screenshot needs) */}
-            <div className="mt-5 text-center">
+            <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 {messages.noAccount || "Don't have an account?"}{' '}
                 <button
