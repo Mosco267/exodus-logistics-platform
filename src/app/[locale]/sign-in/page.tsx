@@ -161,7 +161,7 @@ export default function SignInPage() {
               autoComplete="email"
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={() => setErrors((prev) => ({ ...prev, email: '', general: '' }))}
-              className={`mt-1 block w-full px-4 py-2.5 sm:py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
+              className={`mt-1 block w-full h-12 px-4 py-2.5 sm:py-3 text-base border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
                 errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
               } text-gray-800 placeholder-gray-400`}
             />
@@ -203,7 +203,7 @@ export default function SignInPage() {
                     setHasPassword(!!v);
                   }, 50);
                 }}
-                className={`block w-full px-4 py-2.5 sm:py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
+                className={`block w-full h-12 px-4 py-2.5 sm:py-3 text-base border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
                   errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                 } pr-11 text-gray-800 placeholder-gray-400`}
               />
