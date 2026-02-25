@@ -14,8 +14,10 @@ import de from '@/messages/de.json';
 import zh from '@/messages/zh.json';
 import it from '@/messages/it.json';
 
-const REMEMBER_KEY = 'exodus_remember_email';
-const REMEMBER_EMAIL_KEY = 'exodus_saved_email';
+// ✅ IMPORTANT: For security, we only “remember” the email.
+// Storing passwords in localStorage is not safe. Password autofill should be handled by the browser password manager.
+const REMEMBER_ENABLED_KEY = 'exodus_remember_enabled';
+const REMEMBER_EMAIL_KEY = 'exodus_remember_email';
 
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
@@ -34,25 +36,24 @@ export default function SignInPage() {
 
   const [hasPassword, setHasPassword] = useState(false);
 
-  // ✅ Remember me (email only)
+  // Remember me (email only)
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Restore saved email on load (if remember me was checked)
   useEffect(() => {
+    // Restore saved email on load (if remember me was checked)
     try {
-      const remembered = localStorage.getItem(REMEMBER_KEY) === '1';
+      const enabled = localStorage.getItem(REMEMBER_ENABLED_KEY) === '1';
       const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
+      setRememberMe(enabled);
 
-      setRememberMe(remembered);
-
-      if (remembered && savedEmail && emailRef.current) {
+      if (enabled && savedEmail && emailRef.current) {
         emailRef.current.value = savedEmail;
       }
     } catch {
-      // ignore (privacy mode / blocked storage)
+      // ignore
     }
 
-    // sync password visibility icon if browser filled it
+    // Sync password icon if browser autofilled it
     const t = setTimeout(() => {
       const passVal = passwordRef.current?.value || '';
       if (passVal) setHasPassword(true);
@@ -74,7 +75,7 @@ export default function SignInPage() {
     const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
     const rawPassword = passwordRef.current?.value || '';
 
-    let newErrors = { email: '', password: '', general: '' };
+    const newErrors = { email: '', password: '', general: '' };
 
     if (!rawEmail) newErrors.email = messages.emailRequired;
     else if (!/^\S+@\S+\.\S+$/.test(rawEmail)) newErrors.email = messages.invalidEmail;
@@ -84,13 +85,13 @@ export default function SignInPage() {
     setErrors(newErrors);
     if (newErrors.email || newErrors.password) return;
 
-    // ✅ Save/clear remembered email before redirect
+    // Save/clear remembered email before redirect
     try {
       if (rememberMe) {
-        localStorage.setItem(REMEMBER_KEY, '1');
+        localStorage.setItem(REMEMBER_ENABLED_KEY, '1');
         localStorage.setItem(REMEMBER_EMAIL_KEY, rawEmail);
       } else {
-        localStorage.removeItem(REMEMBER_KEY);
+        localStorage.removeItem(REMEMBER_ENABLED_KEY);
         localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     } catch {
@@ -131,23 +132,25 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-10">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full bg-white p-8 rounded-2xl shadow-2xl"
+        transition={{ duration: 0.45 }}
+        className="max-w-md w-full bg-white p-7 sm:p-8 rounded-2xl shadow-2xl border border-gray-100"
       >
-        <h2 className="text-3xl font-bold text-gray-800 text-center mb-6 flex items-center justify-center gap-2">
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-6 flex items-center justify-center gap-2">
           <LogIn className="w-6 h-6 text-blue-600" /> {messages.signIn}
         </h2>
 
-        {errors.general && <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>}
+        {errors.general && (
+          <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>
+        )}
 
         <form onSubmit={handleSignIn} noValidate className="space-y-5">
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
               {messages.emailAddress}
             </label>
             <input
@@ -158,9 +161,9 @@ export default function SignInPage() {
               autoComplete="email"
               placeholder={messages.enterEmail || 'you@example.com'}
               onChange={() => setErrors((prev) => ({ ...prev, email: '', general: '' }))}
-              className={`mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
+              className={`mt-1 block w-full px-4 py-2.5 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
                 errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-              } text-gray-700 placeholder-gray-400`}
+              } text-gray-800 placeholder-gray-400`}
             />
             <AnimatePresence>
               {errors.email && (
@@ -178,7 +181,7 @@ export default function SignInPage() {
 
           {/* Password */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
               {messages.password}
             </label>
 
@@ -200,9 +203,9 @@ export default function SignInPage() {
                     setHasPassword(!!v);
                   }, 50);
                 }}
-                className={`block w-full px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
+                className={`block w-full px-4 py-2.5 border rounded-xl shadow-sm focus:outline-none focus:ring-2 ${
                   errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                } pr-10`}
+                } pr-11 text-gray-800 placeholder-gray-400`}
               />
 
               {hasPassword && (
@@ -232,67 +235,68 @@ export default function SignInPage() {
               )}
             </AnimatePresence>
 
-            {/* ✅ Remember me + Forgot row (fixed layout + blue tick) */}
-            <div className="mt-3 flex items-center justify-between">
+            {/* Remember + Forgot (fixed checkbox focus + better layout + mobile friendly) */}
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  // ✅ Fix the ugly blue square border (ring) + make tick blue
+                  className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:outline-none focus:ring-0 focus:ring-offset-0"
                 />
-                <span>{messages.rememberMe || 'Remember me'}</span>
+                <span className="leading-none">{messages.rememberMe || 'Remember me'}</span>
               </label>
 
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                className="text-sm text-blue-600 hover:text-blue-700 font-semibold cursor-pointer text-left sm:text-right"
                 onClick={() => router.push(`/${locale}/forgot-password`)}
               >
                 {messages.forgotPassword || 'Forgot password?'}
               </button>
             </div>
 
-            {/* ✅ Sign up line (clean + centered) */}
-            <p className="mt-4 text-sm text-gray-600 text-center">
-              {messages.noAccount || "Don't have an account?"}{' '}
-              <button
-                type="button"
-                className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
-                onClick={() => router.push(`/${locale}/signup`)}
-              >
-                {messages.signUp || 'Sign up'}
-              </button>
-            </p>
+            {/* Sign up row (more spacing, centered like your mobile screenshot needs) */}
+            <div className="mt-5 text-center">
+              <p className="text-sm text-gray-600">
+                {messages.noAccount || "Don't have an account?"}{' '}
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
+                  onClick={() => router.push(`/${locale}/signup`)}
+                >
+                  {messages.signUp || 'Sign up'}
+                </button>
+              </p>
+            </div>
           </div>
 
           <motion.button
             type="submit"
             whileHover={{ scale: 1.02 }}
             disabled={isSubmitting}
-            className={`w-full flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer ${
-              isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+            className={`w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 ${
+              isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
             }`}
           >
             {isSubmitting ? 'Signing in...' : messages.signIn}
           </motion.button>
 
-          <div className="flex items-center gap-3 my-4">
+          <div className="flex items-center gap-3 my-5">
             <div className="h-px bg-gray-200 flex-1" />
             <span className="text-xs text-gray-500">OR</span>
             <div className="h-px bg-gray-200 flex-1" />
           </div>
 
-          <div className="mt-4">
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              onClick={() => handleProviderSignIn('google')}
-              className="w-full flex justify-center items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-semibold text-gray-700 shadow-lg transition-all duration-300 cursor-pointer hover:bg-blue-600 hover:text-white hover:border-blue-600"
-            >
-              Continue with Google
-            </motion.button>
-          </div>
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            onClick={() => handleProviderSignIn('google')}
+            className="w-full flex justify-center items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-xl font-semibold text-gray-800 shadow-sm transition-all duration-300 cursor-pointer hover:bg-blue-600 hover:text-white hover:border-blue-600"
+          >
+            Continue with Google
+          </motion.button>
         </form>
       </motion.div>
     </div>
