@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, Variants, useReducedMotion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   Globe,
   Shield,
@@ -13,11 +14,13 @@ import {
   Truck,
   MapPin,
   Headphones,
-  BadgeCheck,
   ArrowUp,
   CheckCircle2,
   ChevronDown,
-  X,
+  Star,
+  Building2,
+  Boxes,
+  BadgeCheck,
 } from 'lucide-react';
 
 import QuickActions from '@/components/QuickActions';
@@ -90,73 +93,8 @@ function ClickCard({
   );
 }
 
-function Modal({
-  open,
-  title,
-  body,
-  onClose,
-}: {
-  open: boolean;
-  title: string;
-  body: string;
-  onClose: () => void;
-}) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            className="fixed inset-0 z-[80] bg-black/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <motion.div
-            className="fixed inset-0 z-[90] flex items-center justify-center p-4"
-            initial={{ opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 14, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
-              <div className="flex items-start justify-between gap-4 p-5 border-b border-gray-100">
-                <div>
-                  <div className="text-lg font-bold text-gray-900">{title}</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    Details and guidance to help you understand exactly how this works.
-                  </div>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                  aria-label="Close"
-                >
-                  <X className="w-5 h-5 text-gray-700" />
-                </button>
-              </div>
-
-              <div className="p-5 text-gray-700 leading-relaxed whitespace-pre-line">
-                {body}
-              </div>
-
-              <div className="p-5 border-t border-gray-100 flex justify-end">
-                <button
-                  onClick={onClose}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
 export default function HomeClient() {
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
 
   const [showQuoteForm, setShowQuoteForm] = useState(false);
@@ -170,82 +108,36 @@ export default function HomeClient() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalBody, setModalBody] = useState('');
+  const nav = (path: string) => router.push(path);
 
-  const openModal = (title: string, body: string) => {
-    setModalTitle(title);
-    setModalBody(body);
-    setModalOpen(true);
-  };
-
-  // Services + long writeups
+  // Services (navigate instead of popup)
   const services = useMemo(
     () => [
       {
         icon: Plane,
         title: 'Air Freight',
         short: 'Fast international delivery with priority routing and tracking.',
-        long:
-          `Air freight is ideal when speed matters.\n\n` +
-          `What you get:\n` +
-          `• Priority routing on time sensitive lanes\n` +
-          `• Clear tracking steps with updates you can understand\n` +
-          `• Support for documentation and export requirements\n\n` +
-          `Best for:\n` +
-          `Urgent parcels, medical supplies, electronics, documents, and high value items.\n\n` +
-          `How we keep it professional:\n` +
-          `We reduce delays by planning the best route and validating details before dispatch, then we keep you informed from pickup to delivery.`,
+        href: '/services/air-freight',
       },
       {
         icon: Ship,
         title: 'Ocean Freight',
         short: 'Cost efficient shipping for bulk cargo with customs support.',
-        long:
-          `Ocean freight is best when you want lower cost for larger shipments.\n\n` +
-          `What you get:\n` +
-          `• Full container and less than container options\n` +
-          `• Guidance on customs documentation and compliance\n` +
-          `• Milestone updates so you always know the next step\n\n` +
-          `Best for:\n` +
-          `Bulk goods, commercial cargo, and planned shipments with flexible timelines.\n\n` +
-          `How we keep it professional:\n` +
-          `We focus on predictable schedules, correct paperwork, and clear communication so your cargo moves smoothly.`,
+        href: '/services/ocean-freight',
       },
       {
         icon: Truck,
         title: 'Road Transport',
         short: 'Reliable last mile delivery with optimized local dispatch.',
-        long:
-          `Road transport connects your shipment from hubs to final delivery.\n\n` +
-          `What you get:\n` +
-          `• Local dispatch and last mile coordination\n` +
-          `• Fast response on address validation and delivery windows\n` +
-          `• Delivery confirmation and support if anything changes\n\n` +
-          `Best for:\n` +
-          `City deliveries, regional distribution, and time window deliveries.\n\n` +
-          `How we keep it professional:\n` +
-          `We confirm addresses early and provide status updates that reduce missed deliveries.`,
+        href: '/services/road-transport',
       },
       {
         icon: Package,
         title: 'Warehousing',
         short: 'Secure storage, inventory handling, and fulfillment services.',
-        long:
-          `Warehousing helps you store, organize, and fulfill orders efficiently.\n\n` +
-          `What you get:\n` +
-          `• Secure storage and controlled handling\n` +
-          `• Inventory processing and order preparation\n` +
-          `• Fulfillment support that scales with your business\n\n` +
-          `Best for:\n` +
-          `Online businesses, seasonal demand, and bulk receiving.\n\n` +
-          `How we keep it professional:\n` +
-          `We prioritize accuracy, security, and consistent processes so your inventory stays reliable.`,
+        href: '/services/warehousing',
       },
     ],
     []
@@ -256,38 +148,26 @@ export default function HomeClient() {
       {
         icon: Globe,
         title: 'Global Network',
-        short: 'Coverage across major routes with trusted partners worldwide.',
-        long:
-          `Our network is built to move shipments across major lanes reliably.\n\n` +
-          `We combine proven carrier options with route planning so your shipment avoids unnecessary delays.\n\n` +
-          `You also get clearer status updates, better visibility, and support when you need changes or guidance.`,
+        short: 'Coverage across key routes with trusted partners worldwide.',
+        href: '/features/global-network',
       },
       {
         icon: Shield,
         title: 'Fully Insured',
         short: 'Protection options designed for valuables and sensitive cargo.',
-        long:
-          `Insurance gives confidence when shipping valuable items.\n\n` +
-          `We support coverage options based on declared value and shipment type.\n\n` +
-          `If you have special cargo requirements, we help you select the best protection approach.`,
+        href: '/features/insurance',
       },
       {
         icon: Clock,
-        title: 'Real time Tracking',
-        short: 'Accurate updates with clear status steps and ETA visibility.',
-        long:
-          `Tracking should feel professional, not confusing.\n\n` +
-          `We structure updates as clear milestones so customers understand what happens next.\n\n` +
-          `If a step changes, you can see the reason and the next action immediately.`,
+        title: 'Real Time Tracking',
+        short: 'Accurate updates with clear milestones and ETA visibility.',
+        href: '/features/tracking',
       },
       {
         icon: Users,
         title: 'Expert Support',
-        short: 'Dedicated help whenever you need guidance or updates.',
-        long:
-          `Support matters most when something changes.\n\n` +
-          `We provide help with routing questions, tracking issues, documentation, and delivery coordination.\n\n` +
-          `You get fast replies and solutions, not generic responses.`,
+        short: 'Dedicated support whenever you need guidance or updates.',
+        href: '/support',
       },
     ],
     []
@@ -295,23 +175,17 @@ export default function HomeClient() {
 
   const stats = useMemo(
     () => [
-      { label: 'Countries covered', value: '200+' },
-      { label: 'Delivery focus', value: 'Reliable' },
-      { label: 'Support', value: '24/7' },
-      { label: 'Tracking updates', value: 'Live' },
+      { label: 'Countries covered', value: '200+', href: '/network' },
+      { label: 'Delivery focus', value: 'Reliable', href: '/about' },
+      { label: 'Support', value: '24/7', href: '/support' },
+      { label: 'Tracking updates', value: 'Live', href: '/track' },
     ],
     []
   );
 
-  // Ready to Ship - bring back “older” typewriter vibe
-  const words = useMemo(
-    () => ['With Confidence?', 'With Low Cost?', 'With Exodus Logistics?'],
-    []
-  );
-  const colors = useMemo(
-    () => ['text-cyan-200', 'text-amber-200', 'text-white'],
-    []
-  );
+  // Ready to ship typewriter
+  const words = useMemo(() => ['With Confidence?', 'With Low Cost?', 'With Exodus Logistics?'], []);
+  const colors = useMemo(() => ['text-cyan-200', 'text-orange-300', 'text-white'], []);
 
   const [displayedText, setDisplayedText] = useState('');
   const [wordIndex, setWordIndex] = useState(0);
@@ -341,7 +215,7 @@ export default function HomeClient() {
     return () => clearTimeout(t);
   }, [displayedText, isDeleting, wordIndex, words, reduceMotion]);
 
-  // FAQ accordion (long answers)
+  // FAQ (bigger writeups, no long dash)
   const faqs = useMemo(
     () => [
       {
@@ -349,28 +223,32 @@ export default function HomeClient() {
         a:
           `Go to the Track page and enter your tracking number.\n\n` +
           `You will see a clear timeline of updates that explains the current status and what comes next.\n\n` +
-          `If a delivery step changes, the page shows the reason and the recommended next action so you are never guessing.`,
+          `If a delivery step changes, you will see the reason and the recommended next action.`,
+        href: '/track',
       },
       {
         q: 'Do you handle customs clearance?',
         a:
-          `Yes, we support customs guidance depending on the destination and cargo type.\n\n` +
-          `We help you prepare the right information, reduce mistakes, and avoid unnecessary delays.\n\n` +
-          `If your shipment needs extra documentation, you will be informed early so the process remains smooth.`,
+          `Yes, we support customs guidance depending on destination and cargo type.\n\n` +
+          `We help you prepare the right information early to reduce mistakes and avoid delays.\n\n` +
+          `If extra documentation is required, you will be informed before dispatch.`,
+        href: '/services/customs',
       },
       {
         q: 'Is insurance included?',
         a:
           `We provide insurance options based on declared value and shipment type.\n\n` +
-          `For high value cargo, insurance is strongly recommended because it adds confidence and protection.\n\n` +
-          `If you are unsure, our team can recommend the right coverage level for your shipment.`,
+          `Insurance is recommended for high value cargo because it adds confidence and protection.\n\n` +
+          `If you are unsure, contact support and we will recommend the best option.`,
+        href: '/features/insurance',
       },
       {
         q: 'How do I get a quote?',
         a:
-          `Click Get Quote and fill in origin, destination, weight, and declared value.\n\n` +
+          `Click Get Quote and fill origin, destination, weight, and declared value.\n\n` +
           `Your quote is generated using the configured pricing rules.\n\n` +
-          `If pricing is not available at the moment, the platform will clearly tell you and recommend contacting support for assistance.`,
+          `If pricing is not available at the moment, the platform will clearly recommend contacting support.`,
+        href: '/quote',
       },
     ],
     []
@@ -414,18 +292,14 @@ export default function HomeClient() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Modal */}
-      <Modal open={modalOpen} title={modalTitle} body={modalBody} onClose={() => setModalOpen(false)} />
-
-      {/* ================= HERO (matches header colors) ================= */}
+    // ✅ padding below header (works well even if header is sticky)
+    <div className="min-h-screen bg-white pt-20 md:pt-24">
+      {/* ================= HERO ================= */}
       <section className="relative overflow-hidden text-white">
         <div className="absolute inset-0">
-          {/* Match header: blue -> cyan, with a soft light on the left */}
           <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600" />
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
 
-          {/* subtle grid */}
           <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
@@ -435,7 +309,6 @@ export default function HomeClient() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
 
-          {/* lighter orbs but no heavy scroll parallax = no shaking */}
           {!reduceMotion && (
             <>
               <motion.div
@@ -452,7 +325,7 @@ export default function HomeClient() {
           )}
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 pb-16 md:pb-20">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-16 pb-16 md:pb-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <motion.div
               initial={{ opacity: 0, y: 14 }}
@@ -465,8 +338,7 @@ export default function HomeClient() {
               </div>
 
               <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight drop-shadow-md">
-                Ship Smarter with{' '}
-                <span className="text-cyan-100">Exodus Logistics</span>
+                Ship Smarter with <span className="text-cyan-100">Exodus Logistics</span>
               </h1>
 
               <p className="mt-4 text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed">
@@ -478,7 +350,7 @@ export default function HomeClient() {
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => (window.location.href = '/quote')}
+                  onClick={() => nav('/quote')}
                   className="bg-white text-blue-700 px-7 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer"
                 >
                   Get Instant Quote
@@ -487,36 +359,32 @@ export default function HomeClient() {
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => (window.location.href = '/track')}
+                  onClick={() => nav('/track')}
                   className="bg-transparent text-white px-7 py-3.5 rounded-xl font-semibold border border-white/45 hover:bg-white/10 transition-all cursor-pointer"
                 >
                   Track Shipment
                 </motion.button>
               </div>
 
-              {/* Stats tiles - clickable “bars” */}
+              {/* Stats tiles */}
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
                 {stats.map((s) => (
                   <button
                     key={s.label}
-                    onClick={() =>
-                      openModal(
-                        s.label,
-                        `This metric highlights how Exodus Logistics stays reliable and professional.\n\n` +
-                          `We focus on predictable delivery processes, clear communication, and strong partner coordination.\n\n` +
-                          `If you want a tailored recommendation for your shipment type, use Get Quote or contact support.`
-                      )
-                    }
+                    onClick={() => nav(s.href)}
                     className="text-left rounded-xl bg-white/15 border border-white/20 px-3 py-3 hover:bg-white/20 transition cursor-pointer"
                   >
                     <div className="text-xl font-bold">{s.value}</div>
                     <div className="text-xs text-white/90">{s.label}</div>
+                    <div className="mt-2 text-xs text-white/90 font-semibold">
+                      View details →
+                    </div>
                   </button>
                 ))}
               </div>
             </motion.div>
 
-            {/* right services cards - clickable */}
+            {/* Right services cards */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -528,14 +396,14 @@ export default function HomeClient() {
                   {services.map((s) => (
                     <button
                       key={s.title}
-                      onClick={() => openModal(s.title, s.long)}
+                      onClick={() => nav(s.href)}
                       className="text-left rounded-2xl bg-white/12 border border-white/20 p-4 hover:bg-white/18 transition-all cursor-pointer"
                     >
                       <s.icon className="w-6 h-6 text-cyan-100" />
                       <div className="mt-2 font-semibold">{s.title}</div>
                       <div className="text-sm text-white/90 mt-1">{s.short}</div>
-                      <div className="mt-3 text-xs text-white/90 underline underline-offset-2">
-                        Click to read more
+                      <div className="mt-3 text-xs text-white/95 font-semibold">
+                        View details →
                       </div>
                     </button>
                   ))}
@@ -549,13 +417,13 @@ export default function HomeClient() {
       {/* Quick Actions */}
       <div className="bg-gray-50">
         <QuickActions
-          onTrackClick={() => (window.location.href = '/track')}
-          onInvoiceClick={() => (window.location.href = '/invoice')}
-          onQuoteClick={() => (window.location.href = '/quote')}
+          onTrackClick={() => nav('/track')}
+          onInvoiceClick={() => nav('/invoice')}
+          onQuoteClick={() => nav('/quote')}
         />
       </div>
 
-      {/* ================= FEATURES (clickable) ================= */}
+      {/* ================= FEATURES ================= */}
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
@@ -568,25 +436,21 @@ export default function HomeClient() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((f) => (
-            <ClickCard
-              key={f.title}
-              onClick={() => openModal(f.title, f.long)}
-              className="p-6"
-            >
+            <ClickCard key={f.title} onClick={() => nav(f.href)} className="p-6">
               <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
                 <f.icon className="w-6 h-6 text-cyan-700" />
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
               <p className="mt-2 text-gray-600">{f.short}</p>
               <div className="mt-4 text-sm text-blue-700 font-semibold">
-                Click to read more
+                View details →
               </div>
             </ClickCard>
           ))}
         </div>
       </Section>
 
-      {/* ================= SERVICES SECTION (clickable) ================= */}
+      {/* ================= SERVICES SECTION ================= */}
       <Section className="bg-gray-50">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Services that Scale</h2>
@@ -597,14 +461,14 @@ export default function HomeClient() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((s) => (
-            <ClickCard key={s.title} onClick={() => openModal(s.title, s.long)} className="p-6">
+            <ClickCard key={s.title} onClick={() => nav(s.href)} className="p-6">
               <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
                 <s.icon className="w-6 h-6 text-blue-700" />
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
               <p className="mt-2 text-gray-600">{s.short}</p>
               <div className="mt-4 text-sm text-blue-700 font-semibold">
-                Click to read more
+                View details →
               </div>
             </ClickCard>
           ))}
@@ -639,7 +503,7 @@ export default function HomeClient() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => (window.location.href = '/track')}
+                onClick={() => nav('/track')}
                 className="px-5 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all font-semibold text-gray-900 cursor-pointer"
               >
                 Track Shipment
@@ -647,7 +511,7 @@ export default function HomeClient() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => (window.location.href = '/quote')}
+                onClick={() => nav('/quote')}
                 className="px-5 py-3 rounded-xl bg-cyan-600 text-white shadow hover:bg-cyan-700 transition-all font-semibold cursor-pointer"
               >
                 Get Quote
@@ -661,29 +525,25 @@ export default function HomeClient() {
                 <MapPin className="w-5 h-5 text-cyan-700" />
                 Coverage Highlights
               </div>
+
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {[
-                  { label: 'North America', value: 'Fast lanes' },
-                  { label: 'Europe', value: 'Reliable hubs' },
-                  { label: 'Asia', value: 'Priority routing' },
-                  { label: 'Africa', value: 'Partner network' },
+                  { label: 'North America', value: 'Fast lanes', href: '/network/north-america' },
+                  { label: 'South America', value: 'Growing routes', href: '/network/south-america' },
+                  { label: 'Europe', value: 'Reliable hubs', href: '/network/europe' },
+                  { label: 'Asia', value: 'Priority routing', href: '/network/asia' },
+                  { label: 'Africa', value: 'Partner network', href: '/network/africa' },
+                  { label: 'Australia', value: 'Stable delivery lanes', href: '/network/australia' },
                 ].map((x) => (
                   <button
                     key={x.label}
-                    onClick={() =>
-                      openModal(
-                        x.label,
-                        `Coverage focus: ${x.value}\n\n` +
-                          `We coordinate routes through trusted partners and provide milestone updates that keep shipments predictable.\n\n` +
-                          `If you have a specific destination, use Get Quote for the best route recommendation.`
-                      )
-                    }
+                    onClick={() => nav(x.href)}
                     className="text-left rounded-2xl bg-white p-4 border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all cursor-pointer"
                   >
                     <div className="text-sm text-gray-500">{x.label}</div>
                     <div className="font-semibold text-gray-900 mt-1">{x.value}</div>
                     <div className="text-xs text-blue-700 mt-2 font-semibold">
-                      Click to read more
+                      View details →
                     </div>
                   </button>
                 ))}
@@ -693,7 +553,90 @@ export default function HomeClient() {
         </div>
       </Section>
 
-      {/* ================= READY TO SHIP (old feel, typewriter) ================= */}
+      {/* ================= TESTIMONIALS (added back) ================= */}
+      <Section className="bg-gray-50">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Trusted by Customers
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+            Reliable service, clear tracking, and professional support from pickup to delivery.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {[
+            {
+              name: 'Business Client',
+              role: 'Ecommerce Operations',
+              text:
+                'The tracking updates were clear and professional. Delivery was on time and support responded quickly when we needed a routing change.',
+              href: '/testimonials',
+            },
+            {
+              name: 'International Shipper',
+              role: 'Personal Cargo',
+              text:
+                'The quote process was simple and the shipment status made sense. I always knew what the next step would be.',
+              href: '/testimonials',
+            },
+            {
+              name: 'SMB Owner',
+              role: 'Import and Export',
+              text:
+                'Customs guidance helped us avoid delays. Communication was consistent and the delivery confirmation was fast.',
+              href: '/testimonials',
+            },
+          ].map((t) => (
+            <ClickCard key={t.name} onClick={() => nav(t.href)} className="p-6">
+              <div className="flex items-center gap-1 text-orange-500">
+                <Star className="w-4 h-4" />
+                <Star className="w-4 h-4" />
+                <Star className="w-4 h-4" />
+                <Star className="w-4 h-4" />
+                <Star className="w-4 h-4" />
+              </div>
+              <p className="mt-4 text-gray-700 leading-relaxed">{t.text}</p>
+              <div className="mt-5 font-semibold text-gray-900">{t.name}</div>
+              <div className="text-sm text-gray-500">{t.role}</div>
+              <div className="mt-4 text-sm text-blue-700 font-semibold">
+                View testimonials →
+              </div>
+            </ClickCard>
+          ))}
+        </div>
+      </Section>
+
+      {/* ================= INDUSTRIES (extra section) ================= */}
+      <Section className="bg-white">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Logistics for Every Industry
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
+            Designed for speed, safety, and consistent delivery performance.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { icon: Building2, title: 'Business Shipping', text: 'Reliable routing and predictable delivery planning.', href: '/industries/business' },
+            { icon: Boxes, title: 'Ecommerce Fulfillment', text: 'Warehousing support and delivery coordination.', href: '/industries/ecommerce' },
+            { icon: BadgeCheck, title: 'High Value Cargo', text: 'Insurance options and secure handling processes.', href: '/industries/high-value' },
+          ].map((x) => (
+            <ClickCard key={x.title} onClick={() => nav(x.href)} className="p-6">
+              <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center">
+                <x.icon className="w-6 h-6 text-orange-600" />
+              </div>
+              <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+              <div className="mt-2 text-gray-600">{x.text}</div>
+              <div className="mt-4 text-sm text-blue-700 font-semibold">View details →</div>
+            </ClickCard>
+          ))}
+        </div>
+      </Section>
+
+      {/* ================= READY TO SHIP ================= */}
       <section className="relative py-24 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 overflow-hidden text-white">
         {!reduceMotion && (
           <>
@@ -719,7 +662,7 @@ export default function HomeClient() {
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
               Ready to Ship{' '}
-              <span className={`${colors[wordIndex]} inline-block min-w-[260px]`}>
+              <span className={`${colors[wordIndex]} inline-block min-w-[280px]`}>
                 {displayedText}
                 <span className="border-r-2 border-white/90 ml-1 animate-pulse" />
               </span>
@@ -735,7 +678,7 @@ export default function HomeClient() {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => (window.location.href = '/quote')}
+              onClick={() => nav('/quote')}
               className="bg-white text-blue-700 px-9 py-4 rounded-full font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer"
             >
               Start Your First Shipment
@@ -744,12 +687,12 @@ export default function HomeClient() {
         </div>
       </section>
 
-      {/* ================= FAQ (longer, clickable, no dash) ================= */}
+      {/* ================= FAQ ================= */}
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Frequently Asked Questions</h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Clear answers, written professionally, so customers understand the process.
+            Clear answers written professionally so customers understand the process.
           </p>
         </motion.div>
 
@@ -783,13 +726,20 @@ export default function HomeClient() {
                       className="mt-3 text-gray-700 leading-relaxed whitespace-pre-line"
                     >
                       {f.a}
+                      <div className="mt-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            nav(f.href);
+                          }}
+                          className="text-blue-700 font-semibold hover:text-blue-800 transition cursor-pointer"
+                        >
+                          Go to page →
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                <div className="mt-4 text-sm text-blue-700 font-semibold">
-                  Click to {isOpen ? 'close' : 'read more'}
-                </div>
               </ClickCard>
             );
           })}
