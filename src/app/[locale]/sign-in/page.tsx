@@ -142,9 +142,7 @@ export default function SignInPage() {
           <LogIn className="w-6 h-6 text-blue-600" /> {messages.signIn}
         </h2>
 
-        {errors.general && (
-          <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>
-        )}
+        {errors.general && <p className="text-red-600 text-center mb-4 font-semibold">{errors.general}</p>}
 
         <form onSubmit={handleSignIn} noValidate className="space-y-5">
           {/* Email */}
@@ -234,40 +232,38 @@ export default function SignInPage() {
               )}
             </AnimatePresence>
 
-            {/* ✅ Remember me + Forgot row */}
-            <div className="flex items-center justify-between mt-3">
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+            {/* ✅ Remember me + Forgot row (fixed layout + blue tick) */}
+            <div className="mt-3 flex items-center justify-between">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 />
-                {messages.rememberMe || 'Remember me'}
+                <span>{messages.rememberMe || 'Remember me'}</span>
               </label>
 
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                 onClick={() => router.push(`/${locale}/forgot-password`)}
               >
                 {messages.forgotPassword || 'Forgot password?'}
               </button>
             </div>
 
-            {/* Sign up row */}
-            <div className="mt-3">
-              <p className="text-sm text-gray-600 text-right">
-                {messages.noAccount || "Don't have an account?"}{' '}
-                <button
-                  type="button"
-                  className="text-blue-600 hover:text-blue-700 hover:font-semibold cursor-pointer"
-                  onClick={() => router.push(`/${locale}/signup`)}
-                >
-                  {messages.signUp || 'Sign up'}
-                </button>
-              </p>
-            </div>
+            {/* ✅ Sign up line (clean + centered) */}
+            <p className="mt-4 text-sm text-gray-600 text-center">
+              {messages.noAccount || "Don't have an account?"}{' '}
+              <button
+                type="button"
+                className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
+                onClick={() => router.push(`/${locale}/signup`)}
+              >
+                {messages.signUp || 'Sign up'}
+              </button>
+            </p>
           </div>
 
           <motion.button
