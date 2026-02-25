@@ -7,30 +7,26 @@ const normalize = (s: string) =>
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const role = String((session as any)?.user?.role || "USER").toUpperCase();
-  const uid = String((session as any)?.user?.id || "");
+  const userId = String((session as any)?.user?.id || "");
   const email = String((session as any)?.user?.email || "").toLowerCase().trim();
-
-  const filter =
-    role === "ADMIN"
-      ? {}
-      : {
-          $or: [
-            ...(uid ? [{ userId: uid }] : []),
-            ...(email ? [{ userEmail: email }, { email }] : []),
-          ],
-        };
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
+  const match =
+    role === "ADMIN"
+      ? {}
+      : {
+          $or: [
+            ...(userId ? [{ createdByUserId: userId }] : []),
+            ...(email ? [{ createdByEmail: email }] : []),
+          ],
+        };
+
   const shipments = await db
     .collection("shipments")
-    .find(filter, { projection: { status: 1, invoice: 1 } })
+    .find(match, { projection: { status: 1, invoice: 1 } })
     .toArray();
 
   const total = shipments.length;
@@ -65,8 +61,7 @@ export async function GET() {
   }
 
   const pendingInvoicesCurrencies = Object.keys(pendingInvoicesByCurrency).sort(
-    (a, b) =>
-      (pendingInvoicesByCurrency[b] || 0) - (pendingInvoicesByCurrency[a] || 0)
+    (a, b) => (pendingInvoicesByCurrency[b] || 0) - (pendingInvoicesByCurrency[a] || 0)
   );
 
   return NextResponse.json({

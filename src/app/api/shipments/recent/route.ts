@@ -4,31 +4,26 @@ import { auth } from "@/auth";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const role = String((session as any)?.user?.role || "USER").toUpperCase();
-  const uid = String((session as any)?.user?.id || "");
+  const userId = String((session as any)?.user?.id || "");
   const email = String((session as any)?.user?.email || "").toLowerCase().trim();
-
-  // ✅ ADMIN sees everything; normal users only see their own
-  const filter =
-    role === "ADMIN"
-      ? {}
-      : {
-          $or: [
-            ...(uid ? [{ userId: uid }] : []),
-            ...(email ? [{ userEmail: email }, { email }] : []), // supports either field name
-          ],
-        };
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
+  const match =
+    role === "ADMIN"
+      ? {}
+      : {
+          $or: [
+            ...(userId ? [{ createdByUserId: userId }] : []),
+            ...(email ? [{ createdByEmail: email }] : []),
+          ],
+        };
+
   const results = await db
     .collection("shipments")
-    .find(filter)
+    .find(match)
     .project({
       _id: 0,
       shipmentId: 1,
