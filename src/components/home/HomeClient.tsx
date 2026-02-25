@@ -87,8 +87,8 @@ export default function HomeClient() {
     }
   }, []);
 
-  const fadeStart = heroOffset;
-  const fadeEnd = heroOffset + heroHeight * 1.8;
+  const fadeStart = heroOffset || 0;
+  const fadeEnd = heroOffset + (heroHeight || 800);
 
   const heroOpacity = useTransform(scrollY, [fadeStart, fadeEnd], [1, 0]);
   const heroY = useTransform(scrollY, [fadeStart, fadeEnd], [40, 0]);
@@ -192,7 +192,7 @@ export default function HomeClient() {
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, y: heroY }}
-        className="relative overflow-hidden text-white min-h-screen"
+        className="relative text-white min-h-[100dvh]"
       >
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-600 to-cyan-500"></div>
