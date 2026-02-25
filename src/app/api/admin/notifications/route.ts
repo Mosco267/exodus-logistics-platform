@@ -2,12 +2,31 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 
+function isAdminSession(session: any) {
+  const role = String(session?.user?.role || "").toUpperCase();
+  const email = String(session?.user?.email || "").toLowerCase().trim();
+
+  // optional: add your email here (or put in .env as ADMIN_EMAILS)
+  const allowed = String(process.env.ADMIN_EMAILS || "")
+    .toLowerCase()
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return role === "ADMIN" || (email && allowed.includes(email));
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const role = String((session as any)?.user?.role || "").toUpperCase();
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!isAdminSession(session)) {
+      return NextResponse.json(
+        { error: "Forbidden", role: (session as any)?.user?.role || null },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -18,7 +37,7 @@ export async function POST(req: Request) {
     const title = String(body.title || "").trim();
     const message = String(body.message || "").trim();
 
-    // admin might send shipmentId OR trackingNumber OR random text
+    // ✅ shipmentId is OPTIONAL
     let shipmentId = body.shipmentId ? String(body.shipmentId).trim() : "";
 
     if (!userId && !userEmail) {
@@ -31,8 +50,7 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // ✅ If shipmentId looks like a tracking number (EX26US...) or not like EXS-..., try to convert it
-    // Your real shipmentId format: EXS-YYMMDD-XXXXXX
+    // ✅ If admin typed a tracking number, convert to shipmentId (but only if shipmentId was provided)
     const looksLikeShipmentId = /^EXS-\d{6}-[A-Z0-9]{6}$/i.test(shipmentId);
     const looksLikeTracking = /^EX\d{2}[A-Z]{2}\d{7}[A-Z]$/i.test(shipmentId);
 
@@ -41,24 +59,18 @@ export async function POST(req: Request) {
         { trackingNumber: shipmentId },
         { projection: { shipmentId: 1 } }
       );
-
-      if (byTracking?.shipmentId) {
-        shipmentId = String((byTracking as any).shipmentId);
-      }
-      // if not found, we keep shipmentId as-is (so you can still send general notifications)
+      if (byTracking?.shipmentId) shipmentId = String((byTracking as any).shipmentId);
     }
 
-    const doc = {
+    await db.collection("notifications").insertOne({
       userId: userId || null,
       userEmail: userEmail || null,
       title,
       message,
-      shipmentId: shipmentId || null,
+      shipmentId: shipmentId || null, // ✅ null when not provided
       read: false,
       createdAt: new Date(),
-    };
-
-    await db.collection("notifications").insertOne(doc);
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

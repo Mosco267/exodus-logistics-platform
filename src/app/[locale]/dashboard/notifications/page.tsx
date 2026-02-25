@@ -17,6 +17,7 @@ export default function NotificationsPage() {
   const params = useParams();
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
+  const [toast, setToast] = useState<string | null>(null);
 
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,8 +114,13 @@ export default function NotificationsPage() {
     if (!confirmId) return;
     setDeleting(true);
     try {
-      await deleteNotif(confirmId);
-      setConfirmId(null);
+      const ok = await deleteNotif(confirmId);
+setConfirmId(null);
+
+if (ok) {
+  setToast("Notification has been deleted.");
+  window.setTimeout(() => setToast(null), 2500);
+}
     } finally {
       setDeleting(false);
     }
@@ -241,7 +247,17 @@ export default function NotificationsPage() {
             </div>
           </div>
         </div>
+     )}
+
+      {/* ✅ TOAST MESSAGE */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
+          <div className="px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-semibold shadow-lg">
+            {toast}
+          </div>
+        </div>
       )}
-    </div>
+
+    </div>   
   );
 }
