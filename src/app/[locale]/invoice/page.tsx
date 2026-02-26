@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, Eye, FileText, Package, MapPin, User, Mail } from "lucide-react";
 
@@ -45,6 +45,8 @@ const currencySymbol = (code: string) => {
 
 export default function InvoicePage() {
   const sp = useSearchParams();
+  const params = useParams();
+const locale = (params?.locale as string) || "en";
   const qFromUrl = useMemo(() => String(sp.get("q") || sp.get("tracking") || "").trim(), [sp]);
 
   const [q, setQ] = useState("");
