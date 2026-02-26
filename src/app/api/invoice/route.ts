@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     const breakdownFromDb = inv?.breakdown ?? null;
 
     // Load pricing settings so we can show rates as percentages
-    const pricingDoc = await db.collection("pricing_settings").findOne({ _id: "default" });
+   const pricingDoc = await (db.collection("pricing_settings") as any).findOne({ _id: "default" });
     const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
 
     // Normalize rates in one place for the UI
