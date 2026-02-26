@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, Calendar, Package, Truck } from "lucide-react";
 
@@ -19,8 +19,15 @@ type TrackResponse = {
 };
 
 export default function TrackingPage() {
+  const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
+
   const searchParams = useSearchParams();
-  const qFromUrl = useMemo(() => String(searchParams.get("q") || "").trim(), [searchParams]);
+  const qFromUrl = useMemo(
+    () => String(searchParams.get("q") || searchParams.get("tracking") || "").trim(),
+    [searchParams]
+  );
 
   const [q, setQ] = useState("");
   const [data, setData] = useState<TrackResponse | null>(null);
@@ -28,19 +35,23 @@ export default function TrackingPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (qFromUrl) {
-      setQ(qFromUrl.toUpperCase());
-      // auto run
-      void track(qFromUrl);
-    }
+    if (!qFromUrl) return;
+    const upper = qFromUrl.toUpperCase();
+    setQ(upper);
+    void track(upper, { updateUrl: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qFromUrl]);
 
-  const track = async (value?: string) => {
+  const track = async (value?: string, opts?: { updateUrl?: boolean }) => {
     const query = String(value ?? q).trim();
     if (!query) {
       setError("Enter your Shipment ID or Tracking Number.");
       return;
+    }
+
+    // ✅ keep URL in sync when user searches manually
+    if (opts?.updateUrl !== false) {
+      router.replace(`/${locale}/track?q=${encodeURIComponent(query.toUpperCase())}`);
     }
 
     setLoading(true);
@@ -77,14 +88,15 @@ export default function TrackingPage() {
             Track Your Shipment
           </h1>
           <p className="mt-2 text-gray-600">
-            Enter a <span className="font-semibold">Shipment ID</span> or <span className="font-semibold">Tracking Number</span>.
+            Enter a <span className="font-semibold">Shipment ID</span> or{" "}
+            <span className="font-semibold">Tracking Number</span>.
           </p>
         </div>
 
         <motion.form
           onSubmit={(e) => {
             e.preventDefault();
-            void track();
+            void track(undefined, { updateUrl: true });
           }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -96,7 +108,7 @@ export default function TrackingPage() {
             onChange={(e) => setQ(e.target.value.toUpperCase())}
             placeholder="e.g. EXS-260222-9BC87D or EX-24-US-123456"
             className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-4 text-lg
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 uppercase"
           />
 
           <button
@@ -185,9 +197,7 @@ export default function TrackingPage() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-bold text-gray-900">{s.name}</p>
-                        {active && (
-                          <span className="text-xs font-extrabold text-blue-700">✓</span>
-                        )}
+                        {active && <span className="text-xs font-extrabold text-blue-700">✓</span>}
                       </div>
 
                       {s.details?.length ? (
@@ -206,7 +216,8 @@ export default function TrackingPage() {
 
               <div className="mt-6 text-gray-700 flex items-center">
                 <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                Estimated Delivery: <span className="ml-1 font-semibold">{data.estimatedDelivery}</span>
+                Estimated Delivery:{" "}
+                <span className="ml-1 font-semibold">{data.estimatedDelivery}</span>
               </div>
             </div>
           </motion.div>
