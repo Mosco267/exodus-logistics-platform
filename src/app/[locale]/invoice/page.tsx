@@ -69,13 +69,13 @@ export default function InvoicePage() {
         >
           {/* ✅ FIX: remove the <Number></Number> that caused NaN */}
           <label className="text-sm font-semibold text-gray-700">
-            Shipment ID / Tracking
+            Shipment ID / Tracking Number
           </label>
 
           <input
             value={q}
             onChange={(e) => setQ(e.target.value.toUpperCase())}
-            placeholder="example: EXS-260222-9BC87D or EX24US123456"
+            placeholder="example: EXS-260222-9BC87D or EX24US1234567A"
             className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-4 text-lg
                        focus:outline-none focus:ring-2 focus:ring-blue-500/40
                        uppercase placeholder:normal-case"
