@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
+import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING } from "@/lib/pricing";
 import { sendShipmentStatusEmail, sendInvoiceUpdateEmail } from "@/lib/email";
 
 const normalizeStatus = (status?: string) =>
@@ -18,6 +19,14 @@ function shipmentIdQuery(id: string) {
   return { shipmentId: { $regex: `^${escapeRegex(id)}$`, $options: "i" } };
 }
 
+// ✅ Fix TS errors on _id by typing the collection doc
+type PricingSettings = typeof DEFAULT_PRICING;
+type PricingSettingsDoc = {
+  _id: string; // "default"
+  settings: PricingSettings;
+  updatedAt?: Date;
+};
+
 export async function GET(
   _req: Request,
   context: { params: Promise<{ shipmentId: string }> }
@@ -29,18 +38,9 @@ export async function GET(
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    console.log("🔥 DB NAME USED BY SHIPMENTS ROUTE:", db.databaseName);
-
-const statusCount = await db.collection("statuses").countDocuments();
-console.log("🔥 STATUSES COUNT IN THIS DB:", statusCount);
-
-const sample = await db.collection("statuses").find({}).limit(5).project({ _id: 0, key: 1, label: 1 }).toArray();
-console.log("🔥 STATUSES SAMPLE IN THIS DB:", sample);
-
-    const shipment = await db.collection("shipments").findOne(
-      shipmentIdQuery(shipmentId),
-      { projection: { _id: 0 } }
-    );
+    const shipment = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId), {
+      projection: { _id: 0 },
+    });
 
     if (!shipment) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -59,11 +59,14 @@ export async function PATCH(
 ) {
   try {
     console.log("🔥🔥 ACTIVE SHIPMENT PATCH ROUTE 999 🔥🔥");
+
+    // ✅ ADMIN ONLY
     const session = await auth();
-const role = String((session as any)?.user?.role || "").toUpperCase();
-if (role !== "ADMIN") {
-  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-}
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { shipmentId: raw } = await context.params;
     const shipmentId = normalizeShipmentId(raw);
 
@@ -77,191 +80,186 @@ if (role !== "ADMIN") {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    console.log("🔥 DB NAME USED BY SHIPMENTS ROUTE:", db.databaseName);
-
-const statusCount = await db.collection("statuses").countDocuments();
-console.log("🔥 STATUSES COUNT IN THIS DB:", statusCount);
-
-const sample = await db
-  .collection("statuses")
-  .find({})
-  .limit(5)
-  .project({ _id: 0, key: 1, label: 1 })
-  .toArray();
-
-console.log("🔥 STATUSES SAMPLE IN THIS DB:", sample);
-
-    const existing = await db
-      .collection("shipments")
-      .findOne(shipmentIdQuery(shipmentId));
-
+    const existing = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId));
     if (!existing) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    // ✅ Pricing settings (typed so _id doesn't error)
+    const pricingDoc = await db
+      .collection<PricingSettingsDoc>("pricing_settings")
+      .findOne({ _id: "default" });
+
+    const pricing: PricingSettings = pricingDoc?.settings ?? DEFAULT_PRICING;
 
     const now = new Date();
     const $set: Record<string, any> = { updatedAt: now };
 
     // ----------------------------
-   // --- STATUS UPDATE (key/label -> label + defaults) ---
-if (typeof body.status === "string") {
-  const rawStatus = String(body.status || "").trim();
-  const normalizedKey = normalizeStatus(rawStatus);
+    // 1) STATUS UPDATE (key/label -> label + defaults)
+    // ----------------------------
+    if (typeof body.status === "string") {
+      const rawStatus = String(body.status || "").trim();
+      const normalizedKey = normalizeStatus(rawStatus);
 
-  // ✅ Super-safe lookup: fetch all statuses and match by normalized key OR normalized label
-  const allStatuses = await db
-    .collection("statuses")
-    .find({})
-    .project({ _id: 0 })
-    .toArray();
+      const allStatuses = await db
+        .collection("statuses")
+        .find({})
+        .project({ _id: 0 })
+        .toArray();
 
-  const statusDoc =
-    allStatuses.find((s: any) => normalizeStatus(String(s?.key || "")) === normalizedKey) ||
-    allStatuses.find((s: any) => normalizeStatus(String(s?.label || "")) === normalizedKey) ||
-    null;
+      const statusDoc =
+        allStatuses.find((s: any) => normalizeStatus(String(s?.key || "")) === normalizedKey) ||
+        allStatuses.find((s: any) => normalizeStatus(String(s?.label || "")) === normalizedKey) ||
+        null;
 
-  console.log("STATUS RAW:", rawStatus);
-  console.log("STATUS NORMALIZED:", normalizedKey);
-  console.log("STATUS DOC FOUND:", statusDoc);
+      if (statusDoc) {
+        $set.status = String(statusDoc.label || rawStatus).trim();
+        $set.statusUpdatedAt = now;
 
-  if (statusDoc) {
-    // ✅ Always store LABEL in shipment.status
-    $set.status = String(statusDoc.label || rawStatus).trim();
-    $set.statusUpdatedAt = now;
+        $set.statusColor =
+          body.statusColor !== undefined
+            ? String(body.statusColor || "").trim()
+            : String(statusDoc.color || "").trim();
 
-    // Defaults from statuses doc (unless explicitly overridden)
-    $set.statusColor =
-      body.statusColor !== undefined
-        ? String(body.statusColor || "").trim()
-        : String(statusDoc.color || "").trim();
+        $set.statusNote =
+          body.statusNote !== undefined
+            ? String(body.statusNote || "").trim()
+            : String(statusDoc.defaultUpdate || "").trim();
 
-    $set.statusNote =
-      body.statusNote !== undefined
-        ? String(body.statusNote || "").trim()
-        : String(statusDoc.defaultUpdate || "").trim();
+        $set.nextStep =
+          body.nextStep !== undefined
+            ? String(body.nextStep || "").trim()
+            : String(statusDoc.nextStep || "").trim();
+      } else {
+        $set.status = rawStatus;
+        $set.statusUpdatedAt = now;
 
-    $set.nextStep =
-      body.nextStep !== undefined
-        ? String(body.nextStep || "").trim()
-        : String(statusDoc.nextStep || "").trim();
-  } else {
-    // Not found → store what was provided (fallback)
-    $set.status = rawStatus;
-    $set.statusUpdatedAt = now;
-
-    if (body.statusColor !== undefined) $set.statusColor = String(body.statusColor || "").trim();
-    if (body.statusNote !== undefined) $set.statusNote = String(body.statusNote || "").trim();
-    if (body.nextStep !== undefined) $set.nextStep = String(body.nextStep || "").trim();
-  }
-} else {
-  // Status not being changed, but allow updating these fields directly
-  if (body.statusColor !== undefined) $set.statusColor = String(body.statusColor || "").trim();
-  if (body.statusNote !== undefined) $set.statusNote = String(body.statusNote || "").trim();
-  if (body.nextStep !== undefined) $set.nextStep = String(body.nextStep || "").trim();
-}
+        if (body.statusColor !== undefined) $set.statusColor = String(body.statusColor || "").trim();
+        if (body.statusNote !== undefined) $set.statusNote = String(body.statusNote || "").trim();
+        if (body.nextStep !== undefined) $set.nextStep = String(body.nextStep || "").trim();
+      }
+    } else {
+      if (body.statusColor !== undefined) $set.statusColor = String(body.statusColor || "").trim();
+      if (body.statusNote !== undefined) $set.statusNote = String(body.statusNote || "").trim();
+      if (body.nextStep !== undefined) $set.nextStep = String(body.nextStep || "").trim();
+    }
 
     // ----------------------------
-    // 2) INVOICE UPDATE (optional)
+    // 2) DECLARED VALUE (supports declaredValue or packageValue)
     // ----------------------------
-    if (body.invoice !== undefined && body.invoice !== null) {
+    const incomingDeclared =
+      body?.declaredValue !== undefined
+        ? Number(body.declaredValue)
+        : (existing as any)?.declaredValue !== undefined
+          ? Number((existing as any).declaredValue)
+          : Number((existing as any)?.packageValue || 0);
+
+    const declaredValue = Number.isFinite(incomingDeclared) ? incomingDeclared : 0;
+
+    if (body?.declaredValue !== undefined) {
+      $set.declaredValue = declaredValue;
+    }
+
+    // ----------------------------
+    // 3) INVOICE UPDATE (real calc)
+    // ----------------------------
+    const shouldRecalcInvoice =
+      body?.invoice !== undefined ||
+      body?.declaredValue !== undefined ||
+      (existing as any)?.invoice === undefined;
+
+    if (shouldRecalcInvoice) {
+      const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricing);
+
       const prev = (existing as any).invoice || {};
       const incoming = body.invoice || {};
-      const nextInvoice: any = { ...prev };
 
-      if (incoming.amount !== undefined) {
-        const n = Number(incoming.amount);
-        nextInvoice.amount = Number.isFinite(n) ? n : 0;
-      }
+      const paid =
+        incoming.paid !== undefined ? Boolean(incoming.paid) : Boolean(prev.paid);
 
-      if (incoming.currency !== undefined) {
-        nextInvoice.currency = String(incoming.currency || "USD").toUpperCase();
-      }
+      const nowIso = new Date().toISOString();
 
-      if (incoming.paid !== undefined) {
-        const paid = Boolean(incoming.paid);
-        nextInvoice.paid = paid;
-        nextInvoice.paidAt = paid ? (incoming.paidAt ? String(incoming.paidAt) : now.toISOString()) : null;
-      } else if (incoming.paidAt !== undefined) {
-        nextInvoice.paidAt = incoming.paidAt ? String(incoming.paidAt) : null;
-      }
+      const nextInvoice: any = {
+        ...prev,
+        amount: breakdown.total, // ✅ final total
+        currency: String(prev.currency || incoming.currency || "USD").toUpperCase(),
+        paid,
+        paidAt: paid ? (incoming.paidAt ? String(incoming.paidAt) : nowIso) : null,
+        breakdown, // ✅ store full breakdown for invoice page
+      };
 
       $set.invoice = nextInvoice;
     }
 
-    await db.collection("shipments").updateOne(
-  shipmentIdQuery(shipmentId),
-  { $set }
-);
+    // ----------------------------
+    // 4) SAVE
+    // ----------------------------
+    await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), { $set });
 
-// Determine what actually changed
-let title = "Shipment Updated";
-let message = `Shipment ${shipmentId} was updated.`;
+    // ----------------------------
+    // 5) NOTIFICATION + EMAIL
+    // ----------------------------
+    let title = "Shipment Updated";
+    let message = `Shipment ${shipmentId} was updated.`;
 
-// If status changed
-if (typeof body.status === "string") {
-  const finalStatus =
-    $set?.status ||
-    body.status ||
-    existing?.status ||
-    "updated";
+    if (typeof body.status === "string") {
+      const finalStatus =
+        $set?.status || body.status || (existing as any)?.status || "updated";
+      title = "Shipment Status Updated";
+      message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
+    }
 
-  title = "Shipment Status Updated";
-  message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
-}
+    if (body?.invoice?.paid !== undefined) {
+      title = "Invoice Updated";
+      message = `Invoice for shipment ${shipmentId} is now ${
+        body.invoice.paid ? "PAID" : "UNPAID"
+      }.`;
+    }
 
-// If invoice paid changed
-if (body?.invoice?.paid !== undefined) {
-  title = "Invoice Updated";
-  message = `Invoice for shipment ${shipmentId} is now ${
-    body.invoice.paid ? "PAID" : "UNPAID"
-  }.`;
-}
+    await db.collection("notifications").insertOne({
+      userEmail: String((existing as any).createdByEmail || "").toLowerCase(),
+      title,
+      message,
+      shipmentId,
+      read: false,
+      createdAt: new Date(),
+    });
 
-// Create notification
-await db.collection("notifications").insertOne({
-  userEmail: String(existing.createdByEmail || "").toLowerCase(),
-  title,
-  message,
-  shipmentId,
-  read: false,
-  createdAt: new Date(),
-});
+    const userEmail = String((existing as any).createdByEmail || "").toLowerCase().trim();
 
-const userEmail = String(existing.createdByEmail || "").toLowerCase().trim();
+    let userName = "Customer";
+    if (userEmail) {
+      const uDoc = await db.collection("users").findOne(
+        { email: userEmail },
+        { projection: { name: 1 } }
+      );
+      if ((uDoc as any)?.name) userName = String((uDoc as any).name || "Customer");
+    }
 
-// (optional) get user's name for nicer emails
-let userName = "Customer";
-if (userEmail) {
-  const uDoc = await db.collection("users").findOne(
-    { email: userEmail },
-    { projection: { name: 1 } }
-  );
-  if (uDoc?.name) userName = String((uDoc as any).name || "Customer");
-}
+    if (typeof body.status === "string" && userEmail) {
+      const finalStatus = String(
+        $set?.status || body.status || (existing as any)?.status || "Updated"
+      );
 
-// ✅ Send status email
-if (typeof body.status === "string" && userEmail) {
-  const finalStatus = String($set?.status || body.status || existing?.status || "Updated");
-  await sendShipmentStatusEmail(userEmail, {
-    name: userName,
-    shipmentId,
-    statusLabel: finalStatus,
-  }).catch(() => null);
-}
+      await sendShipmentStatusEmail(userEmail, {
+        name: userName,
+        shipmentId,
+        statusLabel: finalStatus,
+      }).catch(() => null);
+    }
 
-// ✅ Send invoice email
-if (body?.invoice?.paid !== undefined && userEmail) {
-  await sendInvoiceUpdateEmail(userEmail, {
-    name: userName,
-    shipmentId,
-    paid: Boolean(body.invoice.paid),
-  }).catch(() => null);
-}
+    if (body?.invoice?.paid !== undefined && userEmail) {
+      await sendInvoiceUpdateEmail(userEmail, {
+        name: userName,
+        shipmentId,
+        paid: Boolean(body.invoice.paid),
+      }).catch(() => null);
+    }
 
-    const updated = await db.collection("shipments").findOne(
-      shipmentIdQuery(shipmentId),
-      { projection: { _id: 0 } }
-    );
+    const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId), {
+      projection: { _id: 0 },
+    });
 
     return NextResponse.json({ ok: true, shipment: updated });
   } catch (error) {

@@ -14,6 +14,7 @@ import {
   LogOut,
   UserX,
 } from "lucide-react";
+import { Percent } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 type Props = { children: ReactNode };
@@ -111,6 +112,8 @@ export default function AdminShell({ children }: Props) {
       label: "Statuses",
       icon: <Tags className="w-5 h-5" />,
     },
+
+    { href: `/${locale}/dashboard/admin/pricing`, label: "Pricing", icon: <Percent className="w-5 h-5" /> },
 
     // ✅ NEW: Deleted Users
     {
