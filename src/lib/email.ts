@@ -18,6 +18,17 @@ function esc(s: string) {
     .replace(/'/g, "&#039;");
 }
 
+function toText(html: string) {
+  // very small/safe html->text helper for email "text" fallback
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** Existing: ban email */
 export async function sendBanEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -47,8 +58,7 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
     title: "Account access removed",
     preheader: "Your account access has been removed. Contact support if you believe this was a mistake.",
     bodyHtml,
-    calloutHtml:
-      "If you believe this was a mistake, you can request a review by contacting support.",
+    calloutHtml: "If you believe this was a mistake, you can request a review by contacting support.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -61,17 +71,25 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
     subject,
     replyTo: SUPPORT_EMAIL,
     html,
+    text: toText(html),
   });
 }
 
-/** Updated: restore email (clean + professional, no reference/need-help block) */
+/**
+ * ✅ Updated Restore Email (spam-safer)
+ * - Neutral subject (less “security/cta” spam triggers)
+ * - No big “Login” button
+ * - Includes plain-text fallback
+ * - Keeps only a simple support instruction
+ */
 export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts?.name || "Customer").trim();
   const safeTo = esc(to);
 
-  const subject = "Access Restored – Your Exodus Logistics Account";
+  // Neutral subject reduces spam flags
+  const subject = "Exodus Logistics: Update on your account";
 
   const bodyHtml = `
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
@@ -79,28 +97,28 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      We’re pleased to inform you that your Exodus Logistics account associated with
-      <strong>${safeTo}</strong> has been successfully restored.
+      This is to confirm that access to the Exodus Logistics account associated with
+      <strong>${safeTo}</strong> has been restored.
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      If your access was previously restricted, we sincerely apologize for any inconvenience this may have caused.
-      Our systems are designed to maintain platform integrity and protect all users.
+      We apologize for any inconvenience this may have caused.
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      You may now log in and continue managing your shipments and tracking updates without interruption.
+      If you experience any issues signing in, please reply to this email or contact our support team.
     </p>
   `;
 
   const html = renderEmailTemplate({
     subject,
-    title: "Account Access Restored",
+    title: "Account access restored",
     preheader: "Your Exodus Logistics account access has been restored.",
     bodyHtml,
     calloutHtml:
-      "If you did not expect this change or believe your account security may have been compromised, please contact support immediately.",
-    button: { text: "Login to Your Account", href: `${APP_URL}/en/sign-in` },
+      "If you did not expect this change, contact support immediately.",
+    // keep only support button (mailto) — fewer web links = less spam
+    button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
@@ -112,10 +130,11 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
     subject,
     replyTo: SUPPORT_EMAIL,
     html,
+    text: toText(html),
   });
 }
 
-/** Updated: deletion email (removed extra “Need assistance…” line) */
+/** Updated: deletion email */
 export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
@@ -157,5 +176,6 @@ export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string
     subject,
     replyTo: SUPPORT_EMAIL,
     html,
+    text: toText(html),
   });
 }
