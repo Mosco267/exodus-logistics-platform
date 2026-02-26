@@ -109,11 +109,24 @@ function money(sym: string, v: any) {
 }
 
 function pickRate(breakdown: any, key: string) {
-  // Try common places you might store rates
+  // supports passing "shippingRate" or "shipping"
+  const baseKey =
+    typeof key === "string" && key.toLowerCase().endsWith("rate")
+      ? key.slice(0, -4) // remove "Rate"
+      : key;
+
   return (
+    // most common
+    breakdown?.rates?.[baseKey] ??
     breakdown?.rates?.[key] ??
+    breakdown?.percentages?.[baseKey] ??
     breakdown?.percentages?.[key] ??
+    breakdown?.pricing?.[baseKey] ??
     breakdown?.pricing?.[key] ??
+    // sometimes stored directly
+    breakdown?.[key] ??
+    breakdown?.[baseKey] ??
+    breakdown?.[baseKey + "Rate"] ??
     breakdown?.[key + "Rate"] ??
     null
   );
@@ -243,8 +256,12 @@ export default function FullInvoicePage() {
         ? Number(data.total)
         : 0;
 
-  const declaredToShow =
-    Number.isFinite(Number(data.declaredValue)) ? Number(data.declaredValue) : 0;
+  const declaredToShowRaw =
+  (data as any)?.declaredValue ??
+  (data as any)?.breakdown?.declaredValue ??
+  0;
+
+const declaredToShow = Number(declaredToShowRaw);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">

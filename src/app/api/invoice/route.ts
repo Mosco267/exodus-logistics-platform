@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { DEFAULT_PRICING } from "@/lib/pricing";
 
 const escapeRegex = (input: string) =>
   input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -34,23 +35,45 @@ export async function GET(req: Request) {
     const currency = String(inv?.currency || "USD").toUpperCase();
     const paid = Boolean(inv?.paid);
 
-    // ✅ IMPORTANT: expose breakdown if it exists
-    const breakdown = inv?.breakdown ?? null;
-
-    // ✅ DECLARED VALUE (supports declaredValue or packageValue fallback)
+    // Declared value (robust fallback)
     const declaredValue =
-      Number((shipment as any)?.declaredValue ?? (shipment as any)?.packageValue ?? 0) || 0;
+      Number((shipment as any)?.declaredValue ?? (shipment as any)?.packageValue ?? inv?.breakdown?.declaredValue ?? 0) || 0;
+
+    // Stored breakdown from shipment.invoice.breakdown
+    const breakdownFromDb = inv?.breakdown ?? null;
+
+    // Load pricing settings so we can show rates as percentages
+    const pricingDoc = await db.collection("pricing_settings").findOne({ _id: "default" });
+    const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
+
+    // Normalize rates in one place for the UI
+    const rates = {
+      shipping: pricing?.shippingRate ?? pricing?.shipping ?? null,
+      insurance: pricing?.insuranceRate ?? pricing?.insurance ?? null,
+      fuel: pricing?.fuelRate ?? pricing?.fuel ?? null,
+      customs: pricing?.customsRate ?? pricing?.customs ?? null,
+      tax: pricing?.taxRate ?? pricing?.tax ?? null,
+      discount: pricing?.discountRate ?? pricing?.discount ?? null,
+    };
+
+    // Final breakdown we return (keep everything, but ensure rates + declaredValue exist)
+    const breakdown =
+      breakdownFromDb
+        ? {
+            ...breakdownFromDb,
+            declaredValue: Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
+            rates: { ...(breakdownFromDb?.rates || {}), ...rates },
+          }
+        : {
+            declaredValue,
+            rates,
+          };
 
     // Invoice number style
-    const cleanShipId = String((shipment as any)?.shipmentId || "SHIP").replace(
-      /[^A-Z0-9-]/gi,
-      ""
-    );
+    const cleanShipId = String((shipment as any)?.shipmentId || "SHIP").replace(/[^A-Z0-9-]/gi, "");
     const invoiceNumber = `INV-${cleanShipId}`;
 
-    // Emails:
     const senderEmail = String((shipment as any)?.senderEmail || "").trim() || "";
-
     const receiverEmail =
       String((shipment as any)?.receiverEmail || "").trim() ||
       String((shipment as any)?.createdByEmail || "").trim() ||
@@ -64,9 +87,9 @@ export async function GET(req: Request) {
       paid,
       paidAt: inv?.paidAt || null,
 
-      // ✅ add these
-      breakdown,
+      // ✅ now always present
       declaredValue,
+      breakdown,
 
       shipment: {
         shipmentId: (shipment as any)?.shipmentId || "",
