@@ -35,8 +35,11 @@ export async function GET(req: Request) {
     const paid = Boolean(inv?.paid);
 
     // ✅ IMPORTANT: expose breakdown if it exists
-    // (this is what your UI needs to show charges)
     const breakdown = inv?.breakdown ?? null;
+
+    // ✅ DECLARED VALUE (supports declaredValue or packageValue fallback)
+    const declaredValue =
+      Number((shipment as any)?.declaredValue ?? (shipment as any)?.packageValue ?? 0) || 0;
 
     // Invoice number style
     const cleanShipId = String((shipment as any)?.shipmentId || "SHIP").replace(
@@ -46,12 +49,7 @@ export async function GET(req: Request) {
     const invoiceNumber = `INV-${cleanShipId}`;
 
     // Emails:
-    // - senderEmail: senderEmail (or empty)
-    // - receiverEmail: receiverEmail, otherwise fall back to createdByEmail
-    //   so the "account owner" shows under Receiver if you didn’t store receiverEmail yet.
-    const senderEmail =
-      String((shipment as any)?.senderEmail || "").trim() ||
-      "";
+    const senderEmail = String((shipment as any)?.senderEmail || "").trim() || "";
 
     const receiverEmail =
       String((shipment as any)?.receiverEmail || "").trim() ||
@@ -66,8 +64,9 @@ export async function GET(req: Request) {
       paid,
       paidAt: inv?.paidAt || null,
 
-      // ✅ add this (your front-end will read it)
+      // ✅ add these
       breakdown,
+      declaredValue,
 
       shipment: {
         shipmentId: (shipment as any)?.shipmentId || "",

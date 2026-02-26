@@ -14,6 +14,27 @@ type InvoiceApi = {
   paid: boolean;
   paidAt?: string | null;
 
+  declaredValue?: number;
+
+  // ✅ keep (but only once)
+  breakdown?: {
+    shipping?: number;
+    insurance?: number;
+    fuel?: number;
+    customs?: number;
+    tax?: number;
+    discount?: number;
+    subtotal?: number;
+    total?: number;
+
+    // commonly stored rates (0.1 or 10 etc)
+    rates?: Record<string, any>;
+    percentages?: Record<string, any>;
+    pricing?: Record<string, any>;
+
+    [key: string]: any;
+  };
+
   shipment: {
     shipmentId: string;
     trackingNumber: string;
@@ -34,6 +55,10 @@ type InvoiceApi = {
     updatedAt?: string | null;
   };
 
+  // ✅ YOU HAD THIS INSIDE — keeping it but commenting because it duplicates "breakdown" above (TS error)
+  /*
+  breakdown?: any;
+
   // ✅ optional (if your /api/invoice returns it)
   breakdown?: {
     shipping?: number;
@@ -46,6 +71,7 @@ type InvoiceApi = {
     total?: number;
     [key: string]: any;
   };
+  */
 };
 
 const currencySymbol = (code: string) => {
@@ -68,11 +94,48 @@ function formatDate(d?: string | null) {
   return t.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
+function toPct(rate: any): string {
+  const n = Number(rate);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  // supports 0.1 => 10%, or 10 => 10%
+  const pct = n <= 1 ? n * 100 : n;
+  return `${pct.toFixed(2).replace(/\.00$/, "")}%`;
+}
+
+function money(sym: string, v: any) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return `${sym} 0.00`;
+  return `${sym} ${n.toFixed(2)}`;
+}
+
+function pickRate(breakdown: any, key: string) {
+  // Try common places you might store rates
+  return (
+    breakdown?.rates?.[key] ??
+    breakdown?.percentages?.[key] ??
+    breakdown?.pricing?.[key] ??
+    breakdown?.[key + "Rate"] ??
+    null
+  );
+}
+
+function pickAmount(breakdown: any, key: string) {
+  return (
+    breakdown?.[key] ??
+    breakdown?.amounts?.[key] ??
+    breakdown?.charges?.[key] ??
+    null
+  );
+}
+
+// ✅ YOU HAD THIS INSIDE — keeping it but commenting because it duplicates money() above (TS error)
+/*
 function money(sym: string, n: any) {
   const num = Number(n);
   if (!Number.isFinite(num)) return `${sym} 0.00`;
   return `${sym} ${num.toFixed(2)}`;
 }
+*/
 
 export default function FullInvoicePage() {
   const params = useParams();
@@ -159,36 +222,29 @@ export default function FullInvoicePage() {
   // ✅ Receiver email should show here even if DB stored it as senderEmail by mistake
   const receiverEmail = String(data.parties?.receiverEmail || data.parties?.senderEmail || "").trim();
 
-  // ✅ breakdown: if API returns it, show it
+  // ✅ breakdown (from API)
   const breakdown = (data as any)?.breakdown || null;
 
-  // Build a nice list (only show keys that exist)
-  const chargeRows: { label: string; value: number }[] = [];
-  if (breakdown) {
-    const pushIf = (key: string, label: string) => {
-      const v = breakdown?.[key];
-      const num = Number(v);
-      if (Number.isFinite(num)) chargeRows.push({ label, value: num });
-    };
+  // ✅ percentages + amounts
+  const rows = [
+    { key: "shipping", label: "Shipping", rateKey: "shippingRate" },
+    { key: "insurance", label: "Insurance", rateKey: "insuranceRate" },
+    { key: "fuel", label: "Fuel", rateKey: "fuelRate" },
+    { key: "customs", label: "Customs / Duties", rateKey: "customsRate" },
+    { key: "tax", label: "Tax", rateKey: "taxRate" },
+    { key: "discount", label: "Discount", rateKey: "discountRate" },
+  ];
 
-    pushIf("shipping", "Shipping");
-    pushIf("insurance", "Insurance");
-    pushIf("fuel", "Fuel");
-    pushIf("customs", "Customs / Duties");
-    pushIf("tax", "Tax");
-    // discount usually shown as negative
-    if (Number.isFinite(Number(breakdown?.discount))) {
-      chargeRows.push({ label: "Discount", value: Number(breakdown.discount) * -1 });
-    }
-    pushIf("subtotal", "Subtotal");
-  }
-
+  const subtotalToShow = Number(pickAmount(breakdown, "subtotal") ?? 0);
   const totalToShow =
-    Number.isFinite(Number(breakdown?.total))
-      ? Number(breakdown.total)
+    Number.isFinite(Number(pickAmount(breakdown, "total")))
+      ? Number(pickAmount(breakdown, "total"))
       : Number.isFinite(Number(data.total))
         ? Number(data.total)
         : 0;
+
+  const declaredToShow =
+    Number.isFinite(Number(data.declaredValue)) ? Number(data.declaredValue) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
@@ -283,6 +339,12 @@ export default function FullInvoicePage() {
                 <p className="text-sm text-gray-600 mt-1">
                   Tracking: <span className="font-semibold">{data.shipment.trackingNumber || "—"}</span>
                 </p>
+
+                {/* ✅ DECLARED VALUE */}
+                <p className="text-sm text-gray-600 mt-1">
+                  Declared value:{" "}
+                  <span className="font-semibold">{money(sym, declaredToShow)}</span>
+                </p>
               </div>
 
               <div className="rounded-2xl border border-gray-200 p-4">
@@ -343,28 +405,42 @@ export default function FullInvoicePage() {
               </div>
             </div>
 
-            {/* ✅ Charges (now shows breakdown if available) */}
+            {/* ✅ Charges (now shows % + amount) */}
             <div className="mt-6 rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                 <p className="font-extrabold text-gray-900">Charges</p>
                 <p className="text-sm text-gray-600">
-                  {breakdown
-                    ? "Breakdown calculated from declared value."
-                    : "(Breakdown not found from API yet — showing total only.)"}
+                  {breakdown ? "Breakdown calculated from declared value." : "(Breakdown not found from API yet — showing total only.)"}
                 </p>
               </div>
 
               <div className="p-5 space-y-3">
-                {chargeRows.length > 0 ? (
+                {breakdown ? (
                   <>
-                    {chargeRows.map((r) => (
-                      <div key={r.label} className="flex justify-between text-sm text-gray-700">
-                        <span>{r.label}</span>
-                        <span className="font-semibold">
-                          {money(sym, r.value)}
-                        </span>
-                      </div>
-                    ))}
+                    {rows.map((r) => {
+                      const amt = pickAmount(breakdown, r.key);
+                      const rate = pickRate(breakdown, r.rateKey);
+
+                      // discount displayed as 0 or negative; we show normal value but keep UI stable
+                      const isDiscount = r.key === "discount";
+                      const amountNum = Number(amt ?? 0);
+                      const displayAmount = isDiscount && amountNum > 0 ? -amountNum : amountNum;
+
+                      return (
+                        <div key={r.key} className="flex justify-between text-sm text-gray-700">
+                          <span>
+                            {r.label}{" "}
+                            <span className="text-gray-500">({toPct(rate)})</span>
+                          </span>
+                          <span className="font-semibold">{money(sym, displayAmount)}</span>
+                        </div>
+                      );
+                    })}
+
+                    <div className="pt-3 border-t border-gray-200 flex justify-between text-sm text-gray-700">
+                      <span className="font-semibold">Subtotal</span>
+                      <span className="font-semibold">{money(sym, subtotalToShow)}</span>
+                    </div>
                   </>
                 ) : (
                   <div className="flex justify-between text-sm text-gray-700">
@@ -375,9 +451,7 @@ export default function FullInvoicePage() {
 
                 <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-lg">
                   <span className="font-extrabold text-gray-900">Total</span>
-                  <span className="font-extrabold text-blue-700">
-                    {money(sym, totalToShow)}
-                  </span>
+                  <span className="font-extrabold text-blue-700">{money(sym, totalToShow)}</span>
                 </div>
               </div>
             </div>
