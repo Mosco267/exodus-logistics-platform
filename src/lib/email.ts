@@ -181,35 +181,92 @@ export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string
 }
 // ✅ Auto emails for shipment updates
 
-export async function sendShipmentStatusEmail(to: string, opts: { name?: string; shipmentId: string; statusLabel: string }) {
+export async function sendShipmentStatusEmail(
+  to: string,
+  opts: { name?: string; shipmentId: string; statusLabel: string }
+) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts.name || "Customer").trim();
   const safeTo = esc(to);
+  const status = String(opts.statusLabel || "").trim();
 
-  const subject = `Exodus Logistics: Shipment status update (${opts.shipmentId})`;
+  const TRACK_URL = `${APP_URL}/en/dashboard/track?q=${encodeURIComponent(
+    opts.shipmentId
+  )}`;
+
+  // 🔥 Dynamic message + button based on status
+  let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
+  let title = "Shipment update";
+  let bodyMessage = "";
+  let buttonText = "Track Shipment";
+  let buttonLink = TRACK_URL;
+
+  switch (status.toLowerCase()) {
+    case "in transit":
+      title = "Shipment in transit";
+      bodyMessage = `
+        Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
+        <strong>In Transit</strong> and moving to its next destination.
+      `;
+      buttonText = "Track Shipment";
+      break;
+
+    case "custom clearance":
+      title = "Shipment under customs review";
+      bodyMessage = `
+        Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently
+        undergoing <strong>Custom Clearance</strong>.
+      `;
+      buttonText = "View Shipment Status";
+      break;
+
+    case "delivered":
+      title = "Shipment delivered";
+      bodyMessage = `
+        Your shipment <strong>${esc(opts.shipmentId)}</strong> has been
+        <strong>Delivered</strong> successfully.
+      `;
+      buttonText = "View Delivery Details";
+      break;
+
+    case "out for delivery":
+      title = "Out for delivery";
+      bodyMessage = `
+        Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
+        <strong>Out for Delivery</strong>.
+      `;
+      buttonText = "Track Live Delivery";
+      break;
+
+    default:
+      bodyMessage = `
+        Your shipment <strong>${esc(opts.shipmentId)}</strong> status has been updated to
+        <strong>${esc(status)}</strong>.
+      `;
+      buttonText = "View Shipment";
+  }
 
   const bodyHtml = `
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> status has been updated to
-      <strong>${esc(opts.statusLabel)}</strong>.
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      ${bodyMessage}
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      If you have questions, please reply to this email or contact support.
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      If you have any questions, our support team is ready to assist you.
     </p>
   `;
 
   const html = renderEmailTemplate({
     subject,
-    title: "Shipment status updated",
-    preheader: `Shipment ${opts.shipmentId} status is now ${opts.statusLabel}.`,
+    title,
+    preheader: `${status} – Shipment ${opts.shipmentId}`,
     bodyHtml,
-    button: { text: "Contact support", href: SUPPORT_URL },
+    button: { text: buttonText, href: buttonLink },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: safeTo,
@@ -224,7 +281,6 @@ export async function sendShipmentStatusEmail(to: string, opts: { name?: string;
     text: toText(html),
   });
 }
-
 export async function sendInvoiceUpdateEmail(to: string, opts: { name?: string; shipmentId: string; paid: boolean }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
