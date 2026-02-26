@@ -3,27 +3,35 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-type DeletedUser = {
+type DU = {
   id: string;
   name: string;
   email: string;
-  deletedAt?: string;
+  createdAt?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string;
 };
 
 export default function DeletedUsersPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
 
-  const [users, setUsers] = useState<DeletedUser[]>([]);
+  const [items, setItems] = useState<DU[]>([]);
   const [loading, setLoading] = useState(true);
-  const [restoring, setRestoring] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch("/api/admin/deleted-users", { cache: "no-store" });
-    const json = await res.json();
-    setUsers(Array.isArray(json?.users) ? json.users : []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/deleted-users", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      setItems(Array.isArray(json?.users) ? json.users : []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -31,80 +39,87 @@ export default function DeletedUsersPage() {
   }, []);
 
   const restore = async (id: string) => {
-    if (!confirm("Restore this account?")) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}/restore`, {
+        method: "PATCH",
+        cache: "no-store",
+        credentials: "include",
+      });
 
-    setRestoring(id);
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        alert(`Restore failed: ${res.status}\n${t.slice(0, 300)}`);
+        return;
+      }
 
-    const res = await fetch(
-      `/api/admin/users/${id}/restore`,
-      { method: "PATCH" }
-    );
-
-    setRestoring(null);
-
-    if (res.ok) {
-      alert("Account restored successfully.");
-      load();
-    } else {
-      alert("Failed to restore.");
+      // remove from list immediately
+      setItems((prev) => prev.filter((x) => x.id !== id));
+    } finally {
+      setBusyId(null);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-extrabold mb-8 text-gray-900 dark:text-gray-100">
-        Deleted Users
-      </h1>
-
-      {loading ? (
-        <p className="text-gray-500">Loading deleted accounts...</p>
-      ) : users.length === 0 ? (
-        <div className="p-8 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm">
-          <p className="text-gray-500 dark:text-gray-400">
-            No deleted accounts.
+    <div className="p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Deleted Users</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            View deleted/blocked accounts and restore access.
           </p>
         </div>
-      ) : (
-        <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-md overflow-hidden">
+
+        <button
+          onClick={load}
+          className="px-4 py-2 rounded-xl border border-gray-300 dark:border-white/20 text-sm font-semibold
+                     hover:border-blue-600 hover:text-blue-700 dark:hover:border-cyan-400 dark:hover:text-cyan-300 transition"
+        >
+          Refresh
+        </button>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 shadow-md overflow-hidden">
+        {loading ? (
+          <div className="p-6 text-sm text-gray-600 dark:text-gray-300">Loading…</div>
+        ) : items.length === 0 ? (
+          <div className="p-6 text-sm text-gray-600 dark:text-gray-300">No deleted users.</div>
+        ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-white/5">
-              <tr>
-                <th className="text-left px-6 py-4 font-semibold">Name</th>
-                <th className="text-left px-6 py-4 font-semibold">Email</th>
-                <th className="text-left px-6 py-4 font-semibold">
-                  Deleted At
-                </th>
-                <th className="text-right px-6 py-4 font-semibold">Action</th>
+            <thead className="border-b border-gray-200 dark:border-white/10">
+              <tr className="text-left text-gray-700 dark:text-gray-200">
+                <th className="py-3 px-4">Name</th>
+                <th className="py-3 px-4">Email</th>
+                <th className="py-3 px-4">Deleted</th>
+                <th className="py-3 px-4">Deleted By</th>
+                <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr
-                  key={u.id}
-                  className="border-t border-gray-100 dark:border-white/10"
-                >
-                  <td className="px-6 py-4">{u.name || "—"}</td>
-                  <td className="px-6 py-4">{u.email}</td>
-                  <td className="px-6 py-4">
-                    {u.deletedAt
-                      ? new Date(u.deletedAt).toLocaleDateString()
-                      : "—"}
+              {items.map((u) => (
+                <tr key={u.id} className="border-b border-gray-100 dark:border-white/10">
+                  <td className="py-3 px-4 font-semibold">{u.name || "—"}</td>
+                  <td className="py-3 px-4">{u.email}</td>
+                  <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
+                    {u.deletedAt ? new Date(u.deletedAt).toLocaleString() : "—"}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{u.deletedBy || "—"}</td>
+                  <td className="py-3 px-4 text-right">
                     <button
+                      disabled={busyId === u.id}
                       onClick={() => restore(u.id)}
-                      disabled={restoring === u.id}
-                      className="px-4 py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition disabled:opacity-50"
+                      className="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold
+                                 hover:bg-cyan-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {restoring === u.id ? "Restoring..." : "Restore"}
+                      {busyId === u.id ? "Restoring…" : "Restore"}
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
