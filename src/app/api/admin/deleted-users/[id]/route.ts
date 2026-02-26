@@ -1,44 +1,47 @@
+// app/api/admin/deleted-users/[id]/route.ts
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { ObjectId } from "mongodb";
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  const role = String((session as any)?.user?.role || "").toUpperCase();
+  try {
+    const session = await auth();
+    const role = String((session as any)?.user?.role || "").toUpperCase();
 
-  if (role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // ✅ Next.js 16 types params as Promise in some builds
+    const p = await ctx.params;
+    const rawId = String(p?.id || "").trim();
+
+    if (!rawId || !ObjectId.isValid(rawId)) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    // ✅ Unblock by userId (you stored userId: raw in blocked_emails)
+    await db.collection("blocked_emails").deleteOne({ userId: rawId });
+
+    // (Optional) You can also clean up soft-delete flags if you want:
+    // await db.collection("users").updateOne(
+    //   { _id: new ObjectId(rawId) },
+    //   { $set: { isDeleted: false }, $unset: { deletedAt: "", deletedBy: "" } }
+    // );
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "Server error" },
+      { status: 500 }
+    );
   }
-
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB);
-
-  const blocked = await db.collection("blocked_emails").findOne({
-    _id: new ObjectId(params.id),
-  });
-
-  if (!blocked) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  // remove from blocked list
-  await db.collection("blocked_emails").deleteOne({
-    _id: new ObjectId(params.id),
-  });
-
-  // ✅ send automatic notification
-  await db.collection("notifications").insertOne({
-    userEmail: blocked.email,
-    title: "Account Restored",
-    message:
-      "Your account has been restored. You may now log in again. If you experience any issues, please contact support.",
-    read: false,
-    createdAt: new Date(),
-  });
-
-  return NextResponse.json({ ok: true });
 }
