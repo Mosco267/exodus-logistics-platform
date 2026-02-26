@@ -3,7 +3,17 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Menu, X, Users, Package, Tags, Search, PlusCircle, LogOut } from "lucide-react";
+import {
+  Menu,
+  X,
+  Users,
+  Package,
+  Tags,
+  Search,
+  PlusCircle,
+  LogOut,
+  UserX,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 
 type Props = { children: ReactNode };
@@ -74,21 +84,40 @@ export default function AdminShell({ children }: Props) {
     // ✅ Best: open user detail page if we have createdByUserId
     if (h.createdByUserId) {
       router.push(
-        `/${locale}/dashboard/admin/users/${encodeURIComponent(h.createdByUserId)}#${encodeURIComponent(
-          h.shipmentId
-        )}`
+        `/${locale}/dashboard/admin/users/${encodeURIComponent(
+          h.createdByUserId
+        )}#${encodeURIComponent(h.shipmentId)}`
       );
       return;
     }
 
-    // ✅ Fallback: go to admin shipments page (or status page if you prefer)
+    // ✅ Fallback
     router.push(`/${locale}/dashboard/admin/shipments`);
   };
 
   const nav = [
-    { href: `/${locale}/dashboard/admin/users`, label: "Users", icon: <Users className="w-5 h-5" /> },
-    { href: `/${locale}/dashboard/admin/shipments`, label: "Shipments", icon: <Package className="w-5 h-5" /> },
-    { href: `/${locale}/dashboard/admin/statuses`, label: "Statuses", icon: <Tags className="w-5 h-5" /> },
+    {
+      href: `/${locale}/dashboard/admin/users`,
+      label: "Users",
+      icon: <Users className="w-5 h-5" />,
+    },
+    {
+      href: `/${locale}/dashboard/admin/shipments`,
+      label: "Shipments",
+      icon: <Package className="w-5 h-5" />,
+    },
+    {
+      href: `/${locale}/dashboard/admin/statuses`,
+      label: "Statuses",
+      icon: <Tags className="w-5 h-5" />,
+    },
+
+    // ✅ NEW: Deleted Users
+    {
+      href: `/${locale}/dashboard/admin/deleted-users`,
+      label: "Deleted Users",
+      icon: <UserX className="w-5 h-5" />,
+    },
   ];
 
   return (
@@ -100,12 +129,18 @@ export default function AdminShell({ children }: Props) {
         ${open ? "w-72" : "w-20"}`}
       >
         <div className="px-4 pt-4 pb-3 border-b border-white/15">
-          <div className={`flex items-center ${open ? "justify-between" : "justify-center"}`}>
+          <div
+            className={`flex items-center ${
+              open ? "justify-between" : "justify-center"
+            }`}
+          >
             {open ? (
               <>
                 <div className="min-w-0">
                   <p className="text-sm font-extrabold truncate">Admin Panel</p>
-                  <p className="text-[11px] text-white/70 truncate">Manage users & shipments</p>
+                  <p className="text-[11px] text-white/70 truncate">
+                    Manage users & shipments
+                  </p>
                 </div>
                 <button
                   className="p-2 rounded-lg hover:bg-white/10 transition cursor-pointer"
@@ -136,9 +171,17 @@ export default function AdminShell({ children }: Props) {
                 href={n.href}
                 className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl transition font-semibold
                 ${open ? "" : "justify-center"}
-                ${active ? "bg-white text-blue-800 shadow-md" : "hover:bg-white/10 text-white"}`}
+                ${
+                  active
+                    ? "bg-white text-blue-800 shadow-md"
+                    : "hover:bg-white/10 text-white"
+                }`}
               >
-                <span className={`${active ? "text-blue-800" : "text-white/90 group-hover:text-white"}`}>
+                <span
+                  className={`${
+                    active ? "text-blue-800" : "text-white/90 group-hover:text-white"
+                  }`}
+                >
                   {n.icon}
                 </span>
                 {open && <span className="truncate">{n.label}</span>}
