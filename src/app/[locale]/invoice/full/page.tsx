@@ -298,7 +298,7 @@ const declaredToShow = Number(declaredToShowRaw);
 
             <button
               onClick={handlePrint}
-              className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+              className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer"
             >
               <Printer className="w-5 h-5 mr-2" /> Print
             </button>
