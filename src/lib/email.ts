@@ -179,3 +179,92 @@ export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string
     text: toText(html),
   });
 }
+// ✅ Auto emails for shipment updates
+
+export async function sendShipmentStatusEmail(to: string, opts: { name?: string; shipmentId: string; statusLabel: string }) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = (opts.name || "Customer").trim();
+  const safeTo = esc(to);
+
+  const subject = `Exodus Logistics: Shipment status update (${opts.shipmentId})`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> status has been updated to
+      <strong>${esc(opts.statusLabel)}</strong>.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      If you have questions, please reply to this email or contact support.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Shipment status updated",
+    preheader: `Shipment ${opts.shipmentId} status is now ${opts.statusLabel}.`,
+    bodyHtml,
+    button: { text: "Contact support", href: SUPPORT_URL },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: safeTo,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}
+
+export async function sendInvoiceUpdateEmail(to: string, opts: { name?: string; shipmentId: string; paid: boolean }) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = (opts.name || "Customer").trim();
+  const safeTo = esc(to);
+
+  const subject = `Exodus Logistics: Invoice update (${opts.shipmentId})`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as
+      <strong>${opts.paid ? "PAID" : "UNPAID"}</strong>.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      If you believe this is incorrect, please contact support.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Invoice updated",
+    preheader: `Invoice for ${opts.shipmentId} is now ${opts.paid ? "PAID" : "UNPAID"}.`,
+    bodyHtml,
+    button: { text: "Contact support", href: SUPPORT_URL },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: safeTo,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}

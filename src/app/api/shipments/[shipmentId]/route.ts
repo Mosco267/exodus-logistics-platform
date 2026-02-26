@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { auth } from "@/auth";
+import { sendShipmentStatusEmail, sendInvoiceUpdateEmail } from "@/lib/email";
 
 const normalizeStatus = (status?: string) =>
   (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
@@ -57,6 +59,11 @@ export async function PATCH(
 ) {
   try {
     console.log("🔥🔥 ACTIVE SHIPMENT PATCH ROUTE 999 🔥🔥");
+    const session = await auth();
+const role = String((session as any)?.user?.role || "").toUpperCase();
+if (role !== "ADMIN") {
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
     const { shipmentId: raw } = await context.params;
     const shipmentId = normalizeShipmentId(raw);
 
@@ -219,6 +226,37 @@ await db.collection("notifications").insertOne({
   read: false,
   createdAt: new Date(),
 });
+
+const userEmail = String(existing.createdByEmail || "").toLowerCase().trim();
+
+// (optional) get user's name for nicer emails
+let userName = "Customer";
+if (userEmail) {
+  const uDoc = await db.collection("users").findOne(
+    { email: userEmail },
+    { projection: { name: 1 } }
+  );
+  if (uDoc?.name) userName = String((uDoc as any).name || "Customer");
+}
+
+// ✅ Send status email
+if (typeof body.status === "string" && userEmail) {
+  const finalStatus = String($set?.status || body.status || existing?.status || "Updated");
+  await sendShipmentStatusEmail(userEmail, {
+    name: userName,
+    shipmentId,
+    statusLabel: finalStatus,
+  }).catch(() => null);
+}
+
+// ✅ Send invoice email
+if (body?.invoice?.paid !== undefined && userEmail) {
+  await sendInvoiceUpdateEmail(userEmail, {
+    name: userName,
+    shipmentId,
+    paid: Boolean(body.invoice.paid),
+  }).catch(() => null);
+}
 
     const updated = await db.collection("shipments").findOne(
       shipmentIdQuery(shipmentId),
