@@ -313,7 +313,7 @@ const declaredToShow = Number(declaredToShowRaw);
           className="bg-white/90 backdrop-blur rounded-3xl border border-gray-200 shadow-xl overflow-hidden"
         >
           {/* Header */}
-          <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-800 text-white">
+          <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-white to-blue-900 via-blue-800 to-cyan-800 text-white">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <img src="/logo.svg" alt="Exodus Logistics" className="h-12 w-auto" />
