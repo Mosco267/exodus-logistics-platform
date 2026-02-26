@@ -84,7 +84,7 @@ export default function InvoicePage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 w-full rounded-2xl bg-blue-600 text-white py-4 font-semibold
+            className="mt-8 w-full rounded-2xl bg-blue-600 text-white py-4 font-semibold
                        hover:bg-blue-700 transition disabled:opacity-60
                        cursor-pointer disabled:cursor-not-allowed
                        flex items-center justify-center"
