@@ -64,23 +64,26 @@ export default function InvoicePage() {
           className="bg-white/90 backdrop-blur rounded-3xl border border-gray-200 shadow-xl p-6 sm:p-8"
         >
           <label className="text-sm font-semibold text-gray-700">
-            Shipment ID / Tracking
+            Shipment ID / Tracking <Number></Number>
           </label>
 
           <input
             value={q}
             onChange={(e) => setQ(e.target.value.toUpperCase())}
-            placeholder="Example: EXS-260222-9BC87D or EX-24-US-123456"
+            placeholder="example: EXS-260222-9BC87D or EX24US123456"
             className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-4 text-lg
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 uppercase"
+focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 w-full rounded-2xl bg-blue-600 text-white py-4 font-semibold
-                       hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed
-                       flex items-center justify-center"
+            className="mt-4 w-full rounded-2xl bg-blue-600 text-white py-4
+font-semibold hover:bg-blue-700 transition
+cursor-pointer
+disabled:opacity-60
+disabled:cursor-not-allowed
+flex items-center justify-center"
           >
             {loading ? (
               "Loading…"
