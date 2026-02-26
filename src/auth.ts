@@ -22,8 +22,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const client = await clientPromise;
         const db = client.db(process.env.MONGODB_DB);
 
-        const user = await db.collection("users").findOne({ email });
-        if (!user) return null;
+       const user = await db.collection("users").findOne({ email });
+if (!user) return null;
+
+// ✅ Block deleted users (soft deleted)
+if ((user as any).isDeleted) return null;
 
         const hash = String((user as any).passwordHash || (user as any).password || "");
 const ok = await bcrypt.compare(password, hash);

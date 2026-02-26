@@ -64,6 +64,50 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
   });
 }
 
+export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = (opts?.name || "Customer").trim();
+  const safeTo = esc(to);
+
+  const subject = "Exodus Logistics: Account restored";
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      This email confirms that the Exodus Logistics account associated with
+      <strong>${safeTo}</strong> has been restored.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      You may now log in again. If you experience any issues, please contact support.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Account restored",
+    preheader: "Your account has been restored. You can log in again.",
+    bodyHtml,
+    calloutHtml: "If you did not request this change, contact support immediately.",
+    button: { text: "Contact support", href: SUPPORT_URL },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+  });
+}
+
 /** NEW: deletion email */
 export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");

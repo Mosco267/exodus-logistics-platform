@@ -2,18 +2,15 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
-import { sendBanEmail } from "@/lib/email";
+import { sendRestoreEmail } from "@/lib/email";
 
-export async function DELETE(_req: Request, ctx: any) {
+export async function PATCH(_req: Request, ctx: any) {
   try {
     const session = await auth();
     const role = String((session as any)?.user?.role || "").toUpperCase();
-
     if (role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
-    const adminEmail = String((session as any)?.user?.email || "").toLowerCase().trim();
 
     const p = await Promise.resolve(ctx?.params);
     const rawValue =
@@ -21,66 +18,43 @@ export async function DELETE(_req: Request, ctx: any) {
 
     const raw = String(rawValue || "").trim();
     if (!raw || !ObjectId.isValid(raw)) {
-      return NextResponse.json(
-        { error: "Invalid userId", got: raw || null, params: p || null },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
     }
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
     const user = await db.collection("users").findOne({ _id: new ObjectId(raw) });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // ✅ Soft delete (enterprise style)
     const email = String((user as any)?.email || "").toLowerCase().trim();
     const name = String((user as any)?.name || "Customer");
 
     await db.collection("users").updateOne(
       { _id: new ObjectId(raw) },
-      {
-        $set: {
-          isDeleted: true,
-          deletedAt: new Date(),
-          deletedBy: adminEmail || "admin",
-        },
-      }
+      { $set: { isDeleted: false }, $unset: { deletedAt: "", deletedBy: "" } }
     );
 
-    // ✅ Keep blocked_emails in sync (prevents re-signup)
+    // ✅ Unblock signup/login
     if (email) {
-      await db.collection("blocked_emails").updateOne(
-        { email },
-        {
-          $set: {
-            email,
-            blockedAt: new Date(),
-            reason: "Soft deleted by admin",
-            userId: raw,
-          },
-        },
-        { upsert: true }
-      );
+      await db.collection("blocked_emails").deleteOne({ email });
     }
 
-    // ✅ In-app notification (so user sees it if already logged in somewhere)
+    // ✅ In-app notification
     if (email) {
       await db.collection("notifications").insertOne({
         userEmail: email,
-        title: "Account access removed",
+        title: "Account restored",
         message:
-          "Your account access has been removed. If you believe this was a mistake, contact support.",
+          "Your account has been restored. You can now log in again. If you need help, contact support.",
         read: false,
         createdAt: new Date(),
       });
     }
 
-    // ✅ Email (Resend)
+    // ✅ Email
     if (email) {
-      await sendBanEmail(email, { name }).catch(() => null);
+      await sendRestoreEmail(email, { name }).catch(() => null);
     }
 
     return NextResponse.json({ ok: true });

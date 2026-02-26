@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { Users, Package, Tags, Shield } from "lucide-react";
+import { Users, Package, Tags, Shield, Trash2 } from "lucide-react";
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -20,6 +20,11 @@ export default function AdminSidebar() {
       icon: <Users className="w-5 h-5" />,
     },
     {
+      href: `/${locale}/dashboard/admin/deleted-users`,
+      label: "Deleted Users",
+      icon: <Trash2 className="w-5 h-5" />,
+    },
+    {
       href: `/${locale}/dashboard/admin/shipments`,
       label: "Shipments",
       icon: <Package className="w-5 h-5" />,
@@ -32,7 +37,7 @@ export default function AdminSidebar() {
   ];
 
   return (
-    <aside className="w-64 shrink-0 h-screen sticky top-0 bg-gradient-to-b from-blue-900 via-blue-800 to-cyan-800 text-white border-r border-white/10">
+    <aside className="w-64 shrink-0 h-screen sticky top-0 bg-gradient-to-b from-blue-900 via-blue-800 to-cyan-800 text-white border-r border-white/10 flex flex-col">
       <div className="p-5 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center">
@@ -40,12 +45,14 @@ export default function AdminSidebar() {
           </div>
           <div className="min-w-0">
             <p className="font-extrabold leading-tight truncate">Admin Panel</p>
-            <p className="text-xs text-white/70 truncate">Manage users, shipments & statuses</p>
+            <p className="text-xs text-white/70 truncate">
+              Enterprise Control Center
+            </p>
           </div>
         </div>
       </div>
 
-      <nav className="p-3 space-y-1">
+      <nav className="p-3 space-y-1 flex-1">
         {links.map((l) => {
           const active = isActive(pathname, l.href);
           return (
@@ -53,18 +60,23 @@ export default function AdminSidebar() {
               key={l.href}
               href={l.href}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl font-semibold transition cursor-pointer
-                ${active ? "bg-white text-blue-900 shadow-md" : "hover:bg-white/10 text-white"}`}
+                ${
+                  active
+                    ? "bg-white text-blue-900 shadow-md"
+                    : "hover:bg-white/10 text-white"
+                }`}
             >
-              <span className={`${active ? "text-blue-900" : "text-white/90"}`}>{l.icon}</span>
+              <span className={active ? "text-blue-900" : "text-white/90"}>
+                {l.icon}
+              </span>
               <span className="truncate">{l.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto p-4 text-xs text-white/70">
-        Tip: Use the search bar to find shipments by <span className="font-semibold">Shipment ID</span> or{" "}
-        <span className="font-semibold">Tracking #</span>.
+      <div className="p-4 text-xs text-white/70 border-t border-white/10">
+        Soft delete system enabled.
       </div>
     </aside>
   );
