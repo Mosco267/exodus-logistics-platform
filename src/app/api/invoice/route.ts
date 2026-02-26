@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
-const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const ciExact = (field: string, value: string) => ({ [field]: { $regex: `^${escapeRegex(value)}$`, $options: "i" } });
+const escapeRegex = (input: string) =>
+  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const ciExact = (field: string, value: string) => ({
+  [field]: { $regex: `^${escapeRegex(value)}$`, $options: "i" },
+});
 
 export async function GET(req: Request) {
   try {
@@ -30,9 +34,29 @@ export async function GET(req: Request) {
     const currency = String(inv?.currency || "USD").toUpperCase();
     const paid = Boolean(inv?.paid);
 
-    // Minimal “real” invoice: the total is the invoice.amount you already store.
-    // You can later expand this into breakdowns using your pricing settings.
-    const invoiceNumber = `INV-${String((shipment as any)?.shipmentId || "SHIP").replace(/[^A-Z0-9-]/gi, "")}`;
+    // ✅ IMPORTANT: expose breakdown if it exists
+    // (this is what your UI needs to show charges)
+    const breakdown = inv?.breakdown ?? null;
+
+    // Invoice number style
+    const cleanShipId = String((shipment as any)?.shipmentId || "SHIP").replace(
+      /[^A-Z0-9-]/gi,
+      ""
+    );
+    const invoiceNumber = `INV-${cleanShipId}`;
+
+    // Emails:
+    // - senderEmail: senderEmail (or empty)
+    // - receiverEmail: receiverEmail, otherwise fall back to createdByEmail
+    //   so the "account owner" shows under Receiver if you didn’t store receiverEmail yet.
+    const senderEmail =
+      String((shipment as any)?.senderEmail || "").trim() ||
+      "";
+
+    const receiverEmail =
+      String((shipment as any)?.receiverEmail || "").trim() ||
+      String((shipment as any)?.createdByEmail || "").trim() ||
+      "";
 
     return NextResponse.json({
       invoiceNumber,
@@ -41,6 +65,9 @@ export async function GET(req: Request) {
       total: amount,
       paid,
       paidAt: inv?.paidAt || null,
+
+      // ✅ add this (your front-end will read it)
+      breakdown,
 
       shipment: {
         shipmentId: (shipment as any)?.shipmentId || "",
@@ -53,8 +80,8 @@ export async function GET(req: Request) {
       parties: {
         senderName: (shipment as any)?.senderName || "Sender",
         receiverName: (shipment as any)?.receiverName || "Receiver",
-        senderEmail: (shipment as any)?.senderEmail || (shipment as any)?.createdByEmail || "",
-        receiverEmail: (shipment as any)?.receiverEmail || "",
+        senderEmail,
+        receiverEmail,
       },
 
       dates: {
