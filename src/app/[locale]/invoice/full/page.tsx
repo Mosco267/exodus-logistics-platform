@@ -33,6 +33,19 @@ type InvoiceApi = {
     createdAt?: string | null;
     updatedAt?: string | null;
   };
+
+  // ✅ optional (if your /api/invoice returns it)
+  breakdown?: {
+    shipping?: number;
+    insurance?: number;
+    fuel?: number;
+    customs?: number;
+    tax?: number;
+    discount?: number;
+    subtotal?: number;
+    total?: number;
+    [key: string]: any;
+  };
 };
 
 const currencySymbol = (code: string) => {
@@ -55,12 +68,17 @@ function formatDate(d?: string | null) {
   return t.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
+function money(sym: string, n: any) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return `${sym} 0.00`;
+  return `${sym} ${num.toFixed(2)}`;
+}
+
 export default function FullInvoicePage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const sp = useSearchParams();
 
-  // Accept ?tracking= or ?q=
   const q = useMemo(() => String(sp.get("q") || sp.get("tracking") || "").trim(), [sp]);
 
   const [data, setData] = useState<InvoiceApi | null>(null);
@@ -137,6 +155,40 @@ export default function FullInvoicePage() {
     String(data.shipment?.trackingNumber || "").trim() ||
     String(data.shipment?.shipmentId || "").trim() ||
     q;
+
+  // ✅ Receiver email should show here even if DB stored it as senderEmail by mistake
+  const receiverEmail = String(data.parties?.receiverEmail || data.parties?.senderEmail || "").trim();
+
+  // ✅ breakdown: if API returns it, show it
+  const breakdown = (data as any)?.breakdown || null;
+
+  // Build a nice list (only show keys that exist)
+  const chargeRows: { label: string; value: number }[] = [];
+  if (breakdown) {
+    const pushIf = (key: string, label: string) => {
+      const v = breakdown?.[key];
+      const num = Number(v);
+      if (Number.isFinite(num)) chargeRows.push({ label, value: num });
+    };
+
+    pushIf("shipping", "Shipping");
+    pushIf("insurance", "Insurance");
+    pushIf("fuel", "Fuel");
+    pushIf("customs", "Customs / Duties");
+    pushIf("tax", "Tax");
+    // discount usually shown as negative
+    if (Number.isFinite(Number(breakdown?.discount))) {
+      chargeRows.push({ label: "Discount", value: Number(breakdown.discount) * -1 });
+    }
+    pushIf("subtotal", "Subtotal");
+  }
+
+  const totalToShow =
+    Number.isFinite(Number(breakdown?.total))
+      ? Number(breakdown.total)
+      : Number.isFinite(Number(data.total))
+        ? Number(data.total)
+        : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
@@ -236,7 +288,7 @@ export default function FullInvoicePage() {
               <div className="rounded-2xl border border-gray-200 p-4">
                 <p className="text-sm text-gray-600">Total</p>
                 <p className="mt-1 text-2xl font-extrabold text-blue-700">
-                  {sym} {Number(data.total || 0).toLocaleString()}
+                  {money(sym, totalToShow)}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
                   {data.paid ? `Paid on ${formatDate(data.paidAt || null)}` : "Payment pending"}
@@ -255,21 +307,16 @@ export default function FullInvoicePage() {
                 <div className="mt-3">
                   <p className="text-sm text-gray-600">Sender</p>
                   <p className="font-bold text-gray-900">{data.parties.senderName || "Sender"}</p>
-                  {data.parties.senderEmail ? (
-                    <p className="mt-1 text-sm text-gray-700 flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                      {data.parties.senderEmail}
-                    </p>
-                  ) : null}
                 </div>
 
                 <div className="mt-4">
                   <p className="text-sm text-gray-600">Receiver</p>
                   <p className="font-bold text-gray-900">{data.parties.receiverName || "Receiver"}</p>
-                  {data.parties.receiverEmail ? (
+
+                  {receiverEmail ? (
                     <p className="mt-1 text-sm text-gray-700 flex items-center">
                       <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                      {data.parties.receiverEmail}
+                      {receiverEmail}
                     </p>
                   ) : null}
                 </div>
@@ -296,27 +343,40 @@ export default function FullInvoicePage() {
               </div>
             </div>
 
-            {/* Charges (kept same) */}
+            {/* ✅ Charges (now shows breakdown if available) */}
             <div className="mt-6 rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                 <p className="font-extrabold text-gray-900">Charges</p>
                 <p className="text-sm text-gray-600">
-                  (For now this uses the stored invoice amount. You can add full breakdown later.)
+                  {breakdown
+                    ? "Breakdown calculated from declared value."
+                    : "(Breakdown not found from API yet — showing total only.)"}
                 </p>
               </div>
 
-              <div className="p-5">
-                <div className="flex justify-between text-sm text-gray-700">
-                  <span>Shipment charges</span>
-                  <span className="font-semibold">
-                    {sym} {Number(data.total || 0).toFixed(2)}
-                  </span>
-                </div>
+              <div className="p-5 space-y-3">
+                {chargeRows.length > 0 ? (
+                  <>
+                    {chargeRows.map((r) => (
+                      <div key={r.label} className="flex justify-between text-sm text-gray-700">
+                        <span>{r.label}</span>
+                        <span className="font-semibold">
+                          {money(sym, r.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>Shipment charges</span>
+                    <span className="font-semibold">{money(sym, totalToShow)}</span>
+                  </div>
+                )}
 
                 <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-lg">
                   <span className="font-extrabold text-gray-900">Total</span>
                   <span className="font-extrabold text-blue-700">
-                    {sym} {Number(data.total || 0).toFixed(2)}
+                    {money(sym, totalToShow)}
                   </span>
                 </div>
               </div>

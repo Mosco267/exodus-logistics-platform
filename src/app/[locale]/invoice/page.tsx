@@ -38,10 +38,7 @@ export default function InvoicePage() {
     setErr("");
     setLoading(true);
 
-    // ✅ Replace page with Full Invoice page (no half invoice under form)
     router.push(`/${locale}/invoice/full?q=${encodeURIComponent(query)}`);
-
-    // navigation happens immediately; stop loading
     setLoading(false);
   };
 
@@ -73,7 +70,7 @@ export default function InvoicePage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value.toUpperCase())}
-            placeholder="e.g. EXS-260222-9BC87D or EX-24-US-123456"
+            placeholder="Example: EXS-260222-9BC87D or EX-24-US-123456"
             className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-4 text-lg
                        focus:outline-none focus:ring-2 focus:ring-blue-500/40 uppercase"
           />
