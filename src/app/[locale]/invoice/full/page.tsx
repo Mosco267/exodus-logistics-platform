@@ -14,11 +14,9 @@ type InvoiceApi = {
   paid: boolean;
   paidAt?: string | null;
 
-  // ✅ declared value may come from root or breakdown
   declaredValue?: number;
   declaredValueCurrency?: string;
 
-  // ✅ breakdown (amounts + rates used)
   breakdown?: {
     declaredValue?: number;
 
@@ -31,7 +29,6 @@ type InvoiceApi = {
     subtotal?: number;
     total?: number;
 
-    // rates can be stored in multiple shapes
     rates?: Record<string, any>;
     percentages?: Record<string, any>;
     pricing?: Record<string, any>;
@@ -42,17 +39,15 @@ type InvoiceApi = {
   shipment: {
     shipmentId: string;
     trackingNumber: string;
-    origin: string; // can be code or name
-    destination: string; // can be code or name
+    origin: string;
+    destination: string;
     status: string;
 
-    // ✅ advanced shipment details (optional, from API)
-    shipmentType?: string | null; // parcel/cargo/documents
-    serviceLevel?: string | null; // Express/Standard
+    shipmentType?: string | null;
+    serviceLevel?: string | null;
     weightKg?: number | null;
     dimensionsCm?: { length?: number; width?: number; height?: number } | null;
 
-    // ✅ advanced route details (optional, from API)
     senderCountry?: string | null;
     senderState?: string | null;
     senderCity?: string | null;
@@ -99,7 +94,6 @@ function formatDate(d?: string | null) {
   return t.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
-// ✅ Show 0% instead of —
 function toPct(rate: any): string {
   const n = Number(rate);
   if (!Number.isFinite(n)) return "—";
@@ -107,7 +101,6 @@ function toPct(rate: any): string {
   return `${pct.toFixed(2).replace(/\.00$/, "")}%`;
 }
 
-// ✅ commas + 2 decimals
 function formatNumber(v: any) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0.00";
@@ -121,25 +114,11 @@ function money(sym: string, v: any) {
   return `${sym} ${formatNumber(v)}`;
 }
 
-/**
- * ✅ FIXED pickRate:
- * If you store rates as:
- *   rates.shippingRate / rates.taxRate ...
- * this will find them correctly.
- */
 function pickRate(breakdown: any, key: string) {
   const k = String(key || "").trim(); // e.g. "shippingRate"
   const baseKey = k.toLowerCase().endsWith("rate") ? k.slice(0, -4) : k; // "shipping"
 
-  const candidates = [
-    // best: rates.shippingRate
-    k,
-    // base + Rate in case caller passed "shipping"
-    `${baseKey}Rate`,
-    // sometimes stored as base key
-    baseKey,
-  ];
-
+  const candidates = [k, `${baseKey}Rate`, baseKey];
   const sources = [breakdown?.rates, breakdown?.percentages, breakdown?.pricing, breakdown];
 
   for (const src of sources) {
@@ -148,7 +127,6 @@ function pickRate(breakdown: any, key: string) {
       if (src?.[c] !== undefined && src?.[c] !== null) return src[c];
     }
   }
-
   return null;
 }
 
@@ -245,9 +223,7 @@ export default function FullInvoicePage() {
     String(data.shipment?.shipmentId || "").trim() ||
     q;
 
-  // ✅ Receiver email should show here even if DB stored it as senderEmail by mistake
   const receiverEmail = String(data.parties?.receiverEmail || data.parties?.senderEmail || "").trim();
-
   const breakdown = (data as any)?.breakdown || null;
 
   const rows = [
@@ -275,7 +251,7 @@ export default function FullInvoicePage() {
 
   const declaredToShow = Number(declaredToShowRaw);
 
-  // ✅ Advanced shipment info (shows only if API returns them)
+  // Shipment details for new box
   const shipmentType = String(data.shipment?.shipmentType || "").trim();
   const serviceLevel = String(data.shipment?.serviceLevel || "").trim();
   const weightKg = data.shipment?.weightKg;
@@ -339,7 +315,6 @@ export default function FullInvoicePage() {
           </div>
         </div>
 
-        {/* Invoice Card */}
         <motion.div
           id="invoice-print-area"
           initial={{ opacity: 0, y: 12 }}
@@ -381,6 +356,7 @@ export default function FullInvoicePage() {
                 <p className="mt-1 font-extrabold text-gray-900">{formatDate(data.dates?.createdAt)}</p>
               </div>
 
+              {/* ✅ Shipment box (CLEAN) */}
               <div className="rounded-2xl border border-gray-200 p-4">
                 <p className="text-sm text-gray-600 flex items-center">
                   <Package className="w-4 h-4 mr-2 text-gray-500" />
@@ -390,48 +366,11 @@ export default function FullInvoicePage() {
                 <p className="text-sm text-gray-600 mt-1">
                   Tracking: <span className="font-semibold">{data.shipment.trackingNumber || "—"}</span>
                 </p>
-
-                {/* ✅ DECLARED VALUE (with commas) */}
-                <p className="text-sm text-gray-600 mt-1">
-                  Declared value:{" "}
-                  <span className="font-semibold">{money(sym, declaredToShow)}</span>
-                </p>
-
-                {/* ✅ ADVANCED DETAILS (optional) */}
-                {(shipmentType || serviceLevel || Number.isFinite(Number(weightKg)) || dims) ? (
-                  <div className="mt-3 text-sm text-gray-700 space-y-1">
-                    {serviceLevel ? (
-                      <p>
-                        Service: <span className="font-semibold">{serviceLevel}</span>
-                      </p>
-                    ) : null}
-                    {shipmentType ? (
-                      <p>
-                        Type: <span className="font-semibold">{shipmentType}</span>
-                      </p>
-                    ) : null}
-                    {Number.isFinite(Number(weightKg)) ? (
-                      <p>
-                        Weight: <span className="font-semibold">{Number(weightKg).toLocaleString()} kg</span>
-                      </p>
-                    ) : null}
-                    {dims?.length || dims?.width || dims?.height ? (
-                      <p>
-                        Dimensions:{" "}
-                        <span className="font-semibold">
-                          {Number(dims.length || 0)} × {Number(dims.width || 0)} × {Number(dims.height || 0)} cm
-                        </span>
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
 
               <div className="rounded-2xl border border-gray-200 p-4">
                 <p className="text-sm text-gray-600">Total</p>
-                <p className="mt-1 text-2xl font-extrabold text-blue-700">
-                  {money(sym, totalToShow)}
-                </p>
+                <p className="mt-1 text-2xl font-extrabold text-blue-700">{money(sym, totalToShow)}</p>
                 <p className="text-sm text-gray-600 mt-1">
                   {data.paid ? `Paid on ${formatDate(data.paidAt || null)}` : "Payment pending"}
                 </p>
@@ -470,7 +409,6 @@ export default function FullInvoicePage() {
                   Route
                 </p>
 
-                {/* ✅ ADVANCED route (address/city/state/country if present) */}
                 <p className="mt-3 text-sm text-gray-700">
                   <span className="font-semibold">From:</span> {fromFull || "—"}
                 </p>
@@ -484,6 +422,40 @@ export default function FullInvoicePage() {
                     <span className="font-semibold text-blue-700">{data.shipment.status || "—"}</span>
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* ✅ NEW Shipment Details box UNDER Route */}
+            <div className="mt-4 rounded-2xl border border-gray-200 p-5">
+              <p className="font-extrabold text-gray-900 flex items-center">
+                <Package className="w-4 h-4 mr-2 text-gray-500" />
+                Shipment details
+              </p>
+
+              <div className="mt-3 text-sm text-gray-700 space-y-2">
+                <p>
+                  <span className="font-semibold">Declared value:</span> {money(sym, declaredToShow)}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Service level:</span> {serviceLevel || "—"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Shipment type:</span> {shipmentType || "—"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Weight:</span>{" "}
+                  {Number.isFinite(Number(weightKg)) ? `${Number(weightKg).toLocaleString()} kg` : "—"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Dimensions:</span>{" "}
+                  {dims?.length || dims?.width || dims?.height
+                    ? `${Number(dims?.length || 0)} × ${Number(dims?.width || 0)} × ${Number(dims?.height || 0)} cm`
+                    : "—"}
+                </p>
               </div>
             </div>
 
@@ -505,15 +477,12 @@ export default function FullInvoicePage() {
 
                       const isDiscount = r.key === "discount";
                       const amountNum = Number(amt ?? 0);
-
-                      // If discount is stored as positive, show it as negative on invoice
                       const displayAmount = isDiscount && amountNum > 0 ? -amountNum : amountNum;
 
                       return (
                         <div key={r.key} className="flex justify-between text-sm text-gray-700">
                           <span>
-                            {r.label}{" "}
-                            <span className="text-gray-500">({toPct(rate)})</span>
+                            {r.label} <span className="text-gray-500">({toPct(rate)})</span>
                           </span>
                           <span className="font-semibold">{money(sym, displayAmount)}</span>
                         </div>
@@ -539,7 +508,6 @@ export default function FullInvoicePage() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="mt-8 text-xs text-gray-500">
               <p>This invoice was generated by Exodus Logistics. If you need assistance, please contact support.</p>
             </div>

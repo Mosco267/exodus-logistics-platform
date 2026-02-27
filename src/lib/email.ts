@@ -469,3 +469,126 @@ export async function sendShipmentIncomingEmail(
     text: toText(html),
   });
 }
+
+export async function sendShipmentCreatedReceiverEmail(
+  to: string,
+  args: {
+    name: string;
+    senderName: string;
+    shipmentId: string;
+    trackingNumber: string;
+    receiverAddress: string;
+    receiverPostalCode: string;
+    receiverState: string;
+    receiverCountry: string;
+    viewShipmentUrl: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const subject = `Shipment on the way: ${args.shipmentId}`;
+
+  const addrLine = [args.receiverAddress, args.receiverState, args.receiverCountry]
+    .filter(Boolean)
+    .join(", ");
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(args.name || "Customer")},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      A shipment has been created for you by <strong>${esc(args.senderName || "Sender")}</strong>.
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
+      <strong>Tracking:</strong> ${esc(args.trackingNumber)}<br/>
+      <strong>Delivery address:</strong> ${esc(addrLine)}<br/>
+      ${args.receiverPostalCode ? `<strong>Postal code:</strong> ${esc(args.receiverPostalCode)}<br/>` : ""}
+    </p>
+
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      You can view shipment progress anytime using the button below.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Shipment created for you",
+    preheader: `Shipment ${args.shipmentId} has been created`,
+    bodyHtml,
+    button: { text: "View Shipment", href: args.viewShipmentUrl },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}
+
+export async function sendInvoiceStatusReceiverEmail(
+  to: string,
+  args: {
+    name: string;
+    senderName: string;
+    shipmentId: string;
+    trackingNumber: string;
+    paid: boolean;
+    viewInvoiceUrl: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const subject = `Invoice ${args.paid ? "Paid" : "Unpaid"}: ${args.shipmentId}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(args.name || "Customer")},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      The invoice for shipment <strong>${esc(args.shipmentId)}</strong> (sent by <strong>${esc(args.senderName)}</strong>)
+      is currently marked as <strong>${args.paid ? "PAID" : "UNPAID"}</strong>.
+    </p>
+
+    ${
+      args.paid
+        ? ""
+        : `<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+             If payment is required, please contact support or follow the instructions in your invoice page.
+           </p>`
+    }
+
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      You can view the invoice using the button below.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Invoice status",
+    preheader: `Invoice is ${args.paid ? "paid" : "unpaid"}`,
+    bodyHtml,
+    button: { text: "View Invoice", href: args.viewInvoiceUrl },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}

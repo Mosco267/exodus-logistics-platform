@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { generateShipmentId, generateTrackingNumber } from "@/lib/id";
-import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING, type PricingSettings } from "@/lib/pricing";
-import { sendShipmentCreatedEmail, sendShipmentIncomingEmail, sendInvoiceStatusEmail } from "@/lib/email";
-import type { Collection, Db } from "mongodb";
+import { DEFAULT_PRICING, computeInvoiceFromDeclaredValue, type PricingSettings } from "@/lib/pricing";
+import { sendShipmentCreatedEmail, sendInvoiceStatusEmail, sendShipmentCreatedReceiverEmail, sendInvoiceStatusReceiverEmail } from "@/lib/email";
 
 type ShipmentStatus =
   | "Delivered"
@@ -12,6 +11,8 @@ type ShipmentStatus =
   | "Unclaimed"
   | "Created";
 
+type DimensionsCm = { length: number; width: number; height: number };
+
 type CreateShipmentBody = {
   senderCountryCode: string;
   destinationCountryCode: string;
@@ -19,36 +20,41 @@ type CreateShipmentBody = {
   senderName?: string;
   receiverName?: string;
 
-  // ✅ emails (needed to send to both people)
+  // ✅ emails
   senderEmail?: string;
   receiverEmail?: string;
 
-  // ✅ addresses (for email text + invoice “advanced route”)
-  senderAddress?: string;
+  // ✅ full sender address
+  senderCountry?: string;
   senderState?: string;
   senderCity?: string;
+  senderAddress?: string;
+  senderPostalCode?: string;
+  senderPhone?: string;
 
-  receiverAddress?: string;
+  // ✅ full receiver address
+  receiverCountry?: string;
   receiverState?: string;
   receiverCity?: string;
+  receiverAddress?: string;
+  receiverPostalCode?: string;
+  receiverPhone?: string;
 
-  // ✅ shipment details for invoice
-  shipmentType?: string; // e.g. "Documents", "Parcel", "Cargo"
-  serviceLevel?: "Express" | "Standard" | string;
+  // ✅ shipment details
+  serviceLevel?: "Express" | "Standard" | string;  // Express/Standard
+  shipmentType?: string;                           // Parcel/Cargo/Documents etc
   weightKg?: number;
-  dimensionsCm?: { length?: number; width?: number; height?: number };
+  dimensionsCm?: DimensionsCm;
 
-  // ✅ declared value drives invoice breakdown
+  // ✅ declared value
   declaredValue?: number;
   declaredValueCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
 
-  // ✅ pricing overrides you choose while creating shipment
-  pricing?: Partial<PricingSettings>;
-
-  // invoice stored
-  invoiceAmount?: number;
-  invoiceCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
+  // ✅ invoice toggle
   invoicePaid?: boolean;
+
+  // ✅ rates used for THIS shipment (so invoice % changes)
+  pricing?: Partial<PricingSettings>;
 
   status?: ShipmentStatus | string;
   statusNote?: string;
@@ -58,10 +64,7 @@ type CreateShipmentBody = {
 };
 
 const normalizeStatus = (status?: string) =>
-  (status ?? "")
-    .toLowerCase()
-    .trim()
-    .replace(/[\s_-]+/g, "");
+  (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 
 function toTitleStatus(input?: string): ShipmentStatus {
   const s = normalizeStatus(input);
@@ -72,69 +75,43 @@ function toTitleStatus(input?: string): ShipmentStatus {
   return "Created";
 }
 
-async function loadPricing(db: Db): Promise<PricingSettings> {
-  // ✅ typed so Vercel TS won’t complain about _id type
-  const col = db.collection<{ _id: string; settings: PricingSettings }>("pricing_settings");
-  const doc = await col.findOne({ _id: "default" });
-  return (doc?.settings as PricingSettings) || DEFAULT_PRICING;
+async function loadPricing(db: any): Promise<PricingSettings> {
+  // pricing_settings: { _id: "default", settings: {...} }
+  const doc = await (db.collection("pricing_settings") as any).findOne({ _id: "default" });
+  return (doc as any)?.settings || DEFAULT_PRICING;
 }
 
 export async function POST(req: Request) {
   let body: CreateShipmentBody;
+
   try {
     body = (await req.json()) as CreateShipmentBody;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const senderCountryCode = (body.senderCountryCode || "").toUpperCase();
-  const destinationCountryCode = (body.destinationCountryCode || "").toUpperCase();
+  const senderCountryCode = String(body.senderCountryCode || "").toUpperCase().trim();
+  const destinationCountryCode = String(body.destinationCountryCode || "").toUpperCase().trim();
 
   if (!senderCountryCode || senderCountryCode.length !== 2) {
-    return NextResponse.json(
-      { error: "senderCountryCode must be 2 letters (e.g. US)" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "senderCountryCode must be 2 letters (e.g. US)" }, { status: 400 });
   }
-
   if (!destinationCountryCode || destinationCountryCode.length !== 2) {
-    return NextResponse.json(
-      { error: "destinationCountryCode must be 2 letters (e.g. NG)" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "destinationCountryCode must be 2 letters (e.g. NG)" }, { status: 400 });
   }
 
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB);
+  const senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
+  const receiverEmail = String(body.receiverEmail || "").trim().toLowerCase() || null;
 
-  // ✅ load default pricing and apply any overrides from admin form
-  const basePricing = await loadPricing(db);
-  const pricing: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
-
-  // ✅ declared value (optional but recommended)
   const declaredValue = Number(body.declaredValue ?? 0);
   if (!Number.isFinite(declaredValue) || declaredValue < 0) {
-    return NextResponse.json({ error: "declaredValue must be a number >= 0" }, { status: 400 });
+    return NextResponse.json({ error: "declaredValue must be a valid number >= 0" }, { status: 400 });
   }
 
-  // ✅ compute breakdown if declaredValue provided (>0)
-  const breakdown =
-    declaredValue > 0 ? computeInvoiceFromDeclaredValue(declaredValue, pricing) : null;
+  const declaredValueCurrency = String(body.declaredValueCurrency || "USD").toUpperCase();
+  const invoicePaid = Boolean(body.invoicePaid); // default false if not provided
 
-  // ✅ if admin explicitly set invoiceAmount, keep it; otherwise use breakdown total
-  const invoiceAmountFromBody = Number(body.invoiceAmount ?? NaN);
-  const invoiceAmount =
-    Number.isFinite(invoiceAmountFromBody) ? invoiceAmountFromBody : Number(breakdown?.total ?? 0);
-
-  if (!Number.isFinite(invoiceAmount) || invoiceAmount < 0) {
-    return NextResponse.json({ error: "invoiceAmount must be a valid number >= 0" }, { status: 400 });
-  }
-
-  const invoiceCurrency = String(body.invoiceCurrency || body.declaredValueCurrency || "USD").toUpperCase();
-  const invoicePaid = Boolean(body.invoicePaid);
-
-  const status = typeof body.status === "string" ? body.status : "Created";
-  const statusTitle = toTitleStatus(status);
+  const statusTitle = toTitleStatus(body.status || "Created");
 
   const defaultStatusNote =
     statusTitle === "Created"
@@ -144,8 +121,15 @@ export async function POST(req: Request) {
   const createdByUserId = String(body.createdByUserId || "").trim() || null;
   const createdByEmail = String(body.createdByEmail || "").trim().toLowerCase() || null;
 
-  const senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
-  const receiverEmail = String(body.receiverEmail || "").trim().toLowerCase() || null;
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB);
+
+  // ✅ base pricing from DB, then override with per-shipment pricing
+  const basePricing = await loadPricing(db);
+  const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
+
+  // ✅ compute invoice breakdown using the EXACT rates used
+  const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingUsed);
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const shipmentId = generateShipmentId();
@@ -157,6 +141,7 @@ export async function POST(req: Request) {
       const doc: any = {
         shipmentId,
         trackingNumber,
+
         senderCountryCode,
         destinationCountryCode,
 
@@ -164,52 +149,58 @@ export async function POST(req: Request) {
         createdByEmail,
 
         status: statusTitle,
-        statusNote: (body.statusNote || defaultStatusNote).trim(),
+        statusNote: String(body.statusNote || defaultStatusNote).trim(),
         statusUpdatedAt: now,
         cancelledAt: null,
 
-        // ✅ save shipment details for invoice
+        // ✅ parties
         senderName: body.senderName || null,
         receiverName: body.receiverName || null,
-
         senderEmail,
         receiverEmail,
 
-        senderAddress: body.senderAddress || null,
+        // ✅ full addresses
+        senderCountry: body.senderCountry || null,
         senderState: body.senderState || null,
         senderCity: body.senderCity || null,
+        senderAddress: body.senderAddress || null,
+        senderPostalCode: body.senderPostalCode || null,
+        senderPhone: body.senderPhone || null,
 
-        receiverAddress: body.receiverAddress || null,
+        receiverCountry: body.receiverCountry || null,
         receiverState: body.receiverState || null,
         receiverCity: body.receiverCity || null,
+        receiverAddress: body.receiverAddress || null,
+        receiverPostalCode: body.receiverPostalCode || null,
+        receiverPhone: body.receiverPhone || null,
 
+        // ✅ shipment details
+        serviceLevel: body.serviceLevel || "Standard",
         shipmentType: body.shipmentType || null,
-        serviceLevel: body.serviceLevel || null,
         weightKg: Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : null,
         dimensionsCm: body.dimensionsCm || null,
 
-        declaredValue: declaredValue || 0,
-        declaredValueCurrency: String(body.declaredValueCurrency || invoiceCurrency || "USD").toUpperCase(),
+        // ✅ declared value
+        declaredValue: breakdown.declaredValue,
+        declaredValueCurrency,
 
-        // ✅ invoice (store BOTH amounts + rates used so UI percent matches admin)
+        // ✅ invoice saved with breakdown + rates used (THIS is what fixes % not changing)
         invoice: {
-          amount: invoiceAmount,
-          currency: invoiceCurrency,
+          amount: breakdown.total,
+          currency: declaredValueCurrency,
           paid: invoicePaid,
           paidAt: invoicePaid ? now : null,
-          breakdown: breakdown
-            ? {
-                ...breakdown,
-                rates: {
-                  shippingRate: pricing.shippingRate,
-                  insuranceRate: pricing.insuranceRate,
-                  fuelRate: pricing.fuelRate,
-                  customsRate: pricing.customsRate,
-                  discountRate: pricing.discountRate,
-                  taxRate: pricing.taxRate,
-                },
-              }
-            : null,
+          breakdown: {
+            ...breakdown,
+            rates: {
+              shippingRate: pricingUsed.shippingRate,
+              insuranceRate: pricingUsed.insuranceRate,
+              fuelRate: pricingUsed.fuelRate,
+              customsRate: pricingUsed.customsRate,
+              taxRate: pricingUsed.taxRate,
+              discountRate: pricingUsed.discountRate,
+            },
+          },
         },
 
         createdAt: now,
@@ -218,54 +209,59 @@ export async function POST(req: Request) {
 
       await db.collection("shipments").insertOne(doc);
 
-      // ✅ Send emails to BOTH sender + receiver
-      // view links (public pages, no sign-in needed)
-      const viewShipmentUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/track?q=${encodeURIComponent(
-        shipmentId
-      )}`;
-      const viewInvoiceUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/invoice/full?q=${encodeURIComponent(
-        shipmentId
-      )}`;
+      // ✅ EMAILS (don’t fail shipment creation if email fails)
+      const viewShipmentUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/track?q=${encodeURIComponent(shipmentId)}`;
+      const viewInvoiceUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
 
-      // Sender: shipment created email
+      // Sender emails
       if (senderEmail) {
-        await sendShipmentCreatedEmail(senderEmail, {
-          name: body.senderName || "Customer",
-          receiverName: body.receiverName || "Receiver",
-          shipmentId,
-          trackingNumber,
-          viewShipmentUrl,
-        });
-        await sendInvoiceStatusEmail(senderEmail, {
-          name: body.senderName || "Customer",
-          shipmentId,
-          trackingNumber,
-          paid: invoicePaid,
-          viewInvoiceUrl,
-        });
+        try {
+          await sendShipmentCreatedEmail(senderEmail, {
+            name: doc.senderName || "Customer",
+            receiverName: doc.receiverName || "Receiver",
+            shipmentId,
+            trackingNumber,
+            viewShipmentUrl,
+          });
+
+          await sendInvoiceStatusEmail(senderEmail, {
+            name: doc.senderName || "Customer",
+            shipmentId,
+            trackingNumber,
+            paid: invoicePaid,
+            viewInvoiceUrl,
+          });
+        } catch (e) {
+          console.error("Sender email failed:", e);
+        }
       }
 
-      // Receiver: shipment incoming email + invoice status email
+      // Receiver emails (NEW)
       if (receiverEmail) {
-        await sendShipmentIncomingEmail(receiverEmail, {
-          name: body.receiverName || "Customer",
-          senderName: body.senderName || "Sender",
-          receiverAddress:
-            [body.receiverAddress, body.receiverCity, body.receiverState, destinationCountryCode]
-              .filter(Boolean)
-              .join(", ") || "your address",
-          shipmentId,
-          trackingNumber,
-          viewShipmentUrl,
-        });
+        try {
+          await sendShipmentCreatedReceiverEmail(receiverEmail, {
+            name: doc.receiverName || "Customer",
+            senderName: doc.senderName || "Sender",
+            shipmentId,
+            trackingNumber,
+            receiverAddress: doc.receiverAddress || "",
+            receiverPostalCode: doc.receiverPostalCode || "",
+            receiverState: doc.receiverState || "",
+            receiverCountry: doc.receiverCountry || "",
+            viewShipmentUrl,
+          });
 
-        await sendInvoiceStatusEmail(receiverEmail, {
-          name: body.receiverName || "Customer",
-          shipmentId,
-          trackingNumber,
-          paid: invoicePaid,
-          viewInvoiceUrl,
-        });
+          await sendInvoiceStatusReceiverEmail(receiverEmail, {
+            name: doc.receiverName || "Customer",
+            senderName: doc.senderName || "Sender",
+            shipmentId,
+            trackingNumber,
+            paid: invoicePaid,
+            viewInvoiceUrl,
+          });
+        } catch (e) {
+          console.error("Receiver email failed:", e);
+        }
       }
 
       return NextResponse.json({ ok: true, shipment: doc }, { status: 201 });
@@ -278,8 +274,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json(
-    { error: "Could not generate a unique ID, try again." },
-    { status: 500 }
-  );
+  return NextResponse.json({ error: "Could not generate a unique ID, try again." }, { status: 500 });
 }
