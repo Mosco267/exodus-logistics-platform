@@ -14,10 +14,14 @@ type InvoiceApi = {
   paid: boolean;
   paidAt?: string | null;
 
+  // ✅ declared value may come from root or breakdown
   declaredValue?: number;
+  declaredValueCurrency?: string;
 
-  // ✅ keep (but only once)
+  // ✅ breakdown (amounts + rates used)
   breakdown?: {
+    declaredValue?: number;
+
     shipping?: number;
     insurance?: number;
     fuel?: number;
@@ -27,7 +31,7 @@ type InvoiceApi = {
     subtotal?: number;
     total?: number;
 
-    // commonly stored rates (0.1 or 10 etc)
+    // rates can be stored in multiple shapes
     rates?: Record<string, any>;
     percentages?: Record<string, any>;
     pricing?: Record<string, any>;
@@ -38,9 +42,26 @@ type InvoiceApi = {
   shipment: {
     shipmentId: string;
     trackingNumber: string;
-    origin: string;
-    destination: string;
+    origin: string; // can be code or name
+    destination: string; // can be code or name
     status: string;
+
+    // ✅ advanced shipment details (optional, from API)
+    shipmentType?: string | null; // parcel/cargo/documents
+    serviceLevel?: string | null; // Express/Standard
+    weightKg?: number | null;
+    dimensionsCm?: { length?: number; width?: number; height?: number } | null;
+
+    // ✅ advanced route details (optional, from API)
+    senderCountry?: string | null;
+    senderState?: string | null;
+    senderCity?: string | null;
+    senderAddress?: string | null;
+
+    receiverCountry?: string | null;
+    receiverState?: string | null;
+    receiverCity?: string | null;
+    receiverAddress?: string | null;
   };
 
   parties: {
@@ -54,24 +75,6 @@ type InvoiceApi = {
     createdAt?: string | null;
     updatedAt?: string | null;
   };
-
-  // ✅ YOU HAD THIS INSIDE — keeping it but commenting because it duplicates "breakdown" above (TS error)
-  /*
-  breakdown?: any;
-
-  // ✅ optional (if your /api/invoice returns it)
-  breakdown?: {
-    shipping?: number;
-    insurance?: number;
-    fuel?: number;
-    customs?: number;
-    tax?: number;
-    discount?: number;
-    subtotal?: number;
-    total?: number;
-    [key: string]: any;
-  };
-  */
 };
 
 const currencySymbol = (code: string) => {
@@ -82,6 +85,8 @@ const currencySymbol = (code: string) => {
       return "€";
     case "GBP":
       return "£";
+    case "NGN":
+      return "₦";
     default:
       return "$";
   }
@@ -94,61 +99,69 @@ function formatDate(d?: string | null) {
   return t.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
+// ✅ Show 0% instead of —
 function toPct(rate: any): string {
   const n = Number(rate);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  // supports 0.1 => 10%, or 10 => 10%
+  if (!Number.isFinite(n)) return "—";
   const pct = n <= 1 ? n * 100 : n;
   return `${pct.toFixed(2).replace(/\.00$/, "")}%`;
 }
 
-function money(sym: string, v: any) {
+// ✅ commas + 2 decimals
+function formatNumber(v: any) {
   const n = Number(v);
-  if (!Number.isFinite(n)) return `${sym} 0.00`;
-  return `${sym} ${n.toFixed(2)}`;
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-function pickRate(breakdown: any, key: string) {
-  // supports passing "shippingRate" or "shipping"
-  const baseKey =
-    typeof key === "string" && key.toLowerCase().endsWith("rate")
-      ? key.slice(0, -4) // remove "Rate"
-      : key;
+function money(sym: string, v: any) {
+  return `${sym} ${formatNumber(v)}`;
+}
 
-  return (
-    // most common
-    breakdown?.rates?.[baseKey] ??
-    breakdown?.rates?.[key] ??
-    breakdown?.percentages?.[baseKey] ??
-    breakdown?.percentages?.[key] ??
-    breakdown?.pricing?.[baseKey] ??
-    breakdown?.pricing?.[key] ??
-    // sometimes stored directly
-    breakdown?.[key] ??
-    breakdown?.[baseKey] ??
-    breakdown?.[baseKey + "Rate"] ??
-    breakdown?.[key + "Rate"] ??
-    null
-  );
+/**
+ * ✅ FIXED pickRate:
+ * If you store rates as:
+ *   rates.shippingRate / rates.taxRate ...
+ * this will find them correctly.
+ */
+function pickRate(breakdown: any, key: string) {
+  const k = String(key || "").trim(); // e.g. "shippingRate"
+  const baseKey = k.toLowerCase().endsWith("rate") ? k.slice(0, -4) : k; // "shipping"
+
+  const candidates = [
+    // best: rates.shippingRate
+    k,
+    // base + Rate in case caller passed "shipping"
+    `${baseKey}Rate`,
+    // sometimes stored as base key
+    baseKey,
+  ];
+
+  const sources = [breakdown?.rates, breakdown?.percentages, breakdown?.pricing, breakdown];
+
+  for (const src of sources) {
+    if (!src) continue;
+    for (const c of candidates) {
+      if (src?.[c] !== undefined && src?.[c] !== null) return src[c];
+    }
+  }
+
+  return null;
 }
 
 function pickAmount(breakdown: any, key: string) {
-  return (
-    breakdown?.[key] ??
-    breakdown?.amounts?.[key] ??
-    breakdown?.charges?.[key] ??
-    null
-  );
+  return breakdown?.[key] ?? breakdown?.amounts?.[key] ?? breakdown?.charges?.[key] ?? null;
 }
 
-// ✅ YOU HAD THIS INSIDE — keeping it but commenting because it duplicates money() above (TS error)
-/*
-function money(sym: string, n: any) {
-  const num = Number(n);
-  if (!Number.isFinite(num)) return `${sym} 0.00`;
-  return `${sym} ${num.toFixed(2)}`;
+function joinNice(parts: Array<any>) {
+  return parts
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .join(", ");
 }
-*/
 
 export default function FullInvoicePage() {
   const params = useParams();
@@ -235,10 +248,8 @@ export default function FullInvoicePage() {
   // ✅ Receiver email should show here even if DB stored it as senderEmail by mistake
   const receiverEmail = String(data.parties?.receiverEmail || data.parties?.senderEmail || "").trim();
 
-  // ✅ breakdown (from API)
   const breakdown = (data as any)?.breakdown || null;
 
-  // ✅ percentages + amounts
   const rows = [
     { key: "shipping", label: "Shipping", rateKey: "shippingRate" },
     { key: "insurance", label: "Insurance", rateKey: "insuranceRate" },
@@ -249,6 +260,7 @@ export default function FullInvoicePage() {
   ];
 
   const subtotalToShow = Number(pickAmount(breakdown, "subtotal") ?? 0);
+
   const totalToShow =
     Number.isFinite(Number(pickAmount(breakdown, "total")))
       ? Number(pickAmount(breakdown, "total"))
@@ -257,11 +269,33 @@ export default function FullInvoicePage() {
         : 0;
 
   const declaredToShowRaw =
-  (data as any)?.declaredValue ??
-  (data as any)?.breakdown?.declaredValue ??
-  0;
+    (data as any)?.declaredValue ??
+    (data as any)?.breakdown?.declaredValue ??
+    0;
 
-const declaredToShow = Number(declaredToShowRaw);
+  const declaredToShow = Number(declaredToShowRaw);
+
+  // ✅ Advanced shipment info (shows only if API returns them)
+  const shipmentType = String(data.shipment?.shipmentType || "").trim();
+  const serviceLevel = String(data.shipment?.serviceLevel || "").trim();
+  const weightKg = data.shipment?.weightKg;
+  const dims = data.shipment?.dimensionsCm || null;
+
+  const fromFull =
+    joinNice([
+      data.shipment?.senderAddress,
+      data.shipment?.senderCity,
+      data.shipment?.senderState,
+      data.shipment?.senderCountry || data.shipment?.origin,
+    ]) || String(data.shipment?.origin || "—");
+
+  const toFull =
+    joinNice([
+      data.shipment?.receiverAddress,
+      data.shipment?.receiverCity,
+      data.shipment?.receiverState,
+      data.shipment?.receiverCountry || data.shipment?.destination,
+    ]) || String(data.shipment?.destination || "—");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
@@ -357,11 +391,40 @@ const declaredToShow = Number(declaredToShowRaw);
                   Tracking: <span className="font-semibold">{data.shipment.trackingNumber || "—"}</span>
                 </p>
 
-                {/* ✅ DECLARED VALUE */}
+                {/* ✅ DECLARED VALUE (with commas) */}
                 <p className="text-sm text-gray-600 mt-1">
                   Declared value:{" "}
                   <span className="font-semibold">{money(sym, declaredToShow)}</span>
                 </p>
+
+                {/* ✅ ADVANCED DETAILS (optional) */}
+                {(shipmentType || serviceLevel || Number.isFinite(Number(weightKg)) || dims) ? (
+                  <div className="mt-3 text-sm text-gray-700 space-y-1">
+                    {serviceLevel ? (
+                      <p>
+                        Service: <span className="font-semibold">{serviceLevel}</span>
+                      </p>
+                    ) : null}
+                    {shipmentType ? (
+                      <p>
+                        Type: <span className="font-semibold">{shipmentType}</span>
+                      </p>
+                    ) : null}
+                    {Number.isFinite(Number(weightKg)) ? (
+                      <p>
+                        Weight: <span className="font-semibold">{Number(weightKg).toLocaleString()} kg</span>
+                      </p>
+                    ) : null}
+                    {dims?.length || dims?.width || dims?.height ? (
+                      <p>
+                        Dimensions:{" "}
+                        <span className="font-semibold">
+                          {Number(dims.length || 0)} × {Number(dims.width || 0)} × {Number(dims.height || 0)} cm
+                        </span>
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
               <div className="rounded-2xl border border-gray-200 p-4">
@@ -406,11 +469,13 @@ const declaredToShow = Number(declaredToShowRaw);
                   <MapPin className="w-4 h-4 mr-2 text-gray-500" />
                   Route
                 </p>
+
+                {/* ✅ ADVANCED route (address/city/state/country if present) */}
                 <p className="mt-3 text-sm text-gray-700">
-                  <span className="font-semibold">From:</span> {data.shipment.origin || "—"}
+                  <span className="font-semibold">From:</span> {fromFull || "—"}
                 </p>
-                <p className="mt-1 text-sm text-gray-700">
-                  <span className="font-semibold">To:</span> {data.shipment.destination || "—"}
+                <p className="mt-2 text-sm text-gray-700">
+                  <span className="font-semibold">To:</span> {toFull || "—"}
                 </p>
 
                 <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
@@ -422,7 +487,7 @@ const declaredToShow = Number(declaredToShowRaw);
               </div>
             </div>
 
-            {/* ✅ Charges (now shows % + amount) */}
+            {/* Charges */}
             <div className="mt-6 rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                 <p className="font-extrabold text-gray-900">Charges</p>
@@ -438,9 +503,10 @@ const declaredToShow = Number(declaredToShowRaw);
                       const amt = pickAmount(breakdown, r.key);
                       const rate = pickRate(breakdown, r.rateKey);
 
-                      // discount displayed as 0 or negative; we show normal value but keep UI stable
                       const isDiscount = r.key === "discount";
                       const amountNum = Number(amt ?? 0);
+
+                      // If discount is stored as positive, show it as negative on invoice
                       const displayAmount = isDiscount && amountNum > 0 ? -amountNum : amountNum;
 
                       return (

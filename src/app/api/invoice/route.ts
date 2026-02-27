@@ -9,6 +9,11 @@ const ciExact = (field: string, value: string) => ({
   [field]: { $regex: `^${escapeRegex(value)}$`, $options: "i" },
 });
 
+type PricingSettingsDoc = {
+  _id: string; // ✅ we store string _id like "default"
+  settings: any;
+};
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -30,24 +35,40 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
     }
 
-    const inv = (shipment as any)?.invoice || {};
+    const s: any = shipment;
+    const inv = s?.invoice || {};
+
     const amount = Number(inv?.amount ?? 0);
     const currency = String(inv?.currency || "USD").toUpperCase();
     const paid = Boolean(inv?.paid);
 
-    // Declared value (robust fallback)
-    const declaredValue =
-      Number((shipment as any)?.declaredValue ?? (shipment as any)?.packageValue ?? inv?.breakdown?.declaredValue ?? 0) || 0;
+    // ✅ Declared value (robust fallback)
+    const declaredValueRaw =
+      s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
+    const declaredValue = Number(declaredValueRaw) || 0;
 
-    // Stored breakdown from shipment.invoice.breakdown
+    // ✅ Stored breakdown from DB (if you saved it during shipment creation)
     const breakdownFromDb = inv?.breakdown ?? null;
 
-    // Load pricing settings so we can show rates as percentages
-   const pricingDoc = await (db.collection("pricing_settings") as any).findOne({ _id: "default" });
+    // ✅ Load pricing settings so we can show correct percentages in UI
+    const pricingDoc = await db
+      .collection<PricingSettingsDoc>("pricing_settings")
+      .findOne({ _id: "default" });
+
     const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
 
-    // Normalize rates in one place for the UI
+    // ✅ IMPORTANT:
+    // Return rates using the SAME keys UI expects: shippingRate, insuranceRate, ...
+    // Also keep old keys (shipping, insurance...) as fallback.
     const rates = {
+      shippingRate: pricing?.shippingRate ?? pricing?.shipping ?? null,
+      insuranceRate: pricing?.insuranceRate ?? pricing?.insurance ?? null,
+      fuelRate: pricing?.fuelRate ?? pricing?.fuel ?? null,
+      customsRate: pricing?.customsRate ?? pricing?.customs ?? null,
+      taxRate: pricing?.taxRate ?? pricing?.tax ?? null,
+      discountRate: pricing?.discountRate ?? pricing?.discount ?? null,
+
+      // optional backwards-compat keys
       shipping: pricing?.shippingRate ?? pricing?.shipping ?? null,
       insurance: pricing?.insuranceRate ?? pricing?.insurance ?? null,
       fuel: pricing?.fuelRate ?? pricing?.fuel ?? null,
@@ -56,7 +77,7 @@ export async function GET(req: Request) {
       discount: pricing?.discountRate ?? pricing?.discount ?? null,
     };
 
-    // Final breakdown we return (keep everything, but ensure rates + declaredValue exist)
+    // ✅ Final breakdown returned
     const breakdown =
       breakdownFromDb
         ? {
@@ -69,15 +90,23 @@ export async function GET(req: Request) {
             rates,
           };
 
-    // Invoice number style
-    const cleanShipId = String((shipment as any)?.shipmentId || "SHIP").replace(/[^A-Z0-9-]/gi, "");
+    // ✅ Invoice number style
+    const cleanShipId = String(s?.shipmentId || "SHIP").replace(/[^A-Z0-9-]/gi, "");
     const invoiceNumber = `INV-${cleanShipId}`;
 
-    const senderEmail = String((shipment as any)?.senderEmail || "").trim() || "";
+    const senderEmail = String(s?.senderEmail || "").trim() || "";
     const receiverEmail =
-      String((shipment as any)?.receiverEmail || "").trim() ||
-      String((shipment as any)?.createdByEmail || "").trim() ||
+      String(s?.receiverEmail || "").trim() ||
+      String(s?.createdByEmail || "").trim() ||
       "";
+
+    // ✅ Advanced route/details (return only if they exist in DB)
+    // You can name these however you like in the shipment creation later — just keep them consistent.
+    const senderCountry =
+      String(s?.senderCountry || s?.senderCountryName || s?.senderCountryCode || "").trim() || null;
+
+    const receiverCountry =
+      String(s?.receiverCountry || s?.receiverCountryName || s?.destinationCountryCode || "").trim() || null;
 
     return NextResponse.json({
       invoiceNumber,
@@ -87,28 +116,49 @@ export async function GET(req: Request) {
       paid,
       paidAt: inv?.paidAt || null,
 
-      // ✅ now always present
       declaredValue,
+      declaredValueCurrency: String(s?.declaredValueCurrency || currency).toUpperCase(),
+
       breakdown,
 
       shipment: {
-        shipmentId: (shipment as any)?.shipmentId || "",
-        trackingNumber: (shipment as any)?.trackingNumber || "",
-        origin: (shipment as any)?.senderCountryCode || "—",
-        destination: (shipment as any)?.destinationCountryCode || "—",
-        status: (shipment as any)?.status || "—",
+        shipmentId: s?.shipmentId || "",
+        trackingNumber: s?.trackingNumber || "",
+
+        // basic codes
+        origin: s?.senderCountryCode || "—",
+        destination: s?.destinationCountryCode || "—",
+
+        status: s?.status || "—",
+
+        // ✅ advanced shipment fields (optional)
+        shipmentType: s?.shipmentType || s?.packageType || null,          // e.g. Parcel / Cargo / Documents
+        serviceLevel: s?.serviceLevel || s?.serviceType || s?.speed || null, // Express / Standard
+        weightKg: s?.weightKg ?? s?.weight ?? null,
+        dimensionsCm: s?.dimensionsCm ?? s?.dimensions ?? null, // {length,width,height}
+
+        // ✅ advanced sender/receiver address fields (optional)
+        senderCountry,
+        senderState: s?.senderState || null,
+        senderCity: s?.senderCity || null,
+        senderAddress: s?.senderAddress || null,
+
+        receiverCountry,
+        receiverState: s?.receiverState || null,
+        receiverCity: s?.receiverCity || null,
+        receiverAddress: s?.receiverAddress || null,
       },
 
       parties: {
-        senderName: (shipment as any)?.senderName || "Sender",
-        receiverName: (shipment as any)?.receiverName || "Receiver",
+        senderName: s?.senderName || "Sender",
+        receiverName: s?.receiverName || "Receiver",
         senderEmail,
         receiverEmail,
       },
 
       dates: {
-        createdAt: (shipment as any)?.createdAt || null,
-        updatedAt: (shipment as any)?.updatedAt || null,
+        createdAt: s?.createdAt || null,
+        updatedAt: s?.updatedAt || null,
       },
     });
   } catch (e) {

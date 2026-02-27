@@ -413,3 +413,59 @@ function escapeHtml(s: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+
+export async function sendShipmentIncomingEmail(
+  to: string,
+  args: {
+    name: string;
+    senderName: string;
+    receiverAddress: string;
+    shipmentId: string;
+    trackingNumber: string;
+    viewShipmentUrl: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const subject = `Incoming shipment: ${args.shipmentId}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(args.name || "Customer")},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      A shipment has been created for you by <strong>${esc(args.senderName || "Sender")}</strong>.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      <strong>Delivery address:</strong> ${esc(args.receiverAddress || "your address")}<br/>
+      <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
+      <strong>Tracking:</strong> ${esc(args.trackingNumber)}
+    </p>
+
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      You can view shipment status anytime using the button below.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "A shipment is on the way to you",
+    preheader: `Shipment ${args.shipmentId} has been created`,
+    bodyHtml,
+    button: { text: "View Shipment", href: args.viewShipmentUrl },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}

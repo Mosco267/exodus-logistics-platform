@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { generateShipmentId, generateTrackingNumber } from "@/lib/id";
-import {
-  DEFAULT_PRICING,
-  computeInvoiceFromDeclaredValue,
-  type PricingSettings,
-} from "@/lib/pricing";
-import { sendShipmentCreatedEmail, sendInvoiceStatusEmail } from "@/lib/email";
+import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING, type PricingSettings } from "@/lib/pricing";
+import { sendShipmentCreatedEmail, sendShipmentIncomingEmail, sendInvoiceStatusEmail } from "@/lib/email";
+import type { Collection, Db } from "mongodb";
 
 type ShipmentStatus =
   | "Delivered"
@@ -22,29 +19,36 @@ type CreateShipmentBody = {
   senderName?: string;
   receiverName?: string;
 
+  // ✅ emails (needed to send to both people)
   senderEmail?: string;
   receiverEmail?: string;
 
-  senderCountry?: string;
+  // ✅ addresses (for email text + invoice “advanced route”)
+  senderAddress?: string;
   senderState?: string;
-  destinationCountry?: string;
-  destinationState?: string;
+  senderCity?: string;
 
-  shipmentType?: "Standard" | "Express" | string;
-  packageType?: string;
+  receiverAddress?: string;
+  receiverState?: string;
+  receiverCity?: string;
+
+  // ✅ shipment details for invoice
+  shipmentType?: string; // e.g. "Documents", "Parcel", "Cargo"
+  serviceLevel?: "Express" | "Standard" | string;
   weightKg?: number;
   dimensionsCm?: { length?: number; width?: number; height?: number };
 
+  // ✅ declared value drives invoice breakdown
   declaredValue?: number;
+  declaredValueCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
 
+  // ✅ pricing overrides you choose while creating shipment
+  pricing?: Partial<PricingSettings>;
+
+  // invoice stored
+  invoiceAmount?: number;
   invoiceCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
   invoicePaid?: boolean;
-
-  // Optional: client preview can send it; server will recompute anyway
-  invoiceBreakdown?: any;
-
-  // Optional: allow admin override of pricing before create
-  pricingOverride?: Partial<PricingSettings>;
 
   status?: ShipmentStatus | string;
   statusNote?: string;
@@ -52,12 +56,6 @@ type CreateShipmentBody = {
   createdByUserId?: string;
   createdByEmail?: string;
 };
-
-const escapeRegex = (input: string) =>
-  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const ciExact = (field: string, value: string) => ({
-  [field]: { $regex: `^${escapeRegex(value)}$`, $options: "i" },
-});
 
 const normalizeStatus = (status?: string) =>
   (status ?? "")
@@ -74,19 +72,11 @@ function toTitleStatus(input?: string): ShipmentStatus {
   return "Created";
 }
 
-async function loadPricing(db: any): Promise<PricingSettings> {
-  // pricing_settings: { _id: "default", settings: {...} }
-  const pricingDoc = await db.collection("pricing_settings").findOne({ _id: "default" });
-
-  const settings = (pricingDoc as any)?.settings;
-  if (settings && typeof settings === "object") {
-    return {
-      ...DEFAULT_PRICING,
-      ...settings,
-    } as PricingSettings;
-  }
-
-  return DEFAULT_PRICING;
+async function loadPricing(db: Db): Promise<PricingSettings> {
+  // ✅ typed so Vercel TS won’t complain about _id type
+  const col = db.collection<{ _id: string; settings: PricingSettings }>("pricing_settings");
+  const doc = await col.findOne({ _id: "default" });
+  return (doc?.settings as PricingSettings) || DEFAULT_PRICING;
 }
 
 export async function POST(req: Request) {
@@ -97,8 +87,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const senderCountryCode = (body.senderCountryCode || "").toUpperCase().trim();
-  const destinationCountryCode = (body.destinationCountryCode || "").toUpperCase().trim();
+  const senderCountryCode = (body.senderCountryCode || "").toUpperCase();
+  const destinationCountryCode = (body.destinationCountryCode || "").toUpperCase();
 
   if (!senderCountryCode || senderCountryCode.length !== 2) {
     return NextResponse.json(
@@ -114,18 +104,37 @@ export async function POST(req: Request) {
     );
   }
 
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB);
+
+  // ✅ load default pricing and apply any overrides from admin form
+  const basePricing = await loadPricing(db);
+  const pricing: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
+
+  // ✅ declared value (optional but recommended)
   const declaredValue = Number(body.declaredValue ?? 0);
-  if (!Number.isFinite(declaredValue) || declaredValue <= 0) {
-    return NextResponse.json(
-      { error: "declaredValue must be a valid number > 0" },
-      { status: 400 }
-    );
+  if (!Number.isFinite(declaredValue) || declaredValue < 0) {
+    return NextResponse.json({ error: "declaredValue must be a number >= 0" }, { status: 400 });
   }
 
-  const invoiceCurrency = String(body.invoiceCurrency || "USD").toUpperCase();
+  // ✅ compute breakdown if declaredValue provided (>0)
+  const breakdown =
+    declaredValue > 0 ? computeInvoiceFromDeclaredValue(declaredValue, pricing) : null;
+
+  // ✅ if admin explicitly set invoiceAmount, keep it; otherwise use breakdown total
+  const invoiceAmountFromBody = Number(body.invoiceAmount ?? NaN);
+  const invoiceAmount =
+    Number.isFinite(invoiceAmountFromBody) ? invoiceAmountFromBody : Number(breakdown?.total ?? 0);
+
+  if (!Number.isFinite(invoiceAmount) || invoiceAmount < 0) {
+    return NextResponse.json({ error: "invoiceAmount must be a valid number >= 0" }, { status: 400 });
+  }
+
+  const invoiceCurrency = String(body.invoiceCurrency || body.declaredValueCurrency || "USD").toUpperCase();
   const invoicePaid = Boolean(body.invoicePaid);
 
-  const statusTitle = toTitleStatus(typeof body.status === "string" ? body.status : "Created");
+  const status = typeof body.status === "string" ? body.status : "Created";
+  const statusTitle = toTitleStatus(status);
 
   const defaultStatusNote =
     statusTitle === "Created"
@@ -138,19 +147,6 @@ export async function POST(req: Request) {
   const senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
   const receiverEmail = String(body.receiverEmail || "").trim().toLowerCase() || null;
 
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB);
-
-  // Pricing from DB (or default) + optional override
-  const basePricing = await loadPricing(db);
-  const pricing: PricingSettings = {
-    ...basePricing,
-    ...(body.pricingOverride || {}),
-  };
-
-  const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricing);
-  const invoiceAmount = breakdown.total;
-
   for (let attempt = 0; attempt < 5; attempt++) {
     const shipmentId = generateShipmentId();
     const trackingNumber = generateTrackingNumber(senderCountryCode);
@@ -158,49 +154,63 @@ export async function POST(req: Request) {
     try {
       const now = new Date();
 
-      const doc = {
+      const doc: any = {
         shipmentId,
         trackingNumber,
         senderCountryCode,
         destinationCountryCode,
 
-        senderCountry: body.senderCountry || null,
-        senderState: body.senderState || null,
-        destinationCountry: body.destinationCountry || null,
-        destinationState: body.destinationState || null,
-
-        shipmentType: body.shipmentType || "Standard",
-        packageType: body.packageType || null,
-        weightKg: Number(body.weightKg || 0) || null,
-        dimensionsCm: {
-          length: Number(body.dimensionsCm?.length || 0) || null,
-          width: Number(body.dimensionsCm?.width || 0) || null,
-          height: Number(body.dimensionsCm?.height || 0) || null,
-        },
-
-        declaredValue: breakdown.declaredValue,
-
         createdByUserId,
         createdByEmail,
 
         status: statusTitle,
-        statusNote: String(body.statusNote || defaultStatusNote).trim(),
+        statusNote: (body.statusNote || defaultStatusNote).trim(),
         statusUpdatedAt: now,
         cancelledAt: null,
 
+        // ✅ save shipment details for invoice
+        senderName: body.senderName || null,
+        receiverName: body.receiverName || null,
+
+        senderEmail,
+        receiverEmail,
+
+        senderAddress: body.senderAddress || null,
+        senderState: body.senderState || null,
+        senderCity: body.senderCity || null,
+
+        receiverAddress: body.receiverAddress || null,
+        receiverState: body.receiverState || null,
+        receiverCity: body.receiverCity || null,
+
+        shipmentType: body.shipmentType || null,
+        serviceLevel: body.serviceLevel || null,
+        weightKg: Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : null,
+        dimensionsCm: body.dimensionsCm || null,
+
+        declaredValue: declaredValue || 0,
+        declaredValueCurrency: String(body.declaredValueCurrency || invoiceCurrency || "USD").toUpperCase(),
+
+        // ✅ invoice (store BOTH amounts + rates used so UI percent matches admin)
         invoice: {
           amount: invoiceAmount,
           currency: invoiceCurrency,
           paid: invoicePaid,
           paidAt: invoicePaid ? now : null,
-          breakdown,         // ✅ amounts
-          rates: pricing,    // ✅ percentages/rates
+          breakdown: breakdown
+            ? {
+                ...breakdown,
+                rates: {
+                  shippingRate: pricing.shippingRate,
+                  insuranceRate: pricing.insuranceRate,
+                  fuelRate: pricing.fuelRate,
+                  customsRate: pricing.customsRate,
+                  discountRate: pricing.discountRate,
+                  taxRate: pricing.taxRate,
+                },
+              }
+            : null,
         },
-
-        senderName: body.senderName || null,
-        receiverName: body.receiverName || null,
-        senderEmail,
-        receiverEmail,
 
         createdAt: now,
         updatedAt: now,
@@ -208,57 +218,54 @@ export async function POST(req: Request) {
 
       await db.collection("shipments").insertOne(doc);
 
-      // ✅ Send emails (do not fail shipment creation if email fails)
-      try {
-        const APP_URL = (process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com").replace(/\/$/, "");
+      // ✅ Send emails to BOTH sender + receiver
+      // view links (public pages, no sign-in needed)
+      const viewShipmentUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/track?q=${encodeURIComponent(
+        shipmentId
+      )}`;
+      const viewInvoiceUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/invoice/full?q=${encodeURIComponent(
+        shipmentId
+      )}`;
 
-        const viewShipmentUrl = `${APP_URL}/${encodeURIComponent("en")}/track?q=${encodeURIComponent(
-          trackingNumber || shipmentId
-        )}`;
+      // Sender: shipment created email
+      if (senderEmail) {
+        await sendShipmentCreatedEmail(senderEmail, {
+          name: body.senderName || "Customer",
+          receiverName: body.receiverName || "Receiver",
+          shipmentId,
+          trackingNumber,
+          viewShipmentUrl,
+        });
+        await sendInvoiceStatusEmail(senderEmail, {
+          name: body.senderName || "Customer",
+          shipmentId,
+          trackingNumber,
+          paid: invoicePaid,
+          viewInvoiceUrl,
+        });
+      }
 
-        const viewInvoiceUrl = `${APP_URL}/${encodeURIComponent("en")}/invoice/full?q=${encodeURIComponent(
-          shipmentId
-        )}`;
+      // Receiver: shipment incoming email + invoice status email
+      if (receiverEmail) {
+        await sendShipmentIncomingEmail(receiverEmail, {
+          name: body.receiverName || "Customer",
+          senderName: body.senderName || "Sender",
+          receiverAddress:
+            [body.receiverAddress, body.receiverCity, body.receiverState, destinationCountryCode]
+              .filter(Boolean)
+              .join(", ") || "your address",
+          shipmentId,
+          trackingNumber,
+          viewShipmentUrl,
+        });
 
-        // Sender emails
-        if (senderEmail) {
-          await sendShipmentCreatedEmail(senderEmail, {
-            name: doc.senderName || "Customer",
-            receiverName: doc.receiverName || "Receiver",
-            shipmentId: doc.shipmentId,
-            trackingNumber: doc.trackingNumber,
-            viewShipmentUrl,
-          });
-
-          await sendInvoiceStatusEmail(senderEmail, {
-            name: doc.senderName || "Customer",
-            shipmentId: doc.shipmentId,
-            trackingNumber: doc.trackingNumber,
-            paid: doc.invoice.paid,
-            viewInvoiceUrl,
-          });
-        }
-
-        // Receiver emails
-        if (receiverEmail) {
-          await sendShipmentCreatedEmail(receiverEmail, {
-            name: doc.receiverName || "Customer",
-            receiverName: doc.receiverName || "Receiver",
-            shipmentId: doc.shipmentId,
-            trackingNumber: doc.trackingNumber,
-            viewShipmentUrl,
-          });
-
-          await sendInvoiceStatusEmail(receiverEmail, {
-            name: doc.receiverName || "Customer",
-            shipmentId: doc.shipmentId,
-            trackingNumber: doc.trackingNumber,
-            paid: doc.invoice.paid,
-            viewInvoiceUrl,
-          });
-        }
-      } catch (emailErr) {
-        console.error("Email error:", emailErr);
+        await sendInvoiceStatusEmail(receiverEmail, {
+          name: body.receiverName || "Customer",
+          shipmentId,
+          trackingNumber,
+          paid: invoicePaid,
+          viewInvoiceUrl,
+        });
       }
 
       return NextResponse.json({ ok: true, shipment: doc }, { status: 201 });
