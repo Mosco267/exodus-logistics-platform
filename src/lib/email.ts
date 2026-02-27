@@ -3,14 +3,21 @@ import { renderEmailTemplate } from "@/lib/emailTemplate";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const APP_URL = (process.env.PUBLIC_APP_URL || "https://goexoduslogistics.com").replace(/\/$/, "");
+// ✅ Server should use APP_URL (not PUBLIC_APP_URL)
+// NEXT_PUBLIC_APP_URL is optional fallback (useful for local dev).
+const APP_URL = (
+  process.env.APP_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://www.goexoduslogistics.com"
+).replace(/\/$/, "");
+
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@goexoduslogistics.com";
 const RESEND_FROM = process.env.RESEND_FROM || `Exodus Logistics <${SUPPORT_EMAIL}>`;
 const SUPPORT_URL =
   process.env.SUPPORT_URL || `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`;
 
 function esc(s: string) {
-  return s
+  return String(s || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -19,14 +26,30 @@ function esc(s: string) {
 }
 
 function toText(html: string) {
-  // very small/safe html->text helper for email "text" fallback
-  return html
+  return String(html || "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
     .replace(/<[^>]+>/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+/**
+ * ✅ FIX: this function was missing before (that’s why `sendEmail` was red)
+ * Used by sendShipmentCreatedEmail + sendInvoiceStatusEmail
+ */
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
 }
 
 /** Existing: ban email */
@@ -77,10 +100,6 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
 
 /**
  * ✅ Updated Restore Email (spam-safer)
- * - Neutral subject (less “security/cta” spam triggers)
- * - No big “Login” button
- * - Includes plain-text fallback
- * - Keeps only a simple support instruction
  */
 export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -88,7 +107,6 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
   const name = (opts?.name || "Customer").trim();
   const safeTo = esc(to);
 
-  // Neutral subject reduces spam flags
   const subject = "Exodus Logistics: Update on your account";
 
   const bodyHtml = `
@@ -115,9 +133,7 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
     title: "Account access restored",
     preheader: "Your Exodus Logistics account access has been restored.",
     bodyHtml,
-    calloutHtml:
-      "If you did not expect this change, contact support immediately.",
-    // keep only support button (mailto) — fewer web links = less spam
+    calloutHtml: "If you did not expect this change, contact support immediately.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -179,8 +195,8 @@ export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string
     text: toText(html),
   });
 }
-// ✅ Auto emails for shipment updates
 
+// ✅ Auto emails for shipment updates
 export async function sendShipmentStatusEmail(
   to: string,
   opts: { name?: string; shipmentId: string; statusLabel: string }
@@ -191,11 +207,8 @@ export async function sendShipmentStatusEmail(
   const safeTo = esc(to);
   const status = String(opts.statusLabel || "").trim();
 
-  const TRACK_URL = `${APP_URL}/en/dashboard/track?q=${encodeURIComponent(
-    opts.shipmentId
-  )}`;
+  const TRACK_URL = `${APP_URL}/en/track?q=${encodeURIComponent(opts.shipmentId)}`;
 
-  // 🔥 Dynamic message + button based on status
   let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
   let title = "Shipment update";
   let bodyMessage = "";
@@ -281,7 +294,11 @@ export async function sendShipmentStatusEmail(
     text: toText(html),
   });
 }
-export async function sendInvoiceUpdateEmail(to: string, opts: { name?: string; shipmentId: string; paid: boolean }) {
+
+export async function sendInvoiceUpdateEmail(
+  to: string,
+  opts: { name?: string; shipmentId: string; paid: boolean }
+) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts.name || "Customer").trim();
@@ -323,4 +340,76 @@ export async function sendInvoiceUpdateEmail(to: string, opts: { name?: string; 
     html,
     text: toText(html),
   });
+}
+
+export async function sendShipmentCreatedEmail(
+  to: string,
+  args: {
+    name: string;
+    receiverName: string;
+    shipmentId: string;
+    trackingNumber: string;
+    viewShipmentUrl: string;
+  }
+) {
+  const subject = `Shipment created: ${args.shipmentId}`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5">
+      <h2>Shipment Created</h2>
+      <p>Hello ${escapeHtml(args.name || "Customer")},</p>
+      <p>Your shipment has been created and is being prepared to be shipped to <b>${escapeHtml(args.receiverName)}</b>.</p>
+      <p><b>Shipment ID:</b> ${escapeHtml(args.shipmentId)}<br/>
+         <b>Tracking:</b> ${escapeHtml(args.trackingNumber)}</p>
+      <p>
+        <a href="${args.viewShipmentUrl}" style="display:inline-block;padding:12px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;">
+          View Shipment
+        </a>
+      </p>
+      <p style="color:#6b7280;font-size:12px">Exodus Logistics</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+}
+
+export async function sendInvoiceStatusEmail(
+  to: string,
+  args: {
+    name: string;
+    shipmentId: string;
+    trackingNumber: string;
+    paid: boolean;
+    viewInvoiceUrl: string;
+  }
+) {
+  const subject = `Invoice ${args.paid ? "Paid" : "Pending"}: ${args.shipmentId}`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5">
+      <h2>Invoice Status</h2>
+      <p>Hello ${escapeHtml(args.name || "Customer")},</p>
+      <p>
+        The invoice for shipment <b>${escapeHtml(args.shipmentId)}</b> is currently:
+        <b style="color:${args.paid ? "#16a34a" : "#d97706"}">${args.paid ? "PAID" : "UNPAID"}</b>.
+      </p>
+      ${
+        args.paid
+          ? ""
+          : `<p>Please make payment to proceed. You can contact support or open your dashboard to request payment.</p>`
+      }
+      <p>
+        <a href="${args.viewInvoiceUrl}" style="display:inline-block;padding:12px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;">
+          View Invoice
+        </a>
+      </p>
+      <p style="color:#6b7280;font-size:12px">Exodus Logistics</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+}
+
+// small helper (safe)
+function escapeHtml(s: string) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

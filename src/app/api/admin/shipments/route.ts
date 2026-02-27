@@ -1,157 +1,187 @@
-// src/app/api/admin/shipments/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import type { Collection } from "mongodb";
+import { auth } from "@/auth";
+import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING } from "@/lib/pricing";
+import { sendShipmentCreatedEmail, sendInvoiceStatusEmail } from "@/lib/email";
 
-async function getShipmentsCollection(): Promise<Collection> {
-  const client = await clientPromise;
-  const dbName = process.env.MONGODB_DB || "exodus_logistics";
-  return client.db(dbName).collection("shipments");
+function toRate(v: any) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return undefined;
+  return n > 1 ? n / 100 : n;
 }
 
-async function getTrackingHistoryCollection(): Promise<Collection> {
-  const client = await clientPromise;
-  const dbName = process.env.MONGODB_DB || "exodus_logistics";
-  return client.db(dbName).collection("tracking_history");
+function cleanUpper(v: any) {
+  return String(v || "").trim().toUpperCase();
 }
 
-// ✅ Sample shipments (VALID JS objects)
-const sampleShipments = [
-  {
-    id: "shp_1",
-    trackingCode: "EX-2024-US-1234567",
-    carrier: "fedex",
-    carrierTrackingId: "FDX123456789",
-    status: "delivered",
-    origin: {
-      city: "Los Angeles",
-      state: "CA",
-      zipCode: "90001",
-      country: "USA",
-    },
-    destination: {
-      city: "New York",
-      state: "NY",
-      zipCode: "10001",
-      country: "USA",
-    },
-    recipient: {
-      name: "John Anderson",
-      email: "john.anderson@email.com",
-      phone: "+1 (555) 987-6543",
-    },
-    sender: {
-      name: "TechCorp Solutions",
-      email: "shipping@techcorp.com",
-      phone: "+1 (555) 123-4567",
-    },
-    package: {
-      weight: 25.5,
-      dimensions: { length: 24, width: 18, height: 12 },
-      description: "Electronics equipment",
-      value: 1500,
-      currency: "USD",
-    },
-    estimatedDelivery: new Date("2024-02-14"),
-    actualDelivery: null,
-    createdAt: new Date("2024-02-11"),
-    updatedAt: new Date("2024-02-11"),
-  },
-];
+function genShipmentId() {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `EXS-${yy}${mm}${dd}-${rand}`;
+}
 
-// ✅ Sample tracking history
-const sampleHistory = [
-  {
-    shipmentId: "shp_1",
-    status: "picked_up",
-    location: "Los Angeles, CA",
-    description: "Package picked up from sender",
-    timestamp: new Date("2024-02-11T14:00:00Z"),
-  },
-  {
-    shipmentId: "shp_1",
-    status: "in_transit",
-    location: "Phoenix, AZ",
-    description: "Package in transit",
-    timestamp: new Date("2024-02-11T18:30:00Z"),
-  },
-  {
-    shipmentId: "shp_1",
-    status: "in_transit",
-    location: "Chicago, IL",
-    description: "Package arrived at sorting facility",
-    timestamp: new Date("2024-02-12T06:15:00Z"),
-  },
-  {
-    shipmentId: "shp_1",
-    status: "delivered",
-    location: "New York, NY",
-    description: "Package delivered to recipient",
-    timestamp: new Date("2024-02-14T12:05:00Z"),
-  },
-];
+function genTrackingNumber() {
+  return `EX${Math.random().toString(36).slice(2, 6).toUpperCase()}US${Math.floor(100000 + Math.random() * 900000)}`;
+}
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const action = String(body?.action || "").trim();
+    const session = await auth();
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+    if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    if (!action) {
-      return NextResponse.json(
-        { success: false, error: "Missing action" },
-        { status: 400 }
-      );
+    const body = await req.json().catch(() => null);
+    if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+
+    const declaredValue = Number(body.declaredValue);
+    if (!Number.isFinite(declaredValue) || declaredValue <= 0) {
+      return NextResponse.json({ error: "declaredValue must be > 0" }, { status: 400 });
     }
 
-    if (action === "seed-shipments") {
-      const shipmentsCollection = await getShipmentsCollection();
-      const historyCollection = await getTrackingHistoryCollection();
+    const currency = cleanUpper(body.currency || "USD");
 
-      await shipmentsCollection.deleteMany({});
-      await historyCollection.deleteMany({});
-
-      const shipRes = await shipmentsCollection.insertMany(sampleShipments as any);
-      const histRes = await historyCollection.insertMany(sampleHistory as any);
-
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Shipments and tracking history seeded successfully",
-          shipmentsInserted: shipRes.insertedCount,
-          historyInserted: histRes.insertedCount,
-        },
-        { status: 200 }
-      );
+    const senderEmail = String(body?.senderEmail || "").trim().toLowerCase();
+    const receiverEmail = String(body?.receiverEmail || "").trim().toLowerCase();
+    if (!senderEmail || !receiverEmail) {
+      return NextResponse.json({ error: "senderEmail and receiverEmail are required" }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { success: false, error: "Invalid action" },
-      { status: 400 }
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    // Load base pricing
+    const pricingDoc = await db.collection("pricing_settings").findOne(
+      { key: "default" } as any,
+      { projection: { _id: 0 } }
     );
-  } catch (error) {
-    console.error("Admin Shipments API Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-        message: "Unable to complete request.",
+    const basePricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
+
+    // Optional per-shipment overrides (do NOT change global pricing)
+    const o = body?.pricingOverride || {};
+    const pricing = {
+      ...basePricing,
+      shippingRate: toRate(o.shippingRate) ?? basePricing.shippingRate,
+      insuranceRate: toRate(o.insuranceRate) ?? basePricing.insuranceRate,
+      fuelRate: toRate(o.fuelRate) ?? basePricing.fuelRate,
+      customsRate: toRate(o.customsRate) ?? basePricing.customsRate,
+      taxRate: toRate(o.taxRate) ?? basePricing.taxRate,
+      discountRate: toRate(o.discountRate) ?? basePricing.discountRate,
+    };
+
+    const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricing);
+
+    const paid = Boolean(body?.invoicePaid); // default false if missing
+    const nowIso = new Date().toISOString();
+
+    const shipmentId = genShipmentId();
+    const trackingNumber = genTrackingNumber();
+
+    const doc: any = {
+      shipmentId,
+      trackingNumber,
+
+      // shipment details
+      serviceLevel: String(body?.serviceLevel || "standard").toLowerCase(), // "express"|"standard"
+      shipmentType: String(body?.shipmentType || "parcel").toLowerCase(),   // your choice
+
+      package: {
+        weightKg: Number(body?.weightKg || 0),
+        lengthCm: Number(body?.lengthCm || 0),
+        widthCm: Number(body?.widthCm || 0),
+        heightCm: Number(body?.heightCm || 0),
       },
-      { status: 500 }
-    );
-  }
-}
 
-export async function GET() {
-  try {
-    const shipmentsCollection = await getShipmentsCollection();
-    const shipments = await shipmentsCollection.find({}).limit(200).toArray();
+      declaredValue,
+      currency,
 
-    return NextResponse.json({ success: true, data: shipments }, { status: 200 });
-  } catch (error) {
-    console.error("Admin Shipments GET Error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+      // sender
+      senderName: String(body?.senderName || "Sender").trim(),
+      senderEmail,
+      senderPhone: String(body?.senderPhone || "").trim(),
+      senderAddress1: String(body?.senderAddress1 || "").trim(),
+      senderCity: String(body?.senderCity || "").trim(),
+      senderState: String(body?.senderState || "").trim(),
+      senderPostalCode: String(body?.senderPostalCode || "").trim(),
+      senderCountry: String(body?.senderCountry || "").trim(),
+      senderCountryCode: cleanUpper(body?.senderCountryCode || ""),
+
+      // receiver
+      receiverName: String(body?.receiverName || "Receiver").trim(),
+      receiverEmail,
+      receiverPhone: String(body?.receiverPhone || "").trim(),
+      receiverAddress1: String(body?.receiverAddress1 || "").trim(),
+      receiverCity: String(body?.receiverCity || "").trim(),
+      receiverState: String(body?.receiverState || "").trim(),
+      receiverPostalCode: String(body?.receiverPostalCode || "").trim(),
+      receiverCountry: String(body?.receiverCountry || "").trim(),
+      receiverCountryCode: cleanUpper(body?.receiverCountryCode || ""),
+
+      // status
+      status: "Preparing Shipment",
+      statusNote: "Shipment created. Preparing for dispatch.",
+      nextStep: "Awaiting pickup / dispatch.",
+      statusUpdatedAt: new Date(),
+
+      // invoice snapshot
+      invoice: {
+        amount: breakdown.total,
+        currency,
+        paid,
+        paidAt: paid ? nowIso : null,
+        breakdown,
+        pricingSnapshot: pricing, // so % shown later matches what admin used
+      },
+
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await db.collection("shipments").insertOne(doc);
+
+    // Email links (public, no login)
+    const APP_URL = String(process.env.APP_URL || "").replace(/\/$/, "");
+    const viewShipmentUrl = `${APP_URL}/en/track?q=${encodeURIComponent(trackingNumber)}`;
+    const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+
+    // Send emails (sender + receiver)
+    await sendShipmentCreatedEmail(senderEmail, {
+      name: doc.senderName,
+      receiverName: doc.receiverName,
+      shipmentId,
+      trackingNumber,
+      viewShipmentUrl,
+    }).catch(() => null);
+
+    await sendShipmentCreatedEmail(receiverEmail, {
+      name: doc.receiverName,
+      receiverName: doc.receiverName,
+      shipmentId,
+      trackingNumber,
+      viewShipmentUrl,
+    }).catch(() => null);
+
+    await sendInvoiceStatusEmail(senderEmail, {
+      name: doc.senderName,
+      shipmentId,
+      trackingNumber,
+      paid,
+      viewInvoiceUrl,
+    }).catch(() => null);
+
+    await sendInvoiceStatusEmail(receiverEmail, {
+      name: doc.receiverName,
+      shipmentId,
+      trackingNumber,
+      paid,
+      viewInvoiceUrl,
+    }).catch(() => null);
+
+    return NextResponse.json({ ok: true, shipmentId, trackingNumber });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
