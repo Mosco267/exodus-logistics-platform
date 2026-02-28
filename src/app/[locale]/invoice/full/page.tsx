@@ -301,7 +301,7 @@ const toFull =
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                          hover:border-blue-600 hover:text-blue-700 transition"
             >
-              <Truck className="w-5 h-5 mr-2" /> Track Shipment
+              <MapPin className="w-5 h-5 mr-2" /> Track Shipment
             </Link>
 
             <button

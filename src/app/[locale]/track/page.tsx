@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Truck, AlertCircle, PackageSearch, ScanLine } from "lucide-react";
+import { Truck, AlertCircle, PackageSearch, ScanLine, MapPin } from "lucide-react";
 
 export default function TrackSearchPage() {
   const router = useRouter();
@@ -46,7 +46,7 @@ export default function TrackSearchPage() {
         {/* Different header style from Invoice */}
         <div className="flex flex-col items-center text-center">
           <div className="h-14 w-14 rounded-2xl bg-blue-600/10 border border-blue-200 flex items-center justify-center">
-            <PackageSearch className="w-7 h-7 text-blue-700" />
+            <MapPin className="w-7 h-7 text-blue-700" />
           </div>
 
           <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
