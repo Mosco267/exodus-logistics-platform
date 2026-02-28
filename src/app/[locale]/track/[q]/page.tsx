@@ -20,20 +20,20 @@ type LocationLite = {
   county?: string;
 };
 
-type TrackingEvent = {
+type Entry = {
+  occurredAt: string;
+  note?: string;
+  color?: string;
+  location?: LocationLite;
+};
+
+type GroupedEvent = {
   key?: string;
   label: string;
-  note?: string;
-  occurredAt: string; // ISO
-  color?: string; // optional (hex or simple string)
-  location?: LocationLite;
-  meta?: {
-    invoicePaid?: boolean;
-    invoiceAmount?: number;
-    currency?: string;
-    destination?: string;
-    origin?: string;
-  };
+  color?: string; // stage color (optional)
+  occurredAt: string; // latest time for that stage
+  location?: LocationLite; // latest location for that stage
+  entries: Entry[]; // all updates for that stage
 };
 
 type TrackApiResponse = {
@@ -57,7 +57,7 @@ type TrackApiResponse = {
     currency: string;
   } | null;
 
-  events: TrackingEvent[];
+  events: GroupedEvent[];
   estimatedDelivery?: string;
 };
 
@@ -76,29 +76,21 @@ function fmtLoc(loc?: LocationLite) {
   return parts.join(", ");
 }
 
-function normalizeKey(ev: TrackingEvent, idx: number) {
-  const k = String(ev?.key || "").trim();
-  if (k) return k.toLowerCase();
-  const l = String(ev?.label || "update").trim().toLowerCase();
-  return (l || `update-${idx}`).replace(/[\s_-]+/g, "-");
+function safeColor(c?: string) {
+  const v = String(c || "").trim();
+  return v || "";
 }
 
-function isValidCssColor(c: string) {
-  if (!c) return false;
-  if (/^#[0-9a-f]{3,8}$/i.test(c)) return true;
-  if (/^[a-z]+$/i.test(c)) return true;
-  return false;
+/**
+ * ✅ Completed steps should turn GREEN automatically (professional tracking)
+ * ✅ Current step uses admin chosen color if provided, else amber
+ * ✅ Upcoming is gray
+ */
+function stageDotStyle(index: number, currentIndex: number, stageColor?: string) {
+  if (index < currentIndex) return { background: "#22c55e" }; // green
+  if (index === currentIndex) return { background: safeColor(stageColor) || "#f59e0b" }; // chosen or amber
+  return { background: "#d1d5db" }; // gray
 }
-
-type Stage = {
-  key: string;
-  label: string;
-  color?: string; // preferred color for this stage when it's the CURRENT stage
-  items: TrackingEvent[]; // all timeline items in this stage (details/locations)
-  firstAt: string;
-  lastAt: string;
-  lastLoc: string;
-};
 
 export default function TrackResultPage() {
   const params = useParams();
@@ -134,8 +126,7 @@ export default function TrackResultPage() {
       setData(json as TrackApiResponse);
 
       const evs = Array.isArray((json as any)?.events) ? (json as any).events : [];
-      // open latest stage by default (we’ll compute stage count below)
-      setOpenIdx(evs.length ? 999999 : 0);
+      setOpenIdx(evs.length ? evs.length - 1 : 0);
     } catch (e: any) {
       setErr(e?.message || "Tracking unavailable. Try again later.");
     } finally {
@@ -151,104 +142,32 @@ export default function TrackResultPage() {
 
   const events = useMemo(() => {
     const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
+    // sort oldest -> newest by latest stage time
     evs.sort(
       (a, b) =>
         new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
     );
-    return evs;
-  }, [data]);
 
-  const stages: Stage[] = useMemo(() => {
-    // group by key, but keep first-seen order
-    const map = new Map<string, Stage>();
-    const order: string[] = [];
-
-    events.forEach((ev, idx) => {
-      const key = normalizeKey(ev, idx);
-      const label = String(ev?.label || "Update").trim() || "Update";
-
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          label,
-          color: isValidCssColor(String(ev?.color || "")) ? String(ev.color) : "",
-          items: [],
-          firstAt: ev.occurredAt,
-          lastAt: ev.occurredAt,
-          lastLoc: fmtLoc(ev.location),
-        });
-        order.push(key);
-      }
-
-      const st = map.get(key)!;
-      st.items.push(ev);
-
-      // keep latest label if admin slightly edits naming later
-      st.label = label || st.label;
-
-      const t = new Date(ev.occurredAt || 0).getTime();
-      const tFirst = new Date(st.firstAt || 0).getTime();
-      const tLast = new Date(st.lastAt || 0).getTime();
-      if (!Number.isNaN(t)) {
-        if (Number.isNaN(tFirst) || t < tFirst) st.firstAt = ev.occurredAt;
-        if (Number.isNaN(tLast) || t >= tLast) {
-          st.lastAt = ev.occurredAt;
-          st.lastLoc = fmtLoc(ev.location);
-          // stage preferred color = latest non-empty color
-          if (isValidCssColor(String(ev?.color || ""))) st.color = String(ev.color);
-        }
+    // also sort each stage entries oldest -> newest
+    evs.forEach((ev: any) => {
+      if (Array.isArray(ev?.entries)) {
+        ev.entries.sort(
+          (x: any, y: any) =>
+            new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime()
+        );
+      } else {
+        ev.entries = [];
       }
     });
 
-    // sort items inside stage just in case
-    const out = order.map((k) => map.get(k)!).filter(Boolean);
-    out.forEach((s) =>
-      s.items.sort(
-        (a, b) =>
-          new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
-      )
-    );
+    return evs;
+  }, [data]);
 
-    return out;
-  }, [events]);
-
-  // current stage is always the last stage (because timeline grows)
-  const currentStageIndex = Math.max(0, stages.length - 1);
-
-  // if openIdx was forced to 999999, clamp to last stage
-  useEffect(() => {
-    if (openIdx === 999999) setOpenIdx(currentStageIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStageIndex]);
+  const currentIndex = Math.max(0, events.length - 1);
 
   const invoicePaid = Boolean(data?.invoice?.paid);
   const invoiceAmount = Number(data?.invoice?.amount ?? 0);
   const invoiceCurrency = String(data?.invoice?.currency || "USD");
-
-  const currentLocation =
-    String(data?.currentLocation || "").trim() ||
-    (stages[currentStageIndex]?.lastLoc || "") ||
-    "—";
-
-  // main dot colors:
-  // - past stages: green
-  // - current stage: use admin color if provided, else amber
-  // - future: gray (you won’t have future stages in this design)
-  const stageDotStyle = (idx: number, stage: Stage): React.CSSProperties => {
-    if (idx < currentStageIndex) return { backgroundColor: "#22c55e" }; // green-500
-    if (idx === currentStageIndex) {
-      const c = String(stage.color || "").trim();
-      if (isValidCssColor(c)) return { backgroundColor: c };
-      return { backgroundColor: "#f59e0b" }; // amber-500
-    }
-    return { backgroundColor: "#d1d5db" }; // gray-300
-  };
-
-  const stageLineStyle = (idx: number): React.CSSProperties => {
-    // connecting line: green for completed segment, gray otherwise
-    if (idx < currentStageIndex) return { backgroundColor: "rgba(34,197,94,0.35)" };
-    return { backgroundColor: "rgba(209,213,219,0.9)" };
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
@@ -279,7 +198,7 @@ export default function TrackResultPage() {
 
         {!loading && data && (
           <>
-            {/* Header card */}
+            {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -303,18 +222,18 @@ export default function TrackResultPage() {
                 <div className="sm:text-right">
                   <p className="text-xs text-gray-600">Current status</p>
                   <p className="text-lg font-extrabold text-blue-700">
-                    {data.currentStatus || stages[currentStageIndex]?.label || "—"}
+                    {data.currentStatus || events[currentIndex]?.label || "—"}
                   </p>
                   <p className="mt-1 text-xs text-gray-600">
                     Updated:{" "}
                     <span className="font-semibold">
-                      {fmtDate(data.updatedAt || stages[currentStageIndex]?.lastAt)}
+                      {fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}
                     </span>
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                     <Receipt className="w-4 h-4 text-gray-700" />
@@ -338,15 +257,9 @@ export default function TrackResultPage() {
                   <p className="mt-2 text-sm text-gray-800 font-semibold">
                     {data.destination || "—"}
                   </p>
-                </div>
-
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                    <MapPin className="w-4 h-4 text-gray-700" />
-                    Current location
-                  </div>
-                  <p className="mt-2 text-sm text-gray-800 font-semibold">
-                    {currentLocation}
+                  <p className="mt-1 text-xs text-gray-600">
+                    <span className="font-semibold">Current location:</span>{" "}
+                    {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
                   </p>
                 </div>
 
@@ -356,7 +269,7 @@ export default function TrackResultPage() {
                     Created
                   </div>
                   <p className="mt-2 text-sm text-gray-800 font-semibold">
-                    {fmtDate(data.createdAt || stages[0]?.firstAt)}
+                    {fmtDate(data.createdAt || events[0]?.occurredAt)}
                   </p>
                 </div>
               </div>
@@ -380,137 +293,125 @@ export default function TrackResultPage() {
               </p>
 
               <div className="mt-6">
-                {stages.length === 0 ? (
+                {events.length === 0 ? (
                   <div className="rounded-2xl border border-gray-200 p-4 text-sm text-gray-700">
                     No tracking updates yet.
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {stages.map((st, idx) => {
-                      const isOpen = openIdx === idx;
+                  <div className="relative">
+                    {/* Main vertical line */}
+                    <div className="absolute left-[10px] top-2 bottom-2 w-[2px] bg-gray-200" />
 
-                      const titleWhen = fmtDate(st.lastAt);
-                      const titleLoc = st.lastLoc;
+                    <div className="space-y-4">
+                      {events.map((ev, idx) => {
+                        const isOpen = openIdx === idx;
+                        const stageLoc = fmtLoc(ev.location);
+                        const stageWhen = fmtDate(ev.occurredAt);
 
-                      const dotStyle = stageDotStyle(idx, st);
+                        const dotStyle = stageDotStyle(idx, currentIndex, ev.color);
 
-                      return (
-                        <div key={st.key} className="relative">
-                          {/* vertical connector between MAIN stages */}
-                          {idx !== stages.length - 1 && (
-                            <div
-                              className="absolute left-[7px] top-[26px] w-[2px] h-[calc(100%-10px)]"
-                              style={stageLineStyle(idx)}
-                            />
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
-                            className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="pt-1">
-                                <div
-                                  className="h-3 w-3 rounded-full"
-                                  style={dotStyle}
-                                />
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="text-base sm:text-lg font-extrabold text-gray-900 truncate">
-                                      {st.label}
-                                    </p>
-                                    <p className="mt-1 text-xs text-gray-600">
-                                      {titleWhen}
-                                      {titleLoc ? ` • ${titleLoc}` : ""}
-                                    </p>
-                                  </div>
-
-                                  <ChevronDown
-                                    className={`w-5 h-5 text-gray-500 transition ${
-                                      isOpen ? "rotate-180" : ""
-                                    }`}
+                        return (
+                          <div key={`${ev.key || ev.label}-${idx}`} className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+                              className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Stage dot */}
+                                <div className="relative pt-1">
+                                  <div
+                                    className="h-3 w-3 rounded-full ring-2 ring-white"
+                                    style={dotStyle}
                                   />
                                 </div>
 
-                                {isOpen && (
-                                  <div className="mt-4 rounded-xl bg-gray-50 border border-gray-200 p-4">
-                                    {/* SUB timeline inside the stage */}
-                                    <div className="relative pl-6">
-                                      {/* sub-line */}
-                                      {st.items.length > 1 && (
-                                        <div
-                                          className="absolute left-[7px] top-[10px] w-[2px] h-[calc(100%-10px)]"
-                                          style={{
-                                            backgroundColor:
-                                              idx < currentStageIndex
-                                                ? "rgba(34,197,94,0.25)"
-                                                : "rgba(209,213,219,0.9)",
-                                          }}
-                                        />
-                                      )}
-
-                                      <div className="space-y-4">
-                                        {st.items.map((it, j) => {
-                                          const itWhen = fmtDate(it.occurredAt);
-                                          const itLoc = fmtLoc(it.location);
-
-                                          return (
-                                            <div key={`${st.key}-${j}`} className="relative">
-                                              <div
-                                                className="absolute left-0 top-[6px] h-2.5 w-2.5 rounded-full"
-                                                style={
-                                                  idx < currentStageIndex
-                                                    ? { backgroundColor: "#22c55e" }
-                                                    : dotStyle
-                                                }
-                                              />
-
-                                              <div className="ml-4">
-                                                <p className="text-xs text-gray-600">
-                                                  {itWhen}
-                                                  {itLoc ? ` • ${itLoc}` : ""}
-                                                </p>
-
-                                                <p className="mt-1 text-sm text-gray-800">
-                                                  <span className="font-bold">Details:</span>{" "}
-                                                  {it.note
-                                                    ? it.note
-                                                    : "No additional details for this update."}
-                                                </p>
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-base sm:text-lg font-extrabold text-gray-900 truncate">
+                                        {ev.label}
+                                      </p>
+                                      <p className="mt-1 text-xs text-gray-600">
+                                        {stageWhen}
+                                        {stageLoc ? ` • ${stageLoc}` : ""}
+                                      </p>
                                     </div>
 
-                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
-                                      <div>
-                                        <span className="font-semibold">Invoice:</span>{" "}
-                                        {invoicePaid ? "PAID" : "UNPAID"} •{" "}
-                                        {invoiceAmount.toFixed(2)} {invoiceCurrency}
-                                      </div>
-                                      <div>
-                                        <span className="font-semibold">Destination:</span>{" "}
-                                        {data.destination || "—"}
-                                      </div>
-                                      <div>
-                                        <span className="font-semibold">Current location:</span>{" "}
-                                        {currentLocation}
-                                      </div>
-                                    </div>
+                                    <ChevronDown
+                                      className={`w-5 h-5 text-gray-500 transition ${
+                                        isOpen ? "rotate-180" : ""
+                                      }`}
+                                    />
                                   </div>
-                                )}
+
+                                  {/* Details area */}
+                                  {isOpen && (
+                                    <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
+                                      {/* ✅ detail entries with their own small line */}
+                                      <div className="relative pl-6">
+                                        {/* Sub vertical line */}
+                                        <div className="absolute left-[8px] top-2 bottom-2 w-[2px] bg-gray-200" />
+
+                                        <div className="space-y-3">
+                                          {(ev.entries || []).map((en, j) => {
+                                            const loc = fmtLoc(en.location);
+                                            const when = fmtDate(en.occurredAt);
+                                            const c = safeColor(en.color);
+
+                                            return (
+                                              <div key={`${ev.key || ev.label}-entry-${j}`} className="relative">
+                                                <div className="flex items-start gap-3">
+                                                  <div className="pt-1">
+                                                    <div
+                                                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
+                                                      style={{ background: c || "#9ca3af" }}
+                                                    />
+                                                  </div>
+
+                                                  <div className="flex-1">
+                                                    <p className="text-xs text-gray-600">
+                                                      {when}
+                                                      {loc ? ` • ${loc}` : ""}
+                                                    </p>
+                                                    <p className="text-sm text-gray-800 mt-1">
+                                                      <span className="font-bold">Details:</span>{" "}
+                                                      {en.note?.trim()
+                                                        ? en.note
+                                                        : "No additional details for this update."}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
+                                        <div>
+                                          <span className="font-semibold">Invoice:</span>{" "}
+                                          {invoicePaid ? "PAID" : "UNPAID"} •{" "}
+                                          {invoiceAmount.toFixed(2)} {invoiceCurrency}
+                                        </div>
+                                        <div>
+                                          <span className="font-semibold">Destination:</span>{" "}
+                                          {data.destination || "—"}
+                                        </div>
+                                        <div>
+                                          <span className="font-semibold">Current location:</span>{" "}
+                                          {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </button>
-                        </div>
-                      );
-                    })}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
