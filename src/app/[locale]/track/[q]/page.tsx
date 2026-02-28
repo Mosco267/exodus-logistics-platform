@@ -185,16 +185,12 @@ export default function TrackResultPage() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6">
           <Link
-  href={`/${locale}/track`}
-  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 
-             hover:text-blue-800 transition-all duration-200 
-             hover:-translate-x-0.5 group"
->
-  <span className="text-base transition-transform duration-200 group-hover:-translate-x-1">
-    ←
-  </span>
-  Back to tracking
-</Link>
+            href={`/${locale}/track`}
+            className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+                       hover:border-blue-600 hover:text-blue-700 transition"
+          >
+            <MapPin className="w-5 h-5 mr-2" /> Back to track
+          </Link>
         </div>
 
         {loading && (
