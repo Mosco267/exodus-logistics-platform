@@ -114,7 +114,8 @@ export default function InvoicePage() {
 
           {/* Same footer hint strip */}
           <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: Use the same ID you use for tracking to open your invoice.
+            Tip: You can paste either your <span className="font-semibold">Shipment ID</span> or{" "}
+            <span className="font-semibold">Tracking Number</span>.
           </div>
         </motion.div>
       </div>
