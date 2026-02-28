@@ -156,6 +156,35 @@ export async function POST(req: Request) {
         statusUpdatedAt: now,
         cancelledAt: null,
 
+        // ✅ timeline (tracking history) — always seed the first event
+        trackingEvents: [
+          {
+            key: "created",
+            label: statusTitle || "Created",
+            note: String(body.statusNote || defaultStatusNote).trim(),
+            occurredAt: now.toISOString(),
+            location: {
+              country: String(body?.senderCountry || senderCountryCode || "").trim(),
+              state: String(body?.senderState || "").trim(),
+              city: String(body?.senderCity || "").trim(),
+              county: "",
+            },
+            meta: {
+              invoicePaid: invoicePaid,
+              invoiceAmount: Number(breakdown.total),
+              currency: declaredValueCurrency,
+              origin: [body?.senderCity, body?.senderState, body?.senderCountry]
+                .map((x: any) => String(x || "").trim())
+                .filter(Boolean)
+                .join(", "),
+              destination: [body?.receiverCity, body?.receiverState, body?.receiverCountry]
+                .map((x: any) => String(x || "").trim())
+                .filter(Boolean)
+                .join(", "),
+            },
+          },
+        ],
+
         // ✅ parties
         senderName: body.senderName || null,
         receiverName: body.receiverName || null,
