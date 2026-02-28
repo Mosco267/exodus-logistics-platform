@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { AlertCircle, CheckCircle2, Loader2, PlusCircle, ArrowLeft } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  PlusCircle,
+  ArrowLeft,
+} from "lucide-react";
 
 type LocationLite = {
   country?: string;
@@ -16,7 +22,8 @@ type TrackingEvent = {
   key?: string;
   label: string;
   note?: string;
-  occurredAt: string; // ISO string
+  occurredAt: string;
+  color?: string;
   location?: LocationLite;
 };
 
@@ -36,20 +43,29 @@ export default function AdminShipmentTrackingPage() {
   // form fields
   const [label, setLabel] = useState("Warehouse");
   const [note, setNote] = useState("");
+
+  // ✅ NEW: color picker (default green)
+  const [color, setColor] = useState("#22c55e"); // green
+
   const [country, setCountry] = useState("");
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [county, setCounty] = useState("");
+
   const [occurredAt, setOccurredAt] = useState(() => {
-    // default to "now" as datetime-local value
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+      d.getHours()
+    )}:${pad(d.getMinutes())}`;
   });
 
   const events: TrackingEvent[] = useMemo(() => {
     const arr = Array.isArray(shipment?.trackingEvents) ? shipment.trackingEvents : [];
-    return [...arr].sort((a: any, b: any) => new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime());
+    return [...arr].sort(
+      (a: any, b: any) =>
+        new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
+    );
   }, [shipment]);
 
   const load = async () => {
@@ -57,7 +73,9 @@ export default function AdminShipmentTrackingPage() {
     setOk("");
     setLoading(true);
     try {
-      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, { cache: "no-store" });
+      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+        cache: "no-store",
+      });
       const json = await res.json().catch(() => null);
       if (!res.ok) throw new Error(json?.error || "Failed to load shipment");
 
@@ -88,11 +106,10 @@ export default function AdminShipmentTrackingPage() {
     setOk("");
 
     if (!label.trim()) {
-      setErr("Status/Stage label is required (e.g. Warehouse, In Transit).");
+      setErr("Stage/Status label is required (e.g. Warehouse, In Transit).");
       return;
     }
 
-    // convert datetime-local -> ISO
     const iso = new Date(occurredAt).toISOString();
 
     const trackingEvent = {
@@ -100,6 +117,10 @@ export default function AdminShipmentTrackingPage() {
       label: label.trim(),
       note: note.trim(),
       occurredAt: iso,
+
+      // ✅ pass color into the timeline
+      color: String(color || "").trim(),
+
       location: {
         country: country.trim(),
         state: state.trim(),
@@ -113,9 +134,7 @@ export default function AdminShipmentTrackingPage() {
       const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackingEvent,
-        }),
+        body: JSON.stringify({ trackingEvent }),
       });
 
       const json = await res.json().catch(() => null);
@@ -160,7 +179,11 @@ export default function AdminShipmentTrackingPage() {
           <div>
             <button
               type="button"
-              onClick={() => router.push(`/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`)}
+              onClick={() =>
+                router.push(
+                  `/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`
+                )
+              }
               className="inline-flex items-center text-sm font-semibold text-gray-700 hover:text-blue-700"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to shipments
@@ -191,7 +214,7 @@ export default function AdminShipmentTrackingPage() {
           >
             <h2 className="text-lg font-extrabold text-gray-900">Add tracking update</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Add Warehouse → In Transit → Customs → Delivered, with real notes and location.
+              Each save APPENDS a new entry (no overwriting).
             </p>
 
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -200,7 +223,7 @@ export default function AdminShipmentTrackingPage() {
                 <input
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
-                  placeholder="e.g. Warehouse, In Transit, Custom Clearance"
+                  placeholder="e.g. Warehouse, In Transit, Delivered, Cancelled"
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
               </div>
@@ -213,6 +236,40 @@ export default function AdminShipmentTrackingPage() {
                   onChange={(e) => setOccurredAt(e.target.value)}
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
                 />
+              </div>
+
+              {/* ✅ NEW: color selector */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Dot color</label>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="h-10 w-14 rounded-xl border border-gray-300 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setColor("#22c55e")}
+                    className="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Green
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setColor("#f59e0b")}
+                    className="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Amber
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setColor("#ef4444")}
+                    className="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Red
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -252,11 +309,11 @@ export default function AdminShipmentTrackingPage() {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">Note (what happened)</label>
+                <label className="text-sm font-semibold text-gray-700">Details (what happened)</label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="e.g. Shipment received at Lagos warehouse. Awaiting dispatch."
+                  placeholder="e.g. Shipment received at warehouse. Departure planned in 10 minutes."
                   className="mt-2 w-full min-h-[110px] rounded-2xl border border-gray-300 px-4 py-3 text-sm"
                 />
               </div>
@@ -301,19 +358,27 @@ export default function AdminShipmentTrackingPage() {
             className="bg-white/90 backdrop-blur rounded-3xl border border-gray-200 shadow-xl p-6"
           >
             <h2 className="text-lg font-extrabold text-gray-900">Timeline</h2>
-            <p className="mt-1 text-sm text-gray-600">These events will show on the public tracking page.</p>
+            <p className="mt-1 text-sm text-gray-600">This is exactly what the public tracking page uses.</p>
 
             <div className="mt-5 space-y-3">
               {events.length === 0 ? (
                 <p className="text-sm text-gray-600">No tracking updates yet.</p>
               ) : (
                 events.map((ev, idx) => {
-                  const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country].filter(Boolean).join(", ");
+                  const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country]
+                    .filter(Boolean)
+                    .join(", ");
                   return (
                     <div key={idx} className="rounded-2xl border border-gray-200 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-extrabold text-gray-900">{ev.label}</p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="inline-block h-3 w-3 rounded-full"
+                              style={{ background: ev.color || "#22c55e" }}
+                            />
+                            <p className="font-extrabold text-gray-900">{ev.label}</p>
+                          </div>
                           <p className="text-xs text-gray-500">
                             {new Date(ev.occurredAt).toLocaleString()}
                             {loc ? ` • ${loc}` : ""}

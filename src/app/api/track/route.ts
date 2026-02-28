@@ -14,6 +14,11 @@ function cleanStr(v: any) {
   return s || "";
 }
 
+function cleanNum(v: any, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function locFromShipment(s: any) {
   // ✅ NO address — only state, city, county, country
   return {
@@ -54,8 +59,9 @@ export async function POST(req: Request) {
     const invoice = s?.invoice
       ? {
           paid: Boolean(s.invoice?.paid),
-          amount: Number(s.invoice?.amount ?? 0),
-          currency: cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
+          amount: cleanNum(s.invoice?.amount ?? 0),
+          currency:
+            cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
         }
       : null;
 
@@ -81,35 +87,50 @@ export async function POST(req: Request) {
 
     // ✅ fallback: if no events yet, create a single “Created/current status” event
     if (events.length === 0) {
-      const occurredAt = s?.statusUpdatedAt || s?.createdAt || new Date().toISOString();
+      const occurredAt =
+        s?.statusUpdatedAt || s?.createdAt || new Date().toISOString();
+
       events = [
         {
           key: "created",
           label: cleanStr(s?.status || "Created") || "Created",
           note: cleanStr(s?.statusNote || ""),
           occurredAt,
+          color: "green", // ✅ default color for Created
           location: locFromShipment(s),
           meta: {
             invoicePaid: Boolean(s?.invoice?.paid),
-            invoiceAmount: Number(s?.invoice?.amount ?? 0),
+            invoiceAmount: cleanNum(s?.invoice?.amount ?? 0),
             currency: cleanStr(s?.invoice?.currency || "USD") || "USD",
             destination,
+            origin,
           },
         },
       ];
     } else {
-      // ensure each event has meta basics (optional, safe)
+      // ensure each event has safe fields + meta basics (optional, safe)
       events = events.map((ev: any) => ({
         ...ev,
+
+        // ✅ keep/normalize these
+        key: cleanStr(ev?.key || ""),
         label: cleanStr(ev?.label || "Update") || "Update",
+        note: cleanStr(ev?.note || ""),
         occurredAt: ev?.occurredAt || new Date().toISOString(),
+
+        // ✅ IMPORTANT: return color to UI
+        color: cleanStr(ev?.color || ""),
+
         location: ev?.location || {},
+
         meta: {
           ...(ev?.meta || {}),
           invoicePaid: ev?.meta?.invoicePaid ?? Boolean(s?.invoice?.paid),
-          invoiceAmount: ev?.meta?.invoiceAmount ?? Number(s?.invoice?.amount ?? 0),
-          currency: (ev?.meta?.currency ?? cleanStr(s?.invoice?.currency || "USD")) || "USD",
+          invoiceAmount: ev?.meta?.invoiceAmount ?? cleanNum(s?.invoice?.amount ?? 0),
+          currency:
+            (ev?.meta?.currency ?? cleanStr(s?.invoice?.currency || "USD")) || "USD",
           destination: ev?.meta?.destination ?? destination,
+          origin: ev?.meta?.origin ?? origin,
         },
       }));
     }

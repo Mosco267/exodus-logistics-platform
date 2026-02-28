@@ -233,17 +233,27 @@ if (body?.trackingEvent) {
   const ev = body.trackingEvent;
 
   const event = {
-    key: String(ev?.key || ev?.label || "update").trim().toLowerCase().replace(/[\s_-]+/g, "-"),
-    label: String(ev?.label || "Update").trim(),
-    note: String(ev?.note || "").trim(),
-    occurredAt: ev?.occurredAt ? new Date(ev.occurredAt).toISOString() : now.toISOString(),
-    location: {
-      country: String(ev?.location?.country || "").trim(),
-      state: String(ev?.location?.state || "").trim(),
-      city: String(ev?.location?.city || "").trim(),
-      county: String(ev?.location?.county || "").trim(),
-    },
-  };
+  key: String(ev?.key || ev?.label || "update")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "-"),
+  label: String(ev?.label || "Update").trim(),
+
+  // ✅ this is one “detail entry” for that stage
+  note: String(ev?.note || "").trim(),
+
+  occurredAt: ev?.occurredAt ? new Date(ev.occurredAt).toISOString() : now.toISOString(),
+
+  // ✅ NEW: allow admin to set color per entry
+  color: String(ev?.color || "").trim(), // e.g. "#22c55e" or "green"
+
+  location: {
+    country: String(ev?.location?.country || "").trim(),
+    state: String(ev?.location?.state || "").trim(),
+    city: String(ev?.location?.city || "").trim(),
+    county: String(ev?.location?.county || "").trim(),
+  },
+};
 
   // push to shipment timeline
   $push.trackingEvents = event;
