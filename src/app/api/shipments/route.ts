@@ -231,14 +231,15 @@ if (senderEmail) {
       viewShipmentUrl,
     });
 
-    // ✅ only send invoice email at creation if it’s already paid
-    if (invoicePaid) {
-      await sleep(350);
+    // ✅ IMPORTANT:
+    // If invoice is marked PAID at creation, do NOT send the "paid" invoice email to sender.
+    // Sender only gets invoice email when it's unpaid/pending.
+    if (!invoicePaid) {
       await sendInvoiceStatusEmail(senderEmail, {
         name: doc.senderName || "Customer",
         shipmentId,
         trackingNumber,
-        paid: true,
+        paid: false,
         viewInvoiceUrl,
       });
     }
@@ -250,7 +251,6 @@ if (senderEmail) {
 // Receiver emails
 if (receiverEmail) {
   try {
-    await sleep(350);
     await sendShipmentCreatedReceiverEmail(receiverEmail, {
       name: doc.receiverName || "Customer",
       senderName: doc.senderName || "Sender",
@@ -263,23 +263,19 @@ if (receiverEmail) {
       viewShipmentUrl,
     });
 
-    // ✅ only send invoice email at creation if it’s already paid
-    if (invoicePaid) {
-      await sleep(350);
-      await sendInvoiceStatusReceiverEmail(receiverEmail, {
-        name: doc.receiverName || "Customer",
-        senderName: doc.senderName || "Sender",
-        shipmentId,
-        trackingNumber,
-        paid: true,
-        viewInvoiceUrl,
-      });
-    }
+    // ✅ receiver always gets invoice status (paid/unpaid)
+    await sendInvoiceStatusReceiverEmail(receiverEmail, {
+      name: doc.receiverName || "Customer",
+      senderName: doc.senderName || "Sender",
+      shipmentId,
+      trackingNumber,
+      paid: invoicePaid,
+      viewInvoiceUrl,
+    });
   } catch (e) {
     console.error("Receiver email failed:", e);
   }
 }
-
       return NextResponse.json({ ok: true, shipment: doc }, { status: 201 });
     } catch (err: any) {
       if (err?.code === 11000) continue;

@@ -211,10 +211,7 @@ export default function AdminCreateShipmentPage() {
 
           invoicePaid,
 
-          // ✅ IMPORTANT:
-          // DO NOT send "pricing" here.
-          // That ensures your API uses the DB pricing_settings as the DEFAULT.
-          // If later you want a per-shipment override, then you can add pricing back.
+          pricing,
 
           status,
           statusNote,
