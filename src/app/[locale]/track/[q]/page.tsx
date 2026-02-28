@@ -185,11 +185,16 @@ export default function TrackResultPage() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6">
           <Link
-            href={`/${locale}/track`}
-            className="text-sm font-semibold text-blue-700 hover:text-blue-800"
-          >
-            ← Back to tracking
-          </Link>
+  href={`/${locale}/track`}
+  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 
+             hover:text-blue-800 transition-all duration-200 
+             hover:-translate-x-0.5 group"
+>
+  <span className="text-base transition-transform duration-200 group-hover:-translate-x-1">
+    ←
+  </span>
+  Back to tracking
+</Link>
         </div>
 
         {loading && (

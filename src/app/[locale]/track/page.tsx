@@ -65,14 +65,18 @@ export default function TrackSearchPage() {
           </label>
 
           <input
-            value={q}
-            onChange={(e) => setQ(e.target.value.toUpperCase())}
-            placeholder="e.g. EXS-260222-9BC87D or EX-24-US-123456"
-            className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-4 text-lg
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 uppercase"
-            autoComplete="off"
-            spellCheck={false}
-          />
+  value={q}
+  onChange={(e) => setQ(e.target.value.toUpperCase())}
+  placeholder="e.g. EXS-260222-9BC87D or EX-24-US-123456"
+  className="mt-2 w-full rounded-2xl border border-gray-300 px-5 py-4 text-lg
+             bg-white/80 backdrop-blur
+             placeholder:text-gray-400
+             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500
+             transition-all duration-200
+             uppercase"
+  autoComplete="off"
+  spellCheck={false}
+/>
 
           <button
             type="submit"
