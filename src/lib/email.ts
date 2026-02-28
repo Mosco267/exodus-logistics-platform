@@ -35,6 +35,143 @@ function toText(html: string) {
     .trim();
 }
 
+export async function sendShipmentCreatedSenderEmail(
+  to: string,
+  args: {
+    name: string;
+    receiverName: string;
+    shipmentId: string;
+    trackingNumber: string;
+    paid: boolean;
+    viewInvoiceUrl: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = (args.name || "Customer").trim();
+  const receiverName = (args.receiverName || "Receiver").trim();
+  const paid = Boolean(args.paid);
+
+  const subject = paid
+    ? `Shipment created: ${args.shipmentId}`
+    : `Action required: Payment needed for shipment ${args.shipmentId}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to
+      <strong>${esc(receiverName)}</strong>.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
+      ${
+        paid
+          ? "We will move your shipment to the next stage shortly and keep you updated."
+          : "Please complete payment so we can move your shipment to the next stage of processing."
+      }
+    </p>
+
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      Shipment ID: <strong>${esc(args.shipmentId)}</strong><br/>
+      Tracking number: <strong>${esc(args.trackingNumber)}</strong>
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: paid ? "Shipment created" : "Payment required",
+    preheader: paid
+      ? `Shipment ${args.shipmentId} created (Paid)`
+      : `Shipment ${args.shipmentId} created (Unpaid)`,
+    bodyHtml,
+    button: { text: "View Invoice", href: args.viewInvoiceUrl },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}
+
+export async function sendShipmentCreatedReceiverEmailV2(
+  to: string,
+  args: {
+    name: string;
+    senderName: string;
+    shipmentId: string;
+    trackingNumber: string;
+    paid: boolean;
+    viewInvoiceUrl: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = (args.name || "Customer").trim();
+  const senderName = (args.senderName || "Sender").trim();
+  const paid = Boolean(args.paid);
+
+  const subject = paid
+    ? `Shipment on the way: ${args.shipmentId}`
+    : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      A shipment has been created for you by <strong>${esc(senderName)}</strong>.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
+      ${
+        paid
+          ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
+          : "Once payment is completed, the shipment will move to the next stage and you will receive updates."
+      }
+    </p>
+
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      Shipment ID: <strong>${esc(args.shipmentId)}</strong><br/>
+      Tracking number: <strong>${esc(args.trackingNumber)}</strong>
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Shipment created",
+    preheader: paid
+      ? `Shipment ${args.shipmentId} created (Paid)`
+      : `Shipment ${args.shipmentId} created (Unpaid)`,
+    bodyHtml,
+    button: { text: "View Invoice", href: args.viewInvoiceUrl },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}
+
 /**
  * ✅ FIX: this function was missing before (that’s why `sendEmail` was red)
  * Used by sendShipmentCreatedEmail + sendInvoiceStatusEmail

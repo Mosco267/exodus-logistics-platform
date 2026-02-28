@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { generateShipmentId, generateTrackingNumber } from "@/lib/id";
 import { DEFAULT_PRICING, computeInvoiceFromDeclaredValue, type PricingSettings } from "@/lib/pricing";
-import { sendShipmentCreatedEmail, sendInvoiceStatusEmail, sendShipmentCreatedReceiverEmail, sendInvoiceStatusReceiverEmail } from "@/lib/email";
+import {
+  sendShipmentCreatedSenderEmail,
+  sendShipmentCreatedReceiverEmailV2,
+} from "@/lib/email";
 
 type ShipmentStatus =
   | "Delivered"
@@ -209,62 +212,35 @@ export async function POST(req: Request) {
 
       await db.collection("shipments").insertOne(doc);
 
-      // ✅ EMAILS (don’t fail shipment creation if email fails)
-const APP_URL =
-  (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.goexoduslogistics.com").replace(/\/$/, "");
+      // ✅ EMAILS (always send ONLY 2 emails on creation: sender + receiver)
+const APP_URL = (
+  process.env.APP_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://www.goexoduslogistics.com"
+).replace(/\/$/, "");
 
-const viewInvoiceUrl = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
 
-// Make "View Shipment" go to invoice too
-const viewShipmentUrl = viewInvoiceUrl;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Sender emails
+// 1) Sender email (always one)
 if (senderEmail) {
   try {
-    await sendShipmentCreatedEmail(senderEmail, {
+    await sendShipmentCreatedSenderEmail(senderEmail, {
       name: doc.senderName || "Customer",
       receiverName: doc.receiverName || "Receiver",
       shipmentId,
       trackingNumber,
-      viewShipmentUrl,
+      paid: invoicePaid,
+      viewInvoiceUrl,
     });
-
-    // ✅ IMPORTANT:
-    // If invoice is marked PAID at creation, do NOT send the "paid" invoice email to sender.
-    // Sender only gets invoice email when it's unpaid/pending.
-    if (!invoicePaid) {
-      await sendInvoiceStatusEmail(senderEmail, {
-        name: doc.senderName || "Customer",
-        shipmentId,
-        trackingNumber,
-        paid: false,
-        viewInvoiceUrl,
-      });
-    }
   } catch (e) {
     console.error("Sender email failed:", e);
   }
 }
 
-// Receiver emails
+// 2) Receiver email (always one)
 if (receiverEmail) {
   try {
-    await sendShipmentCreatedReceiverEmail(receiverEmail, {
-      name: doc.receiverName || "Customer",
-      senderName: doc.senderName || "Sender",
-      shipmentId,
-      trackingNumber,
-      receiverAddress: doc.receiverAddress || "",
-      receiverPostalCode: doc.receiverPostalCode || "",
-      receiverState: doc.receiverState || "",
-      receiverCountry: doc.receiverCountry || "",
-      viewShipmentUrl,
-    });
-
-    // ✅ receiver always gets invoice status (paid/unpaid)
-    await sendInvoiceStatusReceiverEmail(receiverEmail, {
+    await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
       name: doc.receiverName || "Customer",
       senderName: doc.senderName || "Sender",
       shipmentId,
