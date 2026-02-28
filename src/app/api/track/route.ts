@@ -14,19 +14,42 @@ function cleanStr(v: any) {
   return s || "";
 }
 
-function cleanNum(v: any, fallback = 0) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
+function normKey(v: any) {
+  return cleanStr(v)
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_-]+/g, "-");
+}
+
+function cleanColor(v: any) {
+  const s = cleanStr(v);
+  // accept "#RRGGBB" or "rgb(...)" or any non-empty string
+  return s || "";
+}
+
+function locLite(loc: any) {
+  return {
+    country: cleanStr(loc?.country),
+    state: cleanStr(loc?.state),
+    city: cleanStr(loc?.city),
+    county: cleanStr(loc?.county),
+  };
 }
 
 function locFromShipment(s: any) {
-  // ✅ NO address — only state, city, county, country
   return {
     country: cleanStr(s?.receiverCountry || s?.destinationCountryCode),
     state: cleanStr(s?.receiverState),
     city: cleanStr(s?.receiverCity),
-    county: cleanStr(s?.receiverCounty), // optional if you add it later
+    county: cleanStr(s?.receiverCounty),
   };
+}
+
+function fmtLoc(loc: any) {
+  const parts = [loc?.city, loc?.state, loc?.country]
+    .map((x: any) => cleanStr(x))
+    .filter(Boolean);
+  return parts.join(", ");
 }
 
 export async function POST(req: Request) {
@@ -59,85 +82,125 @@ export async function POST(req: Request) {
     const invoice = s?.invoice
       ? {
           paid: Boolean(s.invoice?.paid),
-          amount: cleanNum(s.invoice?.amount ?? 0),
+          amount: Number(s.invoice?.amount ?? 0),
           currency:
-            cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
+            cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") ||
+            "USD",
         }
       : null;
 
     const destination = [s?.receiverCity, s?.receiverState, s?.receiverCountry]
-      .map((x: any) => String(x || "").trim())
+      .map((x: any) => cleanStr(x))
       .filter(Boolean)
       .join(", ");
 
     const origin = [s?.senderCity, s?.senderState, s?.senderCountry]
-      .map((x: any) => String(x || "").trim())
+      .map((x: any) => cleanStr(x))
       .filter(Boolean)
       .join(", ");
 
-    // ✅ prefer real timeline events from DB
-    let events = Array.isArray(s?.trackingEvents) ? [...s.trackingEvents] : [];
+    // ✅ raw timeline from DB (each save in admin adds one entry)
+    let raw = Array.isArray(s?.trackingEvents) ? [...s.trackingEvents] : [];
 
     // sort by occurredAt (oldest -> newest)
-    events.sort((a: any, b: any) => {
+    raw.sort((a: any, b: any) => {
       const ta = new Date(a?.occurredAt || 0).getTime();
       const tb = new Date(b?.occurredAt || 0).getTime();
       return ta - tb;
     });
 
-    // ✅ fallback: if no events yet, create a single “Created/current status” event
-    if (events.length === 0) {
+    // ✅ fallback: if no timeline entries exist yet, create a "Created" entry only
+    if (raw.length === 0) {
       const occurredAt =
         s?.statusUpdatedAt || s?.createdAt || new Date().toISOString();
 
-      events = [
+      raw = [
         {
           key: "created",
           label: cleanStr(s?.status || "Created") || "Created",
           note: cleanStr(s?.statusNote || ""),
           occurredAt,
-          color: "green", // ✅ default color for Created
+          color: "#22c55e", // default green
           location: locFromShipment(s),
-          meta: {
-            invoicePaid: Boolean(s?.invoice?.paid),
-            invoiceAmount: cleanNum(s?.invoice?.amount ?? 0),
-            currency: cleanStr(s?.invoice?.currency || "USD") || "USD",
-            destination,
-            origin,
-          },
         },
       ];
-    } else {
-      // ensure each event has safe fields + meta basics (optional, safe)
-      events = events.map((ev: any) => ({
-        ...ev,
-
-        // ✅ keep/normalize these
-        key: cleanStr(ev?.key || ""),
-        label: cleanStr(ev?.label || "Update") || "Update",
-        note: cleanStr(ev?.note || ""),
-        occurredAt: ev?.occurredAt || new Date().toISOString(),
-
-        // ✅ IMPORTANT: return color to UI
-        color: cleanStr(ev?.color || ""),
-
-        location: ev?.location || {},
-
-        meta: {
-          ...(ev?.meta || {}),
-          invoicePaid: ev?.meta?.invoicePaid ?? Boolean(s?.invoice?.paid),
-          invoiceAmount: ev?.meta?.invoiceAmount ?? cleanNum(s?.invoice?.amount ?? 0),
-          currency:
-            (ev?.meta?.currency ?? cleanStr(s?.invoice?.currency || "USD")) || "USD",
-          destination: ev?.meta?.destination ?? destination,
-          origin: ev?.meta?.origin ?? origin,
-        },
-      }));
     }
 
-    const last = events[events.length - 1] || null;
+    // ✅ normalize raw entries
+    const entries = raw.map((ev: any) => {
+      const label = cleanStr(ev?.label || ev?.status || "Update") || "Update";
+      const key = normKey(ev?.key || label || "update");
+      const occurredAt = cleanStr(ev?.occurredAt) || new Date().toISOString();
 
-    // ✅ estimated delivery (keep your placeholder for now)
+      return {
+        key,
+        label,
+        note: cleanStr(ev?.note || ev?.statusNote || ""),
+        occurredAt,
+        color: cleanColor(ev?.color),
+        location: locLite(ev?.location || {}),
+        meta: {
+          invoicePaid: Boolean(s?.invoice?.paid),
+          invoiceAmount: Number(s?.invoice?.amount ?? 0),
+          currency: cleanStr(s?.invoice?.currency || "USD") || "USD",
+          destination,
+          origin,
+        },
+      };
+    });
+
+    // ✅ GROUP: multiple updates under the same stage become ONE stage with entries[]
+    // This enables your UI to draw the "small line" between details.
+    const groups: any[] = [];
+    const indexByKey = new Map<string, number>();
+
+    for (const e of entries) {
+      const k = e.key || normKey(e.label);
+      const idx = indexByKey.get(k);
+
+      if (idx === undefined) {
+        indexByKey.set(k, groups.length);
+        groups.push({
+          key: k,
+          label: e.label,
+          // stage color: last non-empty color we’ve ever set for this stage
+          color: e.color || "",
+          // header shows latest time/location for that stage
+          occurredAt: e.occurredAt,
+          location: e.location,
+          // all sub updates
+          entries: [
+            {
+              occurredAt: e.occurredAt,
+              note: e.note,
+              color: e.color || "",
+              location: e.location,
+            },
+          ],
+          meta: e.meta,
+        });
+      } else {
+        const g = groups[idx];
+        g.entries.push({
+          occurredAt: e.occurredAt,
+          note: e.note,
+          color: e.color || "",
+          location: e.location,
+        });
+
+        // keep header updated to most recent entry
+        g.occurredAt = e.occurredAt;
+        g.location = e.location;
+
+        // if this new entry has a color, it becomes the stage color
+        if (e.color) g.color = e.color;
+      }
+    }
+
+    const lastGroup = groups[groups.length - 1] || null;
+    const currentLocation =
+      lastGroup?.location ? fmtLoc(lastGroup.location) : "";
+
     const estimatedDelivery =
       s?.estimatedDelivery ||
       new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toDateString();
@@ -146,8 +209,8 @@ export async function POST(req: Request) {
       shipmentId: cleanStr(s?.shipmentId),
       trackingNumber: cleanStr(s?.trackingNumber),
 
-      currentStatus: cleanStr(s?.status || last?.label || "—"),
-      statusNote: cleanStr(s?.statusNote || last?.note || ""),
+      currentStatus: cleanStr(s?.status || lastGroup?.label || "—"),
+      statusNote: cleanStr(s?.statusNote || ""),
       nextStep: cleanStr(s?.nextStep || ""),
 
       createdAt: s?.createdAt || null,
@@ -155,10 +218,13 @@ export async function POST(req: Request) {
 
       origin: origin || null,
       destination: destination || null,
+      currentLocation: currentLocation || null,
 
       invoice,
 
-      events,
+      // ✅ IMPORTANT: events are now grouped stages, each has entries[]
+      events: groups,
+
       estimatedDelivery,
     });
   } catch (e) {
