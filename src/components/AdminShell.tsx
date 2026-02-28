@@ -13,8 +13,9 @@ import {
   PlusCircle,
   LogOut,
   UserX,
+  
 } from "lucide-react";
-import { Percent } from "lucide-react";
+import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 type Props = { children: ReactNode };
@@ -114,6 +115,12 @@ export default function AdminShell({ children }: Props) {
     },
 
     { href: `/${locale}/dashboard/admin/pricing`, label: "Pricing", icon: <Percent className="w-5 h-5" /> },
+
+     {
+  href: `/${locale}/dashboard/admin/tracking`,
+  label: "Tracking Updates",
+  icon: <Route className="w-5 h-5" />,
+},
 
     // ✅ NEW: Deleted Users
     {

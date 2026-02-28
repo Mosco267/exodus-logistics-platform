@@ -224,10 +224,46 @@ if (isOnlyPaidToggle) {
   }
 }
 
+  // ----------------------------
+// 0) TRACKING EVENT (timeline)
+// ----------------------------
+const $push: Record<string, any> = {};
+
+if (body?.trackingEvent) {
+  const ev = body.trackingEvent;
+
+  const event = {
+    key: String(ev?.key || ev?.label || "update").trim().toLowerCase().replace(/[\s_-]+/g, "-"),
+    label: String(ev?.label || "Update").trim(),
+    note: String(ev?.note || "").trim(),
+    occurredAt: ev?.occurredAt ? new Date(ev.occurredAt).toISOString() : now.toISOString(),
+    location: {
+      country: String(ev?.location?.country || "").trim(),
+      state: String(ev?.location?.state || "").trim(),
+      city: String(ev?.location?.city || "").trim(),
+      county: String(ev?.location?.county || "").trim(),
+    },
+  };
+
+  // push to shipment timeline
+  $push.trackingEvents = event;
+
+  // keep the main status fields in sync for lists/filters
+  $set.status = event.label;
+  $set.statusNote = event.note || $set.statusNote || "";
+  $set.statusUpdatedAt = new Date(event.occurredAt);
+
+  // optional: clear nextStep if you want
+  // $set.nextStep = "";
+}
+
     // ----------------------------
-    // 4) SAVE
-    // ----------------------------
-    await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), { $set });
+// 4) SAVE
+// ----------------------------
+const update: any = { $set };
+if (Object.keys($push).length) update.$push = $push;
+
+await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
 
     // ----------------------------
     // 5) NOTIFICATION + EMAIL
