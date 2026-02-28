@@ -67,7 +67,7 @@ export default function TrackSearchPage() {
           <input
   value={q}
   onChange={(e) => setQ(e.target.value.toUpperCase())}
-  placeholder="example: EXS-260222-9BC87D or EX-24-US-123456"
+  placeholder="example: EXS-260222-9BC87D or EX24US1234567W"
   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-4 text-lg
              focus:outline-none focus:ring-2 focus:ring-blue-500/40
              uppercase placeholder:normal-case placeholder:text-sm"
