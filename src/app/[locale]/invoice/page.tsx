@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { AlertCircle, FileText, Receipt, ScanLine } from "lucide-react";
+import { AlertCircle, FileText, Receipt, ScanLine, CreditCard } from "lucide-react";
 
 export default function InvoicePage() {
   const sp = useSearchParams();
@@ -51,7 +51,7 @@ export default function InvoicePage() {
         {/* Same header style as Track page */}
         <div className="flex flex-col items-center text-center">
           <div className="h-14 w-14 rounded-2xl bg-blue-600/10 border border-blue-200 flex items-center justify-center">
-            <Receipt className="w-7 h-7 text-blue-700" />
+            <CreditCard className="w-7 h-7 text-blue-700" />
           </div>
 
           <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
@@ -72,7 +72,7 @@ export default function InvoicePage() {
           <div className="p-6 sm:p-8">
             <form onSubmit={submit}>
               <label className="text-sm font-semibold text-gray-700">
-                Shipment ID / Tracking
+                Shipment ID / Tracking Number
               </label>
 
               <div className="mt-2 relative">
