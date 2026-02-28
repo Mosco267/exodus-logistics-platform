@@ -86,10 +86,21 @@ function safeColor(c?: string) {
  * ✅ Current step uses admin chosen color if provided, else amber
  * ✅ Upcoming is gray
  */
-function stageDotStyle(index: number, currentIndex: number, stageColor?: string) {
-  if (index < currentIndex) return { background: "#22c55e" }; // green
-  if (index === currentIndex) return { background: safeColor(stageColor) || "#f59e0b" }; // chosen or amber
-  return { background: "#d1d5db" }; // gray
+function stageDotStyle(
+  stageIndex: number,
+  currentStageIndex: number,
+  stageBaseColor?: string
+) {
+  // Completed stages => green always
+  if (stageIndex < currentStageIndex) return { background: "#22c55e" };
+
+  // Current stage => use its base color (locked), fallback amber
+  if (stageIndex === currentStageIndex) {
+    return { background: safeColor(stageBaseColor) || "#f59e0b" };
+  }
+
+  // Future stages => gray
+  return { background: "#d1d5db" };
 }
 
 export default function TrackResultPage() {
@@ -308,7 +319,11 @@ export default function TrackResultPage() {
                         const stageLoc = fmtLoc(ev.location);
                         const stageWhen = fmtDate(ev.occurredAt);
 
-                        const dotStyle = stageDotStyle(idx, currentIndex, ev.color);
+                        // ✅ lock stage color to the FIRST entry color for that stage (prevents override)
+const stageBaseColor =
+  safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
+
+const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);;
 
                         return (
                           <div key={`${ev.key || ev.label}-${idx}`} className="relative">
@@ -357,16 +372,22 @@ export default function TrackResultPage() {
                                           {(ev.entries || []).map((en, j) => {
                                             const loc = fmtLoc(en.location);
                                             const when = fmtDate(en.occurredAt);
-                                            const c = safeColor(en.color);
+                                            const isStageCompleted = idx < currentIndex;
+const isLastEntry = j === (ev.entries?.length || 0) - 1;
+
+// ✅ if stage is completed, force ONLY the last entry dot to green
+const entryDotBg = isStageCompleted && isLastEntry
+  ? "#22c55e"
+  : (safeColor(en.color) || "#9ca3af");
 
                                             return (
                                               <div key={`${ev.key || ev.label}-entry-${j}`} className="relative">
                                                 <div className="flex items-start gap-3">
                                                   <div className="pt-1">
                                                     <div
-                                                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
-                                                      style={{ background: c || "#9ca3af" }}
-                                                    />
+  className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
+  style={{ background: entryDotBg }}
+/>
                                                   </div>
 
                                                   <div className="flex-1">
