@@ -83,7 +83,7 @@ export async function GET(req: Request) {
         ? {
             ...breakdownFromDb,
             declaredValue: Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
-            rates: { ...(breakdownFromDb?.rates || {}), ...rates },
+            rates: { ...rates, ...(breakdownFromDb?.rates || {}) },
           }
         : {
             declaredValue,
@@ -129,6 +129,8 @@ export async function GET(req: Request) {
         origin: s?.senderCountryCode || "—",
         destination: s?.destinationCountryCode || "—",
 
+        
+
         status: s?.status || "—",
 
         // ✅ advanced shipment fields (optional)
@@ -142,11 +144,13 @@ export async function GET(req: Request) {
         senderState: s?.senderState || null,
         senderCity: s?.senderCity || null,
         senderAddress: s?.senderAddress || null,
+        senderPostalCode: s?.senderPostalCode || null,
 
         receiverCountry,
         receiverState: s?.receiverState || null,
         receiverCity: s?.receiverCity || null,
         receiverAddress: s?.receiverAddress || null,
+        receiverPostalCode: s?.receiverPostalCode || null,
       },
 
       parties: {

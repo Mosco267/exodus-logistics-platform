@@ -38,16 +38,28 @@ export default function AdminCreateShipmentPage() {
   const [senderCountryCode, setSenderCountryCode] = useState("US");
   const [senderCountry, setSenderCountry] = useState("United States");
   const [senderState, setSenderState] = useState("");
+  const [senderCity, setSenderCity] = useState("");
+  const [senderAddress, setSenderAddress] = useState("");
+  const [senderPostalCode, setSenderPostalCode] = useState("");
+  const [senderPhone, setSenderPhone] = useState("");
 
   const [receiverName, setReceiverName] = useState("");
   const [receiverEmail, setReceiverEmail] = useState("");
   const [destinationCountryCode, setDestinationCountryCode] = useState("NG");
-  const [destinationCountry, setDestinationCountry] = useState("Nigeria");
-  const [destinationState, setDestinationState] = useState("");
+  const [receiverCountry, setReceiverCountry] = useState("Nigeria");
+  const [receiverState, setReceiverState] = useState("");
+  const [receiverCity, setReceiverCity] = useState("");
+  const [receiverAddress, setReceiverAddress] = useState("");
+  const [receiverPostalCode, setReceiverPostalCode] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
 
   // Shipment details
-  const [shipmentType, setShipmentType] = useState<"Standard" | "Express">("Standard");
-  const [packageType, setPackageType] = useState("Parcel");
+  // NOTE:
+  // - Standard/Express should be sent to API as serviceLevel
+  // - Parcel/Cargo/Documents should be sent to API as shipmentType
+  const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">("Standard");
+  const [shipmentType, setShipmentType] = useState("Parcel");
+
   const [weightKg, setWeightKg] = useState<string>("2");
   const [lengthCm, setLengthCm] = useState<string>("24");
   const [widthCm, setWidthCm] = useState<string>("18");
@@ -119,17 +131,29 @@ export default function AdminCreateShipmentPage() {
           destinationCountryCode,
 
           senderName,
-          receiverName,
           senderEmail,
+          receiverName,
           receiverEmail,
 
+          // ✅ correct keys expected by API
           senderCountry,
           senderState,
-          destinationCountry,
-          destinationState,
+          senderCity,
+          senderAddress,
+          senderPostalCode,
+          senderPhone,
 
+          receiverCountry,
+          receiverState,
+          receiverCity,
+          receiverAddress,
+          receiverPostalCode,
+          receiverPhone,
+
+          // ✅ correct mapping
+          serviceLevel,
           shipmentType,
-          packageType,
+
           weightKg: Number(weightKg || 0),
           dimensionsCm: {
             length: Number(lengthCm || 0),
@@ -138,13 +162,12 @@ export default function AdminCreateShipmentPage() {
           },
 
           declaredValue: dv,
+          declaredValueCurrency: currency,
 
-          invoiceCurrency: currency,
           invoicePaid,
 
-          // let server compute invoiceAmount, but we also send preview + rates
-          invoiceBreakdown: breakdown,
-          pricingOverride: pricing,
+          // ✅ IMPORTANT: your API expects "pricing", not "pricingOverride"
+          pricing,
 
           status,
           statusNote,
@@ -161,7 +184,6 @@ export default function AdminCreateShipmentPage() {
       setOkMsg("Shipment created successfully.");
       const shipmentId = String(json?.shipment?.shipmentId || "").trim();
       if (shipmentId) {
-        // jump to admin shipments list (you can change later)
         router.push(`/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`);
       }
     } catch (e: any) {
@@ -176,9 +198,7 @@ export default function AdminCreateShipmentPage() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Create Shipment</h1>
-          <p className="mt-2 text-gray-600">
-            Fill details, preview invoice breakdown, then create shipment.
-          </p>
+          <p className="mt-2 text-gray-600">Fill details, preview invoice breakdown, then create shipment.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -194,47 +214,105 @@ export default function AdminCreateShipmentPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-gray-700">Sender name</label>
-                <input value={senderName} onChange={(e) => setSenderName(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={senderName} onChange={(e) => setSenderName(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-700">Sender email</label>
-                <input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">Receiver name</label>
-                <input value={receiverName} onChange={(e) => setReceiverName(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={receiverName} onChange={(e) => setReceiverName(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-700">Receiver email</label>
-                <input value={receiverEmail} onChange={(e) => setReceiverEmail(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={receiverEmail} onChange={(e) => setReceiverEmail(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">Sender country code</label>
-                <input value={senderCountryCode} onChange={(e) => setSenderCountryCode(e.target.value.toUpperCase())} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={senderCountryCode} onChange={(e) => setSenderCountryCode(e.target.value.toUpperCase())}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-700">Destination country code</label>
-                <input value={destinationCountryCode} onChange={(e) => setDestinationCountryCode(e.target.value.toUpperCase())} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={destinationCountryCode} onChange={(e) => setDestinationCountryCode(e.target.value.toUpperCase())}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
+            </div>
 
+            {/* Sender address */}
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">Sender address</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Sender country</label>
-                <input value={senderCountry} onChange={(e) => setSenderCountry(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <label className="text-sm font-semibold text-gray-700">Country</label>
+                <input value={senderCountry} onChange={(e) => setSenderCountry(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Destination country</label>
-                <input value={destinationCountry} onChange={(e) => setDestinationCountry(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <label className="text-sm font-semibold text-gray-700">State</label>
+                <input value={senderState} onChange={(e) => setSenderState(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">City</label>
+                <input value={senderCity} onChange={(e) => setSenderCity(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Postal code</label>
+                <input value={senderPostalCode} onChange={(e) => setSenderPostalCode(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-semibold text-gray-700">Address</label>
+                <input value={senderAddress} onChange={(e) => setSenderAddress(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-semibold text-gray-700">Phone</label>
+                <input value={senderPhone} onChange={(e) => setSenderPhone(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+            </div>
 
+            {/* Receiver address */}
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">Receiver address</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Sender state</label>
-                <input value={senderState} onChange={(e) => setSenderState(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <label className="text-sm font-semibold text-gray-700">Country</label>
+                <input value={receiverCountry} onChange={(e) => setReceiverCountry(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Destination state</label>
-                <input value={destinationState} onChange={(e) => setDestinationState(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <label className="text-sm font-semibold text-gray-700">State</label>
+                <input value={receiverState} onChange={(e) => setReceiverState(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">City</label>
+                <input value={receiverCity} onChange={(e) => setReceiverCity(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Postal code</label>
+                <input value={receiverPostalCode} onChange={(e) => setReceiverPostalCode(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-semibold text-gray-700">Address</label>
+                <input value={receiverAddress} onChange={(e) => setReceiverAddress(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-semibold text-gray-700">Phone</label>
+                <input value={receiverPhone} onChange={(e) => setReceiverPhone(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
             </div>
 
@@ -242,44 +320,51 @@ export default function AdminCreateShipmentPage() {
             <p className="font-extrabold text-gray-900 mt-6 mb-3">Shipment details</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Shipment type</label>
-                <select value={shipmentType} onChange={(e) => setShipmentType(e.target.value as any)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <label className="text-sm font-semibold text-gray-700">Service level</label>
+                <select value={serviceLevel} onChange={(e) => setServiceLevel(e.target.value as any)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                   <option>Standard</option>
                   <option>Express</option>
                 </select>
               </div>
+
               <div>
-                <label className="text-sm font-semibold text-gray-700">Package type</label>
-                <input value={packageType} onChange={(e) => setPackageType(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <label className="text-sm font-semibold text-gray-700">Shipment type</label>
+                <input value={shipmentType} onChange={(e) => setShipmentType(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">Weight (kg)</label>
-                <input value={weightKg} onChange={(e) => setWeightKg(e.target.value)} inputMode="decimal" className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={weightKg} onChange={(e) => setWeightKg(e.target.value)} inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">Dimensions (cm)</label>
                 <div className="mt-2 grid grid-cols-3 gap-2">
-                  <input value={lengthCm} onChange={(e) => setLengthCm(e.target.value)} inputMode="decimal" placeholder="L" className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
-                  <input value={widthCm} onChange={(e) => setWidthCm(e.target.value)} inputMode="decimal" placeholder="W" className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
-                  <input value={heightCm} onChange={(e) => setHeightCm(e.target.value)} inputMode="decimal" placeholder="H" className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                  <input value={lengthCm} onChange={(e) => setLengthCm(e.target.value)} inputMode="decimal" placeholder="L"
+                    className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                  <input value={widthCm} onChange={(e) => setWidthCm(e.target.value)} inputMode="decimal" placeholder="W"
+                    className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                  <input value={heightCm} onChange={(e) => setHeightCm(e.target.value)} inputMode="decimal" placeholder="H"
+                    className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
                 </div>
               </div>
             </div>
 
             {/* Invoice */}
             <p className="font-extrabold text-gray-900 mt-6 mb-3">Invoice</p>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-gray-700">Declared value</label>
-                <input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} inputMode="decimal" className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
-
               <div>
                 <label className="text-sm font-semibold text-gray-700">Currency</label>
-                <select value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <select value={currency} onChange={(e) => setCurrency(e.target.value as any)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
                   <option value="GBP">GBP</option>
@@ -305,7 +390,8 @@ export default function AdminCreateShipmentPage() {
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">Initial status</label>
-                <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <select value={status} onChange={(e) => setStatus(e.target.value as any)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                   <option>Created</option>
                   <option>In Transit</option>
                   <option>Custom Clearance</option>
@@ -313,9 +399,11 @@ export default function AdminCreateShipmentPage() {
                   <option>Delivered</option>
                 </select>
               </div>
+
               <div>
                 <label className="text-sm font-semibold text-gray-700">Status note (optional)</label>
-                <input value={statusNote} onChange={(e) => setStatusNote(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
+                <input value={statusNote} onChange={(e) => setStatusNote(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
               </div>
             </div>
 
@@ -330,7 +418,6 @@ export default function AdminCreateShipmentPage() {
               <div><label className="text-xs font-semibold text-gray-700">Discount %</label><input value={discountRatePct} onChange={(e) => setDiscountRatePct(e.target.value)} className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm" /></div>
             </div>
 
-            {/* Submit */}
             <button
               type="button"
               onClick={submit}
@@ -377,7 +464,9 @@ export default function AdminCreateShipmentPage() {
             <div className="rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                 <p className="font-extrabold text-gray-900">Declared Value</p>
-                <p className="text-sm text-gray-700">{Number(breakdown.declaredValue).toLocaleString()} {currency}</p>
+                <p className="text-sm text-gray-700">
+                  {Number(breakdown.declaredValue).toLocaleString()} {currency}
+                </p>
               </div>
 
               <div className="p-5 space-y-3 text-sm">
@@ -387,6 +476,7 @@ export default function AdminCreateShipmentPage() {
                 <div className="flex justify-between"><span>Customs / Duties ({customsRatePct}%)</span><span className="font-semibold">{breakdown.customs.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Tax ({taxRatePct}%)</span><span className="font-semibold">{breakdown.tax.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Discount ({discountRatePct}%)</span><span className="font-semibold">-{breakdown.discount.toFixed(2)}</span></div>
+
                 <div className="flex justify-between pt-3 border-t"><span className="font-bold">Subtotal</span><span className="font-bold">{breakdown.subtotal.toFixed(2)}</span></div>
 
                 <div className="flex justify-between pt-4 border-t text-lg">
