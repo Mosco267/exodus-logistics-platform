@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING } from "@/lib/pricing";
-import { sendShipmentStatusEmail, sendInvoiceUpdateEmail } from "@/lib/email";
+import { sendShipmentStatusEmail, sendInvoiceUpdateEmail, sendInvoiceStatusReceiverEmail } from "@/lib/email";
 
 const normalizeStatus = (status?: string) =>
   (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
@@ -243,11 +243,48 @@ if (isOnlyPaidToggle) {
     }
 
     if (body?.invoice?.paid !== undefined) {
-      title = "Invoice Updated";
-      message = `Invoice for shipment ${shipmentId} is now ${
-        body.invoice.paid ? "PAID" : "UNPAID"
-      }.`;
-    }
+  const paid = Boolean(body.invoice.paid);
+
+  title = "Invoice Updated";
+  message = `Invoice for shipment ${shipmentId} is now ${paid ? "PAID" : "UNPAID"}.`;
+
+  // ✅ Send emails to BOTH sender + receiver
+  const senderEmail = String(
+    (existing as any)?.senderEmail || (existing as any)?.createdByEmail || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const receiverEmail = String((existing as any)?.receiverEmail || "")
+    .trim()
+    .toLowerCase();
+
+  const senderName = String((existing as any)?.senderName || "Customer").trim();
+  const receiverName = String((existing as any)?.receiverName || "Customer").trim();
+  const trackingNumber = String((existing as any)?.trackingNumber || "").trim();
+
+  // sender
+  if (senderEmail) {
+    await sendInvoiceUpdateEmail(senderEmail, { name: senderName, shipmentId, paid }).catch(() => null);
+  }
+
+  // receiver
+  if (receiverEmail) {
+    const base =
+      (process.env.APP_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://www.goexoduslogistics.com").replace(/\/$/, "");
+
+    await sendInvoiceStatusReceiverEmail(receiverEmail, {
+      name: receiverName,
+      senderName: senderName || "Sender",
+      shipmentId,
+      trackingNumber,
+      paid,
+      viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`,
+    }).catch(() => null);
+  }
+}
 
     await db.collection("notifications").insertOne({
      userEmail: String(

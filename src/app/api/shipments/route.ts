@@ -213,8 +213,10 @@ export async function POST(req: Request) {
 const APP_URL =
   (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.goexoduslogistics.com").replace(/\/$/, "");
 
-const viewShipmentUrl = `${APP_URL}/en/track?q=${encodeURIComponent(shipmentId)}`;
-const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+const viewInvoiceUrl = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+
+// Make "View Shipment" go to invoice too
+const viewShipmentUrl = viewInvoiceUrl;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
