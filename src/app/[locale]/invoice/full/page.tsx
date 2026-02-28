@@ -258,20 +258,18 @@ export default function FullInvoicePage() {
   const dims = data.shipment?.dimensionsCm || null;
 
   const fromFull =
-    joinNice([
-      data.shipment?.senderAddress,
-      data.shipment?.senderCity,
-      data.shipment?.senderState,
-      data.shipment?.senderCountry || data.shipment?.origin,
-    ]) || String(data.shipment?.origin || "—");
+  joinNice([
+    data.shipment?.senderCity,
+    data.shipment?.senderState,
+    data.shipment?.senderCountry || data.shipment?.origin,
+  ]) || String(data.shipment?.origin || "—");
 
-  const toFull =
-    joinNice([
-      data.shipment?.receiverAddress,
-      data.shipment?.receiverCity,
-      data.shipment?.receiverState,
-      data.shipment?.receiverCountry || data.shipment?.destination,
-    ]) || String(data.shipment?.destination || "—");
+const toFull =
+  joinNice([
+    data.shipment?.receiverCity,
+    data.shipment?.receiverState,
+    data.shipment?.receiverCountry || data.shipment?.destination,
+  ]) || String(data.shipment?.destination || "—");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
@@ -388,6 +386,13 @@ export default function FullInvoicePage() {
                 <div className="mt-3">
                   <p className="text-sm text-gray-600">Sender</p>
                   <p className="font-bold text-gray-900">{data.parties.senderName || "Sender"}</p>
+
+                  {data.parties?.senderEmail ? (
+  <p className="mt-1 text-sm text-gray-700 flex items-center">
+    <Mail className="w-4 h-4 mr-2 text-gray-400" />
+    {data.parties.senderEmail}
+  </p>
+) : null}
                 </div>
 
                 <div className="mt-4">

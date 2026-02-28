@@ -161,36 +161,68 @@ export async function PATCH(
       $set.declaredValue = declaredValue;
     }
 
-    // ----------------------------
-    // 3) INVOICE UPDATE (real calc)
-    // ----------------------------
-    const shouldRecalcInvoice =
-      body?.invoice !== undefined ||
-      body?.declaredValue !== undefined ||
-      (existing as any)?.invoice === undefined;
+   // ----------------------------
+// 3) INVOICE UPDATE
+// ----------------------------
 
-    if (shouldRecalcInvoice) {
-      const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricing);
+// A) If ONLY toggling paid/unpaid → DO NOT recalc breakdown
+const isOnlyPaidToggle =
+  body?.invoice &&
+  Object.keys(body).length === 1 &&
+  Object.keys(body.invoice).length === 1 &&
+  body.invoice.paid !== undefined;
 
-      const prev = (existing as any).invoice || {};
-      const incoming = body.invoice || {};
+if (isOnlyPaidToggle) {
+  const prev = (existing as any).invoice || {};
+  const paid = Boolean(body.invoice.paid);
+  const nowIso = new Date().toISOString();
 
-      const paid =
-        incoming.paid !== undefined ? Boolean(incoming.paid) : Boolean(prev.paid);
+  $set.invoice = {
+    ...prev,
+    paid,
+    paidAt: paid ? nowIso : null,
+  };
+} else {
+  // B) Otherwise we may need to recalc (declared value changed, invoice missing, etc.)
+  const shouldRecalcInvoice =
+    body?.invoice !== undefined ||
+    body?.declaredValue !== undefined ||
+    (existing as any)?.invoice === undefined;
 
-      const nowIso = new Date().toISOString();
+  if (shouldRecalcInvoice) {
+    // ✅ Use stored rates from this shipment first (if available)
+    const storedRates =
+      (existing as any)?.invoice?.breakdown?.rates ||
+      (existing as any)?.invoice?.breakdown?.pricing ||
+      null;
 
-      const nextInvoice: any = {
-        ...prev,
-        amount: breakdown.total, // ✅ final total
-        currency: String(prev.currency || incoming.currency || "USD").toUpperCase(),
-        paid,
-        paidAt: paid ? (incoming.paidAt ? String(incoming.paidAt) : nowIso) : null,
-        breakdown, // ✅ store full breakdown for invoice page
-      };
+    const pricingToUse = storedRates
+      ? { ...DEFAULT_PRICING, ...storedRates }
+      : pricing; // fallback to pricing_settings
 
-      $set.invoice = nextInvoice;
-    }
+    const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
+
+    const prev = (existing as any).invoice || {};
+    const incoming = body.invoice || {};
+
+    const paid =
+      incoming.paid !== undefined ? Boolean(incoming.paid) : Boolean(prev.paid);
+
+    const nowIso = new Date().toISOString();
+
+    $set.invoice = {
+      ...prev,
+      amount: breakdown.total,
+      currency: String(prev.currency || incoming.currency || "USD").toUpperCase(),
+      paid,
+      paidAt: paid ? (incoming.paidAt ? String(incoming.paidAt) : nowIso) : null,
+      breakdown: {
+        ...breakdown,
+        rates: storedRates || (breakdown as any)?.rates || null,
+      },
+    };
+  }
+}
 
     // ----------------------------
     // 4) SAVE
@@ -218,7 +250,12 @@ export async function PATCH(
     }
 
     await db.collection("notifications").insertOne({
-      userEmail: String((existing as any).createdByEmail || "").toLowerCase(),
+     userEmail: String(
+  (existing as any)?.senderEmail ||
+  (existing as any)?.receiverEmail ||
+  (existing as any)?.createdByEmail ||
+  ""
+).trim().toLowerCase(),
       title,
       message,
       shipmentId,

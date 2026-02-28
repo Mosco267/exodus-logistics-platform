@@ -210,59 +210,73 @@ export async function POST(req: Request) {
       await db.collection("shipments").insertOne(doc);
 
       // ✅ EMAILS (don’t fail shipment creation if email fails)
-      const viewShipmentUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/track?q=${encodeURIComponent(shipmentId)}`;
-      const viewInvoiceUrl = `${process.env.PUBLIC_APP_URL || "https://www.goexoduslogistics.com"}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+const APP_URL =
+  (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.goexoduslogistics.com").replace(/\/$/, "");
 
-      // Sender emails
-      if (senderEmail) {
-        try {
-          await sendShipmentCreatedEmail(senderEmail, {
-            name: doc.senderName || "Customer",
-            receiverName: doc.receiverName || "Receiver",
-            shipmentId,
-            trackingNumber,
-            viewShipmentUrl,
-          });
+const viewShipmentUrl = `${APP_URL}/en/track?q=${encodeURIComponent(shipmentId)}`;
+const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
 
-          await sendInvoiceStatusEmail(senderEmail, {
-            name: doc.senderName || "Customer",
-            shipmentId,
-            trackingNumber,
-            paid: invoicePaid,
-            viewInvoiceUrl,
-          });
-        } catch (e) {
-          console.error("Sender email failed:", e);
-        }
-      }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-      // Receiver emails (NEW)
-      if (receiverEmail) {
-        try {
-          await sendShipmentCreatedReceiverEmail(receiverEmail, {
-            name: doc.receiverName || "Customer",
-            senderName: doc.senderName || "Sender",
-            shipmentId,
-            trackingNumber,
-            receiverAddress: doc.receiverAddress || "",
-            receiverPostalCode: doc.receiverPostalCode || "",
-            receiverState: doc.receiverState || "",
-            receiverCountry: doc.receiverCountry || "",
-            viewShipmentUrl,
-          });
+// Sender emails
+if (senderEmail) {
+  try {
+    await sendShipmentCreatedEmail(senderEmail, {
+      name: doc.senderName || "Customer",
+      receiverName: doc.receiverName || "Receiver",
+      shipmentId,
+      trackingNumber,
+      viewShipmentUrl,
+    });
 
-          await sendInvoiceStatusReceiverEmail(receiverEmail, {
-            name: doc.receiverName || "Customer",
-            senderName: doc.senderName || "Sender",
-            shipmentId,
-            trackingNumber,
-            paid: invoicePaid,
-            viewInvoiceUrl,
-          });
-        } catch (e) {
-          console.error("Receiver email failed:", e);
-        }
-      }
+    // ✅ only send invoice email at creation if it’s already paid
+    if (invoicePaid) {
+      await sleep(350);
+      await sendInvoiceStatusEmail(senderEmail, {
+        name: doc.senderName || "Customer",
+        shipmentId,
+        trackingNumber,
+        paid: true,
+        viewInvoiceUrl,
+      });
+    }
+  } catch (e) {
+    console.error("Sender email failed:", e);
+  }
+}
+
+// Receiver emails
+if (receiverEmail) {
+  try {
+    await sleep(350);
+    await sendShipmentCreatedReceiverEmail(receiverEmail, {
+      name: doc.receiverName || "Customer",
+      senderName: doc.senderName || "Sender",
+      shipmentId,
+      trackingNumber,
+      receiverAddress: doc.receiverAddress || "",
+      receiverPostalCode: doc.receiverPostalCode || "",
+      receiverState: doc.receiverState || "",
+      receiverCountry: doc.receiverCountry || "",
+      viewShipmentUrl,
+    });
+
+    // ✅ only send invoice email at creation if it’s already paid
+    if (invoicePaid) {
+      await sleep(350);
+      await sendInvoiceStatusReceiverEmail(receiverEmail, {
+        name: doc.receiverName || "Customer",
+        senderName: doc.senderName || "Sender",
+        shipmentId,
+        trackingNumber,
+        paid: true,
+        viewInvoiceUrl,
+      });
+    }
+  } catch (e) {
+    console.error("Receiver email failed:", e);
+  }
+}
 
       return NextResponse.json({ ok: true, shipment: doc }, { status: 201 });
     } catch (err: any) {
