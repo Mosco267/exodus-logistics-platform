@@ -1,256 +1,337 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, MapPin, Clock, FileText, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronDown,
+  MapPin,
+  Package,
+  Receipt,
+} from "lucide-react";
 
-type TrackEvent = {
+type LocationLite = {
+  country?: string;
+  state?: string;
+  city?: string;
+  county?: string;
+};
+
+type TrackingEvent = {
   key?: string;
-  label?: string;
+  label: string;
   note?: string;
-  occurredAt?: string;
-  location?: { country?: string; state?: string; city?: string; county?: string };
+  occurredAt: string; // ISO
+  location?: LocationLite;
   meta?: {
     invoicePaid?: boolean;
     invoiceAmount?: number;
     currency?: string;
-    origin?: string;
     destination?: string;
+    origin?: string;
   };
 };
 
-type TrackResponse = {
+type TrackApiResponse = {
   shipmentId: string;
   trackingNumber: string;
+
   currentStatus?: string;
   statusNote?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  nextStep?: string;
+
+  createdAt?: string | null;
+  updatedAt?: string | null;
+
   origin?: string | null;
   destination?: string | null;
-  invoice?: { paid: boolean; amount: number; currency: string } | null;
-  events: TrackEvent[];
+
+  invoice?: {
+    paid: boolean;
+    amount: number;
+    currency: string;
+  } | null;
+
+  events: TrackingEvent[];
   estimatedDelivery?: string;
 };
 
-const norm = (s: any) => String(s || "").toLowerCase().trim().replace(/[\s_-]+/g, "");
-
-const MILESTONES = [
-  { key: "created", label: "Order Confirmed" },
-  { key: "warehouse", label: "Warehouse" },
-  { key: "pickedup", label: "Picked Up" },
-  { key: "departedorigin", label: "Departed Origin" },
-  { key: "intransit", label: "In Transit" },
-  { key: "arriveshub", label: "Arrives Hub" },
-  { key: "finaldelivery", label: "Final Delivery" },
-];
-
-function formatLoc(ev: TrackEvent) {
-  const l = ev?.location || {};
-  return [l.city, l.state, l.country].map((x) => String(x || "").trim()).filter(Boolean).join(", ");
-}
-
-function formatDate(iso?: string) {
-  if (!iso) return "";
+function fmtDate(iso?: string) {
+  if (!iso) return "—";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
 }
 
+function fmtLoc(loc?: LocationLite) {
+  if (!loc) return "";
+  const parts = [loc.city, loc.state, loc.country].map((x) => String(x || "").trim()).filter(Boolean);
+  return parts.join(", ");
+}
+
+function dotColor(index: number, currentIndex: number) {
+  // Completed = green, current = amber, upcoming = gray
+  if (index < currentIndex) return "bg-green-500";
+  if (index === currentIndex) return "bg-amber-400";
+  return "bg-gray-300";
+}
+
 export default function TrackResultPage() {
-  const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
 
-  const [data, setData] = useState<TrackResponse | null>(null);
+  const [data, setData] = useState<TrackApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [openKey, setOpenKey] = useState<string>("");
+
+  // For accordion
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  const load = async () => {
+    setLoading(true);
+    setErr("");
+    setData(null);
+
+    try {
+      const res = await fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setErr(json?.error || "Tracking unavailable. Try again later.");
+        return;
+      }
+
+      setData(json as TrackApiResponse);
+      // open the latest event by default
+      const evs = Array.isArray((json as any)?.events) ? (json as any).events : [];
+      setOpenIdx(evs.length ? evs.length - 1 : 0);
+    } catch (e: any) {
+      setErr(e?.message || "Tracking unavailable. Try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      setErr("");
-      try {
-        const res = await fetch("/api/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ q }),
-        });
-        const json = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(json?.error || "Tracking unavailable.");
-        setData(json);
-        // open the most recent event by default
-        const last = Array.isArray(json?.events) ? json.events[json.events.length - 1] : null;
-        setOpenKey(norm(last?.key || last?.label || "created") || "created");
-      } catch (e: any) {
-        setErr(e?.message || "Tracking unavailable.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    void run();
+    if (!q) return;
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const eventsByKey = useMemo(() => {
-    const map = new Map<string, TrackEvent>();
-    (data?.events || []).forEach((ev) => {
-      const k = norm(ev?.key || ev?.label);
-      if (!k) return;
-      map.set(k, ev);
-    });
-    return map;
+  const events = useMemo(() => {
+    const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
+    // ensure oldest -> newest
+    evs.sort((a, b) => new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime());
+    return evs;
   }, [data]);
 
-  const lastEventKey = useMemo(() => {
-    const evs = data?.events || [];
-    const last = evs[evs.length - 1];
-    return norm(last?.key || last?.label || "");
-  }, [data]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0b1220] text-white px-4 py-10">
-        <div className="max-w-xl mx-auto">Loading…</div>
-      </div>
-    );
-  }
-
-  if (err || !data) {
-    return (
-      <div className="min-h-screen bg-[#0b1220] text-white px-4 py-10">
-        <div className="max-w-xl mx-auto">
-          <button
-            onClick={() => router.push(`/${locale}/track`)}
-            className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white"
-          >
-            <ChevronLeft className="w-4 h-4" /> Back
-          </button>
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="flex items-center gap-2 text-red-300 font-semibold">
-              <AlertCircle className="w-5 h-5" />
-              {err || "Shipment not found."}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const currentIndex = Math.max(0, events.length - 1);
 
   const invoicePaid = Boolean(data?.invoice?.paid);
   const invoiceAmount = Number(data?.invoice?.amount ?? 0);
   const invoiceCurrency = String(data?.invoice?.currency || "USD");
 
   return (
-    <div className="min-h-screen bg-[#0b1220] text-white px-4 py-10">
-      <div className="max-w-xl mx-auto">
-        <button
-          onClick={() => router.push(`/${locale}/track`)}
-          className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" /> Back to tracking
-        </button>
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="mb-6">
+          <Link
+            href={`/${locale}/track`}
+            className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+          >
+            ← Back to tracking
+          </Link>
+        </div>
 
-        <div className="mt-6">
-          <h1 className="text-3xl font-extrabold">{data.shipmentId} Milestones</h1>
-          <p className="mt-2 text-sm text-white/70">
-            Tracking: <span className="font-semibold text-white">{data.trackingNumber}</span>
-          </p>
+        {loading && (
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
+            <p className="text-sm text-gray-700">Loading tracking…</p>
+          </div>
+        )}
 
-          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-white/70">Invoice</p>
-                <p className={invoicePaid ? "text-green-300 font-bold" : "text-amber-300 font-bold"}>
-                  {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)} {invoiceCurrency}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-white/70">Destination</p>
-                <p className="font-semibold">{data.destination || "—"}</p>
-              </div>
+        {!loading && err && (
+          <div className="rounded-3xl border border-red-200 bg-white p-6 shadow-xl">
+            <div className="flex items-center text-red-700 font-semibold">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              {err}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Timeline list (looks like your screenshot) */}
-        <div className="mt-6 space-y-4">
-          {MILESTONES.map((m) => {
-            const k = norm(m.key);
-            const ev = eventsByKey.get(k);
-            const isDone = Boolean(ev) && k !== lastEventKey;
-            const isCurrent = Boolean(ev) && k === lastEventKey;
-            const isFuture = !ev;
+        {!loading && data && (
+          <>
+            {/* Header card */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                  <p className="text-xs text-gray-600">Shipment ID</p>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+                    {data.shipmentId || "—"}
+                  </h1>
 
-            const dotClass = isDone
-              ? "bg-green-400"
-              : isCurrent
-              ? "bg-amber-300"
-              : "bg-transparent border border-white/25";
+                  <p className="mt-1 text-sm text-gray-600">
+                    Tracking:{" "}
+                    <span className="font-semibold text-gray-900">
+                      {data.trackingNumber || "—"}
+                    </span>
+                  </p>
+                </div>
 
-            const isOpen = openKey === k;
+                <div className="sm:text-right">
+                  <p className="text-xs text-gray-600">Current status</p>
+                  <p className="text-lg font-extrabold text-blue-700">
+                    {data.currentStatus || (events[currentIndex]?.label ?? "—")}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Updated: <span className="font-semibold">{fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}</span>
+                  </p>
+                </div>
+              </div>
 
-            return (
-              <div key={m.key} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-                <button
-                  onClick={() => setOpenKey((prev) => (prev === k ? "" : k))}
-                  className="w-full text-left px-5 py-5 flex items-start gap-4 hover:bg-white/5 transition"
-                >
-                  <div className={`mt-2 h-4 w-4 rounded-full ${dotClass}`} />
-                  <div className="min-w-0">
-                    <p className="text-2xl font-extrabold">{ev?.label || m.label}</p>
-                    <p className="text-white/50 mt-1">
-                      {ev ? (formatLoc(ev) || "—") : "—"}
-                    </p>
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <Receipt className="w-4 h-4 text-gray-700" />
+                    Invoice
                   </div>
-                </button>
+                  <p className={`mt-2 text-sm font-extrabold ${invoicePaid ? "text-green-700" : "text-amber-700"}`}>
+                    {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)} {invoiceCurrency}
+                  </p>
+                </div>
 
-                {isOpen && (
-                  <div className="px-5 pb-5">
-                    <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm space-y-2">
-                      {ev ? (
-                        <>
-                          <div className="flex items-center gap-2 text-white/80">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatDate(ev?.occurredAt) || "—"}</span>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <MapPin className="w-4 h-4 text-gray-700" />
+                    Destination
+                  </div>
+                  <p className="mt-2 text-sm text-gray-800 font-semibold">
+                    {data.destination || "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <Calendar className="w-4 h-4 text-gray-700" />
+                    Created
+                  </div>
+                  <p className="mt-2 text-sm text-gray-800 font-semibold">
+                    {fmtDate(data.createdAt || events[0]?.occurredAt)}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Timeline */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 rounded-3xl border border-gray-200 bg-white shadow-xl p-6"
+            >
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-blue-700" />
+                <h2 className="text-lg font-extrabold text-gray-900">
+                  Shipment Timeline
+                </h2>
+              </div>
+
+              <p className="mt-1 text-sm text-gray-600">
+                This timeline grows as our team adds updates. Older updates never disappear.
+              </p>
+
+              <div className="mt-5 space-y-3">
+                {events.length === 0 ? (
+                  <div className="rounded-2xl border border-gray-200 p-4 text-sm text-gray-700">
+                    No tracking updates yet.
+                  </div>
+                ) : (
+                  events.map((ev, idx) => {
+                    const isOpen = openIdx === idx;
+                    const loc = fmtLoc(ev.location);
+                    const when = fmtDate(ev.occurredAt);
+
+                    return (
+                      <button
+                        key={`${ev.key || ev.label}-${idx}`}
+                        type="button"
+                        onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+                        className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="pt-1">
+                            <div
+                              className={[
+                                "h-3 w-3 rounded-full",
+                                dotColor(idx, currentIndex),
+                              ].join(" ")}
+                            />
                           </div>
 
-                          <div className="flex items-center gap-2 text-white/80">
-                            <MapPin className="w-4 h-4" />
-                            <span>{formatLoc(ev) || "—"}</span>
-                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-base sm:text-lg font-extrabold text-gray-900 truncate">
+                                  {ev.label}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-600">
+                                  {when}
+                                  {loc ? ` • ${loc}` : ""}
+                                </p>
+                              </div>
 
-                          {ev?.note ? (
-                            <div className="flex items-start gap-2 text-white/80">
-                              <FileText className="w-4 h-4 mt-[2px]" />
-                              <p className="leading-6">{ev.note}</p>
+                              <ChevronDown
+                                className={`w-5 h-5 text-gray-500 transition ${
+                                  isOpen ? "rotate-180" : ""
+                                }`}
+                              />
                             </div>
-                          ) : null}
-                        </>
-                      ) : (
-                        <p className="text-white/60">
-                          This milestone has not been reached yet.
-                        </p>
-                      )}
 
-                      {/* Always show core shipment details */}
-                      <div className="pt-3 border-t border-white/10 text-white/70">
-                        <p><span className="font-semibold text-white/80">Origin:</span> {data.origin || "—"}</p>
-                        <p><span className="font-semibold text-white/80">Destination:</span> {data.destination || "—"}</p>
-                        <p><span className="font-semibold text-white/80">Invoice:</span> {invoicePaid ? "Paid" : "Unpaid"} • {invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
-                      </div>
-                    </div>
-                  </div>
+                            {isOpen && (
+                              <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
+                                {ev.note ? (
+                                  <p className="text-sm text-gray-800">
+                                    <span className="font-bold">Details:</span> {ev.note}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-gray-700">
+                                    <span className="font-bold">Details:</span> No additional details for this update.
+                                  </p>
+                                )}
+
+                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
+                                  <div>
+                                    <span className="font-semibold">Invoice:</span>{" "}
+                                    {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)} {invoiceCurrency}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Destination:</span>{" "}
+                                    {data.destination || "—"}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-8 text-xs text-white/50">
-          Note: Completed milestones remain visible. New updates are appended (nothing disappears).
-        </div>
+            </motion.div>
+          </>
+        )}
       </div>
     </div>
   );
