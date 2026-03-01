@@ -1,416 +1,561 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams, useParams } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { Printer, FileText, MapPin, Calendar, User, Mail, Package, Phone } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  BadgeCheck,
+  BadgeX,
+  Calendar,
+  CreditCard,
+  FileText,
+  Mail,
+  MapPin,
+  Package,
+  Receipt,
+  Truck,
+} from "lucide-react";
 
-type InvoiceApi = {
-  company?: { name?: string; address?: string; phone?: string; email?: string; registrationNumber?: string };
+type Money = { amount: number; currency: string };
 
-  invoiceNumber: string;
-  status: "paid" | "pending" | "overdue";
-  currency: string;
-  total: number;
-  paid: boolean;
-  paidAt?: string | null;
-  dueDate?: string | null;
+type Dimensions =
+  | { length?: number | string; width?: number | string; height?: number | string; unit?: string }
+  | null
+  | undefined;
+
+type InvoiceApiResponse = {
+  ok?: boolean;
+
+  // invoice identity
+  invoiceNumber?: string;
+  shipmentId?: string;
+  trackingNumber?: string;
+
+  // status + money
+  paid?: boolean;
+  invoice?: Money | null; // some APIs return invoice: {amount,currency}
+  amount?: number; // some APIs return amount at top-level
+  currency?: string;
+
+  // payment details (admin can set this)
   paymentMethod?: string | null;
 
-  declaredValue?: number;
+  // shipment details
+  senderName?: string;
+  senderEmail?: string;
+  receiverName?: string;
+  receiverEmail?: string;
 
-  breakdown?: any;
+  origin?: string | null;
+  destination?: string | null;
+  currentStatus?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 
-  shipment: any;
-  parties: any;
-  dates: any;
+  declaredValue?: number | string | null;
+  declaredValueCurrency?: string | null;
+
+  weight?: number | string | null;
+  weightUnit?: string | null;
+
+  dimensions?: Dimensions;
+
+  // charges breakdown (optional)
+  charges?: {
+    shipping?: number;
+    insurance?: number;
+    fuel?: number;
+    tax?: number;
+    discount?: number;
+    subtotal?: number;
+    total?: number;
+    currency?: string;
+  } | null;
+
+  // optional message from server
+  error?: string;
 };
 
-const currencySymbol = (code: string) => {
-  switch (String(code).toUpperCase()) {
-    case "USD": return "$";
-    case "EUR": return "€";
-    case "GBP": return "£";
-    case "NGN": return "₦";
-    default: return "$";
-  }
-};
-
-function formatDate(d?: string | null) {
-  if (!d) return "—";
-  const t = new Date(d);
-  if (Number.isNaN(t.getTime())) return "—";
-  return t.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+function fmtDate(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString();
 }
 
-function formatNumber(v: any) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return "0.00";
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function n(num: any) {
+  const v = Number(num);
+  return Number.isFinite(v) ? v : 0;
 }
 
-function money(sym: string, v: any) {
-  return `${sym} ${formatNumber(v)}`;
+function fmtMoney(amount: number, currency: string) {
+  const a = n(amount);
+  const c = (currency || "USD").toUpperCase();
+  return `${a.toFixed(2)} ${c}`;
 }
 
-function toPct(rate: any): string {
-  const n = Number(rate);
-  if (!Number.isFinite(n)) return "—";
-  const pct = n <= 1 ? n * 100 : n;
-  return `${pct.toFixed(2).replace(/\.00$/, "")}%`;
+function safeStr(v: any) {
+  return String(v ?? "").trim();
 }
 
-function pickRate(breakdown: any, key: string) {
-  const k = String(key || "").trim();
-  const baseKey = k.toLowerCase().endsWith("rate") ? k.slice(0, -4) : k;
-  const candidates = [k, `${baseKey}Rate`, baseKey];
-  const sources = [breakdown?.rates, breakdown?.percentages, breakdown?.pricing, breakdown];
-  for (const src of sources) {
-    if (!src) continue;
-    for (const c of candidates) {
-      if (src?.[c] !== undefined && src?.[c] !== null) return src[c];
-    }
-  }
-  return null;
+function normalizePaymentMethod(v: any) {
+  const s = safeStr(v);
+  return s || "";
 }
 
-function pickAmount(breakdown: any, key: string) {
-  return breakdown?.[key] ?? breakdown?.amounts?.[key] ?? breakdown?.charges?.[key] ?? null;
-}
+const ACCEPTED_METHODS = [
+  "Cryptocurrency",
+  "Bank transfer",
+  "PayPal",
+  "Zelle",
+  "Cash",
+  "Other",
+];
 
-function joinNice(parts: Array<any>) {
-  return parts.map((x) => String(x || "").trim()).filter(Boolean).join(", ");
-}
-
-export default function FullInvoicePage() {
+export default function InvoiceFullPage() {
   const params = useParams();
-  const locale = (params?.locale as string) || "en";
   const sp = useSearchParams();
+  const locale = (params?.locale as string) || "en";
 
-  const q = useMemo(() => String(sp.get("q") || "").trim(), [sp]);
-  const invoice = useMemo(() => String(sp.get("invoice") || "").trim(), [sp]);
-  const email = useMemo(() => String(sp.get("email") || "").trim(), [sp]);
+  const q = useMemo(() => safeStr(sp.get("q")), [sp]);
+  const invoice = useMemo(() => safeStr(sp.get("invoice")), [sp]);
+  const email = useMemo(() => safeStr(sp.get("email")).toLowerCase(), [sp]);
 
-  const [data, setData] = useState<InvoiceApi | null>(null);
+  const [data, setData] = useState<InvoiceApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      setErr("");
-      setData(null);
+  const load = async () => {
+    setLoading(true);
+    setErr("");
+    setData(null);
 
-      try {
-        // ✅ If invoice+email exists -> secure
-        // ✅ Else use q (tracking/shipment)
-        const url =
-          invoice
-            ? `/api/invoice?invoice=${encodeURIComponent(invoice)}&email=${encodeURIComponent(email)}`
-            : `/api/invoice?q=${encodeURIComponent(q)}`;
+    // We support either:
+    // 1) q (tracking / shipment id)
+    // 2) invoice + email
+    const payload: any = {};
+    if (q) payload.q = q.toUpperCase();
+    if (invoice) payload.invoice = invoice.toUpperCase();
+    if (email) payload.email = email;
 
-        if (!invoice && !q) {
-          setErr("Missing invoice query.");
-          setLoading(false);
-          return;
-        }
+    if (!payload.q && (!payload.invoice || !payload.email)) {
+      setErr("Invoice details are missing. Please open the invoice from the email or enter your invoice details again.");
+      setLoading(false);
+      return;
+    }
 
-        const res = await fetch(url, { cache: "no-store" });
-        const json = await res.json().catch(() => null);
+    try {
+      // ✅ Use POST so it works the same everywhere (and avoids caching issues)
+      const res = await fetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-        if (!res.ok) {
-          setErr(json?.error || "Invoice not available.");
-          return;
-        }
+      const json = await res.json().catch(() => null);
 
-        setData(json);
-      } catch (e: any) {
-        setErr(e?.message || "Invoice not available.");
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        setErr(json?.error || json?.message || "Invoice not found. Please verify your details and try again.");
+        return;
       }
-    };
 
-    void run();
+      setData(json as InvoiceApiResponse);
+    } catch (e: any) {
+      setErr(e?.message || "Invoice unavailable. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, invoice, email]);
 
-  const handlePrint = () => window.print();
+  // --- normalized fields (support different server shapes) ---
+  const paid = Boolean(data?.paid);
+  const invoiceNumber = safeStr(data?.invoiceNumber);
+  const shipmentId = safeStr(data?.shipmentId);
+  const trackingNumber = safeStr(data?.trackingNumber);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 flex items-center justify-center">
-        <p className="text-gray-700 font-semibold">Loading invoice…</p>
-      </div>
-    );
-  }
+  const moneyAmount =
+    data?.invoice?.amount ??
+    (typeof data?.amount === "number" ? data.amount : undefined) ??
+    (data?.charges?.total ?? undefined) ??
+    0;
 
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white/90 backdrop-blur rounded-3xl border border-gray-200 shadow-xl p-6">
-          <p className="text-lg font-extrabold text-gray-900">Invoice not available</p>
-          <p className="mt-2 text-sm text-gray-700">{err || "Please check your query."}</p>
-          <Link
-            href={`/${locale}/invoice`}
-            className="mt-5 inline-flex items-center justify-center w-full px-5 py-3 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-          >
-            <FileText className="w-5 h-5 mr-2" /> Go to Invoice page
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const moneyCurrency =
+    safeStr(data?.invoice?.currency) ||
+    safeStr(data?.currency) ||
+    safeStr(data?.charges?.currency) ||
+    "USD";
 
-  const sym = currencySymbol(data.currency);
-  const breakdown = data.breakdown || null;
+  const paymentMethod = normalizePaymentMethod(data?.paymentMethod);
 
-  const rows = [
-    { key: "shipping", label: "Shipping", rateKey: "shippingRate" },
-    { key: "insurance", label: "Insurance", rateKey: "insuranceRate" },
-    { key: "fuel", label: "Fuel", rateKey: "fuelRate" },
-    { key: "customs", label: "Customs / Duties", rateKey: "customsRate" },
-    { key: "tax", label: "Tax", rateKey: "taxRate" },
-    { key: "discount", label: "Discount", rateKey: "discountRate" },
-  ];
+  const declaredValue = data?.declaredValue;
+  const declaredValueCurrency = safeStr(data?.declaredValueCurrency) || moneyCurrency;
 
-  const subtotalToShow = Number(pickAmount(breakdown, "subtotal") ?? 0);
-  const totalToShow = Number(pickAmount(breakdown, "total") ?? data.total ?? 0);
+  const weight = data?.weight;
+  const weightUnit = safeStr(data?.weightUnit) || "kg";
 
-  const fromFull =
-    data.shipment?.originFull ||
-    joinNice([data.shipment?.senderCity, data.shipment?.senderState, data.shipment?.senderCountry]) ||
-    data.shipment?.origin ||
-    "—";
+  const dim = data?.dimensions || null;
+  const dimUnit = safeStr((dim as any)?.unit) || "cm";
+  const dimLine = dim
+    ? `${safeStr((dim as any)?.length) || "—"} × ${safeStr((dim as any)?.width) || "—"} × ${safeStr((dim as any)?.height) || "—"} ${dimUnit}`
+    : "—";
 
-  const toFull =
-    data.shipment?.destinationFull ||
-    joinNice([data.shipment?.receiverCity, data.shipment?.receiverState, data.shipment?.receiverCountry]) ||
-    data.shipment?.destination ||
-    "—";
-
-  const company = data.company || {};
-  const companyPhone = String(company.phone || "").trim();
-  const companyEmail = String(company.email || "").trim();
-
-  const statusBadge =
-    data.status === "paid"
-      ? "bg-green-100 text-green-800 border-green-200"
-      : data.status === "overdue"
-        ? "bg-red-100 text-red-800 border-red-200"
-        : "bg-yellow-100 text-yellow-800 border-yellow-200";
+  const statusLabel = safeStr(data?.currentStatus) || "—";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #invoice-print-area, #invoice-print-area * { visibility: visible; }
-          #invoice-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
+    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-cyan-50 py-12">
       <div className="max-w-5xl mx-auto px-4">
-        <div className="no-print flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-6">
+        {/* Top nav */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
           <Link
             href={`/${locale}/invoice`}
             className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                        hover:border-blue-600 hover:text-blue-700 transition"
           >
-            <FileText className="w-5 h-5 mr-2" /> Back to Invoice
+            <ArrowLeft className="w-5 h-5 mr-2" /> Back to Invoice Search
           </Link>
 
-          <div className="flex gap-3 flex-col sm:flex-row">
+          {trackingNumber || shipmentId || q ? (
             <Link
-              href={`/${locale}/track/${encodeURIComponent(data.shipment?.trackingNumber || data.shipment?.shipmentId || "")}`}
+              href={`/${locale}/track/${encodeURIComponent((trackingNumber || shipmentId || q).toUpperCase())}`}
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                          hover:border-blue-600 hover:text-blue-700 transition"
             >
-              <MapPin className="w-5 h-5 mr-2" /> Track Shipment
+              <Truck className="w-5 h-5 mr-2" /> View Shipment Tracking
             </Link>
-
-            <button
-              onClick={handlePrint}
-              className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer"
-            >
-              <Printer className="w-5 h-5 mr-2" /> Print
-            </button>
-          </div>
+          ) : null}
         </div>
 
-        <motion.div
-          id="invoice-print-area"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/90 backdrop-blur rounded-3xl border border-gray-200 shadow-xl overflow-hidden"
-        >
-          <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-white to-blue-900 via-blue-800 to-cyan-800 text-white">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <p className="text-xl font-extrabold">{company.name || "Exodus Logistics"}</p>
-                <p className="text-white/80 text-sm">Invoice</p>
-
-                <p className="text-white/80 text-xs mt-2">{company.address || ""}</p>
-
-                <div className="flex flex-wrap gap-4 mt-2 text-xs text-white/90">
-                  {companyPhone ? (
-                    <a href={`tel:${companyPhone}`} className="inline-flex items-center gap-1 underline">
-                      <Phone className="w-4 h-4" /> {companyPhone}
-                    </a>
-                  ) : null}
-                  {companyEmail ? (
-                    <a href={`mailto:${companyEmail}`} className="inline-flex items-center gap-1 underline">
-                      <Mail className="w-4 h-4" /> {companyEmail}
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="text-left sm:text-right">
-                <p className="text-white/80 text-sm">Invoice #</p>
-                <p className="text-2xl font-extrabold">{data.invoiceNumber}</p>
-                <span className={`inline-flex mt-2 items-center px-3 py-1 rounded-full border text-xs font-extrabold bg-white/95 ${statusBadge}`}>
-                  {String(data.status).toUpperCase()}
-                </span>
-              </div>
-            </div>
+        {loading && (
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
+            <p className="text-sm text-gray-700">Loading invoice…</p>
           </div>
+        )}
 
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-2xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-600 flex items-center">
-                  <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                  Created
-                </p>
-                <p className="mt-1 font-extrabold text-gray-900">{formatDate(data.dates?.createdAt)}</p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-600 flex items-center">
-                  <Package className="w-4 h-4 mr-2 text-gray-500" />
-                  Shipment
-                </p>
-                <p className="mt-1 font-extrabold text-gray-900">{data.shipment?.shipmentId || "—"}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Tracking: <span className="font-semibold">{data.shipment?.trackingNumber || "—"}</span>
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="mt-1 text-2xl font-extrabold text-blue-700">{money(sym, totalToShow)}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  {data.paid ? `Paid on ${formatDate(data.paidAt || null)}` : "Payment pending"}
-                </p>
-              </div>
+        {!loading && err && (
+          <div className="rounded-3xl border border-red-200 bg-white p-6 shadow-xl">
+            <div className="flex items-center text-red-700 font-semibold">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              {err}
             </div>
+            <p className="mt-2 text-sm text-gray-600">
+              If you opened this from an email, make sure you copied the invoice number correctly and used the sender/receiver email linked to the shipment.
+            </p>
+          </div>
+        )}
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-gray-200 p-5">
-                <p className="font-extrabold text-gray-900 flex items-center">
-                  <User className="w-4 h-4 mr-2 text-gray-500" />
-                  Parties
-                </p>
-
-                <div className="mt-3">
-                  <p className="text-sm text-gray-600">Sender</p>
-                  <p className="font-bold text-gray-900">{data.parties?.senderName || "Sender"}</p>
-                  {data.parties?.senderEmail ? (
-                    <p className="mt-1 text-sm text-gray-700 flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                      {data.parties.senderEmail}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600">Receiver</p>
-                  <p className="font-bold text-gray-900">{data.parties?.receiverName || "Receiver"}</p>
-                  {data.parties?.receiverEmail ? (
-                    <p className="mt-1 text-sm text-gray-700 flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                      {data.parties.receiverEmail}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 p-5">
-                <p className="font-extrabold text-gray-900 flex items-center">
-                  <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                  Route
-                </p>
-
-                <p className="mt-3 text-sm text-gray-700">
-                  <span className="font-semibold">From:</span> {fromFull}
-                </p>
-                <p className="mt-2 text-sm text-gray-700">
-                  <span className="font-semibold">To:</span> {toFull}
-                </p>
-
-                <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                  <p className="text-sm text-gray-700">
-                    <span className="font-bold">Current status:</span>{" "}
-                    <span className="font-semibold text-blue-700">{data.shipment?.status || "—"}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
-                <p className="font-extrabold text-gray-900">Charges</p>
-                <p className="text-sm text-gray-600">
-                  {breakdown ? "Breakdown calculated from declared value." : "Breakdown not available — showing total only."}
-                </p>
-              </div>
-
-              <div className="p-5 space-y-3">
-                {breakdown ? (
-                  <>
-                    {rows.map((r) => {
-                      const amt = pickAmount(breakdown, r.key);
-                      const rate = pickRate(breakdown, r.rateKey);
-                      const isDiscount = r.key === "discount";
-                      const amountNum = Number(amt ?? 0);
-                      const displayAmount = isDiscount && amountNum > 0 ? -amountNum : amountNum;
-
-                      return (
-                        <div key={r.key} className="flex justify-between text-sm text-gray-700">
-                          <span>
-                            {r.label} <span className="text-gray-500">({toPct(rate)})</span>
-                          </span>
-                          <span className="font-semibold">{money(sym, displayAmount)}</span>
-                        </div>
-                      );
-                    })}
-
-                    <div className="pt-3 border-t border-gray-200 flex justify-between text-sm text-gray-700">
-                      <span className="font-semibold">Subtotal</span>
-                      <span className="font-semibold">{money(sym, subtotalToShow)}</span>
+        {!loading && data && (
+          <>
+            {/* Header / Hero */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden"
+            >
+              <div className="p-6 sm:p-8">
+                {/* Brand row */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {/* ✅ Logo (expects public/logo.png). If your filename differs, tell me and I’ll adjust. */}
+                    <div className="h-12 w-12 rounded-2xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
+                      <Image
+                        src="/logo.png"
+                        alt="Exodus Logistics"
+                        width={48}
+                        height={48}
+                        className="object-contain"
+                      />
                     </div>
-                  </>
+
+                    <div>
+                      <p className="text-xs text-gray-600">Exodus Logistics</p>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+                        Invoice Details
+                      </h1>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-extrabold ${
+                        paid
+                          ? "bg-green-50 border-green-200 text-green-800"
+                          : "bg-amber-50 border-amber-200 text-amber-800"
+                      }`}
+                    >
+                      {paid ? <BadgeCheck className="w-4 h-4" /> : <BadgeX className="w-4 h-4" />}
+                      {paid ? "PAID" : "UNPAID"}
+                    </div>
+
+                    <p className="mt-2 text-xs text-gray-600">Amount</p>
+                    <p className="text-lg font-extrabold text-gray-900">
+                      {fmtMoney(moneyAmount, moneyCurrency)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* IDs */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <FileText className="w-4 h-4 text-gray-700" />
+                      Invoice number
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-gray-900 break-all">
+                      {invoiceNumber || "—"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Package className="w-4 h-4 text-gray-700" />
+                      Shipment ID
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-gray-900 break-all">
+                      {shipmentId || "—"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Truck className="w-4 h-4 text-gray-700" />
+                      Tracking number
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-gray-900 break-all">
+                      {trackingNumber || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Meta */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Calendar className="w-4 h-4 text-gray-700" />
+                      Created
+                    </div>
+                    <p className="mt-2 text-sm text-gray-800 font-semibold">
+                      {fmtDate(data.createdAt)}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600">
+                      Updated: <span className="font-semibold">{fmtDate(data.updatedAt)}</span>
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <MapPin className="w-4 h-4 text-gray-700" />
+                      Route
+                    </div>
+                    <p className="mt-2 text-sm text-gray-800 font-semibold">
+                      {safeStr(data.origin) || "—"} → {safeStr(data.destination) || "—"}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600">
+                      Status: <span className="font-semibold">{statusLabel}</span>
+                    </p>
+                  </div>
+
+                  {/* ✅ Declared value + weight + dimensions box */}
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Receipt className="w-4 h-4 text-gray-700" />
+                      Declaration
+                    </div>
+
+                    <p className="mt-2 text-xs text-gray-600">
+                      Declared value
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {declaredValue != null && String(declaredValue).trim() !== ""
+                        ? `${declaredValue} ${declaredValueCurrency}`
+                        : "—"}
+                    </p>
+
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-xs text-gray-600">Weight</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {weight != null && String(weight).trim() !== "" ? `${weight} ${weightUnit}` : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Dimensions</p>
+                        <p className="text-sm font-semibold text-gray-900">{dimLine}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* People */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Mail className="w-4 h-4 text-gray-700" />
+                      Sender
+                    </div>
+                    <p className="mt-2 text-sm text-gray-900 font-semibold">
+                      {safeStr(data.senderName) || "—"}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600 break-all">
+                      {safeStr(data.senderEmail) || "—"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Mail className="w-4 h-4 text-gray-700" />
+                      Receiver
+                    </div>
+                    <p className="mt-2 text-sm text-gray-900 font-semibold">
+                      {safeStr(data.receiverName) || "—"}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600 break-all">
+                      {safeStr(data.receiverEmail) || "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* footer strip */}
+              <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
+                This invoice is linked to a specific shipment and can only be accessed using the correct invoice details.
+              </div>
+            </motion.div>
+
+            {/* Payment method + Charges */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4"
+            >
+              {/* ✅ Payment Method Block */}
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-700" />
+                  <h2 className="text-lg font-extrabold text-gray-900">
+                    Payment method
+                  </h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Accepted payment methods:
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {ACCEPTED_METHODS.map((m) => (
+                    <span
+                      key={m}
+                      className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+                  <p className="text-xs text-gray-600">Recorded method</p>
+                  <p className="mt-1 text-sm font-extrabold text-gray-900">
+                    {paid ? (paymentMethod || "Not recorded") : "—"}
+                  </p>
+
+                  {!paid ? (
+                    <p className="mt-2 text-sm text-gray-700">
+                      This invoice is currently <span className="font-extrabold text-amber-700">UNPAID</span>.
+                      Please proceed with payment using one of the accepted methods above.
+                      Once payment is confirmed, the shipment will be eligible to move to the next stage.
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-700">
+                      This invoice is <span className="font-extrabold text-green-700">PAID</span>.
+                      {paymentMethod
+                        ? " Payment was successfully recorded in our system."
+                        : " If you need the exact method used, support can confirm it for you."}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Charges / breakdown */}
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-blue-700" />
+                  <h2 className="text-lg font-extrabold text-gray-900">
+                    Charges summary
+                  </h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Breakdown may vary depending on route, package value, and service level.
+                </p>
+
+                <div className="mt-5 space-y-2 text-sm">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">Shipping</span>
+                    <span className="font-semibold text-gray-900">
+                      {fmtMoney(n(data?.charges?.shipping), moneyCurrency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">Insurance</span>
+                    <span className="font-semibold text-gray-900">
+                      {fmtMoney(n(data?.charges?.insurance), moneyCurrency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">Fuel</span>
+                    <span className="font-semibold text-gray-900">
+                      {fmtMoney(n(data?.charges?.fuel), moneyCurrency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">Tax</span>
+                    <span className="font-semibold text-gray-900">
+                      {fmtMoney(n(data?.charges?.tax), moneyCurrency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">Discount</span>
+                    <span className="font-semibold text-gray-900">
+                      {fmtMoney(n(data?.charges?.discount), moneyCurrency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-900 font-extrabold">Total</span>
+                    <span className="text-gray-900 font-extrabold">
+                      {fmtMoney(
+                        n(data?.charges?.total) || n(moneyAmount),
+                        moneyCurrency
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {!paid ? (
+                  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    This invoice is unpaid. Please complete payment to avoid delays in processing.
+                  </div>
                 ) : (
-                  <div className="flex justify-between text-sm text-gray-700">
-                    <span>Shipment charges</span>
-                    <span className="font-semibold">{money(sym, totalToShow)}</span>
+                  <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+                    Payment confirmed. Thank you — your invoice has been settled.
                   </div>
                 )}
-
-                <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-lg">
-                  <span className="font-extrabold text-gray-900">Total</span>
-                  <span className="font-extrabold text-blue-700">{money(sym, totalToShow)}</span>
-                </div>
               </div>
-            </div>
-
-            <div className="mt-8 text-xs text-gray-500">
-              <p>This invoice was generated by {company.name || "Exodus Logistics"}. If you need assistance, please contact support.</p>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          </>
+        )}
       </div>
     </div>
   );
