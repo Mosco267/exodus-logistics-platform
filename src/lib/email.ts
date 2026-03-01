@@ -52,6 +52,35 @@ function normUpper(v: any) {
 }
 
 /**
+ * ✅ Invoice number format:
+ * EXS-INV-YYYY-MM-1234567
+ *
+ * - If invoiceNumber is passed from DB, we use it.
+ * - If not, we generate a deterministic fallback using shipmentId + trackingNumber.
+ */
+function makeInvoiceNumber(args: {
+  shipmentId?: string;
+  trackingNumber?: string;
+  invoiceNumber?: string;
+}) {
+  const existing = normUpper(args.invoiceNumber);
+  if (existing) return existing;
+
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+
+  const seed = `${cleanStr(args.shipmentId)}::${cleanStr(args.trackingNumber)}`;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  const seven = String((h % 9000000) + 1000000); // 7 digits
+
+  return `EXS-INV-${yyyy}-${mm}-${seven}`;
+}
+
+/**
  * ✅ Direct route (NO redirect hop): /{locale}/track/[q]
  * Your /api/track supports trackingNumber OR shipmentId.
  */
@@ -61,7 +90,7 @@ function buildTrackUrl(q: string, locale = DEFAULT_LOCALE) {
 }
 
 /**
- * ✅ Invoice FULL page route (works with your current /api/invoice?q=...):
+ * ✅ Invoice FULL page route:
  * /{locale}/invoice/full?q=TRACKING_OR_SHIPMENT_ID
  *
  * IMPORTANT: This is the one that stops “invoice not found”.
@@ -127,6 +156,13 @@ export async function sendShipmentCreatedSenderEmail(
 
   const trackingOrShip = args.trackingNumber || args.shipmentId;
 
+  // ✅ Always compute invoice number (even if not passed)
+  const invoiceNumber = makeInvoiceNumber({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber: args.invoiceNumber,
+  });
+
   // ✅ Direct track result page (no redirect hop)
   const trackUrl = buildTrackUrl(trackingOrShip, locale);
 
@@ -160,12 +196,8 @@ export async function sendShipmentCreatedSenderEmail(
     <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
       <p style="margin:0;font-size:15px;color:#111827;">
         <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
-        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}
-        ${
-          args.invoiceNumber
-            ? `<br/><strong>Invoice number:</strong> ${esc(args.invoiceNumber)}`
-            : ""
-        }
+        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}<br/>
+        <strong>Invoice number:</strong> ${esc(invoiceNumber)}
       </p>
       <p style="margin:10px 0 0 0;font-size:12px;color:#6b7280;">
         Tip: Save these details for verification on our official website.
@@ -234,6 +266,12 @@ export async function sendShipmentCreatedReceiverEmailV2(
 
   const trackingOrShip = args.trackingNumber || args.shipmentId;
 
+  const invoiceNumber = makeInvoiceNumber({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber: args.invoiceNumber,
+  });
+
   const trackUrl = buildTrackUrl(trackingOrShip, locale);
   const invoiceUrl =
     args.viewInvoiceUrl || buildInvoiceFullUrlByQ(trackingOrShip, locale);
@@ -263,12 +301,8 @@ export async function sendShipmentCreatedReceiverEmailV2(
     <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
       <p style="margin:0;font-size:15px;color:#111827;">
         <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
-        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}
-        ${
-          args.invoiceNumber
-            ? `<br/><strong>Invoice number:</strong> ${esc(args.invoiceNumber)}`
-            : ""
-        }
+        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}<br/>
+        <strong>Invoice number:</strong> ${esc(invoiceNumber)}
       </p>
     </div>
 
@@ -457,6 +491,7 @@ export async function sendShipmentStatusEmail(
     shipmentId: string;
     statusLabel: string;
     trackingNumber?: string;
+    invoiceNumber?: string;
     locale?: string;
   }
 ) {
@@ -468,6 +503,13 @@ export async function sendShipmentStatusEmail(
 
   const q = opts.trackingNumber || opts.shipmentId;
   const TRACK_URL = buildTrackUrl(q, locale);
+  const INVOICE_URL = buildInvoiceFullUrlByQ(q, locale);
+
+  const invoiceNumber = makeInvoiceNumber({
+    shipmentId: opts.shipmentId,
+    trackingNumber: opts.trackingNumber,
+    invoiceNumber: opts.invoiceNumber,
+  });
 
   let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
   let title = "Shipment update";
@@ -524,13 +566,21 @@ export async function sendShipmentStatusEmail(
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
       ${bodyMessage}
     </p>
 
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      If you have any questions, our support team is ready to assist you.
+    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
+      <strong>Shipment ID:</strong> ${esc(opts.shipmentId)}<br/>
+      ${opts.trackingNumber ? `<strong>Tracking number:</strong> ${esc(opts.trackingNumber)}<br/>` : ""}
+      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
     </p>
+
+    <div style="margin-top:12px">
+      <a href="${INVOICE_URL}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+        View Invoice
+      </a>
+    </div>
   `;
 
   const html = renderEmailTemplate({
@@ -561,6 +611,7 @@ export async function sendInvoiceUpdateEmail(
     shipmentId: string;
     paid: boolean;
     trackingNumber?: string;
+    invoiceNumber?: string;
     locale?: string;
   }
 ) {
@@ -569,12 +620,16 @@ export async function sendInvoiceUpdateEmail(
   const name = (opts.name || "Customer").trim();
   const locale = opts.locale || DEFAULT_LOCALE;
 
-  const subject = `Exodus Logistics: Invoice update (${opts.shipmentId})`;
+  const q = opts.trackingNumber || opts.shipmentId;
+  const invoiceLink = buildInvoiceFullUrlByQ(q, locale);
 
-  const invoiceLink = buildInvoiceFullUrlByQ(
-    opts.trackingNumber || opts.shipmentId,
-    locale
-  );
+  const invoiceNumber = makeInvoiceNumber({
+    shipmentId: opts.shipmentId,
+    trackingNumber: opts.trackingNumber,
+    invoiceNumber: opts.invoiceNumber,
+  });
+
+  const subject = `Exodus Logistics: Invoice update (${opts.shipmentId})`;
 
   const bodyHtml = `
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
@@ -586,8 +641,8 @@ export async function sendInvoiceUpdateEmail(
       <strong>${opts.paid ? "PAID" : "UNPAID"}</strong>.
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      If you believe this is incorrect, please contact support.
+    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
+      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
     </p>
 
     <div style="margin-top:12px">
@@ -688,6 +743,10 @@ export async function sendInvoiceStatusEmail(
   `;
   return sendEmail(to, subject, html);
 }
+
+/**
+ * ✅ KEEP THIS EXPORT (your Vercel build needs it)
+ */
 export async function sendInvoiceStatusReceiverEmail(
   to: string,
   args: {
@@ -697,10 +756,8 @@ export async function sendInvoiceStatusReceiverEmail(
     trackingNumber: string;
     paid: boolean;
 
-    // legacy
     viewInvoiceUrl?: string;
-
-    // optional (if you already pass locale)
+    invoiceNumber?: string;
     locale?: string;
   }
 ) {
@@ -708,10 +765,16 @@ export async function sendInvoiceStatusReceiverEmail(
 
   const locale = args.locale || DEFAULT_LOCALE;
 
-  // ✅ Always point to the working invoice full page route
   const q = args.trackingNumber || args.shipmentId;
+
   const invoiceUrl =
     args.viewInvoiceUrl || `${APP_URL}/${locale}/invoice/full?q=${encodeURIComponent(q)}`;
+
+  const invoiceNumber = makeInvoiceNumber({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber: args.invoiceNumber,
+  });
 
   const subject = `Invoice ${args.paid ? "Paid" : "Unpaid"}: ${args.shipmentId}`;
 
@@ -725,6 +788,10 @@ export async function sendInvoiceStatusReceiverEmail(
     args.senderName
   )}</strong>)
       is currently marked as <strong>${args.paid ? "PAID" : "UNPAID"}</strong>.
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
+      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
     </p>
 
     ${

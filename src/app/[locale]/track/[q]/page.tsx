@@ -14,19 +14,9 @@ import {
   FileText,
 } from "lucide-react";
 
-type LocationLite = {
-  country?: string;
-  state?: string;
-  city?: string;
-  county?: string;
-};
+type LocationLite = { country?: string; state?: string; city?: string; county?: string };
 
-type Entry = {
-  occurredAt: string;
-  note?: string;
-  color?: string;
-  location?: LocationLite;
-};
+type Entry = { occurredAt: string; note?: string; color?: string; location?: LocationLite };
 
 type GroupedEvent = {
   key?: string;
@@ -83,17 +73,9 @@ function safeColor(c?: string) {
   return v || "";
 }
 
-function stageDotStyle(
-  stageIndex: number,
-  currentStageIndex: number,
-  stageBaseColor?: string
-) {
+function stageDotStyle(stageIndex: number, currentStageIndex: number, stageBaseColor?: string) {
   if (stageIndex < currentStageIndex) return { background: "#22c55e" };
-
-  if (stageIndex === currentStageIndex) {
-    return { background: safeColor(stageBaseColor) || "#f59e0b" };
-  }
-
+  if (stageIndex === currentStageIndex) return { background: safeColor(stageBaseColor) || "#f59e0b" };
   return { background: "#d1d5db" };
 }
 
@@ -107,6 +89,15 @@ export default function TrackResultPage() {
   const [err, setErr] = useState("");
 
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  const [copied, setCopied] = useState<string>("");
+
+  function copy(text: string) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied(""), 900);
+  }
 
   const load = async () => {
     setLoading(true);
@@ -146,26 +137,15 @@ export default function TrackResultPage() {
 
   const events = useMemo(() => {
     const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
-
-    evs.sort(
-      (a, b) =>
-        new Date(a?.occurredAt || 0).getTime() -
-        new Date(b?.occurredAt || 0).getTime()
-    );
-
+    evs.sort((a, b) => new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime());
     evs.forEach((ev: any) => {
       if (Array.isArray(ev?.entries)) {
-        ev.entries.sort(
-          (x: any, y: any) =>
-            new Date(x?.occurredAt || 0).getTime() -
-            new Date(y?.occurredAt || 0).getTime()
-        );
+        ev.entries.sort((x: any, y: any) => new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime());
       } else {
         ev.entries = [];
       }
     });
-
-    return evs as GroupedEvent[];
+    return evs;
   }, [data]);
 
   const currentIndex = Math.max(0, events.length - 1);
@@ -173,9 +153,7 @@ export default function TrackResultPage() {
   const invoicePaid = Boolean(data?.invoice?.paid);
   const invoiceAmount = Number(data?.invoice?.amount ?? 0);
   const invoiceCurrency = String(data?.invoice?.currency || "USD");
-  const invoiceNumber = String(data?.invoice?.invoiceNumber || "");
-
-  const invoiceQ = data?.trackingNumber || data?.shipmentId || "";
+  const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
@@ -189,9 +167,9 @@ export default function TrackResultPage() {
             <MapPin className="w-5 h-5 mr-2" /> Back to Track
           </Link>
 
-          {invoiceQ ? (
+          {data?.trackingNumber ? (
             <Link
-              href={`/${locale}/invoice/full?q=${encodeURIComponent(invoiceQ)}`}
+              href={`/${locale}/invoice/full?q=${encodeURIComponent(data.trackingNumber)}`}
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                  hover:border-blue-600 hover:text-blue-700 transition"
             >
@@ -199,6 +177,12 @@ export default function TrackResultPage() {
             </Link>
           ) : null}
         </div>
+
+        {copied ? (
+          <div className="mb-4 text-sm font-semibold text-green-700">
+            Copied ✓
+          </div>
+        ) : null}
 
         {loading && (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
@@ -225,23 +209,46 @@ export default function TrackResultPage() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
                   <p className="text-xs text-gray-600">Shipment ID</p>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-                    {data.shipmentId || "—"}
-                  </h1>
 
-                  <p className="mt-1 text-sm text-gray-600">
-                    Tracking:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {data.trackingNumber || "—"}
-                    </span>
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+                      {data.shipmentId || "—"}
+                    </h1>
+                    {data.shipmentId ? (
+                      <button
+                        onClick={() => copy(data.shipmentId)}
+                        className="text-xs px-2 py-1 rounded-lg border border-gray-300 hover:border-blue-600 hover:text-blue-700 transition"
+                      >
+                        Copy
+                      </button>
+                    ) : null}
+                  </div>
 
-                  <p className="mt-1 text-sm text-gray-600">
-                    Invoice:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {invoiceNumber || "—"}
-                    </span>
-                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <span>Tracking:</span>
+                    <span className="font-semibold text-gray-900">{data.trackingNumber || "—"}</span>
+                    {data.trackingNumber ? (
+                      <button
+                        onClick={() => copy(data.trackingNumber)}
+                        className="text-xs px-2 py-1 rounded-lg border border-gray-300 hover:border-blue-600 hover:text-blue-700 transition"
+                      >
+                        Copy
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <span>Invoice:</span>
+                    <span className="font-semibold text-gray-900">{invoiceNumber || "—"}</span>
+                    {invoiceNumber ? (
+                      <button
+                        onClick={() => copy(invoiceNumber)}
+                        className="text-xs px-2 py-1 rounded-lg border border-gray-300 hover:border-blue-600 hover:text-blue-700 transition"
+                      >
+                        Copy
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="sm:text-right">
@@ -264,13 +271,8 @@ export default function TrackResultPage() {
                     <Receipt className="w-4 h-4 text-gray-700" />
                     Invoice
                   </div>
-                  <p
-                    className={`mt-2 text-sm font-extrabold ${
-                      invoicePaid ? "text-green-700" : "text-amber-700"
-                    }`}
-                  >
-                    {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)}{" "}
-                    {invoiceCurrency}
+                  <p className={`mt-2 text-sm font-extrabold ${invoicePaid ? "text-green-700" : "text-amber-700"}`}>
+                    {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)} {invoiceCurrency}
                   </p>
                 </div>
 
@@ -279,14 +281,10 @@ export default function TrackResultPage() {
                     <MapPin className="w-4 h-4 text-gray-700" />
                     Destination
                   </div>
-                  <p className="mt-2 text-sm text-gray-800 font-semibold">
-                    {data.destination || "—"}
-                  </p>
+                  <p className="mt-2 text-sm text-gray-800 font-semibold">{data.destination || "—"}</p>
                   <p className="mt-1 text-xs text-gray-600">
                     <span className="font-semibold">Current location:</span>{" "}
-                    {data.currentLocation ||
-                      fmtLoc(events[currentIndex]?.location) ||
-                      "—"}
+                    {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
                   </p>
                 </div>
 
@@ -309,14 +307,11 @@ export default function TrackResultPage() {
             >
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-blue-700" />
-                <h2 className="text-lg font-extrabold text-gray-900">
-                  Shipment Timeline
-                </h2>
+                <h2 className="text-lg font-extrabold text-gray-900">Shipment Timeline</h2>
               </div>
 
               <p className="mt-1 text-sm text-gray-600">
-                This timeline grows as our team adds updates. Older updates never
-                disappear.
+                This timeline grows as our team adds updates. Older updates never disappear.
               </p>
 
               <div className="mt-6">
@@ -334,26 +329,19 @@ export default function TrackResultPage() {
                         const stageLoc = fmtLoc(ev.location);
                         const stageWhen = fmtDate(ev.occurredAt);
 
-                        const stageBaseColor =
-                          safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
-
+                        const stageBaseColor = safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
                         const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);
 
                         return (
                           <div key={`${ev.key || ev.label}-${idx}`} className="relative">
                             <button
                               type="button"
-                              onClick={() =>
-                                setOpenIdx((cur) => (cur === idx ? null : idx))
-                              }
+                              onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
                               className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
                             >
                               <div className="flex items-start gap-3">
                                 <div className="relative pt-1">
-                                  <div
-                                    className="h-3 w-3 rounded-full ring-2 ring-white"
-                                    style={dotStyle}
-                                  />
+                                  <div className="h-3 w-3 rounded-full ring-2 ring-white" style={dotStyle} />
                                 </div>
 
                                 <div className="flex-1 min-w-0">
@@ -369,9 +357,7 @@ export default function TrackResultPage() {
                                     </div>
 
                                     <ChevronDown
-                                      className={`w-5 h-5 text-gray-500 transition ${
-                                        isOpen ? "rotate-180" : ""
-                                      }`}
+                                      className={`w-5 h-5 text-gray-500 transition ${isOpen ? "rotate-180" : ""}`}
                                     />
                                   </div>
 
@@ -379,15 +365,12 @@ export default function TrackResultPage() {
                                     <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
                                       <div className="relative pl-6">
                                         <div className="absolute left-[8px] top-2 bottom-2 w-[2px] bg-gray-200" />
-
                                         <div className="space-y-3">
                                           {(ev.entries || []).map((en, j) => {
                                             const loc = fmtLoc(en.location);
                                             const when = fmtDate(en.occurredAt);
-
                                             const isStageCompleted = idx < currentIndex;
-                                            const isLastEntry =
-                                              j === (ev.entries?.length || 0) - 1;
+                                            const isLastEntry = j === (ev.entries?.length || 0) - 1;
 
                                             const entryDotBg =
                                               isStageCompleted && isLastEntry
@@ -395,16 +378,10 @@ export default function TrackResultPage() {
                                                 : safeColor(en.color) || "#9ca3af";
 
                                             return (
-                                              <div
-                                                key={`${ev.key || ev.label}-entry-${j}`}
-                                                className="relative"
-                                              >
+                                              <div key={`${ev.key || ev.label}-entry-${j}`} className="relative">
                                                 <div className="flex items-start gap-3">
                                                   <div className="pt-1">
-                                                    <div
-                                                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
-                                                      style={{ background: entryDotBg }}
-                                                    />
+                                                    <div className="h-2.5 w-2.5 rounded-full ring-2 ring-white" style={{ background: entryDotBg }} />
                                                   </div>
 
                                                   <div className="flex-1">
@@ -414,33 +391,13 @@ export default function TrackResultPage() {
                                                     </p>
                                                     <p className="text-sm text-gray-800 mt-1">
                                                       <span className="font-bold">Details:</span>{" "}
-                                                      {en.note?.trim()
-                                                        ? en.note
-                                                        : "No additional details for this update."}
+                                                      {en.note?.trim() ? en.note : "No additional details for this update."}
                                                     </p>
                                                   </div>
                                                 </div>
                                               </div>
                                             );
                                           })}
-                                        </div>
-                                      </div>
-
-                                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
-                                        <div>
-                                          <span className="font-semibold">Invoice:</span>{" "}
-                                          {invoicePaid ? "PAID" : "UNPAID"} •{" "}
-                                          {invoiceAmount.toFixed(2)} {invoiceCurrency}
-                                        </div>
-                                        <div>
-                                          <span className="font-semibold">Destination:</span>{" "}
-                                          {data.destination || "—"}
-                                        </div>
-                                        <div>
-                                          <span className="font-semibold">Current location:</span>{" "}
-                                          {data.currentLocation ||
-                                            fmtLoc(events[currentIndex]?.location) ||
-                                            "—"}
                                         </div>
                                       </div>
                                     </div>
