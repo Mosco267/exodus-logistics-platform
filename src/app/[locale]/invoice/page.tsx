@@ -1,185 +1,610 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams, useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { AlertCircle, FileText, Mail, ScanLine } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronDown,
+  MapPin,
+  Package,
+  Receipt,
+  FileText,
+  Copy,
+  Check,
+  Info,
+  CornerDownRight,
+  Truck,
+} from "lucide-react";
 
-/**
- * ✅ Only auto-inserts "-"
- * ✅ Does NOT force "INV"
- * ✅ Can be fully cleared
- * ✅ Supports format like: EXS-INV-2026-02-1234567 (user types all letters/numbers)
- */
-function formatInvoiceInput(raw: string) {
-  const upper = String(raw || "").toUpperCase();
+type LocationLite = {
+  country?: string;
+  state?: string;
+  city?: string;
+  county?: string;
+};
 
-  // keep only letters + numbers (we control dashes)
-  const cleaned = upper.replace(/[^A-Z0-9]/g, "");
+type Entry = {
+  occurredAt: string;
+  note?: string;
+  color?: string;
+  location?: LocationLite;
+};
 
-  if (!cleaned) return "";
+type GroupedEvent = {
+  key?: string;
+  label: string;
+  color?: string;
+  occurredAt: string;
+  location?: LocationLite;
+  entries: Entry[];
+};
 
-  // 3 letters - 3 letters - 4 digits - 2 digits - 7 digits
-  const part1 = cleaned.slice(0, 3);
-  const part2 = cleaned.slice(3, 6);
-  const part3 = cleaned.slice(6, 10);
-  const part4 = cleaned.slice(10, 12);
-  const part5 = cleaned.slice(12, 19);
+type TrackApiResponse = {
+  shipmentId: string;
+  trackingNumber: string;
 
-  let result = part1;
-  if (part2) result += `-${part2}`;
-  if (part3) result += `-${part3}`;
-  if (part4) result += `-${part4}`;
-  if (part5) result += `-${part5}`;
+  currentStatus?: string;
+  statusNote?: string;
+  nextStep?: string;
 
-  return result;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+
+  origin?: string | null;
+  destination?: string | null;
+  currentLocation?: string | null;
+
+  invoice?: {
+    paid: boolean;
+    amount: number;
+    currency: string;
+    invoiceNumber?: string; // ✅ add invoice number here
+  } | null;
+
+  events: GroupedEvent[];
+  estimatedDelivery?: string;
+};
+
+function fmtDate(iso?: string) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString();
 }
 
-export default function InvoicePage() {
-  const sp = useSearchParams();
+function fmtLoc(loc?: LocationLite) {
+  if (!loc) return "";
+  const parts = [loc.city, loc.state, loc.country]
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+  return parts.join(", ");
+}
+
+function safeColor(c?: string) {
+  const v = String(c || "").trim();
+  return v || "";
+}
+
+/**
+ * ✅ Completed steps => GREEN
+ * ✅ Current step => admin color if provided, else amber
+ * ✅ Upcoming => gray
+ */
+function stageDotStyle(
+  stageIndex: number,
+  currentStageIndex: number,
+  stageBaseColor?: string
+) {
+  if (stageIndex < currentStageIndex) return { background: "#22c55e" };
+  if (stageIndex === currentStageIndex) {
+    return { background: safeColor(stageBaseColor) || "#f59e0b" };
+  }
+  return { background: "#d1d5db" };
+}
+
+/** ✅ small copy icon button that turns into "Copied" briefly */
+function CopyIconButton({
+  value,
+  copied,
+  onCopy,
+}: {
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  if (!value) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700
+                 hover:border-blue-300 hover:text-blue-700 transition"
+      aria-label="Copy to clipboard"
+      title="Copy"
+    >
+      {copied ? (
+        <>
+          <Check className="w-4 h-4" />
+          Copied
+        </>
+      ) : (
+        <Copy className="w-4 h-4" />
+      )}
+    </button>
+  );
+}
+
+async function copyToClipboard(text: string) {
+  const v = String(text || "").trim();
+  if (!v) return;
+
+  // modern
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(v);
+    return;
+  }
+
+  // fallback
+  const ta = document.createElement("textarea");
+  ta.value = v;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
+export default function TrackResultPage() {
   const params = useParams();
-  const router = useRouter();
   const locale = (params?.locale as string) || "en";
+  const q = String(params?.q || "").trim();
 
-  // If someone visits /invoice?q=XXXX, prefill invoice field only.
-  const qFromUrl = useMemo(() => String(sp.get("q") || "").trim(), [sp]);
-
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [email, setEmail] = useState("");
-
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<TrackApiResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  useEffect(() => {
-    if (!qFromUrl) return;
-    setInvoiceNumber(formatInvoiceInput(qFromUrl));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qFromUrl]);
+  // accordion open stage
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // ✅ copy state per field
+  const [copiedKey, setCopiedKey] = useState<null | "ship" | "track" | "inv">(null);
 
-    const inv = String(invoiceNumber || "").trim().toUpperCase();
-    const em = String(email || "").trim().toLowerCase();
-
-    if (!inv) {
-      setErr("Enter your invoice number.");
-      return;
-    }
-    if (!em || !em.includes("@")) {
-      setErr("Enter the sender or receiver email address.");
-      return;
-    }
-
-    setErr("");
+  const load = async () => {
     setLoading(true);
+    setErr("");
+    setData(null);
 
-    router.push(
-      `/${locale}/invoice/full?invoice=${encodeURIComponent(inv)}&email=${encodeURIComponent(em)}`
+    try {
+      const res = await fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setErr(json?.error || "Tracking unavailable. Try again later.");
+        return;
+      }
+
+      setData(json as TrackApiResponse);
+
+      const evs = Array.isArray((json as any)?.events) ? (json as any).events : [];
+      setOpenIdx(evs.length ? evs.length - 1 : 0);
+    } catch (e: any) {
+      setErr(e?.message || "Tracking unavailable. Try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!q) return;
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  const events = useMemo(() => {
+    const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
+
+    // sort oldest -> newest by stage time
+    evs.sort(
+      (a, b) =>
+        new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
     );
+
+    // stage entries oldest -> newest
+    evs.forEach((ev: any) => {
+      if (Array.isArray(ev?.entries)) {
+        ev.entries.sort(
+          (x: any, y: any) =>
+            new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime()
+        );
+      } else {
+        ev.entries = [];
+      }
+    });
+
+    return evs;
+  }, [data]);
+
+  const currentIndex = Math.max(0, events.length - 1);
+
+  const invoicePaid = Boolean(data?.invoice?.paid);
+  const invoiceAmount = Number(data?.invoice?.amount ?? 0);
+  const invoiceCurrency = String(data?.invoice?.currency || "USD");
+  const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
+
+  const invoiceQ = data?.trackingNumber || data?.shipmentId || q;
+
+  const handleCopy = async (key: "ship" | "track" | "inv", value: string) => {
+    try {
+      await copyToClipboard(value);
+      setCopiedKey(key);
+      window.setTimeout(() => {
+        setCopiedKey((cur) => (cur === key ? null : cur));
+      }, 1200);
+    } catch {
+      // do nothing (no noisy errors for users)
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-cyan-50 py-14">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="flex flex-col items-center text-center">
-          <div className="h-14 w-14 rounded-2xl bg-blue-600/10 border border-blue-200 flex items-center justify-center">
-            <FileText className="w-7 h-7 text-blue-700" />
-          </div>
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+          <Link
+            href={`/${locale}/track`}
+            className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+                       hover:border-blue-600 hover:text-blue-700 transition"
+          >
+            <MapPin className="w-5 h-5 mr-2" /> Back to Track
+          </Link>
 
-          <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
-            Invoice
-          </h1>
-
-          <p className="mt-2 text-gray-600 max-w-2xl">
-            For security, invoices can only be opened using your{" "}
-            <span className="font-semibold">invoice number</span> and the{" "}
-            <span className="font-semibold">sender or receiver email</span>.
-          </p>
+          {invoiceQ ? (
+            <Link
+              href={`/${locale}/invoice/full?q=${encodeURIComponent(String(invoiceQ).toUpperCase())}`}
+              className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+                         hover:border-blue-600 hover:text-blue-700 transition"
+            >
+              <FileText className="w-5 h-5 mr-2" /> View Invoice
+            </Link>
+          ) : null}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-10 rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden"
-        >
-          <div className="p-6 sm:p-8">
-            <form onSubmit={submit} className="space-y-4">
-              {/* Invoice Number */}
-              <div>
-                <label className="text-sm font-semibold text-gray-700">
-                  Invoice number
-                </label>
+        {loading && (
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
+            <p className="text-sm text-gray-700">Loading tracking…</p>
+          </div>
+        )}
 
-                <div className="mt-2 relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                    <ScanLine className="w-5 h-5" />
-                  </span>
+        {!loading && err && (
+          <div className="rounded-3xl border border-red-200 bg-white p-6 shadow-xl">
+            <div className="flex items-center text-red-700 font-semibold">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              {err}
+            </div>
+          </div>
+        )}
 
-                  <input
-                    value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(formatInvoiceInput(e.target.value))}
-                    placeholder="example: EXS-INV-2026-02-1234567"
-                    className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40
-                               uppercase placeholder:normal-case placeholder:text-sm"
-                    autoComplete="off"
-                    spellCheck={false}
-                    inputMode="text"
-                  />
+        {!loading && data && (
+          <>
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-600">Shipment ID</p>
+
+                  <div className="flex items-start gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 break-all">
+                      {data.shipmentId || "—"}
+                    </h1>
+
+                    <CopyIconButton
+                      value={data.shipmentId}
+                      copied={copiedKey === "ship"}
+                      onCopy={() => handleCopy("ship", data.shipmentId)}
+                    />
+                  </div>
+
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="text-sm text-gray-600">
+                        Tracking:{" "}
+                        <span className="font-semibold text-gray-900 break-all">
+                          {data.trackingNumber || "—"}
+                        </span>
+                      </p>
+                      <CopyIconButton
+                        value={data.trackingNumber}
+                        copied={copiedKey === "track"}
+                        onCopy={() => handleCopy("track", data.trackingNumber)}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="text-sm text-gray-600">
+                        Invoice:{" "}
+                        <span className="font-semibold text-gray-900 break-all">
+                          {invoiceNumber || "—"}
+                        </span>
+                      </p>
+                      <CopyIconButton
+                        value={invoiceNumber}
+                        copied={copiedKey === "inv"}
+                        onCopy={() => handleCopy("inv", invoiceNumber)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sm:text-right">
+                  <p className="text-xs text-gray-600">Current status</p>
+                  <p className="text-lg font-extrabold text-blue-700">
+                    {data.currentStatus || events[currentIndex]?.label || "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Updated:{" "}
+                    <span className="font-semibold">
+                      {fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}
+                    </span>
+                  </p>
+
+                  {data.estimatedDelivery ? (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Estimated delivery:{" "}
+                      <span className="font-semibold">
+                        {fmtDate(data.estimatedDelivery)}
+                      </span>
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              {/* Email */}
-              <div>
-                <label className="text-sm font-semibold text-gray-700">
-                  Email address
-                </label>
+              {/* ✅ add back missing details (origin, note, next step) */}
+              <div className="mt-4 grid grid-cols-1 gap-2 text-sm">
+                {data.origin ? (
+                  <div className="flex items-start gap-2 text-gray-700">
+                    <Truck className="w-4 h-4 mt-0.5 text-gray-500" />
+                    <div>
+                      <span className="font-semibold">Origin:</span> {data.origin}
+                    </div>
+                  </div>
+                ) : null}
 
-                <div className="mt-2 relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                    <Mail className="w-5 h-5" />
-                  </span>
+                {data.statusNote ? (
+                  <div className="flex items-start gap-2 text-gray-700">
+                    <Info className="w-4 h-4 mt-0.5 text-gray-500" />
+                    <div>
+                      <span className="font-semibold">Note:</span> {data.statusNote}
+                    </div>
+                  </div>
+                ) : null}
 
-                  <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="example: customer@email.com"
-                    className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40
-                               placeholder:normal-case placeholder:text-sm"
-                    autoComplete="email"
-                    spellCheck={false}
-                    inputMode="email"
-                  />
-                </div>
+                {data.nextStep ? (
+                  <div className="flex items-start gap-2 text-gray-700">
+                    <CornerDownRight className="w-4 h-4 mt-0.5 text-gray-500" />
+                    <div>
+                      <span className="font-semibold">Next step:</span> {data.nextStep}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 font-semibold
-                           hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center
-                           disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <FileText className="w-5 h-5 mr-2" />
-                {loading ? "Opening…" : "View Invoice"}
-              </button>
-
-              {err && (
-                <div className="flex items-center text-red-600 font-semibold">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  {err}
+              {/* Cards */}
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <Receipt className="w-4 h-4 text-gray-700" />
+                    Invoice
+                  </div>
+                  <p
+                    className={`mt-2 text-sm font-extrabold ${
+                      invoicePaid ? "text-green-700" : "text-amber-700"
+                    }`}
+                  >
+                    {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)}{" "}
+                    {invoiceCurrency}
+                  </p>
+                  {invoiceNumber ? (
+                    <p className="mt-1 text-xs text-gray-600">
+                      Invoice number:{" "}
+                      <span className="font-semibold text-gray-900">{invoiceNumber}</span>
+                    </p>
+                  ) : null}
                 </div>
-              )}
-            </form>
-          </div>
 
-          <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: You can paste your invoice number from emails. Your invoice number usually looks like{" "}
-            <span className="font-semibold">EXS-INV-2026-02-1234567</span>. The email you enter must match the sender or receiver email on the invoice.
-          </div>
-        </motion.div>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <MapPin className="w-4 h-4 text-gray-700" />
+                    Destination
+                  </div>
+                  <p className="mt-2 text-sm text-gray-800 font-semibold">
+                    {data.destination || "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    <span className="font-semibold">Current location:</span>{" "}
+                    {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <Calendar className="w-4 h-4 text-gray-700" />
+                    Created
+                  </div>
+                  <p className="mt-2 text-sm text-gray-800 font-semibold">
+                    {fmtDate(data.createdAt || events[0]?.occurredAt)}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Timeline */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 rounded-3xl border border-gray-200 bg-white shadow-xl p-6"
+            >
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-blue-700" />
+                <h2 className="text-lg font-extrabold text-gray-900">
+                  Shipment Timeline
+                </h2>
+              </div>
+
+              <p className="mt-1 text-sm text-gray-600">
+                This timeline grows as our team adds updates. Older updates never disappear.
+              </p>
+
+              <div className="mt-6">
+                {events.length === 0 ? (
+                  <div className="rounded-2xl border border-gray-200 p-4 text-sm text-gray-700">
+                    No tracking updates yet.
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute left-[10px] top-2 bottom-2 w-[2px] bg-gray-200" />
+
+                    <div className="space-y-4">
+                      {events.map((ev, idx) => {
+                        const isOpen = openIdx === idx;
+                        const stageLoc = fmtLoc(ev.location);
+                        const stageWhen = fmtDate(ev.occurredAt);
+
+                        const stageBaseColor =
+                          safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
+
+                        const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);
+
+                        return (
+                          <div key={`${ev.key || ev.label}-${idx}`} className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+                              className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="relative pt-1">
+                                  <div
+                                    className="h-3 w-3 rounded-full ring-2 ring-white"
+                                    style={dotStyle}
+                                  />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-base sm:text-lg font-extrabold text-gray-900 truncate">
+                                        {ev.label}
+                                      </p>
+                                      <p className="mt-1 text-xs text-gray-600">
+                                        {stageWhen}
+                                        {stageLoc ? ` • ${stageLoc}` : ""}
+                                      </p>
+                                    </div>
+
+                                    <ChevronDown
+                                      className={`w-5 h-5 text-gray-500 transition ${
+                                        isOpen ? "rotate-180" : ""
+                                      }`}
+                                    />
+                                  </div>
+
+                                  {isOpen && (
+                                    <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
+                                      <div className="relative pl-6">
+                                        <div className="absolute left-[8px] top-2 bottom-2 w-[2px] bg-gray-200" />
+
+                                        <div className="space-y-3">
+                                          {(ev.entries || []).map((en, j) => {
+                                            const loc = fmtLoc(en.location);
+                                            const when = fmtDate(en.occurredAt);
+
+                                            const isStageCompleted = idx < currentIndex;
+                                            const isLastEntry =
+                                              j === (ev.entries?.length || 0) - 1;
+
+                                            const entryDotBg =
+                                              isStageCompleted && isLastEntry
+                                                ? "#22c55e"
+                                                : safeColor(en.color) || "#9ca3af";
+
+                                            return (
+                                              <div
+                                                key={`${ev.key || ev.label}-entry-${j}`}
+                                                className="relative"
+                                              >
+                                                <div className="flex items-start gap-3">
+                                                  <div className="pt-1">
+                                                    <div
+                                                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
+                                                      style={{ background: entryDotBg }}
+                                                    />
+                                                  </div>
+
+                                                  <div className="flex-1">
+                                                    <p className="text-xs text-gray-600">
+                                                      {when}
+                                                      {loc ? ` • ${loc}` : ""}
+                                                    </p>
+                                                    <p className="text-sm text-gray-800 mt-1">
+                                                      <span className="font-bold">Details:</span>{" "}
+                                                      {en.note?.trim()
+                                                        ? en.note
+                                                        : "No additional details for this update."}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
+                                        <div>
+                                          <span className="font-semibold">Invoice:</span>{" "}
+                                          {invoicePaid ? "PAID" : "UNPAID"} •{" "}
+                                          {invoiceAmount.toFixed(2)} {invoiceCurrency}
+                                        </div>
+                                        <div>
+                                          <span className="font-semibold">Destination:</span>{" "}
+                                          {data.destination || "—"}
+                                        </div>
+                                        <div>
+                                          <span className="font-semibold">Current location:</span>{" "}
+                                          {data.currentLocation ||
+                                            fmtLoc(events[currentIndex]?.location) ||
+                                            "—"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
       </div>
     </div>
   );
