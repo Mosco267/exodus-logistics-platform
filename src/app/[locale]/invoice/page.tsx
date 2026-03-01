@@ -5,31 +5,61 @@ import { useSearchParams, useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, FileText, Mail, ScanLine } from "lucide-react";
 
+/**
+ * Target format:
+ * EXS-INV-YYYY-MM-XXXXXXX
+ * - prefix: EXS (letters)
+ * - middle: INV (locked)
+ * - year: 4 digits
+ * - month: 2 digits (01-12 allowed; we don't hard-block, just format)
+ * - seq: 7 digits
+ */
 function formatInvoiceInput(raw: string) {
-  // Goal format: EXL-INV-123456 (you can change max digits below)
   const upper = String(raw || "").toUpperCase();
 
-  // keep only A-Z and 0-9 (we control dashes)
+  // keep only letters+digits, we add dashes ourselves
   const cleaned = upper.replace(/[^A-Z0-9]/g, "");
 
-  // first 3 must be letters only
+  // first 3 letters
   const prefix = cleaned.slice(0, 3).replace(/[^A-Z]/g, "");
 
-  // after prefix, we allow the rest (alnum), but we will force the pattern "-INV-"
-  // the user types only the tail after INV
-  const afterPrefix = cleaned.slice(3);
+  // remaining after prefix
+  let rest = cleaned.slice(3);
 
-  // remove any "INV" user typed in the tail so we don’t duplicate
-  const tailClean = afterPrefix.replace(/^INV/i, "");
+  // remove any INV user typed so we don’t duplicate
+  rest = rest.replace(/^INV/i, "");
 
-  // ✅ limit tail length (change 12 if you want longer)
-  const tail = tailClean.slice(0, 12);
+  // next: year(4), month(2), seq(7)
+  const digits = rest.replace(/[^0-9]/g, "");
+  const year = digits.slice(0, 4);
+  const month = digits.slice(4, 6);
+  const seq = digits.slice(6, 13);
 
-  if (prefix.length === 0) return "";
-  if (prefix.length < 3) return prefix; // don’t show dash until 3 letters
+  // Build progressively (so deleting feels natural)
+  if (!prefix) return "";
+  if (prefix.length < 3) return prefix;
 
-  // once 3 letters complete, lock "-INV-"
-  return `${prefix}-INV-${tail}`;
+  let out = `${prefix}-INV`;
+
+  if (!year) return out + "-";
+  out += `-${year}`;
+
+  if (!month) return out + "-";
+  out += `-${month}`;
+
+  if (!seq) return out + "-";
+  out += `-${seq}`;
+
+  return out;
+}
+
+/**
+ * If user pastes something like:
+ * "EXS-INV-2026-02-1234567"
+ * it formats cleanly.
+ */
+function normalizeInvoiceForSubmit(v: string) {
+  return formatInvoiceInput(v).replace(/-+$/g, ""); // remove trailing dashes
 }
 
 export default function InvoicePage() {
@@ -38,7 +68,6 @@ export default function InvoicePage() {
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
 
-  // If someone visits /invoice?q=XXXX, we will prefill invoice field only.
   const qFromUrl = useMemo(() => String(sp.get("q") || "").trim(), [sp]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -56,14 +85,21 @@ export default function InvoicePage() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const inv = String(invoiceNumber || "").trim().toUpperCase();
+    const inv = normalizeInvoiceForSubmit(invoiceNumber).trim().toUpperCase();
     const em = String(email || "").trim().toLowerCase();
 
     if (!inv) {
       setErr("Enter your invoice number.");
       return;
     }
-    if (!em || !em.includes("@")) {
+
+    // quick validation: must start with XXX-INV-
+    if (!/^[A-Z]{3}-INV-\d{4}-\d{2}-\d{7}$/.test(inv)) {
+      setErr("Invoice number format is invalid. Example: EXS-INV-2026-02-1234567");
+      return;
+    }
+
+    if (!em || !em.includes("@") || !em.includes(".")) {
       setErr("Enter the sender or receiver email address.");
       return;
     }
@@ -115,8 +151,12 @@ export default function InvoicePage() {
 
                   <input
                     value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(formatInvoiceInput(e.target.value))}
-                    placeholder="example: EXL-INV-123456"
+                    onChange={(e) => {
+                      // key behavior: always format, but never “re-add” trailing dashes aggressively
+                      const next = formatInvoiceInput(e.target.value);
+                      setInvoiceNumber(next);
+                    }}
+                    placeholder="example: EXS-INV-2026-02-1234567"
                     className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40
                                uppercase placeholder:normal-case placeholder:text-sm"
@@ -173,8 +213,8 @@ export default function InvoicePage() {
           </div>
 
           <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: You can paste your invoice number here from emails. Look for the unique ID we provided when shipment was created. It usually starts with "EXL-INV". That's your key to unlock the{" "}
-            <span className="font-semibold">Invoice Details!</span>. And remember, the email you enter must match the sender or receiver email on the invoice for security reasons.
+            Tip: Paste the invoice number from your email. It looks like{" "}
+            <span className="font-semibold">EXS-INV-2026-02-1234567</span>. The email you enter must match the sender or receiver email on the shipment.
           </div>
         </motion.div>
       </div>
