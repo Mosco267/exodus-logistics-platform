@@ -11,6 +11,7 @@ import {
   MapPin,
   Package,
   Receipt,
+  FileText,
 } from "lucide-react";
 
 type LocationLite = {
@@ -30,10 +31,10 @@ type Entry = {
 type GroupedEvent = {
   key?: string;
   label: string;
-  color?: string; // stage color (optional)
-  occurredAt: string; // latest time for that stage
-  location?: LocationLite; // latest location for that stage
-  entries: Entry[]; // all updates for that stage
+  color?: string;
+  occurredAt: string;
+  location?: LocationLite;
+  entries: Entry[];
 };
 
 type TrackApiResponse = {
@@ -52,6 +53,7 @@ type TrackApiResponse = {
   currentLocation?: string | null;
 
   invoice?: {
+    invoiceNumber?: string;
     paid: boolean;
     amount: number;
     currency: string;
@@ -81,25 +83,17 @@ function safeColor(c?: string) {
   return v || "";
 }
 
-/**
- * ✅ Completed steps should turn GREEN automatically (professional tracking)
- * ✅ Current step uses admin chosen color if provided, else amber
- * ✅ Upcoming is gray
- */
 function stageDotStyle(
   stageIndex: number,
   currentStageIndex: number,
   stageBaseColor?: string
 ) {
-  // Completed stages => green always
   if (stageIndex < currentStageIndex) return { background: "#22c55e" };
 
-  // Current stage => use its base color (locked), fallback amber
   if (stageIndex === currentStageIndex) {
     return { background: safeColor(stageBaseColor) || "#f59e0b" };
   }
 
-  // Future stages => gray
   return { background: "#d1d5db" };
 }
 
@@ -112,7 +106,6 @@ export default function TrackResultPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // accordion open stage
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
   const load = async () => {
@@ -153,25 +146,26 @@ export default function TrackResultPage() {
 
   const events = useMemo(() => {
     const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
-    // sort oldest -> newest by latest stage time
+
     evs.sort(
       (a, b) =>
-        new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
+        new Date(a?.occurredAt || 0).getTime() -
+        new Date(b?.occurredAt || 0).getTime()
     );
 
-    // also sort each stage entries oldest -> newest
     evs.forEach((ev: any) => {
       if (Array.isArray(ev?.entries)) {
         ev.entries.sort(
           (x: any, y: any) =>
-            new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime()
+            new Date(x?.occurredAt || 0).getTime() -
+            new Date(y?.occurredAt || 0).getTime()
         );
       } else {
         ev.entries = [];
       }
     });
 
-    return evs;
+    return evs as GroupedEvent[];
   }, [data]);
 
   const currentIndex = Math.max(0, events.length - 1);
@@ -179,29 +173,32 @@ export default function TrackResultPage() {
   const invoicePaid = Boolean(data?.invoice?.paid);
   const invoiceAmount = Number(data?.invoice?.amount ?? 0);
   const invoiceCurrency = String(data?.invoice?.currency || "USD");
+  const invoiceNumber = String(data?.invoice?.invoiceNumber || "");
+
+  const invoiceQ = data?.trackingNumber || data?.shipmentId || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6 flex flex-col sm:flex-row gap-3">
-  <Link
-    href={`/${locale}/track`}
-    className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+          <Link
+            href={`/${locale}/track`}
+            className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                hover:border-blue-600 hover:text-blue-700 transition"
-  >
-    <MapPin className="w-5 h-5 mr-2" /> Back to Track
-  </Link>
+          >
+            <MapPin className="w-5 h-5 mr-2" /> Back to Track
+          </Link>
 
-  {data?.trackingNumber ? (
-    <Link
-      href={`/${locale}/invoice/full?q=${encodeURIComponent(data.trackingNumber)}`}
-      className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+          {invoiceQ ? (
+            <Link
+              href={`/${locale}/invoice/full?q=${encodeURIComponent(invoiceQ)}`}
+              className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                  hover:border-blue-600 hover:text-blue-700 transition"
-    >
-      <Receipt className="w-5 h-5 mr-2" /> View Invoice
-    </Link>
-  ) : null}
-</div>
+            >
+              <FileText className="w-5 h-5 mr-2" /> View Invoice
+            </Link>
+          ) : null}
+        </div>
 
         {loading && (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
@@ -220,7 +217,6 @@ export default function TrackResultPage() {
 
         {!loading && data && (
           <>
-            {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -237,6 +233,13 @@ export default function TrackResultPage() {
                     Tracking:{" "}
                     <span className="font-semibold text-gray-900">
                       {data.trackingNumber || "—"}
+                    </span>
+                  </p>
+
+                  <p className="mt-1 text-sm text-gray-600">
+                    Invoice:{" "}
+                    <span className="font-semibold text-gray-900">
+                      {invoiceNumber || "—"}
                     </span>
                   </p>
                 </div>
@@ -281,7 +284,9 @@ export default function TrackResultPage() {
                   </p>
                   <p className="mt-1 text-xs text-gray-600">
                     <span className="font-semibold">Current location:</span>{" "}
-                    {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
+                    {data.currentLocation ||
+                      fmtLoc(events[currentIndex]?.location) ||
+                      "—"}
                   </p>
                 </div>
 
@@ -297,7 +302,6 @@ export default function TrackResultPage() {
               </div>
             </motion.div>
 
-            {/* Timeline */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -311,7 +315,8 @@ export default function TrackResultPage() {
               </div>
 
               <p className="mt-1 text-sm text-gray-600">
-                This timeline grows as our team adds updates. Older updates never disappear.
+                This timeline grows as our team adds updates. Older updates never
+                disappear.
               </p>
 
               <div className="mt-6">
@@ -321,7 +326,6 @@ export default function TrackResultPage() {
                   </div>
                 ) : (
                   <div className="relative">
-                    {/* Main vertical line */}
                     <div className="absolute left-[10px] top-2 bottom-2 w-[2px] bg-gray-200" />
 
                     <div className="space-y-4">
@@ -330,21 +334,21 @@ export default function TrackResultPage() {
                         const stageLoc = fmtLoc(ev.location);
                         const stageWhen = fmtDate(ev.occurredAt);
 
-                        // ✅ lock stage color to the FIRST entry color for that stage (prevents override)
-const stageBaseColor =
-  safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
+                        const stageBaseColor =
+                          safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
 
-const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);;
+                        const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);
 
                         return (
                           <div key={`${ev.key || ev.label}-${idx}`} className="relative">
                             <button
                               type="button"
-                              onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+                              onClick={() =>
+                                setOpenIdx((cur) => (cur === idx ? null : idx))
+                              }
                               className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
                             >
                               <div className="flex items-start gap-3">
-                                {/* Stage dot */}
                                 <div className="relative pt-1">
                                   <div
                                     className="h-3 w-3 rounded-full ring-2 ring-white"
@@ -371,34 +375,36 @@ const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);;
                                     />
                                   </div>
 
-                                  {/* Details area */}
                                   {isOpen && (
                                     <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
-                                      {/* ✅ detail entries with their own small line */}
                                       <div className="relative pl-6">
-                                        {/* Sub vertical line */}
                                         <div className="absolute left-[8px] top-2 bottom-2 w-[2px] bg-gray-200" />
 
                                         <div className="space-y-3">
                                           {(ev.entries || []).map((en, j) => {
                                             const loc = fmtLoc(en.location);
                                             const when = fmtDate(en.occurredAt);
-                                            const isStageCompleted = idx < currentIndex;
-const isLastEntry = j === (ev.entries?.length || 0) - 1;
 
-// ✅ if stage is completed, force ONLY the last entry dot to green
-const entryDotBg = isStageCompleted && isLastEntry
-  ? "#22c55e"
-  : (safeColor(en.color) || "#9ca3af");
+                                            const isStageCompleted = idx < currentIndex;
+                                            const isLastEntry =
+                                              j === (ev.entries?.length || 0) - 1;
+
+                                            const entryDotBg =
+                                              isStageCompleted && isLastEntry
+                                                ? "#22c55e"
+                                                : safeColor(en.color) || "#9ca3af";
 
                                             return (
-                                              <div key={`${ev.key || ev.label}-entry-${j}`} className="relative">
+                                              <div
+                                                key={`${ev.key || ev.label}-entry-${j}`}
+                                                className="relative"
+                                              >
                                                 <div className="flex items-start gap-3">
                                                   <div className="pt-1">
                                                     <div
-  className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
-  style={{ background: entryDotBg }}
-/>
+                                                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
+                                                      style={{ background: entryDotBg }}
+                                                    />
                                                   </div>
 
                                                   <div className="flex-1">
@@ -432,7 +438,9 @@ const entryDotBg = isStageCompleted && isLastEntry
                                         </div>
                                         <div>
                                           <span className="font-semibold">Current location:</span>{" "}
-                                          {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
+                                          {data.currentLocation ||
+                                            fmtLoc(events[currentIndex]?.location) ||
+                                            "—"}
                                         </div>
                                       </div>
                                     </div>

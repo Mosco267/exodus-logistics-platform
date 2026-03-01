@@ -9,10 +9,7 @@ const ciExact = (field: string, value: string) => ({
   [field]: { $regex: `^${escapeRegex(value)}$`, $options: "i" },
 });
 
-type PricingSettingsDoc = {
-  _id: string;
-  settings: any;
-};
+type PricingSettingsDoc = { _id: string; settings: any };
 
 type CompanySettingsDoc = {
   _id: string; // "default"
@@ -35,6 +32,11 @@ function joinNice(parts: Array<any>) {
     .join(", ");
 }
 
+function legacyInvoiceNumberFromShipmentId(shipmentId: string) {
+  const cleanShipId = String(shipmentId || "SHIP").replace(/[^A-Z0-9-]/gi, "");
+  return `INV-${cleanShipId}`;
+}
+
 function computeInvoiceStatus(paid: boolean, dueDate?: string | null) {
   if (paid) return "paid" as const;
   if (!dueDate) return "pending" as const;
@@ -42,32 +44,26 @@ function computeInvoiceStatus(paid: boolean, dueDate?: string | null) {
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "pending" as const;
 
-  const now = Date.now();
-  return now > d.getTime() ? ("overdue" as const) : ("pending" as const);
-}
-
-// legacy invoice number style (until you store real invoiceNumber in DB)
-function legacyInvoiceNumberFromShipmentId(shipmentId: string) {
-  const cleanShipId = String(shipmentId || "SHIP").replace(/[^A-Z0-9-]/gi, "");
-  return `INV-${cleanShipId}`;
+  return Date.now() > d.getTime() ? ("overdue" as const) : ("pending" as const);
 }
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
 
-    // ✅ New secure flow:
-    // /api/invoice?invoice=EXL-INV-123456&email=someone@mail.com
+    // ✅ MAIN FLOW (works now):
+    // /api/invoice?q=TRACKING_OR_SHIPMENT_ID
+    const q = cleanStr(url.searchParams.get("q"));
+
+    // ✅ OPTIONAL (future secure flow):
+    // /api/invoice?invoice=INV-EXS-...&email=...
+    // We'll keep it, but we won't depend on it yet.
     const invoiceParam = cleanStr(url.searchParams.get("invoice"));
     const emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
 
-    // ✅ Old fallback flow:
-    // /api/invoice?q=TRACKING_OR_SHIPMENT
-    const q = cleanStr(url.searchParams.get("q"));
-
-    if (!invoiceParam && !q) {
+    if (!q && !invoiceParam) {
       return NextResponse.json(
-        { error: "Provide invoice+email or q." },
+        { error: "Provide q (tracking/shipment) OR invoice+email." },
         { status: 400 }
       );
     }
@@ -75,7 +71,7 @@ export async function GET(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // ✅ Load company settings (DB first, fallback to env/defaults)
+    // ✅ Company settings (DB first)
     const companyDoc = await db
       .collection<CompanySettingsDoc>("company_settings")
       .findOne({ _id: "default" });
@@ -83,14 +79,13 @@ export async function GET(req: Request) {
     const company = {
       name: companyDoc?.name || "Exodus Logistics Ltd.",
       address:
-        companyDoc?.address ||
-        "1199 E Calaveras Blvd, California, USA 90201",
+        companyDoc?.address || "1199 E Calaveras Blvd, California, USA 90201",
       phone: companyDoc?.phone || "+1 (516) 243-7836",
       email: companyDoc?.email || "support@goexoduslogistics.com",
       registrationNumber: companyDoc?.registrationNumber || "",
     };
 
-    // ✅ pricing settings for rate display
+    // ✅ Pricing settings for showing correct rates
     const pricingDoc = await db
       .collection<PricingSettingsDoc>("pricing_settings")
       .findOne({ _id: "default" });
@@ -115,14 +110,12 @@ export async function GET(req: Request) {
     };
 
     // -------------------------------------------------------
-    // 1) Find shipment (NEW secure invoice+email flow)
+    // 1) Get shipment
     // -------------------------------------------------------
     let shipment: any | null = null;
-    let invoiceNumber = "";
-    let dueDate: string | null = null;
-    let paymentMethod: string | null = null;
 
-    if (invoiceParam) {
+    // ✅ Future secure invoice+email flow (only if you add invoices collection later)
+    if (!shipment && invoiceParam) {
       if (!emailParam) {
         return NextResponse.json(
           { error: "email is required when using invoice." },
@@ -130,82 +123,40 @@ export async function GET(req: Request) {
         );
       }
 
-      const invoiceNumberUpper = invoiceParam.toUpperCase();
+      // If you later create an invoices collection, you can match it here.
+      // For now: fallback to legacy INV-{shipmentId} style
+      const invUpper = invoiceParam.toUpperCase();
+      const maybeShipmentId = invUpper.startsWith("INV-") ? invUpper.slice(4) : "";
 
-      // ✅ Try invoices collection first (recommended future-proof)
-      const invDoc = await db.collection("invoices").findOne(
-        {
-          invoiceNumber: invoiceNumberUpper,
-          $or: [
-            ciExact("parties.senderEmail", emailParam),
-            ciExact("parties.receiverEmail", emailParam),
-          ],
-        },
-        { projection: { _id: 0 } }
-      );
-
-      if (invDoc) {
-        invoiceNumber = invoiceNumberUpper;
-        dueDate = (invDoc as any)?.dueDate || null;
-        paymentMethod = (invDoc as any)?.paymentMethod || null;
-
-        // If invoice doc stores shipmentId, use it
-        const invShipmentId = cleanStr((invDoc as any)?.shipmentId);
-        if (invShipmentId) {
-          shipment = await db.collection("shipments").findOne(
-            ciExact("shipmentId", invShipmentId),
-            { projection: { _id: 0 } }
-          );
-        }
-      }
-
-      // ✅ Fallback: if no invoices collection yet, match legacy INV-{shipmentId}
-      if (!shipment) {
-        const maybeShipmentId =
-          invoiceNumberUpper.startsWith("INV-")
-            ? invoiceNumberUpper.slice(4)
-            : "";
-
-        if (maybeShipmentId) {
-          const s = await db.collection("shipments").findOne(
-            ciExact("shipmentId", maybeShipmentId),
-            { projection: { _id: 0 } }
-          );
-
-          if (s) {
-            const senderEmail = cleanStr((s as any)?.senderEmail).toLowerCase();
-            const receiverEmail = cleanStr((s as any)?.receiverEmail).toLowerCase();
-            const createdByEmail = cleanStr((s as any)?.createdByEmail).toLowerCase();
-
-            const ok =
-              emailParam === senderEmail ||
-              emailParam === receiverEmail ||
-              emailParam === createdByEmail;
-
-            if (!ok) {
-              return NextResponse.json(
-                { error: "Invoice/email mismatch." },
-                { status: 403 }
-              );
-            }
-
-            shipment = s;
-            invoiceNumber = invoiceNumberUpper;
-          }
-        }
-      }
-
-      if (!shipment) {
-        return NextResponse.json(
-          { error: "Invoice not found (or email mismatch)." },
-          { status: 404 }
+      if (maybeShipmentId) {
+        const s = await db.collection("shipments").findOne(
+          ciExact("shipmentId", maybeShipmentId),
+          { projection: { _id: 0 } }
         );
+
+        if (s) {
+          const senderEmail = cleanStr((s as any)?.senderEmail).toLowerCase();
+          const receiverEmail = cleanStr((s as any)?.receiverEmail).toLowerCase();
+          const createdByEmail = cleanStr((s as any)?.createdByEmail).toLowerCase();
+
+          const ok =
+            emailParam === senderEmail ||
+            emailParam === receiverEmail ||
+            emailParam === createdByEmail;
+
+          if (!ok) {
+            return NextResponse.json(
+              { error: "Invoice/email mismatch." },
+              { status: 403 }
+            );
+          }
+
+          shipment = s;
+        }
       }
     }
 
-    // -------------------------------------------------------
-    // 2) Old flow: find shipment by q (tracking/shipment)
-    // -------------------------------------------------------
+    // ✅ Main current flow (tracking/shipment)
     if (!shipment && q) {
       shipment = await db.collection("shipments").findOne(
         { $or: [ciExact("trackingNumber", q), ciExact("shipmentId", q)] },
@@ -215,21 +166,32 @@ export async function GET(req: Request) {
       if (!shipment) {
         return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
       }
+    }
 
-      invoiceNumber = legacyInvoiceNumberFromShipmentId(cleanStr(shipment?.shipmentId));
+    if (!shipment) {
+      return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
     }
 
     const s: any = shipment;
+
+    // -------------------------------------------------------
+    // 2) Invoice data stored inside shipment
+    // -------------------------------------------------------
     const inv = s?.invoice || {};
-    // ✅ Pull dueDate + paymentMethod from shipment.invoice (your current DB structure)
-if (!dueDate) dueDate = inv?.dueDate ? String(inv.dueDate) : null;
-if (!paymentMethod) paymentMethod = inv?.paymentMethod ? String(inv.paymentMethod) : null;
 
     const amount = Number(inv?.amount ?? 0);
     const currency = String(inv?.currency || "USD").toUpperCase();
     const paid = Boolean(inv?.paid);
 
-    // declared value fallback
+    const dueDate: string | null = inv?.dueDate ? String(inv.dueDate) : null;
+    const paymentMethod: string | null = inv?.paymentMethod
+      ? String(inv.paymentMethod)
+      : null;
+
+    const invoiceNumber =
+      cleanStr(inv?.invoiceNumber) ||
+      legacyInvoiceNumberFromShipmentId(cleanStr(s?.shipmentId));
+
     const declaredValueRaw =
       s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
     const declaredValue = Number(declaredValueRaw) || 0;
@@ -244,10 +206,7 @@ if (!paymentMethod) paymentMethod = inv?.paymentMethod ? String(inv.paymentMetho
               Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
             rates: { ...rates, ...(breakdownFromDb?.rates || {}) },
           }
-        : {
-            declaredValue,
-            rates,
-          };
+        : { declaredValue, rates };
 
     const senderEmail = cleanStr(s?.senderEmail);
     const receiverEmail =
@@ -271,17 +230,17 @@ if (!paymentMethod) paymentMethod = inv?.paymentMethod ? String(inv.paymentMetho
     const status = computeInvoiceStatus(paid, dueDate);
 
     return NextResponse.json({
-      company, // ✅ used by invoice full page for address/phone/email
+      company,
 
       invoiceNumber,
-      status, // "paid" | "pending" | "overdue"
+      status, // paid | pending | overdue
       currency,
       total: amount,
       paid,
       paidAt: inv?.paidAt || null,
 
-      dueDate: dueDate || null,
-      paymentMethod: paymentMethod || null,
+      dueDate,
+      paymentMethod: paymentMethod || "Online / Bank Transfer",
 
       declaredValue,
       declaredValueCurrency: String(s?.declaredValueCurrency || currency).toUpperCase(),
