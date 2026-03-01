@@ -20,6 +20,9 @@ import {
   Truck,
 } from "lucide-react";
 
+/** -------------------------
+ * Types (supports old + new API shapes)
+ * ------------------------- */
 type Money = { amount: number; currency: string };
 
 type Dimensions =
@@ -30,21 +33,18 @@ type Dimensions =
 type InvoiceApiResponse = {
   ok?: boolean;
 
-  // invoice identity
+  // OLD shape fields
   invoiceNumber?: string;
   shipmentId?: string;
   trackingNumber?: string;
 
-  // status + money
   paid?: boolean;
-  invoice?: Money | null; // some APIs return invoice: {amount,currency}
-  amount?: number; // some APIs return amount at top-level
+  invoice?: Money | null;
+  amount?: number;
   currency?: string;
 
-  // payment details (admin can set this)
   paymentMethod?: string | null;
 
-  // shipment details
   senderName?: string;
   senderEmail?: string;
   receiverName?: string;
@@ -64,7 +64,6 @@ type InvoiceApiResponse = {
 
   dimensions?: Dimensions;
 
-  // charges breakdown (optional)
   charges?: {
     shipping?: number;
     insurance?: number;
@@ -76,7 +75,53 @@ type InvoiceApiResponse = {
     currency?: string;
   } | null;
 
-  // optional message from server
+  // NEW shape fields (your current /api/invoice/route.ts)
+  company?: {
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    registrationNumber?: string;
+  };
+
+  total?: number;
+  status?: "paid" | "pending" | "overdue";
+  dueDate?: string | null;
+  paidAt?: string | null;
+
+  declaredValueCurrencyNew?: string;
+  breakdown?: any;
+
+  shipment?: {
+    shipmentId?: string;
+    trackingNumber?: string;
+
+    origin?: string;
+    destination?: string;
+    originFull?: string;
+    destinationFull?: string;
+
+    status?: string;
+
+    shipmentType?: any;
+    serviceLevel?: any;
+
+    weightKg?: any;
+    dimensionsCm?: any;
+  };
+
+  parties?: {
+    senderName?: string;
+    receiverName?: string;
+    senderEmail?: string;
+    receiverEmail?: string;
+  };
+
+  dates?: {
+    createdAt?: string | null;
+    updatedAt?: string | null;
+  };
+
   error?: string;
 };
 
@@ -85,6 +130,10 @@ function fmtDate(iso?: string | null) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
+}
+
+function safeStr(v: any) {
+  return String(v ?? "").trim();
 }
 
 function n(num: any) {
@@ -98,23 +147,35 @@ function fmtMoney(amount: number, currency: string) {
   return `${a.toFixed(2)} ${c}`;
 }
 
-function safeStr(v: any) {
-  return String(v ?? "").trim();
-}
-
 function normalizePaymentMethod(v: any) {
   const s = safeStr(v);
   return s || "";
 }
 
-const ACCEPTED_METHODS = [
-  "Cryptocurrency",
-  "Bank transfer",
-  "PayPal",
-  "Zelle",
-  "Cash",
-  "Other",
-];
+function dimLineFromAny(dim: any) {
+  if (!dim) return "—";
+
+  // Old shape: {length,width,height,unit}
+  const unit = safeStr(dim?.unit) || "cm";
+  const L = safeStr(dim?.length);
+  const W = safeStr(dim?.width);
+  const H = safeStr(dim?.height);
+  if (L || W || H) {
+    return `${L || "—"} × ${W || "—"} × ${H || "—"} ${unit}`;
+  }
+
+  // New shape might store dimensionsCm similarly
+  const l2 = safeStr(dim?.l ?? dim?.L ?? dim?.len ?? dim?.length);
+  const w2 = safeStr(dim?.w ?? dim?.W ?? dim?.wid ?? dim?.width);
+  const h2 = safeStr(dim?.h ?? dim?.H ?? dim?.hei ?? dim?.height);
+  if (l2 || w2 || h2) {
+    return `${l2 || "—"} × ${w2 || "—"} × ${h2 || "—"} ${unit}`;
+  }
+
+  return "—";
+}
+
+const ACCEPTED_METHODS = ["Cryptocurrency", "Bank transfer", "PayPal", "Zelle", "Cash", "Other"];
 
 export default function InvoiceFullPage() {
   const params = useParams();
@@ -134,32 +195,33 @@ export default function InvoiceFullPage() {
     setErr("");
     setData(null);
 
-    // We support either:
+    // ✅ Supports either:
     // 1) q (tracking / shipment id)
     // 2) invoice + email
-    const payload: any = {};
-    if (q) payload.q = q.toUpperCase();
-    if (invoice) payload.invoice = invoice.toUpperCase();
-    if (email) payload.email = email;
-
-    if (!payload.q && (!payload.invoice || !payload.email)) {
-      setErr("Invoice details are missing. Please open the invoice from the email or enter your invoice details again.");
+    if (!q && (!invoice || !email)) {
+      setErr(
+        "Invoice details are missing. Please open the invoice from the email or enter your invoice details again."
+      );
       setLoading(false);
       return;
     }
 
     try {
-      // ✅ Use POST so it works the same everywhere (and avoids caching issues)
-      const res = await fetch("/api/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // ✅ Your API route is GET, so we use query params
+      const qs = new URLSearchParams();
+      if (q) qs.set("q", q.toUpperCase());
+      if (!q && invoice) qs.set("invoice", invoice.toUpperCase());
+      if (!q && email) qs.set("email", email);
 
+      const res = await fetch(`/api/invoice?${qs.toString()}`, { method: "GET" });
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setErr(json?.error || json?.message || "Invoice not found. Please verify your details and try again.");
+        setErr(
+          json?.error ||
+            json?.message ||
+            "Invoice not found. Please verify your details and try again."
+        );
         return;
       }
 
@@ -176,15 +238,24 @@ export default function InvoiceFullPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, invoice, email]);
 
-  // --- normalized fields (support different server shapes) ---
-  const paid = Boolean(data?.paid);
-  const invoiceNumber = safeStr(data?.invoiceNumber);
-  const shipmentId = safeStr(data?.shipmentId);
-  const trackingNumber = safeStr(data?.trackingNumber);
+  /** -------------------------
+   * Normalize fields (old + new)
+   * ------------------------- */
+  const paid = Boolean(data?.paid ?? (data?.status ? data.status === "paid" : false));
+
+  const invoiceNumber =
+    safeStr(data?.invoiceNumber) || safeStr((data as any)?.invoiceNumber) || "—";
+
+  const shipmentId =
+    safeStr(data?.shipmentId) || safeStr(data?.shipment?.shipmentId) || "—";
+
+  const trackingNumber =
+    safeStr(data?.trackingNumber) || safeStr(data?.shipment?.trackingNumber) || "—";
 
   const moneyAmount =
     data?.invoice?.amount ??
     (typeof data?.amount === "number" ? data.amount : undefined) ??
+    (typeof data?.total === "number" ? data.total : undefined) ??
     (data?.charges?.total ?? undefined) ??
     0;
 
@@ -192,23 +263,80 @@ export default function InvoiceFullPage() {
     safeStr(data?.invoice?.currency) ||
     safeStr(data?.currency) ||
     safeStr(data?.charges?.currency) ||
+    safeStr((data as any)?.currency) ||
     "USD";
 
-  const paymentMethod = normalizePaymentMethod(data?.paymentMethod);
+  const paymentMethod =
+    normalizePaymentMethod(data?.paymentMethod) ||
+    normalizePaymentMethod((data as any)?.paymentMethod) ||
+    normalizePaymentMethod((data as any)?.invoice?.paymentMethod) ||
+    "";
 
-  const declaredValue = data?.declaredValue;
-  const declaredValueCurrency = safeStr(data?.declaredValueCurrency) || moneyCurrency;
+  const createdAt = data?.createdAt ?? data?.dates?.createdAt ?? null;
+  const updatedAt = data?.updatedAt ?? data?.dates?.updatedAt ?? null;
 
-  const weight = data?.weight;
+  const statusLabel =
+    safeStr(data?.currentStatus) || safeStr(data?.shipment?.status) || "—";
+
+  const origin =
+    safeStr(data?.origin) ||
+    safeStr(data?.shipment?.origin) ||
+    safeStr(data?.shipment?.originFull) ||
+    "—";
+
+  const destination =
+    safeStr(data?.destination) ||
+    safeStr(data?.shipment?.destination) ||
+    safeStr(data?.shipment?.destinationFull) ||
+    "—";
+
+  const declaredValue =
+    (data?.declaredValue ?? (data as any)?.declaredValue ?? (data as any)?.breakdown?.declaredValue) ?? null;
+
+  const declaredValueCurrency =
+    safeStr(data?.declaredValueCurrency) ||
+    safeStr((data as any)?.declaredValueCurrency) ||
+    safeStr((data as any)?.declaredValueCurrencyNew) ||
+    moneyCurrency;
+
+  const weight =
+    data?.weight ?? (data?.shipment as any)?.weightKg ?? null;
+
   const weightUnit = safeStr(data?.weightUnit) || "kg";
 
-  const dim = data?.dimensions || null;
-  const dimUnit = safeStr((dim as any)?.unit) || "cm";
-  const dimLine = dim
-    ? `${safeStr((dim as any)?.length) || "—"} × ${safeStr((dim as any)?.width) || "—"} × ${safeStr((dim as any)?.height) || "—"} ${dimUnit}`
-    : "—";
+  const dim =
+    data?.dimensions ?? (data?.shipment as any)?.dimensionsCm ?? null;
 
-  const statusLabel = safeStr(data?.currentStatus) || "—";
+  const dimLine = dimLineFromAny(dim);
+
+  const senderName =
+    safeStr(data?.senderName) || safeStr(data?.parties?.senderName) || "—";
+  const senderEmail =
+    safeStr(data?.senderEmail) || safeStr(data?.parties?.senderEmail) || "—";
+  const receiverName =
+    safeStr(data?.receiverName) || safeStr(data?.parties?.receiverName) || "—";
+  const receiverEmail =
+    safeStr(data?.receiverEmail) || safeStr(data?.parties?.receiverEmail) || "—";
+
+  // Charges: support old charges, or map from new breakdown if present
+  const charges = data?.charges ?? null;
+  const breakdown = (data as any)?.breakdown ?? null;
+
+  const shipping =
+    n(charges?.shipping) || n(breakdown?.shipping) || 0;
+  const insurance =
+    n(charges?.insurance) || n(breakdown?.insurance) || 0;
+  const fuel =
+    n(charges?.fuel) || n(breakdown?.fuel) || 0;
+  const tax =
+    n(charges?.tax) || n(breakdown?.tax) || 0;
+  const discount =
+    n(charges?.discount) || n(breakdown?.discount) || 0;
+  const total =
+    n(charges?.total) || n(moneyAmount) || 0;
+
+  const trackTarget = (trackingNumber !== "—" ? trackingNumber : shipmentId !== "—" ? shipmentId : q)
+    .toUpperCase();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-cyan-50 py-12">
@@ -223,9 +351,9 @@ export default function InvoiceFullPage() {
             <ArrowLeft className="w-5 h-5 mr-2" /> Back to Invoice Search
           </Link>
 
-          {trackingNumber || shipmentId || q ? (
+          {trackTarget ? (
             <Link
-              href={`/${locale}/track/${encodeURIComponent((trackingNumber || shipmentId || q).toUpperCase())}`}
+              href={`/${locale}/track/${encodeURIComponent(trackTarget)}`}
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                          hover:border-blue-600 hover:text-blue-700 transition"
             >
@@ -247,7 +375,8 @@ export default function InvoiceFullPage() {
               {err}
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              If you opened this from an email, make sure you copied the invoice number correctly and used the sender/receiver email linked to the shipment.
+              If you opened this from an email, make sure you copied the invoice number correctly and used
+              the sender/receiver email linked to the shipment.
             </p>
           </div>
         )}
@@ -264,7 +393,7 @@ export default function InvoiceFullPage() {
                 {/* Brand row */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    {/* ✅ Logo (expects public/logo.png). If your filename differs, tell me and I’ll adjust. */}
+                    {/* Logo */}
                     <div className="h-12 w-12 rounded-2xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
                       <Image
                         src="/logo.png"
@@ -310,7 +439,7 @@ export default function InvoiceFullPage() {
                       Invoice number
                     </div>
                     <p className="mt-2 text-sm font-semibold text-gray-900 break-all">
-                      {invoiceNumber || "—"}
+                      {invoiceNumber}
                     </p>
                   </div>
 
@@ -320,7 +449,7 @@ export default function InvoiceFullPage() {
                       Shipment ID
                     </div>
                     <p className="mt-2 text-sm font-semibold text-gray-900 break-all">
-                      {shipmentId || "—"}
+                      {shipmentId}
                     </p>
                   </div>
 
@@ -330,7 +459,7 @@ export default function InvoiceFullPage() {
                       Tracking number
                     </div>
                     <p className="mt-2 text-sm font-semibold text-gray-900 break-all">
-                      {trackingNumber || "—"}
+                      {trackingNumber}
                     </p>
                   </div>
                 </div>
@@ -343,10 +472,10 @@ export default function InvoiceFullPage() {
                       Created
                     </div>
                     <p className="mt-2 text-sm text-gray-800 font-semibold">
-                      {fmtDate(data.createdAt)}
+                      {fmtDate(createdAt)}
                     </p>
                     <p className="mt-1 text-xs text-gray-600">
-                      Updated: <span className="font-semibold">{fmtDate(data.updatedAt)}</span>
+                      Updated: <span className="font-semibold">{fmtDate(updatedAt)}</span>
                     </p>
                   </div>
 
@@ -356,23 +485,21 @@ export default function InvoiceFullPage() {
                       Route
                     </div>
                     <p className="mt-2 text-sm text-gray-800 font-semibold">
-                      {safeStr(data.origin) || "—"} → {safeStr(data.destination) || "—"}
+                      {origin} → {destination}
                     </p>
                     <p className="mt-1 text-xs text-gray-600">
                       Status: <span className="font-semibold">{statusLabel}</span>
                     </p>
                   </div>
 
-                  {/* ✅ Declared value + weight + dimensions box */}
+                  {/* Declared value + weight + dimensions box */}
                   <div className="rounded-2xl border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                       <Receipt className="w-4 h-4 text-gray-700" />
                       Declaration
                     </div>
 
-                    <p className="mt-2 text-xs text-gray-600">
-                      Declared value
-                    </p>
+                    <p className="mt-2 text-xs text-gray-600">Declared value</p>
                     <p className="text-sm font-semibold text-gray-900">
                       {declaredValue != null && String(declaredValue).trim() !== ""
                         ? `${declaredValue} ${declaredValueCurrency}`
@@ -401,12 +528,8 @@ export default function InvoiceFullPage() {
                       <Mail className="w-4 h-4 text-gray-700" />
                       Sender
                     </div>
-                    <p className="mt-2 text-sm text-gray-900 font-semibold">
-                      {safeStr(data.senderName) || "—"}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-600 break-all">
-                      {safeStr(data.senderEmail) || "—"}
-                    </p>
+                    <p className="mt-2 text-sm text-gray-900 font-semibold">{senderName}</p>
+                    <p className="mt-1 text-xs text-gray-600 break-all">{senderEmail}</p>
                   </div>
 
                   <div className="rounded-2xl border border-gray-200 p-4">
@@ -414,12 +537,8 @@ export default function InvoiceFullPage() {
                       <Mail className="w-4 h-4 text-gray-700" />
                       Receiver
                     </div>
-                    <p className="mt-2 text-sm text-gray-900 font-semibold">
-                      {safeStr(data.receiverName) || "—"}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-600 break-all">
-                      {safeStr(data.receiverEmail) || "—"}
-                    </p>
+                    <p className="mt-2 text-sm text-gray-900 font-semibold">{receiverName}</p>
+                    <p className="mt-1 text-xs text-gray-600 break-all">{receiverEmail}</p>
                   </div>
                 </div>
               </div>
@@ -436,18 +555,14 @@ export default function InvoiceFullPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4"
             >
-              {/* ✅ Payment Method Block */}
+              {/* Payment Method Block */}
               <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-700" />
-                  <h2 className="text-lg font-extrabold text-gray-900">
-                    Payment method
-                  </h2>
+                  <h2 className="text-lg font-extrabold text-gray-900">Payment method</h2>
                 </div>
 
-                <p className="mt-1 text-sm text-gray-600">
-                  Accepted payment methods:
-                </p>
+                <p className="mt-1 text-sm text-gray-600">Accepted payment methods:</p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {ACCEPTED_METHODS.map((m) => (
@@ -468,13 +583,15 @@ export default function InvoiceFullPage() {
 
                   {!paid ? (
                     <p className="mt-2 text-sm text-gray-700">
-                      This invoice is currently <span className="font-extrabold text-amber-700">UNPAID</span>.
+                      This invoice is currently{" "}
+                      <span className="font-extrabold text-amber-700">UNPAID</span>.
                       Please proceed with payment using one of the accepted methods above.
                       Once payment is confirmed, the shipment will be eligible to move to the next stage.
                     </p>
                   ) : (
                     <p className="mt-2 text-sm text-gray-700">
-                      This invoice is <span className="font-extrabold text-green-700">PAID</span>.
+                      This invoice is{" "}
+                      <span className="font-extrabold text-green-700">PAID</span>.
                       {paymentMethod
                         ? " Payment was successfully recorded in our system."
                         : " If you need the exact method used, support can confirm it for you."}
@@ -487,9 +604,7 @@ export default function InvoiceFullPage() {
               <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-blue-700" />
-                  <h2 className="text-lg font-extrabold text-gray-900">
-                    Charges summary
-                  </h2>
+                  <h2 className="text-lg font-extrabold text-gray-900">Charges summary</h2>
                 </div>
 
                 <p className="mt-1 text-sm text-gray-600">
@@ -500,45 +615,42 @@ export default function InvoiceFullPage() {
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <span className="text-gray-700">Shipping</span>
                     <span className="font-semibold text-gray-900">
-                      {fmtMoney(n(data?.charges?.shipping), moneyCurrency)}
+                      {fmtMoney(shipping, moneyCurrency)}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <span className="text-gray-700">Insurance</span>
                     <span className="font-semibold text-gray-900">
-                      {fmtMoney(n(data?.charges?.insurance), moneyCurrency)}
+                      {fmtMoney(insurance, moneyCurrency)}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <span className="text-gray-700">Fuel</span>
                     <span className="font-semibold text-gray-900">
-                      {fmtMoney(n(data?.charges?.fuel), moneyCurrency)}
+                      {fmtMoney(fuel, moneyCurrency)}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <span className="text-gray-700">Tax</span>
                     <span className="font-semibold text-gray-900">
-                      {fmtMoney(n(data?.charges?.tax), moneyCurrency)}
+                      {fmtMoney(tax, moneyCurrency)}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <span className="text-gray-700">Discount</span>
                     <span className="font-semibold text-gray-900">
-                      {fmtMoney(n(data?.charges?.discount), moneyCurrency)}
+                      {fmtMoney(discount, moneyCurrency)}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-gray-900 font-extrabold">Total</span>
                     <span className="text-gray-900 font-extrabold">
-                      {fmtMoney(
-                        n(data?.charges?.total) || n(moneyAmount),
-                        moneyCurrency
-                      )}
+                      {fmtMoney(total, moneyCurrency)}
                     </span>
                   </div>
                 </div>
@@ -552,6 +664,13 @@ export default function InvoiceFullPage() {
                     Payment confirmed. Thank you — your invoice has been settled.
                   </div>
                 )}
+
+                {/* Helpful note if breakdown exists but not mapped */}
+                {breakdown && !data?.charges ? (
+                  <p className="mt-3 text-xs text-gray-500">
+                    Note: Some invoices may use a different breakdown structure depending on your admin pricing settings.
+                  </p>
+                ) : null}
               </div>
             </motion.div>
           </>
