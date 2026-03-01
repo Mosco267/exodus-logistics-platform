@@ -183,15 +183,25 @@ export default function TrackResultPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-6">
-          <Link
-            href={`/${locale}/track`}
-            className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
-                       hover:border-blue-600 hover:text-blue-700 transition"
-          >
-            <MapPin className="w-5 h-5 mr-2" /> Back to track
-          </Link>
-        </div>
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+  <Link
+    href={`/${locale}/track`}
+    className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+               hover:border-blue-600 hover:text-blue-700 transition"
+  >
+    <MapPin className="w-5 h-5 mr-2" /> Back to Track
+  </Link>
+
+  {data?.trackingNumber ? (
+    <Link
+      href={`/${locale}/invoice/full?q=${encodeURIComponent(data.trackingNumber)}`}
+      className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+                 hover:border-blue-600 hover:text-blue-700 transition"
+    >
+      <Receipt className="w-5 h-5 mr-2" /> View Invoice
+    </Link>
+  ) : null}
+</div>
 
         {loading && (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">

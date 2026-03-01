@@ -11,11 +11,19 @@ const APP_URL = (
   "https://www.goexoduslogistics.com"
 ).replace(/\/$/, "");
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@goexoduslogistics.com";
-const RESEND_FROM = process.env.RESEND_FROM || `Exodus Logistics <${SUPPORT_EMAIL}>`;
-const SUPPORT_URL =
-  process.env.SUPPORT_URL || `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`;
+const DEFAULT_LOCALE = process.env.DEFAULT_LOCALE || "en";
 
+const SUPPORT_EMAIL =
+  process.env.SUPPORT_EMAIL || "support@goexoduslogistics.com";
+const RESEND_FROM =
+  process.env.RESEND_FROM || `Exodus Logistics <${SUPPORT_EMAIL}>`;
+const SUPPORT_URL =
+  process.env.SUPPORT_URL ||
+  `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`;
+
+/** -------------------------
+ * Helpers
+ * ------------------------- */
 function esc(s: string) {
   return String(s || "")
     .replace(/&/g, "&amp;")
@@ -35,6 +43,74 @@ function toText(html: string) {
     .trim();
 }
 
+function cleanStr(v: any) {
+  const s = String(v ?? "").trim();
+  return s || "";
+}
+
+function normUpper(v: any) {
+  return cleanStr(v).toUpperCase();
+}
+
+function normLower(v: any) {
+  return cleanStr(v).toLowerCase();
+}
+
+/**
+ * ✅ Direct route (NO redirect hop):
+ * /{locale}/track/[q]
+ *
+ * NOTE:
+ * Your /api/track now expects trackingNumber.
+ * So pass trackingNumber as q whenever possible.
+ */
+function buildTrackUrl(q: string, locale = DEFAULT_LOCALE) {
+  const qq = normUpper(q);
+  return `${APP_URL}/${locale}/track/${encodeURIComponent(qq)}`;
+}
+
+/**
+ * ✅ Secure invoice route:
+ * /{locale}/invoice/full?invoice=...&email=...
+ */
+function buildInvoiceUrl(invoiceNumber: string, email: string, locale = DEFAULT_LOCALE) {
+  const inv = normUpper(invoiceNumber);
+  const em = normLower(email);
+  return `${APP_URL}/${locale}/invoice/full?invoice=${encodeURIComponent(inv)}&email=${encodeURIComponent(em)}`;
+}
+
+function invoiceSearchUrl(locale = DEFAULT_LOCALE) {
+  return `${APP_URL}/${locale}/invoice`;
+}
+
+/**
+ * ✅ FIX: this function was missing before (that’s why `sendEmail` was red)
+ * Used by sendShipmentCreatedEmail + sendInvoiceStatusEmail
+ */
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  return resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    replyTo: SUPPORT_EMAIL,
+    html,
+    text: toText(html),
+  });
+}
+
+// small helper (safe)
+function escapeHtml(s: string) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** -------------------------
+ * Shipment Created - Sender
+ * ------------------------- */
 export async function sendShipmentCreatedSenderEmail(
   to: string,
   args: {
@@ -43,7 +119,14 @@ export async function sendShipmentCreatedSenderEmail(
     shipmentId: string;
     trackingNumber: string;
     paid: boolean;
-    viewInvoiceUrl: string;
+
+    // ✅ NEW optional fields for latest secure invoice flow
+    invoiceNumber?: string;
+    senderEmail?: string;
+    locale?: string;
+
+    // ✅ legacy compatibility (still supported)
+    viewInvoiceUrl?: string;
   }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -51,6 +134,17 @@ export async function sendShipmentCreatedSenderEmail(
   const name = (args.name || "Customer").trim();
   const receiverName = (args.receiverName || "Receiver").trim();
   const paid = Boolean(args.paid);
+  const locale = args.locale || DEFAULT_LOCALE;
+
+  // ✅ Always build direct track URL (no redirect hop)
+  const track = buildTrackUrl(args.trackingNumber || args.shipmentId, locale);
+
+  // ✅ Prefer secure invoice URL if invoiceNumber + email exists
+  const invoice =
+    args.viewInvoiceUrl ||
+    (args.invoiceNumber && args.senderEmail
+      ? buildInvoiceUrl(args.invoiceNumber, args.senderEmail, locale)
+      : invoiceSearchUrl(locale));
 
   const subject = paid
     ? `Shipment created: ${args.shipmentId}`
@@ -75,10 +169,26 @@ export async function sendShipmentCreatedSenderEmail(
       }
     </p>
 
+    <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+      <p style="margin:0;font-size:15px;color:#111827;">
+        <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
+        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}
+        ${args.invoiceNumber ? `<br/><strong>Invoice number:</strong> ${esc(args.invoiceNumber)}` : ""}
+      </p>
+      <p style="margin:10px 0 0 0;font-size:12px;color:#6b7280;">
+        Tip: Save these details for verification on our official website.
+      </p>
+    </div>
+
     <p style="margin:0;font-size:15px;color:#6b7280;">
-      Shipment ID: <strong>${esc(args.shipmentId)}</strong><br/>
-      Tracking number: <strong>${esc(args.trackingNumber)}</strong>
+      You can view shipment status or open your invoice using the buttons below.
     </p>
+
+    <div style="margin-top:12px">
+      <a href="${invoice}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+        View Invoice
+      </a>
+    </div>
   `;
 
   const html = renderEmailTemplate({
@@ -88,7 +198,8 @@ export async function sendShipmentCreatedSenderEmail(
       ? `Shipment ${args.shipmentId} created (Paid)`
       : `Shipment ${args.shipmentId} created (Unpaid)`,
     bodyHtml,
-    button: { text: "View Invoice", href: args.viewInvoiceUrl },
+    // ✅ Primary CTA: goes DIRECT to /track/[q]
+    button: { text: "View Shipment", href: track },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
@@ -104,6 +215,9 @@ export async function sendShipmentCreatedSenderEmail(
   });
 }
 
+/** -------------------------
+ * Shipment Created - Receiver (V2)
+ * ------------------------- */
 export async function sendShipmentCreatedReceiverEmailV2(
   to: string,
   args: {
@@ -112,7 +226,14 @@ export async function sendShipmentCreatedReceiverEmailV2(
     shipmentId: string;
     trackingNumber: string;
     paid: boolean;
-    viewInvoiceUrl: string;
+
+    // ✅ NEW optional fields for latest secure invoice flow
+    invoiceNumber?: string;
+    receiverEmail?: string;
+    locale?: string;
+
+    // ✅ legacy compatibility (still supported)
+    viewInvoiceUrl?: string;
   }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -120,6 +241,15 @@ export async function sendShipmentCreatedReceiverEmailV2(
   const name = (args.name || "Customer").trim();
   const senderName = (args.senderName || "Sender").trim();
   const paid = Boolean(args.paid);
+  const locale = args.locale || DEFAULT_LOCALE;
+
+  const track = buildTrackUrl(args.trackingNumber || args.shipmentId, locale);
+
+  const invoice =
+    args.viewInvoiceUrl ||
+    (args.invoiceNumber && args.receiverEmail
+      ? buildInvoiceUrl(args.invoiceNumber, args.receiverEmail, locale)
+      : invoiceSearchUrl(locale));
 
   const subject = paid
     ? `Shipment on the way: ${args.shipmentId}`
@@ -143,10 +273,19 @@ export async function sendShipmentCreatedReceiverEmailV2(
       }
     </p>
 
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      Shipment ID: <strong>${esc(args.shipmentId)}</strong><br/>
-      Tracking number: <strong>${esc(args.trackingNumber)}</strong>
-    </p>
+    <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+      <p style="margin:0;font-size:15px;color:#111827;">
+        <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
+        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}
+        ${args.invoiceNumber ? `<br/><strong>Invoice number:</strong> ${esc(args.invoiceNumber)}` : ""}
+      </p>
+    </div>
+
+    <div style="margin-top:12px">
+      <a href="${invoice}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+        View Invoice
+      </a>
+    </div>
   `;
 
   const html = renderEmailTemplate({
@@ -156,28 +295,11 @@ export async function sendShipmentCreatedReceiverEmailV2(
       ? `Shipment ${args.shipmentId} created (Paid)`
       : `Shipment ${args.shipmentId} created (Unpaid)`,
     bodyHtml,
-    button: { text: "View Invoice", href: args.viewInvoiceUrl },
+    button: { text: "View Shipment", href: track }, // ✅ direct /track/[q]
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
-
-  return resend.emails.send({
-    from: RESEND_FROM,
-    to,
-    subject,
-    replyTo: SUPPORT_EMAIL,
-    html,
-    text: toText(html),
-  });
-}
-
-/**
- * ✅ FIX: this function was missing before (that’s why `sendEmail` was red)
- * Used by sendShipmentCreatedEmail + sendInvoiceStatusEmail
- */
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   return resend.emails.send({
     from: RESEND_FROM,
@@ -216,9 +338,11 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
   const html = renderEmailTemplate({
     subject,
     title: "Account access removed",
-    preheader: "Your account access has been removed. Contact support if you believe this was a mistake.",
+    preheader:
+      "Your account access has been removed. Contact support if you believe this was a mistake.",
     bodyHtml,
-    calloutHtml: "If you believe this was a mistake, you can request a review by contacting support.",
+    calloutHtml:
+      "If you believe this was a mistake, you can request a review by contacting support.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -288,7 +412,10 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
 }
 
 /** Updated: deletion email */
-export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string }) {
+export async function sendDeletedByAdminEmail(
+  to: string,
+  opts?: { name?: string }
+) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts?.name || "Customer").trim();
@@ -314,7 +441,8 @@ export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string
   const html = renderEmailTemplate({
     subject,
     title: "Account deleted",
-    preheader: "Your account has been deleted. Contact support if you believe this was a mistake.",
+    preheader:
+      "Your account has been deleted. Contact support if you believe this was a mistake.",
     bodyHtml,
     calloutHtml: "If you believe this was a mistake, contact support and we will review it.",
     button: { text: "Contact support", href: SUPPORT_URL },
@@ -336,15 +464,27 @@ export async function sendDeletedByAdminEmail(to: string, opts?: { name?: string
 // ✅ Auto emails for shipment updates
 export async function sendShipmentStatusEmail(
   to: string,
-  opts: { name?: string; shipmentId: string; statusLabel: string }
+  opts: {
+    name?: string;
+    shipmentId: string;
+    statusLabel: string;
+
+    // ✅ NEW (recommended): use trackingNumber for correct /api/track flow
+    trackingNumber?: string;
+    locale?: string;
+  }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts.name || "Customer").trim();
   const safeTo = esc(to);
   const status = String(opts.statusLabel || "").trim();
+  const locale = opts.locale || DEFAULT_LOCALE;
 
-  const TRACK_URL = `${APP_URL}/en/track?q=${encodeURIComponent(opts.shipmentId)}`;
+  // ✅ IMPORTANT:
+  // Use trackingNumber if provided; fallback to shipmentId only if you still use it.
+  const q = opts.trackingNumber || opts.shipmentId;
+  const TRACK_URL = buildTrackUrl(q, locale);
 
   let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
   let title = "Shipment update";
@@ -416,7 +556,7 @@ export async function sendShipmentStatusEmail(
     title,
     preheader: `${status} – Shipment ${opts.shipmentId}`,
     bodyHtml,
-    button: { text: buttonText, href: buttonLink },
+    button: { text: buttonText, href: buttonLink }, // ✅ direct /track/[q]
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: safeTo,
@@ -434,14 +574,29 @@ export async function sendShipmentStatusEmail(
 
 export async function sendInvoiceUpdateEmail(
   to: string,
-  opts: { name?: string; shipmentId: string; paid: boolean }
+  opts: {
+    name?: string;
+    shipmentId: string;
+    paid: boolean;
+
+    // ✅ NEW optional secure invoice fields
+    invoiceNumber?: string;
+    emailForInvoice?: string;
+    locale?: string;
+  }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts.name || "Customer").trim();
   const safeTo = esc(to);
+  const locale = opts.locale || DEFAULT_LOCALE;
 
   const subject = `Exodus Logistics: Invoice update (${opts.shipmentId})`;
+
+  const invoiceLink =
+    opts.invoiceNumber && opts.emailForInvoice
+      ? buildInvoiceUrl(opts.invoiceNumber, opts.emailForInvoice, locale)
+      : invoiceSearchUrl(locale);
 
   const bodyHtml = `
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
@@ -456,6 +611,12 @@ export async function sendInvoiceUpdateEmail(
     <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
       If you believe this is incorrect, please contact support.
     </p>
+
+    <div style="margin-top:12px">
+      <a href="${invoiceLink}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+        View Invoice
+      </a>
+    </div>
   `;
 
   const html = renderEmailTemplate({
@@ -479,6 +640,9 @@ export async function sendInvoiceUpdateEmail(
   });
 }
 
+/** -------------------------
+ * LEGACY HTML EMAILS (kept)
+ * ------------------------- */
 export async function sendShipmentCreatedEmail(
   to: string,
   args: {
@@ -486,7 +650,7 @@ export async function sendShipmentCreatedEmail(
     receiverName: string;
     shipmentId: string;
     trackingNumber: string;
-    viewShipmentUrl: string;
+    viewShipmentUrl: string; // legacy
   }
 ) {
   const subject = `Shipment created: ${args.shipmentId}`;
@@ -494,7 +658,9 @@ export async function sendShipmentCreatedEmail(
     <div style="font-family:Arial,sans-serif;line-height:1.5">
       <h2>Shipment Created</h2>
       <p>Hello ${escapeHtml(args.name || "Customer")},</p>
-      <p>Your shipment has been created and is being prepared to be shipped to <b>${escapeHtml(args.receiverName)}</b>.</p>
+      <p>Your shipment has been created and is being prepared to be shipped to <b>${escapeHtml(
+        args.receiverName
+      )}</b>.</p>
       <p><b>Shipment ID:</b> ${escapeHtml(args.shipmentId)}<br/>
          <b>Tracking:</b> ${escapeHtml(args.trackingNumber)}</p>
       <p>
@@ -515,7 +681,7 @@ export async function sendInvoiceStatusEmail(
     shipmentId: string;
     trackingNumber: string;
     paid: boolean;
-    viewInvoiceUrl: string;
+    viewInvoiceUrl: string; // legacy
   }
 ) {
   const subject = `Invoice ${args.paid ? "Paid" : "Pending"}: ${args.shipmentId}`;
@@ -525,7 +691,9 @@ export async function sendInvoiceStatusEmail(
       <p>Hello ${escapeHtml(args.name || "Customer")},</p>
       <p>
         The invoice for shipment <b>${escapeHtml(args.shipmentId)}</b> is currently:
-        <b style="color:${args.paid ? "#16a34a" : "#d97706"}">${args.paid ? "PAID" : "UNPAID"}</b>.
+        <b style="color:${args.paid ? "#16a34a" : "#d97706"}">${
+    args.paid ? "PAID" : "UNPAID"
+  }</b>.
       </p>
       ${
         args.paid
@@ -543,14 +711,6 @@ export async function sendInvoiceStatusEmail(
   return sendEmail(to, subject, html);
 }
 
-// small helper (safe)
-function escapeHtml(s: string) {
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
 export async function sendShipmentIncomingEmail(
   to: string,
   args: {
@@ -559,7 +719,7 @@ export async function sendShipmentIncomingEmail(
     receiverAddress: string;
     shipmentId: string;
     trackingNumber: string;
-    viewShipmentUrl: string;
+    viewShipmentUrl: string; // legacy
   }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -572,7 +732,9 @@ export async function sendShipmentIncomingEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      A shipment has been created for you by <strong>${esc(args.senderName || "Sender")}</strong>.
+      A shipment has been created for you by <strong>${esc(
+        args.senderName || "Sender"
+      )}</strong>.
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
@@ -618,7 +780,7 @@ export async function sendShipmentCreatedReceiverEmail(
     receiverPostalCode: string;
     receiverState: string;
     receiverCountry: string;
-    viewShipmentUrl: string;
+    viewShipmentUrl: string; // legacy
   }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -635,14 +797,20 @@ export async function sendShipmentCreatedReceiverEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      A shipment has been created for you by <strong>${esc(args.senderName || "Sender")}</strong>.
+      A shipment has been created for you by <strong>${esc(
+        args.senderName || "Sender"
+      )}</strong>.
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
       <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
       <strong>Tracking:</strong> ${esc(args.trackingNumber)}<br/>
       <strong>Delivery address:</strong> ${esc(addrLine)}<br/>
-      ${args.receiverPostalCode ? `<strong>Postal code:</strong> ${esc(args.receiverPostalCode)}<br/>` : ""}
+      ${
+        args.receiverPostalCode
+          ? `<strong>Postal code:</strong> ${esc(args.receiverPostalCode)}<br/>`
+          : ""
+      }
     </p>
 
     <p style="margin:0;font-size:15px;color:#6b7280;">
@@ -679,7 +847,7 @@ export async function sendInvoiceStatusReceiverEmail(
     shipmentId: string;
     trackingNumber: string;
     paid: boolean;
-    viewInvoiceUrl: string;
+    viewInvoiceUrl: string; // legacy
   }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -692,7 +860,9 @@ export async function sendInvoiceStatusReceiverEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      The invoice for shipment <strong>${esc(args.shipmentId)}</strong> (sent by <strong>${esc(args.senderName)}</strong>)
+      The invoice for shipment <strong>${esc(args.shipmentId)}</strong> (sent by <strong>${esc(
+    args.senderName
+  )}</strong>)
       is currently marked as <strong>${args.paid ? "PAID" : "UNPAID"}</strong>.
     </p>
 

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     if (!q) {
       return NextResponse.json(
-        { error: "Tracking number or shipmentId is required" },
+        { error: "Tracking number is required" },
         { status: 400 }
       );
     }
@@ -67,10 +67,9 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    const shipment = await db.collection("shipments").findOne(
-      { $or: [ciExact("trackingNumber", q), ciExact("shipmentId", q)] },
-      { projection: { _id: 0 } }
-    );
+    const shipment = await db.collection("shipments").findOne({
+      trackingNumber: q
+    })
 
     if (!shipment) {
       return NextResponse.json({ error: "Shipment not found" }, { status: 404 });

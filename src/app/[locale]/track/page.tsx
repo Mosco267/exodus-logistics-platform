@@ -31,7 +31,7 @@ export default function TrackSearchPage() {
     const v = q.trim();
 
     if (!v) {
-      setError("Enter your Shipment ID or Tracking Number.");
+      setError("Enter your Tracking Number.");
       return;
     }
 
@@ -54,7 +54,7 @@ export default function TrackSearchPage() {
           </h1>
 
           <p className="mt-2 text-gray-600 max-w-2xl">
-            Enter your tracking number or shipment ID to view live milestones and the current location.
+            Enter your tracking number to view live milestones and the current location.
           </p>
         </div>
 
@@ -109,8 +109,8 @@ export default function TrackSearchPage() {
 
           {/* Footer hint strip (makes it feel different from Invoice) */}
           <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: You can paste either your <span className="font-semibold">Shipment ID</span> or{" "}
-            <span className="font-semibold">Tracking Number</span>.
+            Tip: You can paste your tracking number here from emails. Look for the unique ID we provided when shipment was created. It usually starts with "EX". That's your key to unlock the
+            <span className="font-semibold">Live Tracking Details!</span>.
           </div>
         </motion.div>
       </div>
