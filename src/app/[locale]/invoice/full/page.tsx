@@ -731,8 +731,8 @@ export default function InvoiceFullPage() {
                   </div>
                 </div>
                 {/* Verification / Security note */}
-<div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-  <p className="font-semibold text-gray-900">
+<div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 text-center">
+  <p className="font-medium text-gray-900">
     This invoice is system generated and valid without signature.
   </p>
   <p className="mt-1">

@@ -135,9 +135,16 @@ export async function GET(req: Request) {
       const invUpper = normUpper(invoiceParam);
 
       shipment = await db.collection("shipments").findOne(
-        { "invoice.invoiceNumber": invUpper },
-        { projection: { _id: 0 } }
-      );
+  {
+    $or: [
+      ciExact("invoice.invoiceNumber", invUpper),
+      ciExact("invoiceNumber", invUpper),
+      ciExact("invoice.invoiceNo", invUpper),
+      ciExact("invoice.invoice_number", invUpper),
+    ],
+  },
+  { projection: { _id: 0 } }
+);
 
       if (!shipment) {
         return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
