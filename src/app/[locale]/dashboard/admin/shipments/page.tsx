@@ -178,7 +178,7 @@ export default function AdminShipmentsPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-              ADMIN TEST 123
+              ADMIN DASHBOARD: SHIPMENTS
             </h1>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
               Update shipment status + toggle invoice paid/unpaid.
