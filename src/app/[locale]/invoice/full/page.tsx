@@ -405,7 +405,7 @@ export default function InvoiceFullPage() {
             >
               {/* INVOICE HEADER (MATCH TOP HEADER STYLE) */}
               <div className="relative">
-                <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600">
+                <div className="bg-gradient-to-r from-white via-blue-700 to-cyan-600">
                   {/* subtle overlay for readability */}
                   <div className="bg-black/10">
                     <div className="p-6 sm:p-8">
@@ -413,13 +413,13 @@ export default function InvoiceFullPage() {
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="flex items-center gap-4">
   <Image
-    src="/logo.png"
-    alt="Exodus Logistics"
-    width={260}
-    height={90}
-    priority
-    className="h-16 w-auto sm:h-20 object-contain"
-  />
+  src="/logo.png"
+  alt="Exodus Logistics"
+  width={200}
+  height={70}
+  priority
+  className="h-12 w-auto sm:h-16 object-contain"
+/>
 </div>
 
                           <div className="min-w-0">
