@@ -411,15 +411,16 @@ export default function InvoiceFullPage() {
                     <div className="p-6 sm:p-8">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white/95 border border-white/40 overflow-hidden flex items-center justify-center shadow">
-                            <Image
-                              src="/logo.svg"
-                              alt="Exodus Logistics"
-                              width={90}
-                              height={90}
-                              className="object-contain"
-                            />
-                          </div>
+                          <div className="flex items-center gap-4">
+  <Image
+    src="/logo.png"
+    alt="Exodus Logistics"
+    width={260}
+    height={90}
+    priority
+    className="h-16 w-auto sm:h-20 object-contain"
+  />
+</div>
 
                           <div className="min-w-0">
                             <p className="text-white font-extrabold text-base sm:text-lg leading-tight">
