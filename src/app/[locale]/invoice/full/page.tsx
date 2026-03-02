@@ -730,6 +730,15 @@ export default function InvoiceFullPage() {
                     </div>
                   </div>
                 </div>
+                {/* Verification / Security note */}
+<div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+  <p className="font-semibold text-gray-900">
+    This invoice is system generated and valid without signature.
+  </p>
+  <p className="mt-1">
+    For verification, use your <span className="font-semibold">shipment ID</span> on our official website.
+  </p>
+</div>
               </div>
             </motion.div>
           </div>

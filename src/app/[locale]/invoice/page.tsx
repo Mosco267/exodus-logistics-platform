@@ -56,28 +56,49 @@ export default function InvoicePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qFromUrl]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+ const submit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const inv = String(invoiceNumber || "").trim().toUpperCase();
-    const em = String(email || "").trim().toLowerCase();
+  const inv = String(invoiceNumber || "").trim().toUpperCase();
+  const em = String(email || "").trim().toLowerCase();
 
-    if (!inv) {
-      setErr("Enter your invoice number.");
+  if (!inv) {
+    setErr("Enter your invoice number.");
+    return;
+  }
+  if (!em || !em.includes("@")) {
+    setErr("Enter the sender or receiver email address.");
+    return;
+  }
+
+  setErr("");
+  setLoading(true);
+
+  try {
+    const url = new URL("/api/invoice", window.location.origin);
+    url.searchParams.set("invoice", inv);
+    url.searchParams.set("email", em);
+
+    const res = await fetch(url.toString(), { method: "GET" });
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      setErr(
+        json?.error ||
+          "Unable to open invoice. Please confirm the invoice number and sender/receiver email."
+      );
       return;
     }
-    if (!em || !em.includes("@")) {
-      setErr("Enter the sender or receiver email address.");
-      return;
-    }
-
-    setErr("");
-    setLoading(true);
 
     router.push(
       `/${locale}/invoice/full?invoice=${encodeURIComponent(inv)}&email=${encodeURIComponent(em)}`
     );
-  };
+  } catch (e: any) {
+    setErr(e?.message || "Unable to verify invoice right now. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-cyan-50 py-14">
