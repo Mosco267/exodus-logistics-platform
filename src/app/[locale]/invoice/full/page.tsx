@@ -338,13 +338,12 @@ export default function InvoiceFullPage() {
           )}
 
           <button
-            type="button"
-            onClick={() => window.print()}
-            className="sm:ml-auto inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-900 to-cyan-800 text-white font-semibold shadow
-                       hover:opacity-95 transition"
-          >
-            <Printer className="w-5 h-5 mr-2" /> Print
-          </button>
+  type="button"
+  onClick={() => window.print()}
+  className="sm:ml-auto inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-900 to-cyan-800 text-white font-semibold shadow hover:opacity-95 transition"
+>
+  <Printer className="w-5 h-5 mr-2" /> Print
+</button>
         </div>
 
         {loading && (
