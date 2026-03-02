@@ -24,11 +24,9 @@ function cleanStr(v: any) {
   const s = String(v ?? "").trim();
   return s || "";
 }
-
 function normUpper(v: any) {
   return cleanStr(v).toUpperCase();
 }
-
 function joinNice(parts: Array<any>) {
   return parts
     .map((x) => String(x || "").trim())
@@ -42,7 +40,6 @@ function makeInvoiceNumber(seedA: string, seedB: string) {
   const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, "0");
 
-  // deterministic-ish 7 digits from seeds (so old shipments without invoiceNumber still get one)
   const seed = `${seedA}::${seedB}`;
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -60,234 +57,241 @@ function computeInvoiceStatus(paid: boolean, dueDate?: string | null) {
   return Date.now() > d.getTime() ? ("overdue" as const) : ("pending" as const);
 }
 
-export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
+async function handleInvoice(req: Request, source: "GET" | "POST") {
+  const url = new URL(req.url);
 
-    // ✅ Option A (simple): /api/invoice?q=TRACKING_OR_SHIPMENT
-    const q = cleanStr(url.searchParams.get("q"));
+  // ✅ GET query params
+  let q = cleanStr(url.searchParams.get("q"));
+  let invoiceParam = cleanStr(url.searchParams.get("invoice"));
+  let emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
 
-    // ✅ Option B (secure): /api/invoice?invoice=...&email=...
-    const invoiceParam = cleanStr(url.searchParams.get("invoice"));
-    const emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
+  // ✅ POST body (optional)
+  if (source === "POST") {
+    const body = await req.json().catch(() => ({} as any));
+    q = q || cleanStr(body?.q);
+    invoiceParam = invoiceParam || cleanStr(body?.invoice);
+    emailParam = emailParam || cleanStr(body?.email).toLowerCase();
+  }
 
-    if (!q && !invoiceParam) {
+  if (!q && !invoiceParam) {
+    return NextResponse.json(
+      { error: "Provide q OR invoice (+ email)." },
+      { status: 400 }
+    );
+  }
+
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB);
+
+  // ✅ Company settings
+  const companyDoc = await db
+    .collection<CompanySettingsDoc>("company_settings")
+    .findOne({ _id: "default" });
+
+  const company = {
+    name: companyDoc?.name || "Exodus Logistics Ltd.",
+    address:
+      companyDoc?.address || "1199 E Calaveras Blvd, California, USA 90201",
+    phone: companyDoc?.phone || "+1 (516) 243-7836",
+    email: companyDoc?.email || "support@goexoduslogistics.com",
+    registrationNumber: companyDoc?.registrationNumber || "",
+  };
+
+  // ✅ Pricing settings
+  const pricingDoc = await db
+    .collection<PricingSettingsDoc>("pricing_settings")
+    .findOne({ _id: "default" });
+
+  const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
+
+  const rates = {
+    shippingRate: pricing?.shippingRate ?? pricing?.shipping ?? null,
+    insuranceRate: pricing?.insuranceRate ?? pricing?.insurance ?? null,
+    fuelRate: pricing?.fuelRate ?? pricing?.fuel ?? null,
+    customsRate: pricing?.customsRate ?? pricing?.customs ?? null,
+    taxRate: pricing?.taxRate ?? pricing?.tax ?? null,
+    discountRate: pricing?.discountRate ?? pricing?.discount ?? null,
+
+    // backwards compat
+    shipping: pricing?.shippingRate ?? pricing?.shipping ?? null,
+    insurance: pricing?.insuranceRate ?? pricing?.insurance ?? null,
+    fuel: pricing?.fuelRate ?? pricing?.fuel ?? null,
+    customs: pricing?.customsRate ?? pricing?.customs ?? null,
+    tax: pricing?.taxRate ?? pricing?.tax ?? null,
+    discount: pricing?.discountRate ?? pricing?.discount ?? null,
+  };
+
+  let shipment: any | null = null;
+
+  // ----------------------------
+  // ✅ Secure: invoice + email
+  // ----------------------------
+  if (invoiceParam) {
+    if (!emailParam) {
       return NextResponse.json(
-        { error: "Provide q OR invoice (+ email)." },
+        { error: "email is required when using invoice." },
         { status: 400 }
       );
     }
 
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const invUpper = normUpper(invoiceParam);
 
-    // ✅ Company settings (admin controlled later)
-    const companyDoc = await db
-      .collection<CompanySettingsDoc>("company_settings")
-      .findOne({ _id: "default" });
+    shipment = await db.collection("shipments").findOne(
+      { "invoice.invoiceNumber": invUpper },
+      { projection: { _id: 0 } }
+    );
 
-    const company = {
-      name: companyDoc?.name || "Exodus Logistics Ltd.",
-      address:
-        companyDoc?.address || "1199 E Calaveras Blvd, California, USA 90201",
-      phone: companyDoc?.phone || "+1 (516) 243-7836",
-      email: companyDoc?.email || "support@goexoduslogistics.com",
-      registrationNumber: companyDoc?.registrationNumber || "",
-    };
-
-    // ✅ Pricing settings (rate labels)
-    const pricingDoc = await db
-      .collection<PricingSettingsDoc>("pricing_settings")
-      .findOne({ _id: "default" });
-
-    const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
-
-    const rates = {
-      shippingRate: pricing?.shippingRate ?? pricing?.shipping ?? null,
-      insuranceRate: pricing?.insuranceRate ?? pricing?.insurance ?? null,
-      fuelRate: pricing?.fuelRate ?? pricing?.fuel ?? null,
-      customsRate: pricing?.customsRate ?? pricing?.customs ?? null,
-      taxRate: pricing?.taxRate ?? pricing?.tax ?? null,
-      discountRate: pricing?.discountRate ?? pricing?.discount ?? null,
-
-      // backwards compat
-      shipping: pricing?.shippingRate ?? pricing?.shipping ?? null,
-      insurance: pricing?.insuranceRate ?? pricing?.insurance ?? null,
-      fuel: pricing?.fuelRate ?? pricing?.fuel ?? null,
-      customs: pricing?.customsRate ?? pricing?.customs ?? null,
-      tax: pricing?.taxRate ?? pricing?.tax ?? null,
-      discount: pricing?.discountRate ?? pricing?.discount ?? null,
-    };
-
-    let shipment: any | null = null;
-
-    // ----------------------------
-    // ✅ Secure: invoice + email
-    // ----------------------------
-    if (invoiceParam) {
-      if (!emailParam) {
-        return NextResponse.json(
-          { error: "email is required when using invoice." },
-          { status: 400 }
-        );
-      }
-
-      const invUpper = normUpper(invoiceParam);
-
-      shipment = await db.collection("shipments").findOne(
-        { "invoice.invoiceNumber": invUpper },
-        { projection: { _id: 0 } }
-      );
-
-      if (!shipment) {
-        return NextResponse.json(
-          { error: "Invoice not found." },
-          { status: 404 }
-        );
-      }
-
-      // verify email matches shipment parties (basic protection)
-      const senderEmail = cleanStr(shipment?.senderEmail).toLowerCase();
-      const receiverEmail = cleanStr(shipment?.receiverEmail).toLowerCase();
-      const createdByEmail = cleanStr(shipment?.createdByEmail).toLowerCase();
-
-      const ok =
-        emailParam === senderEmail ||
-        emailParam === receiverEmail ||
-        emailParam === createdByEmail;
-
-      if (!ok) {
-        return NextResponse.json(
-          { error: "Invoice/email mismatch." },
-          { status: 403 }
-        );
-      }
+    if (!shipment) {
+      return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
     }
 
-    // ----------------------------
-    // ✅ Simple: q = tracking/shipment
-    // ----------------------------
-    if (!shipment && q) {
-      const qq = normUpper(q);
-      shipment = await db.collection("shipments").findOne(
-        { $or: [ciExact("trackingNumber", qq), ciExact("shipmentId", qq)] },
-        { projection: { _id: 0 } }
-      );
+    const senderEmail = cleanStr(shipment?.senderEmail).toLowerCase();
+    const receiverEmail = cleanStr(shipment?.receiverEmail).toLowerCase();
+    const createdByEmail = cleanStr(shipment?.createdByEmail).toLowerCase();
 
-      if (!shipment) {
-        return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
-      }
+    const ok =
+      emailParam === senderEmail ||
+      emailParam === receiverEmail ||
+      emailParam === createdByEmail;
+
+    if (!ok) {
+      return NextResponse.json({ error: "Invoice/email mismatch." }, { status: 403 });
     }
+  }
 
-    const s: any = shipment;
-    const inv = s?.invoice || {};
+  // ----------------------------
+  // ✅ Simple: q = tracking/shipment
+  // ----------------------------
+  if (!shipment && q) {
+    const qq = normUpper(q);
+    shipment = await db.collection("shipments").findOne(
+      { $or: [ciExact("trackingNumber", qq), ciExact("shipmentId", qq)] },
+      { projection: { _id: 0 } }
+    );
 
-    // ✅ Ensure invoiceNumber exists (even for old shipments)
-    const invoiceNumber =
-      normUpper(inv?.invoiceNumber) ||
-      makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
+    if (!shipment) {
+      return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
+    }
+  }
 
-    const amount = Number(inv?.amount ?? 0);
-    const currency = normUpper(inv?.currency || "USD") || "USD";
-    const paid = Boolean(inv?.paid);
-    const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
-    const paymentMethod = cleanStr(inv?.paymentMethod) || "Online / Bank Transfer";
-    const status = computeInvoiceStatus(paid, dueDate);
+  const s: any = shipment;
+  const inv = s?.invoice || {};
 
-    const declaredValueRaw =
-      s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
-    const declaredValue = Number(declaredValueRaw) || 0;
+  const invoiceNumber =
+    normUpper(inv?.invoiceNumber) ||
+    makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
 
-    const breakdownFromDb = inv?.breakdown ?? null;
+  const amount = Number(inv?.amount ?? 0);
+  const currency = normUpper(inv?.currency || "USD") || "USD";
+  const paid = Boolean(inv?.paid);
+  const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
 
-    const breakdown =
-      breakdownFromDb
-        ? {
-            ...breakdownFromDb,
-            declaredValue:
-              Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
-            rates: { ...rates, ...(breakdownFromDb?.rates || {}) },
-          }
-        : { declaredValue, rates };
+  // ✅ IMPORTANT: paymentMethod should be NULL unless admin sets it
+  const paymentMethod = cleanStr(inv?.paymentMethod) || null;
 
-    const senderEmail = cleanStr(s?.senderEmail);
-    const receiverEmail = cleanStr(s?.receiverEmail) || cleanStr(s?.createdByEmail);
+  // ✅ Allow admin override: invoice.status = "cancelled" | "overdue" | "pending" | "paid"
+  const statusOverride = cleanStr(inv?.status).toLowerCase();
+  const computedStatus = computeInvoiceStatus(paid, dueDate);
+  const status =
+    statusOverride && ["paid", "pending", "overdue", "cancelled"].includes(statusOverride)
+      ? (statusOverride as any)
+      : computedStatus;
 
-    const senderCountry =
-      cleanStr(s?.senderCountry || s?.senderCountryName || s?.senderCountryCode) || null;
-    const receiverCountry =
-      cleanStr(s?.receiverCountry || s?.receiverCountryName || s?.destinationCountryCode) || null;
+  const declaredValueRaw =
+    s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
+  const declaredValue = Number(declaredValueRaw) || 0;
 
-    const fromFull =
-      joinNice([s?.senderCity, s?.senderState, senderCountry]) ||
-      cleanStr(s?.origin) ||
-      "—";
+  const breakdownFromDb = inv?.breakdown ?? null;
+  const breakdown =
+    breakdownFromDb
+      ? {
+          ...breakdownFromDb,
+          declaredValue: Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
+          rates: { ...rates, ...(breakdownFromDb?.rates || {}) },
+        }
+      : { declaredValue, rates };
 
-    const toFull =
-      joinNice([s?.receiverCity, s?.receiverState, receiverCountry]) ||
-      cleanStr(s?.destination) ||
-      "—";
+  const senderEmail = cleanStr(s?.senderEmail);
+  const receiverEmail = cleanStr(s?.receiverEmail) || cleanStr(s?.createdByEmail);
 
-    return NextResponse.json({
-      company,
+  const senderCountry =
+    cleanStr(s?.senderCountry || s?.senderCountryName || s?.senderCountryCode) || null;
+  const receiverCountry =
+    cleanStr(s?.receiverCountry || s?.receiverCountryName || s?.destinationCountryCode) || null;
 
-      invoiceNumber,
-      status, // paid | pending | overdue
-      currency,
-      total: amount,
-      paid,
-      paidAt: inv?.paidAt || null,
+  const originFull =
+    joinNice([s?.senderCity, s?.senderState, senderCountry]) || cleanStr(s?.origin) || "—";
+  const destinationFull =
+    joinNice([s?.receiverCity, s?.receiverState, receiverCountry]) ||
+    cleanStr(s?.destination) ||
+    "—";
 
-      dueDate,
-      paymentMethod,
+  return NextResponse.json({
+    company,
 
-      declaredValue,
-      declaredValueCurrency: normUpper(s?.declaredValueCurrency || currency) || currency,
+    invoiceNumber,
+    status, // paid | pending | overdue | cancelled
+    currency,
+    total: amount,
+    paid,
+    paidAt: inv?.paidAt || null,
 
-      breakdown,
+    dueDate,
+    paymentMethod,
 
-      shipment: {
-        shipmentId: cleanStr(s?.shipmentId),
-        trackingNumber: cleanStr(s?.trackingNumber),
+    declaredValue,
+    declaredValueCurrency: normUpper(s?.declaredValueCurrency || currency) || currency,
 
-        origin: cleanStr(s?.senderCountryCode) || "—",
-        destination: cleanStr(s?.destinationCountryCode) || "—",
+    breakdown,
 
-        originFull: fromFull,
-        destinationFull: toFull,
+    shipment: {
+      shipmentId: cleanStr(s?.shipmentId),
+      trackingNumber: cleanStr(s?.trackingNumber),
 
-        status: cleanStr(s?.status) || "—",
+      originFull,
+      destinationFull,
 
-        shipmentType: s?.shipmentType || s?.packageType || null,
-        serviceLevel: s?.serviceLevel || s?.serviceType || s?.speed || null,
-        weightKg: s?.weightKg ?? s?.weight ?? null,
-        dimensionsCm: s?.dimensionsCm ?? s?.dimensions ?? null,
+      status: cleanStr(s?.status) || "—",
+      shipmentType: s?.shipmentType || s?.packageType || null,
+      serviceLevel: s?.serviceLevel || s?.serviceType || s?.speed || null,
+      weightKg: s?.weightKg ?? s?.weight ?? null,
+      dimensionsCm: s?.dimensionsCm ?? s?.dimensions ?? null,
 
-        senderCountry,
-        senderState: s?.senderState || null,
-        senderCity: s?.senderCity || null,
-        senderAddress: s?.senderAddress || null,
-        senderPostalCode: s?.senderPostalCode || null,
+      senderCountry,
+      senderState: s?.senderState || null,
+      senderCity: s?.senderCity || null,
 
-        receiverCountry,
-        receiverState: s?.receiverState || null,
-        receiverCity: s?.receiverCity || null,
-        receiverAddress: s?.receiverAddress || null,
-        receiverPostalCode: s?.receiverPostalCode || null,
-      },
+      receiverCountry,
+      receiverState: s?.receiverState || null,
+      receiverCity: s?.receiverCity || null,
+    },
 
-      parties: {
-        senderName: s?.senderName || "Sender",
-        receiverName: s?.receiverName || "Receiver",
-        senderEmail,
-        receiverEmail,
-      },
+    parties: {
+      senderName: s?.senderName || "Sender",
+      receiverName: s?.receiverName || "Receiver",
+      senderEmail,
+      receiverEmail,
+    },
 
-      dates: {
-        createdAt: s?.createdAt || null,
-        updatedAt: s?.updatedAt || null,
-      },
-    });
+    dates: {
+      createdAt: s?.createdAt || null,
+      updatedAt: s?.updatedAt || null,
+    },
+  });
+}
+
+export async function GET(req: Request) {
+  try {
+    return await handleInvoice(req, "GET");
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    return await handleInvoice(req, "POST");
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

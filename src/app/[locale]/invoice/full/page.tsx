@@ -11,20 +11,17 @@ import {
   BadgeCheck,
   BadgeX,
   Calendar,
-  CalendarClock,
   CreditCard,
   FileText,
   Mail,
   MapPin,
   Package,
-  Percent,
-  ReceiptText,
-  Ruler,
+  Printer,
+  Receipt,
   Truck,
-  XCircle,
+  Hourglass,
+  Ban,
 } from "lucide-react";
-
-type InvoiceStatus = "paid" | "pending" | "overdue" | "cancelled";
 
 type InvoiceApiResponse = {
   company?: {
@@ -36,10 +33,11 @@ type InvoiceApiResponse = {
   };
 
   invoiceNumber?: string;
-  status?: InvoiceStatus;
+  status?: "paid" | "pending" | "overdue" | "cancelled";
   currency?: string;
   total?: number;
   paid?: boolean;
+  paidAt?: string | null;
 
   dueDate?: string | null;
   paymentMethod?: string | null;
@@ -50,12 +48,12 @@ type InvoiceApiResponse = {
   breakdown?: {
     declaredValue?: number;
     rates?: {
-      shippingRate?: number;
-      insuranceRate?: number;
-      fuelRate?: number;
-      customsRate?: number;
-      taxRate?: number;
-      discountRate?: number;
+      shippingRate?: number | null;
+      insuranceRate?: number | null;
+      fuelRate?: number | null;
+      customsRate?: number | null;
+      taxRate?: number | null;
+      discountRate?: number | null;
     };
     shipping?: number;
     insurance?: number;
@@ -70,15 +68,11 @@ type InvoiceApiResponse = {
   shipment?: {
     shipmentId?: string;
     trackingNumber?: string;
-
     originFull?: string;
     destinationFull?: string;
 
-    status?: string;
-
     shipmentType?: string | null;
     serviceLevel?: string | null;
-
     weightKg?: number | string | null;
     dimensionsCm?: { length?: any; width?: any; height?: any; unit?: string } | null;
   };
@@ -98,8 +92,6 @@ type InvoiceApiResponse = {
   error?: string;
 };
 
-const ACCEPTED_METHODS = ["Cryptocurrency", "Bank transfer", "PayPal", "Zelle", "Cash", "Other"];
-
 function safeStr(v: any) {
   return String(v ?? "").trim();
 }
@@ -108,63 +100,83 @@ function fmtDate(iso?: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-}
-
-function fmtDateTime(iso?: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
 }
 
-function n(v: any) {
-  const x = Number(v);
-  return Number.isFinite(x) ? x : 0;
+function toNumber(v: any) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function fmtMoney(amount: any, currency: string) {
+function moneyFmt(amount: any, currency: string) {
+  const a = toNumber(amount);
   const c = (currency || "USD").toUpperCase();
-  const a = n(amount);
-
   try {
-    // ✅ currency symbol + commas (€, $, £, etc.)
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: c,
-      currencyDisplay: "symbol",
       maximumFractionDigits: 2,
-      minimumFractionDigits: 2,
     }).format(a);
   } catch {
-    // fallback
-    return `${a.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c}`;
+    // fallback if unsupported currency
+    return `${a.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${c}`;
   }
 }
 
-function fmtNumber(amount: any) {
-  const a = n(amount);
-  return a.toLocaleString(undefined, { maximumFractionDigits: 2 });
+function numberFmt(v: any) {
+  const n = toNumber(v);
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function fmtPercent(rate?: any) {
-  if (rate === null || rate === undefined || rate === "") return "";
-  const r = n(rate);
-  if (!Number.isFinite(r)) return "";
-  return `${r}%`;
+/**
+ * Convert stored rate to a “percent” for display.
+ * - If rate is 0.1 => 10%
+ * - If rate is 10 => 10%
+ */
+function rateToPercent(rate: any) {
+  const r = Number(rate);
+  if (!Number.isFinite(r)) return null;
+  const pct = r <= 1 ? r * 100 : r;
+  return pct;
 }
 
-function statusPill(status: InvoiceStatus, paid: boolean) {
-  // paid always wins visually
-  if (paid) return { label: "PAID", cls: "bg-green-50 border-green-200 text-green-800", Icon: BadgeCheck };
+const ACCEPTED_METHODS = [
+  "Cryptocurrency",
+  "Bank transfer",
+  "PayPal",
+  "Zelle",
+  "Cash",
+  "Other",
+];
 
-  if (status === "cancelled")
-    return { label: "CANCELLED", cls: "bg-gray-100 border-gray-200 text-gray-700", Icon: XCircle };
-
-  if (status === "overdue")
-    return { label: "OVERDUE", cls: "bg-red-50 border-red-200 text-red-800", Icon: AlertCircle };
-
-  return { label: "PAYMENT PENDING", cls: "bg-amber-50 border-amber-200 text-amber-800", Icon: BadgeX };
+function statusPill(status?: string, paid?: boolean) {
+  const s = (status || "").toLowerCase();
+  if (paid || s === "paid") {
+    return {
+      text: "PAID",
+      cls: "bg-green-50 border-green-200 text-green-800",
+      icon: <BadgeCheck className="w-4 h-4" />,
+    };
+  }
+  if (s === "cancelled") {
+    return {
+      text: "CANCELLED",
+      cls: "bg-gray-100 border-gray-200 text-gray-800",
+      icon: <Ban className="w-4 h-4" />,
+    };
+  }
+  if (s === "overdue") {
+    return {
+      text: "OVERDUE",
+      cls: "bg-red-50 border-red-200 text-red-800",
+      icon: <BadgeX className="w-4 h-4" />,
+    };
+  }
+  return {
+    text: "PAYMENT PENDING",
+    cls: "bg-amber-50 border-amber-200 text-amber-800",
+    icon: <Hourglass className="w-4 h-4" />,
+  };
 }
 
 export default function InvoiceFullPage() {
@@ -185,23 +197,32 @@ export default function InvoiceFullPage() {
     setErr("");
     setData(null);
 
+    // Must have:
+    // - q OR (invoice + email)
     if (!q && (!invoice || !email)) {
-      setErr("Invoice details are missing. Please open the invoice from the email or enter your details again.");
+      setErr(
+        "Invoice details are missing. Please open the invoice from the email, or enter your invoice number and the sender/receiver email again."
+      );
       setLoading(false);
       return;
     }
 
     try {
+      // ✅ Use GET so it matches your route.ts GET and also works when opened from links
       const qs = new URLSearchParams();
       if (q) qs.set("q", q);
-      if (!q && invoice) qs.set("invoice", invoice);
-      if (!q && email) qs.set("email", email);
+      if (invoice) qs.set("invoice", invoice);
+      if (email) qs.set("email", email);
 
       const res = await fetch(`/api/invoice?${qs.toString()}`, { method: "GET" });
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setErr(json?.error || json?.message || "Invoice not found. Please verify your details and try again.");
+        setErr(
+          json?.error ||
+            json?.message ||
+            "Invoice not found. Please verify your details and try again."
+        );
         return;
       }
 
@@ -218,83 +239,74 @@ export default function InvoiceFullPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, invoice, email]);
 
-  const paid = Boolean(data?.paid);
-  const status = (data?.status as InvoiceStatus) || (paid ? "paid" : "pending");
-
-  const invoiceNumber = safeStr(data?.invoiceNumber) || "—";
-  const shipmentId = safeStr(data?.shipment?.shipmentId) || "—";
-  const trackingNumber = safeStr(data?.shipment?.trackingNumber) || "—";
-
+  const company = data?.company || {};
   const currency = safeStr(data?.currency) || "USD";
-  const total = n(data?.total ?? data?.breakdown?.total ?? 0);
+  const total = toNumber(data?.total ?? data?.breakdown?.total ?? 0);
 
-  const createdAt = data?.dates?.createdAt ?? null;
-  const updatedAt = data?.dates?.updatedAt ?? null;
-  const dueDate = data?.dueDate ?? null;
+  const shipmentId = safeStr(data?.shipment?.shipmentId);
+  const trackingNumber = safeStr(data?.shipment?.trackingNumber);
+  const invoiceNumber = safeStr(data?.invoiceNumber);
 
-  // ✅ FULL route
   const originFull = safeStr(data?.shipment?.originFull) || "—";
   const destinationFull = safeStr(data?.shipment?.destinationFull) || "—";
 
-  const declaredValue = data?.declaredValue ?? data?.breakdown?.declaredValue ?? 0;
+  const declaredValue = toNumber(data?.declaredValue ?? data?.breakdown?.declaredValue ?? 0);
   const declaredValueCurrency = safeStr(data?.declaredValueCurrency) || currency;
 
   const shipmentType = safeStr(data?.shipment?.shipmentType) || "—";
   const serviceLevel = safeStr(data?.shipment?.serviceLevel) || "—";
+  const weightKg = data?.shipment?.weightKg;
+  const dims = data?.shipment?.dimensionsCm;
 
-  const weight = data?.shipment?.weightKg ?? null;
-  const weightLine = weight === null || weight === undefined || String(weight).trim() === "" ? "—" : `${fmtNumber(weight)} kg`;
-
-  const dim = data?.shipment?.dimensionsCm ?? null;
-  const dimUnit = safeStr(dim?.unit) || "cm";
+  const dimUnit = safeStr((dims as any)?.unit) || "cm";
   const dimLine =
-    dim && (dim.length || dim.width || dim.height)
-      ? `${safeStr(dim.length) || "—"} × ${safeStr(dim.width) || "—"} × ${safeStr(dim.height) || "—"} ${dimUnit}`
+    dims && (dims as any)
+      ? `${safeStr((dims as any)?.length) || "—"} × ${safeStr((dims as any)?.width) || "—"} × ${safeStr((dims as any)?.height) || "—"} ${dimUnit}`
       : "—";
 
-  const senderName = safeStr(data?.parties?.senderName) || "—";
-  const receiverName = safeStr(data?.parties?.receiverName) || "—";
-  const senderEmail = safeStr(data?.parties?.senderEmail) || "—";
-  const receiverEmail = safeStr(data?.parties?.receiverEmail) || "—";
-
-  const paymentMethodRaw = safeStr(data?.paymentMethod);
-  // ✅ show "null" if admin hasn’t set it yet
-  const recordedMethod = paymentMethodRaw ? paymentMethodRaw : "null";
-
-  const rates = data?.breakdown?.rates || {};
-  const shippingRate = rates.shippingRate;
-  const insuranceRate = rates.insuranceRate;
-  const fuelRate = rates.fuelRate;
-  const customsRate = rates.customsRate;
-  const taxRate = rates.taxRate;
-  const discountRate = rates.discountRate;
-
-  const shipping = n(data?.breakdown?.shipping);
-  const insurance = n(data?.breakdown?.insurance);
-  const fuel = n(data?.breakdown?.fuel);
-  const customs = n(data?.breakdown?.customs);
-  const tax = n(data?.breakdown?.tax);
-  const discount = n(data?.breakdown?.discount);
-  const subtotal = n(data?.breakdown?.subtotal);
-
+  const paid = Boolean(data?.paid);
+  const status = data?.status || (paid ? "paid" : "pending");
   const pill = statusPill(status, paid);
 
-  const trackTarget = (trackingNumber !== "—" ? trackingNumber : shipmentId !== "—" ? shipmentId : q).toUpperCase();
+  const dueDate = data?.dueDate || null;
+  const paymentMethod = data?.paymentMethod ?? null;
+
+  const rates = data?.breakdown?.rates || {};
+  const shippingRate = rateToPercent((rates as any)?.shippingRate);
+  const insuranceRate = rateToPercent((rates as any)?.insuranceRate);
+  const fuelRate = rateToPercent((rates as any)?.fuelRate);
+  const customsRate = rateToPercent((rates as any)?.customsRate);
+  const taxRate = rateToPercent((rates as any)?.taxRate);
+  const discountRate = rateToPercent((rates as any)?.discountRate);
+
+  const b = data?.breakdown || {};
+  const shipping = toNumber((b as any)?.shipping);
+  const insurance = toNumber((b as any)?.insurance);
+  const fuel = toNumber((b as any)?.fuel);
+  const customs = toNumber((b as any)?.customs);
+  const tax = toNumber((b as any)?.tax);
+  const discount = toNumber((b as any)?.discount);
+  const subtotal = toNumber((b as any)?.subtotal);
+  const calcTotal = toNumber((b as any)?.total ?? total);
+
+  const senderName = safeStr(data?.parties?.senderName) || "—";
+  const senderEmail = safeStr(data?.parties?.senderEmail) || "—";
+  const receiverName = safeStr(data?.parties?.receiverName) || "—";
+  const receiverEmail = safeStr(data?.parties?.receiverEmail) || "—";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-cyan-50 py-8 print:bg-white print:py-0">
-      {/* Print styles */}
+    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-cyan-50 py-12 print:py-0">
+      {/* print styles */}
       <style jsx global>{`
         @media print {
-          body {
-            background: #fff !important;
-          }
-          .print-hide {
+          .no-print {
             display: none !important;
           }
-          .print-card {
+          body {
+            background: white !important;
+          }
+          .print-no-shadow {
             box-shadow: none !important;
-            border: 1px solid #e5e7eb !important;
           }
           .print-no-border {
             border: none !important;
@@ -302,9 +314,9 @@ export default function InvoiceFullPage() {
         }
       `}</style>
 
-      <div className="max-w-5xl mx-auto px-4 print:px-0">
-        {/* Top nav (hide on print) */}
-        <div className="mb-4 flex flex-col sm:flex-row gap-3 print-hide">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Top nav + Print */}
+        <div className="no-print mb-6 flex flex-col sm:flex-row gap-3">
           <Link
             href={`/${locale}/invoice`}
             className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
@@ -313,315 +325,391 @@ export default function InvoiceFullPage() {
             <ArrowLeft className="w-5 h-5 mr-2" /> Back to Invoice Search
           </Link>
 
-          {trackTarget ? (
+          {(trackingNumber || shipmentId || q) && (
             <Link
-              href={`/${locale}/track/${encodeURIComponent(trackTarget)}`}
+              href={`/${locale}/track/${encodeURIComponent(
+                (trackingNumber || shipmentId || q).toUpperCase()
+              )}`}
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
                          hover:border-blue-600 hover:text-blue-700 transition"
             >
               <Truck className="w-5 h-5 mr-2" /> Track Shipment
             </Link>
-          ) : null}
+          )}
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="sm:ml-auto inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-900 to-cyan-800 text-white font-semibold shadow
+                       hover:opacity-95 transition"
+          >
+            <Printer className="w-5 h-5 mr-2" /> Print
+          </button>
         </div>
 
         {loading && (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl print-card">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
             <p className="text-sm text-gray-700">Loading invoice…</p>
           </div>
         )}
 
         {!loading && err && (
-          <div className="rounded-3xl border border-red-200 bg-white p-6 shadow-xl print-card">
+          <div className="rounded-3xl border border-red-200 bg-white p-6 shadow-xl">
             <div className="flex items-center text-red-700 font-semibold">
               <AlertCircle className="w-5 h-5 mr-2" />
               {err}
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              If you opened this from an email, ensure the invoice number is correct and the email matches the sender/receiver email on the shipment.
+              If you opened this from an email, confirm the invoice number and use the sender/receiver email linked to the shipment.
             </p>
           </div>
         )}
 
         {!loading && data && (
           <>
-            {/* ✅ Header like before (blue gradient bar) */}
+            {/* Header card (print friendly) */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card"
+              className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-no-shadow"
             >
-              <div className="bg-gradient-to-r from-blue-800 via-blue-700 to-blue-900 px-6 py-5 text-white">
-                <div className="flex items-center justify-between gap-4">
+              {/* Gradient header like your screenshot */}
+              <div className="bg-gradient-to-r from-white via-blue-900 to-cyan-800 px-6 sm:px-8 py-5">
+                <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-12 w-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-2xl bg-white/95 border border-white/40 overflow-hidden flex items-center justify-center">
+                      {/* ✅ SVG logo */}
                       <Image
-                        src="/logo.png"
+                        src="/logo.svg"
                         alt="Exodus Logistics"
-                        width={48}
-                        height={48}
+                        width={44}
+                        height={44}
                         className="object-contain"
                       />
                     </div>
+
                     <div className="min-w-0">
-                      <p className="text-sm opacity-90">{safeStr(data?.company?.name) || "Exodus Logistics"}</p>
-                      <p className="text-xs opacity-80">Invoice</p>
+                      <p className="text-white/80 text-xs">{safeStr(company?.name) || "Exodus Logistics Ltd."}</p>
+                      <p className="text-white text-sm font-semibold">Invoice</p>
+
+                      {/* company contact (editable from admin via company_settings) */}
+                      <div className="mt-1 text-[11px] text-white/80 space-y-0.5">
+                        <div>{safeStr(company?.address) || "—"}</div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1">
+                          <span>{safeStr(company?.phone) || "—"}</span>
+                          <span>{safeStr(company?.email) || "—"}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-sm opacity-90">Invoice number</p>
-                    <p className="text-xl sm:text-2xl font-extrabold tracking-wide break-all">
-                      {invoiceNumber}
+                    <p className="text-white/80 text-xs">Invoice number</p>
+                    <p className="text-white text-lg sm:text-2xl font-extrabold tracking-wide">
+                      {invoiceNumber || "—"}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Main content */}
+              {/* Summary row like your screenshot */}
               <div className="p-6 sm:p-8">
-                {/* Top summary row (Created / Shipment / Total) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  {/* Created */}
                   <div className="rounded-2xl border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                       <Calendar className="w-4 h-4 text-gray-700" />
                       Created
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-gray-900">{fmtDate(createdAt)}</p>
+                    <p className="mt-2 text-sm font-semibold text-gray-900">
+                      {fmtDate(data?.dates?.createdAt)}
+                    </p>
                     <p className="mt-1 text-xs text-gray-600">
-                      Updated: <span className="font-semibold">{fmtDateTime(updatedAt)}</span>
+                      Updated: <span className="font-semibold">{fmtDate(data?.dates?.updatedAt)}</span>
                     </p>
                   </div>
 
+                  {/* Shipment (ONLY these 3) */}
                   <div className="rounded-2xl border border-gray-200 p-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                       <Package className="w-4 h-4 text-gray-700" />
                       Shipment
                     </div>
-                    <p className="mt-2 text-sm font-extrabold text-gray-900 break-all">{shipmentId}</p>
-                    <p className="mt-1 text-xs text-gray-600 break-all">
-                      Tracking: <span className="font-semibold text-gray-900">{trackingNumber}</span>
-                    </p>
-                    <p className="mt-2 text-xs text-gray-600">
-                      Declared value:{" "}
-                      <span className="font-semibold text-gray-900">
-                        {fmtMoney(declaredValue, declaredValueCurrency)}
-                      </span>
-                    </p>
-                    <div className="mt-3 text-xs text-gray-600 space-y-1">
-                      <div>
-                        Type: <span className="font-semibold text-gray-900">{shipmentType}</span>
-                      </div>
-                      <div>
-                        Service: <span className="font-semibold text-gray-900">{serviceLevel}</span>
-                      </div>
-                      <div>
-                        Weight: <span className="font-semibold text-gray-900">{weightLine}</span>
-                      </div>
-                      <div>
-                        Dimensions: <span className="font-semibold text-gray-900">{dimLine}</span>
-                      </div>
-                    </div>
+
+                    <p className="mt-2 text-xs text-gray-600">Shipment ID</p>
+                    <p className="text-sm font-semibold text-gray-900 break-all">{shipmentId || "—"}</p>
+
+                    <p className="mt-2 text-xs text-gray-600">Tracking</p>
+                    <p className="text-sm font-semibold text-gray-900 break-all">{trackingNumber || "—"}</p>
+
+                    <p className="mt-2 text-xs text-gray-600">Invoice number</p>
+                    <p className="text-sm font-semibold text-gray-900 break-all">{invoiceNumber || "—"}</p>
                   </div>
 
+                  {/* Total + Status + Due */}
                   <div className="rounded-2xl border border-gray-200 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">Total</p>
-                        <p className="mt-2 text-2xl font-extrabold text-gray-900">
-                          {fmtMoney(total, currency)}
-                        </p>
-                      </div>
+                    <p className="text-xs text-gray-600">Total</p>
+                    <p className="text-2xl font-extrabold text-gray-900">
+                      {moneyFmt(calcTotal, currency)}
+                    </p>
 
-                      <div
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-extrabold ${pill.cls}`}
-                      >
-                        <pill.Icon className="w-4 h-4" />
-                        {pill.label}
-                      </div>
+                    <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-extrabold ${pill.cls}`}>
+                      {pill.icon}
+                      {pill.text}
                     </div>
 
-                    {/* ✅ Due date box */}
-                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
-                        <CalendarClock className="w-4 h-4 text-gray-700" />
-                        Due date
-                      </div>
-                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-600">Due date</p>
+                      <p className="text-sm font-semibold text-gray-900">
                         {dueDate ? fmtDate(dueDate) : "—"}
                       </p>
                     </div>
 
                     <p className="mt-3 text-sm text-gray-700">
-                      {paid
-                        ? "Payment confirmed. This invoice has been settled."
+                      {paid || status === "paid"
+                        ? "Payment has been confirmed. Your invoice is settled."
                         : status === "cancelled"
-                        ? "This invoice has been cancelled. If you believe this is incorrect, please contact support."
+                        ? "This invoice has been cancelled."
                         : status === "overdue"
-                        ? "This invoice is overdue. Please complete payment as soon as possible to avoid delays."
-                        : "Payment pending. Please complete payment to move the shipment to the next stage."}
+                        ? "This invoice is overdue. Please contact support or complete payment to avoid delays."
+                        : "Payment is pending. Please complete payment to move the shipment to the next stage."}
                     </p>
                   </div>
                 </div>
 
-                {/* Route + Parties */}
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-2xl border border-gray-200 p-4 md:col-span-1">
+                {/* Declared value/type/service/weight/dimensions in its own box */}
+                <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div className="rounded-2xl border border-gray-200 p-4 lg:col-span-1">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <Receipt className="w-4 h-4 text-gray-700" />
+                      Declaration & package
+                    </div>
+
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Declared value</span>
+                        <span className="font-semibold text-gray-900">
+                          {moneyFmt(declaredValue, declaredValueCurrency)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Type</span>
+                        <span className="font-semibold text-gray-900">{shipmentType}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Service</span>
+                        <span className="font-semibold text-gray-900">{serviceLevel}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Weight</span>
+                        <span className="font-semibold text-gray-900">
+                          {weightKg != null && safeStr(weightKg) !== "" ? `${safeStr(weightKg)} kg` : "—"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Dimensions</span>
+                        <span className="font-semibold text-gray-900">{dimLine}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Route box */}
+                  <div className="rounded-2xl border border-gray-200 p-4 lg:col-span-1">
                     <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                       <MapPin className="w-4 h-4 text-gray-700" />
                       Route
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-gray-900">
-                      {originFull} → {destinationFull}
-                    </p>
-                    <p className="mt-2 text-xs text-gray-600">
-                      Shipment status: <span className="font-semibold text-gray-900">{safeStr(data?.shipment?.status) || "—"}</span>
-                    </p>
+
+                    <div className="mt-3 text-sm">
+                      <p className="text-xs text-gray-600">From</p>
+                      <p className="font-semibold text-gray-900">{originFull}</p>
+
+                      <p className="mt-3 text-xs text-gray-600">To</p>
+                      <p className="font-semibold text-gray-900">{destinationFull}</p>
+                    </div>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                      <Mail className="w-4 h-4 text-gray-700" />
-                      Sender
+                  {/* Sender/Receiver */}
+                  <div className="rounded-2xl border border-gray-200 p-4 lg:col-span-1">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                          <Mail className="w-4 h-4 text-gray-700" />
+                          Sender
+                        </div>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{senderName}</p>
+                        <p className="text-xs text-gray-600 break-all">{senderEmail}</p>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-100">
+                        <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                          <Mail className="w-4 h-4 text-gray-700" />
+                          Receiver
+                        </div>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{receiverName}</p>
+                        <p className="text-xs text-gray-600 break-all">{receiverEmail}</p>
+                      </div>
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-gray-900">{senderName}</p>
-                    <p className="mt-1 text-xs text-gray-600 break-all">{senderEmail}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* footer strip */}
+              <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700 print:rounded-none">
+                This invoice is linked to a specific shipment and can only be accessed using the correct invoice details.
+              </div>
+            </motion.div>
+
+            {/* Payment method + Charges */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4"
+            >
+              {/* Payment method */}
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6 print-no-shadow">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-700" />
+                  <h2 className="text-lg font-extrabold text-gray-900">Payment method</h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600">Accepted payment methods:</p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {ACCEPTED_METHODS.map((m) => (
+                    <span
+                      key={m}
+                      className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+                  <p className="text-xs text-gray-600">Recorded method</p>
+                  <p className="mt-1 text-sm font-extrabold text-gray-900">
+                    {paymentMethod ? paymentMethod : "NULL"}
+                  </p>
+
+                  {!paid && status !== "paid" ? (
+                    <p className="mt-2 text-sm text-gray-700">
+                      This invoice is currently{" "}
+                      <span className="font-extrabold text-amber-700">
+                        {pill.text}
+                      </span>
+                      . Please proceed with payment using one of the accepted methods above.
+                      Once payment is confirmed, the shipment will be eligible to move to the next stage.
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-700">
+                      This invoice is{" "}
+                      <span className="font-extrabold text-green-700">PAID</span>.{" "}
+                      Payment has been successfully recorded in our system.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Charges summary */}
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6 print-no-shadow">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-blue-700" />
+                  <h2 className="text-lg font-extrabold text-gray-900">Charges summary</h2>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Charges are calculated from your declared value.
+                </p>
+
+                <div className="mt-5 space-y-2 text-sm">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">
+                      Shipping{shippingRate != null ? ` (${numberFmt(shippingRate)}%)` : ""}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {moneyFmt(shipping, currency)}
+                    </span>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                      <Mail className="w-4 h-4 text-gray-700" />
-                      Receiver
-                    </div>
-                    <p className="mt-2 text-sm font-semibold text-gray-900">{receiverName}</p>
-                    <p className="mt-1 text-xs text-gray-600 break-all">{receiverEmail}</p>
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">
+                      Insurance{insuranceRate != null ? ` (${numberFmt(insuranceRate)}%)` : ""}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {moneyFmt(insurance, currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">
+                      Fuel{fuelRate != null ? ` (${numberFmt(fuelRate)}%)` : ""}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {moneyFmt(fuel, currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">
+                      Customs{customsRate != null ? ` (${numberFmt(customsRate)}%)` : ""}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {moneyFmt(customs, currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">
+                      Tax{taxRate != null ? ` (${numberFmt(taxRate)}%)` : ""}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {moneyFmt(tax, currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">
+                      Discount{discountRate != null ? ` (${numberFmt(discountRate)}%)` : ""}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {moneyFmt(discount, currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-900 font-extrabold">Subtotal</span>
+                    <span className="text-gray-900 font-extrabold">
+                      {moneyFmt(subtotal, currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-900 font-extrabold">Total</span>
+                    <span className="text-gray-900 font-extrabold">
+                      {moneyFmt(calcTotal, currency)}
+                    </span>
                   </div>
                 </div>
 
-                {/* Payment method + Charges */}
-                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Payment Method Block */}
-                  <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6 print-card">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-blue-700" />
-                      <h2 className="text-lg font-extrabold text-gray-900">Payment method</h2>
-                    </div>
-
-                    <p className="mt-1 text-sm text-gray-600">Accepted payment methods:</p>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {ACCEPTED_METHODS.map((m) => (
-                        <span
-                          key={m}
-                          className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
-                        >
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-                      <p className="text-xs text-gray-600">Recorded method</p>
-                      <p className="mt-1 text-sm font-extrabold text-gray-900">{recordedMethod}</p>
-
-                      {!paid ? (
-                        <p className="mt-2 text-sm text-gray-700">
-                          This invoice is currently{" "}
-                          <span className="font-extrabold text-amber-700">NOT PAID</span>.
-                          Please proceed with payment using one of the accepted methods above.
-                          Once payment is confirmed, the shipment will be eligible to move to the next stage.
-                        </p>
-                      ) : (
-                        <p className="mt-2 text-sm text-gray-700">
-                          This invoice is <span className="font-extrabold text-green-700">PAID</span>.
-                          {paymentMethodRaw ? " The payment method has been recorded." : " The payment method was not recorded."}
-                        </p>
-                      )}
-                    </div>
+                {!paid && status !== "paid" ? (
+                  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    Payment is pending. Please complete payment to avoid delays in processing.
                   </div>
-
-                  {/* Charges */}
-                  <div className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6 print-card">
-                    <div className="flex items-center gap-2">
-                      <ReceiptText className="w-5 h-5 text-blue-700" />
-                      <h2 className="text-lg font-extrabold text-gray-900">Charges summary</h2>
-                    </div>
-
-                    <p className="mt-1 text-sm text-gray-600">
-                      Charges are calculated from your declared value and pricing settings.
-                    </p>
-
-                    <div className="mt-5 space-y-2 text-sm">
-                      <Line
-                        label="Shipping"
-                        pct={fmtPercent(shippingRate)}
-                        value={fmtMoney(shipping, currency)}
-                      />
-                      <Line
-                        label="Insurance"
-                        pct={fmtPercent(insuranceRate)}
-                        value={fmtMoney(insurance, currency)}
-                      />
-                      <Line
-                        label="Fuel"
-                        pct={fmtPercent(fuelRate)}
-                        value={fmtMoney(fuel, currency)}
-                      />
-                      <Line
-                        label="Customs"
-                        pct={fmtPercent(customsRate)}
-                        value={fmtMoney(customs, currency)}
-                      />
-                      <Line
-                        label="Tax"
-                        pct={fmtPercent(taxRate)}
-                        value={fmtMoney(tax, currency)}
-                      />
-                      <Line
-                        label="Discount"
-                        pct={fmtPercent(discountRate)}
-                        value={fmtMoney(discount, currency)}
-                      />
-
-                      <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
-                        <span className="text-gray-900 font-extrabold">Subtotal</span>
-                        <span className="text-gray-900 font-extrabold">{fmtMoney(subtotal, currency)}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-gray-900 font-extrabold text-lg">Total</span>
-                        <span className="text-gray-900 font-extrabold text-lg">{fmtMoney(total, currency)}</span>
-                      </div>
-                    </div>
-
-                    {!paid ? (
-                      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        Payment is pending. Please complete payment to avoid delays in processing.
-                      </div>
-                    ) : (
-                      <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-                        Payment confirmed. Thank you — your invoice has been settled.
-                      </div>
-                    )}
+                ) : (
+                  <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+                    Payment confirmed. Thank you — your invoice has been settled.
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-function Line({ label, pct, value }: { label: string; pct?: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-      <div className="flex items-center gap-2">
-        <Percent className="w-4 h-4 text-gray-500" />
-        <span className="text-gray-700">{label}</span>
-        {pct ? <span className="text-xs text-gray-500">({pct})</span> : null}
-      </div>
-      <span className="font-semibold text-gray-900">{value}</span>
     </div>
   );
 }
