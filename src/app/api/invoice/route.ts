@@ -180,6 +180,18 @@ export async function GET(req: Request) {
     const invoiceNumber =
       normUpper(inv?.invoiceNumber) || makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
 
+      // ✅ If invoiceNumber does not exist, save it permanently
+if (!inv?.invoiceNumber) {
+  await db.collection("shipments").updateOne(
+    { shipmentId: s?.shipmentId },
+    {
+      $set: {
+        "invoice.invoiceNumber": invoiceNumber,
+      },
+    }
+  );
+}
+
     const amount = Number(inv?.amount ?? 0);
     const currency = normUpper(inv?.currency || "USD") || "USD";
     const paid = Boolean(inv?.paid);
