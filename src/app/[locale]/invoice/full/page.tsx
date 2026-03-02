@@ -64,6 +64,13 @@ type ApiResponse = {
     dimensionsCm?: { length?: any; width?: any; height?: any; unit?: string } | null;
   };
 
+  parties?: {
+  senderName?: string;
+  senderEmail?: string;
+  receiverName?: string;
+  receiverEmail?: string;
+};
+
   dates?: {
     createdAt?: string | null;
     updatedAt?: string | null;
@@ -601,6 +608,38 @@ export default function InvoiceFullPage() {
                     </div>
                   </div>
                 </div>
+
+               {/* Parties */}
+<div className="mt-4 rounded-3xl border border-gray-200 bg-white shadow p-6">
+  <div className="flex items-center gap-2 mb-4">
+    <FileText className="w-5 h-5 text-blue-700" />
+    <h2 className="text-lg font-extrabold text-gray-900">Parties</h2>
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+    {/* Sender */}
+    <div className="rounded-2xl border border-gray-200 p-4">
+      <p className="text-xs text-gray-600">Sender</p>
+      <p className="mt-1 font-semibold text-gray-900">
+        {safeStr(data?.parties?.senderName) || "—"}
+      </p>
+      <p className="text-gray-700 break-all">
+        {safeStr(data?.parties?.senderEmail) || "—"}
+      </p>
+    </div>
+
+    {/* Receiver */}
+    <div className="rounded-2xl border border-gray-200 p-4">
+      <p className="text-xs text-gray-600">Receiver</p>
+      <p className="mt-1 font-semibold text-gray-900">
+        {safeStr(data?.parties?.receiverName) || "—"}
+      </p>
+      <p className="text-gray-700 break-all">
+        {safeStr(data?.parties?.receiverEmail) || "—"}
+      </p>
+    </div>
+  </div>
+</div> 
 
                 <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="rounded-3xl border border-gray-200 bg-white shadow p-6">

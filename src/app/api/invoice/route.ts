@@ -235,6 +235,13 @@ export async function GET(req: Request) {
         dimensionsCm: s?.dimensionsCm ?? s?.dimensions ?? null,
       },
 
+      parties: {
+  senderName: cleanStr(s?.senderName) || "Sender",
+  senderEmail: cleanStr(s?.senderEmail) || cleanStr(s?.createdByEmail) || "",
+  receiverName: cleanStr(s?.receiverName) || "Receiver",
+  receiverEmail: cleanStr(s?.receiverEmail) || "",
+},
+
       dates: {
         createdAt: s?.createdAt || null,
         updatedAt: s?.updatedAt || null,
