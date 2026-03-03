@@ -228,18 +228,28 @@ export default function InvoiceFullPage() {
   };
 
   const calc = useMemo(() => {
-    const shipping = declaredValue * (rates.shipping / 100);
-    const insurance = declaredValue * (rates.insurance / 100);
-    const fuel = declaredValue * (rates.fuel / 100);
-    const customs = declaredValue * (rates.customs / 100);
-    const tax = declaredValue * (rates.tax / 100);
-    const discount = declaredValue * (rates.discount / 100);
+  // 1) Shipping is based on declared value
+  const shipping = declaredValue * (rates.shipping / 100);
 
-    const subtotal = shipping + insurance + fuel + customs + tax - discount;
-    const total = totalAmount > 0 ? totalAmount : subtotal;
+  // 2) Everything else is based on shipping amount
+  const insurance = shipping * (rates.insurance / 100);
+  const fuel = shipping * (rates.fuel / 100);
+  const customs = shipping * (rates.customs / 100);
+  const discount = shipping * (rates.discount / 100); // subtract later
+  const tax = shipping * (rates.tax / 100); // tax is NOT part of subtotal
 
-    return { shipping, insurance, fuel, customs, tax, discount, subtotal, total };
-  }, [declaredValue, rates, totalAmount]);
+  // 3) Subtotal excludes tax
+  const subtotal = shipping + insurance + fuel + customs - discount;
+
+  // 4) Total includes tax
+  const computedTotal = subtotal + tax;
+
+  // If admin stored a final amount, you can keep it as override ONLY if you want.
+  // I recommend using computed total so the UI always matches the rules.
+  const total = computedTotal;
+
+  return { shipping, insurance, fuel, customs, tax, discount, subtotal, total };
+}, [declaredValue, rates]);
 
   const status: InvoiceStatus =
     (data?.status as InvoiceStatus) || (data?.paid ? "paid" : "pending");
