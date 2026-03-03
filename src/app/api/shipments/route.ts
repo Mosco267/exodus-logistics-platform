@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { generateShipmentId, generateTrackingNumber } from "@/lib/id";
-import { DEFAULT_PRICING, computeInvoiceFromDeclaredValue, type PricingSettings } from "@/lib/pricing";
+import {
+  DEFAULT_PRICING,
+  computeInvoiceFromDeclaredValue,
+  type PricingSettings,
+} from "@/lib/pricing";
 import {
   sendShipmentCreatedSenderEmail,
   sendShipmentCreatedReceiverEmailV2,
@@ -44,8 +48,8 @@ type CreateShipmentBody = {
   receiverPhone?: string;
 
   // ✅ shipment details
-  serviceLevel?: "Express" | "Standard" | string;  // Express/Standard
-  shipmentType?: string;                           // Parcel/Cargo/Documents etc
+  serviceLevel?: "Express" | "Standard" | string;
+  shipmentType?: string;
   weightKg?: number;
   dimensionsCm?: DimensionsCm;
 
@@ -56,7 +60,7 @@ type CreateShipmentBody = {
   // ✅ invoice toggle
   invoicePaid?: boolean;
 
-  // ✅ rates used for THIS shipment (so invoice % changes)
+  // ✅ pricing used for THIS shipment (overrides admin default)
   pricing?: Partial<PricingSettings>;
 
   status?: ShipmentStatus | string;
@@ -79,8 +83,9 @@ function toTitleStatus(input?: string): ShipmentStatus {
 }
 
 async function loadPricing(db: any): Promise<PricingSettings> {
-  // pricing_settings: { _id: "default", settings: {...} }
-  const doc = await (db.collection("pricing_settings") as any).findOne({ _id: "default" });
+  const doc = await (db.collection("pricing_settings") as any).findOne({
+    _id: "default",
+  });
   return (doc as any)?.settings || DEFAULT_PRICING;
 }
 
@@ -93,26 +98,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const senderCountryCode = String(body.senderCountryCode || "").toUpperCase().trim();
-  const destinationCountryCode = String(body.destinationCountryCode || "").toUpperCase().trim();
+  const senderCountryCode = String(body.senderCountryCode || "")
+    .toUpperCase()
+    .trim();
+  const destinationCountryCode = String(body.destinationCountryCode || "")
+    .toUpperCase()
+    .trim();
 
   if (!senderCountryCode || senderCountryCode.length !== 2) {
-    return NextResponse.json({ error: "senderCountryCode must be 2 letters (e.g. US)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "senderCountryCode must be 2 letters (e.g. US)" },
+      { status: 400 }
+    );
   }
   if (!destinationCountryCode || destinationCountryCode.length !== 2) {
-    return NextResponse.json({ error: "destinationCountryCode must be 2 letters (e.g. NG)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "destinationCountryCode must be 2 letters (e.g. NG)" },
+      { status: 400 }
+    );
   }
 
-  const senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
-  const receiverEmail = String(body.receiverEmail || "").trim().toLowerCase() || null;
+  const senderEmail =
+    String(body.senderEmail || "").trim().toLowerCase() || null;
+  const receiverEmail =
+    String(body.receiverEmail || "").trim().toLowerCase() || null;
 
   const declaredValue = Number(body.declaredValue ?? 0);
   if (!Number.isFinite(declaredValue) || declaredValue < 0) {
-    return NextResponse.json({ error: "declaredValue must be a valid number >= 0" }, { status: 400 });
+    return NextResponse.json(
+      { error: "declaredValue must be a valid number >= 0" },
+      { status: 400 }
+    );
   }
 
   const declaredValueCurrency = String(body.declaredValueCurrency || "USD").toUpperCase();
-  const invoicePaid = Boolean(body.invoicePaid); // default false if not provided
+  const invoicePaid = Boolean(body.invoicePaid);
 
   const statusTitle = toTitleStatus(body.status || "Created");
 
@@ -131,7 +151,7 @@ export async function POST(req: Request) {
   const basePricing = await loadPricing(db);
   const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
 
-  // ✅ compute invoice breakdown using the EXACT rates used
+  // ✅ compute invoice breakdown using the EXACT pricing used
   const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingUsed);
 
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -216,7 +236,7 @@ export async function POST(req: Request) {
         declaredValue: breakdown.declaredValue,
         declaredValueCurrency,
 
-        // ✅ invoice saved with breakdown + rates used (THIS is what fixes % not changing)
+        // ✅ invoice saved with breakdown + pricing used
         invoice: {
           amount: breakdown.total,
           currency: declaredValueCurrency,
@@ -224,13 +244,18 @@ export async function POST(req: Request) {
           paidAt: invoicePaid ? now : null,
           breakdown: {
             ...breakdown,
+            // IMPORTANT: store BOTH fixed fees + % rates used
             rates: {
-              shippingRate: pricingUsed.shippingRate,
-              insuranceRate: pricingUsed.insuranceRate,
+              // fixed fees
+              shippingFee: pricingUsed.shippingFee,
+              handlingFee: pricingUsed.handlingFee,
+              customsFee: pricingUsed.customsFee,
+              taxFee: pricingUsed.taxFee,
+              discountFee: pricingUsed.discountFee,
+
+              // percentages
               fuelRate: pricingUsed.fuelRate,
-              customsRate: pricingUsed.customsRate,
-              taxRate: pricingUsed.taxRate,
-              discountRate: pricingUsed.discountRate,
+              insuranceRate: pricingUsed.insuranceRate,
             },
           },
         },
@@ -242,45 +267,46 @@ export async function POST(req: Request) {
       await db.collection("shipments").insertOne(doc);
 
       // ✅ EMAILS (always send ONLY 2 emails on creation: sender + receiver)
-const APP_URL = (
-  process.env.APP_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  "https://www.goexoduslogistics.com"
-).replace(/\/$/, "");
+      const APP_URL = (
+        process.env.APP_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://www.goexoduslogistics.com"
+      ).replace(/\/$/, "");
 
-const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+      const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
 
-// 1) Sender email (always one)
-if (senderEmail) {
-  try {
-    await sendShipmentCreatedSenderEmail(senderEmail, {
-      name: doc.senderName || "Customer",
-      receiverName: doc.receiverName || "Receiver",
-      shipmentId,
-      trackingNumber,
-      paid: invoicePaid,
-      viewInvoiceUrl,
-    });
-  } catch (e) {
-    console.error("Sender email failed:", e);
-  }
-}
+      // 1) Sender email (always one)
+      if (senderEmail) {
+        try {
+          await sendShipmentCreatedSenderEmail(senderEmail, {
+            name: doc.senderName || "Customer",
+            receiverName: doc.receiverName || "Receiver",
+            shipmentId,
+            trackingNumber,
+            paid: invoicePaid,
+            viewInvoiceUrl,
+          });
+        } catch (e) {
+          console.error("Sender email failed:", e);
+        }
+      }
 
-// 2) Receiver email (always one)
-if (receiverEmail) {
-  try {
-    await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
-      name: doc.receiverName || "Customer",
-      senderName: doc.senderName || "Sender",
-      shipmentId,
-      trackingNumber,
-      paid: invoicePaid,
-      viewInvoiceUrl,
-    });
-  } catch (e) {
-    console.error("Receiver email failed:", e);
-  }
-}
+      // 2) Receiver email (always one)
+      if (receiverEmail) {
+        try {
+          await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
+            name: doc.receiverName || "Customer",
+            senderName: doc.senderName || "Sender",
+            shipmentId,
+            trackingNumber,
+            paid: invoicePaid,
+            viewInvoiceUrl,
+          });
+        } catch (e) {
+          console.error("Receiver email failed:", e);
+        }
+      }
+
       return NextResponse.json({ ok: true, shipment: doc }, { status: 201 });
     } catch (err: any) {
       if (err?.code === 11000) continue;
@@ -291,5 +317,8 @@ if (receiverEmail) {
     }
   }
 
-  return NextResponse.json({ error: "Could not generate a unique ID, try again." }, { status: 500 });
+  return NextResponse.json(
+    { error: "Could not generate a unique ID, try again." },
+    { status: 500 }
+  );
 }

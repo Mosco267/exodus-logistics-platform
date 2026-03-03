@@ -7,6 +7,10 @@ import { useParams } from 'next/navigation';
 type Shipment = {
   shipmentId: string;
   trackingNumber: string;
+
+  // ✅ optional invoice number if API provides it
+  invoiceNumber?: string;
+
   senderCountryCode?: string;
   destinationCountryCode?: string;
 
@@ -20,14 +24,17 @@ type Shipment = {
     currency?: string;
     paid?: boolean;
     paidAt?: string | null;
+
+    // ✅ if your API returns invoice.invoiceNumber instead
+    invoiceNumber?: string;
   };
 
   createdAt?: string;
 };
 
 type StatusDoc = {
-  key: string;            // e.g. "invalidaddress"
-  label: string;          // e.g. "Invalid Address"
+  key: string;
+  label: string;
   color: string;
   defaultUpdate?: string;
   nextStep?: string;
@@ -44,7 +51,6 @@ export default function AdminShipmentsPage() {
   const [statuses, setStatuses] = useState<StatusDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // per-shipment selected status key
   const [selectedKey, setSelectedKey] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<Record<string, boolean>>({});
   const [msg, setMsg] = useState<string>('');
@@ -56,7 +62,6 @@ export default function AdminShipmentsPage() {
   }, [statuses]);
 
   const statusKeyByLabel = useMemo(() => {
-    // helpful if a shipment currently stores "Invalid Address" (label)
     const m: Record<string, string> = {};
     for (const s of statuses) m[normalizeKey(s.label)] = normalizeKey(s.key);
     return m;
@@ -80,14 +85,10 @@ export default function AdminShipmentsPage() {
       setShipments(list);
       setStatuses(statusList);
 
-      // initialize dropdown values for each shipment
       const init: Record<string, string> = {};
       for (const sh of list) {
         const current = normalizeKey(sh.status);
-        // If shipment stores label, map label -> key
         const mapped = statusKeyByLabel[current] || current;
-
-        // If we can’t find it in DB, keep it as-is (fallback)
         init[sh.shipmentId] = mapped;
       }
       setSelectedKey(init);
@@ -142,10 +143,6 @@ export default function AdminShipmentsPage() {
       const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-
-        // ✅ IMPORTANT: send the STATUS KEY, not the label
-        // Your PATCH route looks up statuses by key and then applies:
-        // label, color, defaultUpdate (statusNote), nextStep
         body: JSON.stringify({
           status: key,
         }),
@@ -226,6 +223,10 @@ export default function AdminShipmentsPage() {
                   const amount = Number(s?.invoice?.amount ?? 0);
                   const currency = String(s?.invoice?.currency || 'USD').toUpperCase();
 
+                  // ✅ invoice number can come either as top-level or inside invoice
+                  const invNo =
+                    String(s?.invoiceNumber || s?.invoice?.invoiceNumber || '').trim() || '';
+
                   const currentKey = normalizeKey(selectedKey[s.shipmentId] || s.status || '');
                   const statusLabel =
                     statusByKey[currentKey]?.label ||
@@ -237,7 +238,14 @@ export default function AdminShipmentsPage() {
                       key={s.shipmentId}
                       className="border-b border-gray-100 dark:border-white/10 hover:bg-blue-50/60 dark:hover:bg-white/5 transition"
                     >
-                      <td className="py-3 px-3 font-semibold whitespace-nowrap">{s.shipmentId}</td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="font-semibold">{s.shipmentId}</div>
+                        {invNo ? (
+                          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Invoice: <span className="font-semibold">{invNo}</span>
+                          </div>
+                        ) : null}
+                      </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">{s.trackingNumber}</td>
 
@@ -245,7 +253,6 @@ export default function AdminShipmentsPage() {
                         {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
                       </td>
 
-                      {/* ✅ STATUS DROPDOWN (dynamic from DB) */}
                       <td className="py-3 px-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <select
@@ -256,7 +263,6 @@ export default function AdminShipmentsPage() {
                             className="px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10
                                        bg-white dark:bg-white/5 text-sm cursor-pointer"
                           >
-                            {/* Show all admin statuses */}
                             {statuses.map((st) => (
                               <option key={st.key} value={normalizeKey(st.key)}>
                                 {st.label}

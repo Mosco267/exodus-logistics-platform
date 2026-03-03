@@ -1,22 +1,30 @@
 // src/lib/pricing.ts
+
 export type PricingSettings = {
-  shippingRate: number;   // e.g. 0.10  (10% of declared value)
-  insuranceRate: number;  // e.g. 0.10  (10% of shipping)
-  customsRate: number;    // e.g. 0.20  (20% of shipping)
-  fuelRate: number;       // e.g. 0.05  (5% of shipping)
-  discountRate: number;   // e.g. 0.00  (0% of shipping) or subtotal (we use shipping)
-  taxRate: number;        // e.g. 0.085 (8.5% of subtotal)
+  // ✅ FIXED amounts (money)
+  shippingFee: number;   // base shipping fee (money)
+  handlingFee: number;   // fixed handling (money)
+  customsFee: number;    // fixed customs (money)
+  taxFee: number;        // fixed tax (money)
+  discountFee: number;   // fixed discount (money)
+
+  // ✅ PERCENTAGES (decimals in DB: 0.10 = 10%)
+  fuelRate: number;        // % of shippingFee
+  insuranceRate: number;   // % of declaredValue
 };
 
 export type InvoiceBreakdown = {
   declaredValue: number;
+
   shipping: number;
-  insurance: number;
-  customs: number;
   fuel: number;
-  discount: number;
-  subtotal: number;
-  tax: number;
+  handling: number;
+  customs: number;
+  insurance: number;
+
+  subtotal: number; // excludes tax
+  tax: number;      // fixed
+  discount: number; // fixed
   total: number;
 };
 
@@ -27,39 +35,50 @@ export function computeInvoiceFromDeclaredValue(
   s: PricingSettings
 ): InvoiceBreakdown {
   const dv = Number(declaredValue || 0);
-  const shipping = dv * (Number(s.shippingRate) || 0);
 
-  // Others are calculated from SHIPPING (as you requested)
-  const insurance = shipping * (Number(s.insuranceRate) || 0);
-  const customs = shipping * (Number(s.customsRate) || 0);
+  const shipping = Number(s.shippingFee || 0);
+
+  // % of shipping
   const fuel = shipping * (Number(s.fuelRate) || 0);
 
-  // Discount from shipping (enterprise systems often do this)
-  const discount = shipping * (Number(s.discountRate) || 0);
+  // % of declared value
+  const insurance = dv * (Number(s.insuranceRate) || 0);
 
-  const subtotal = shipping + insurance + customs + fuel - discount;
-  const tax = subtotal * (Number(s.taxRate) || 0);
+  const handling = Number(s.handlingFee || 0);
+  const customs = Number(s.customsFee || 0);
 
+  // fixed amounts
+  const discount = Number(s.discountFee || 0);
+  const tax = Number(s.taxFee || 0);
+
+  // subtotal excludes tax
+  const subtotal = shipping + fuel + handling + customs + insurance - discount;
   const total = subtotal + tax;
 
   return {
     declaredValue: round2(dv),
+
     shipping: round2(shipping),
-    insurance: round2(insurance),
-    customs: round2(customs),
     fuel: round2(fuel),
-    discount: round2(discount),
+    handling: round2(handling),
+    customs: round2(customs),
+    insurance: round2(insurance),
+
     subtotal: round2(subtotal),
     tax: round2(tax),
+    discount: round2(discount),
     total: round2(total),
   };
 }
 
+// ✅ Defaults
 export const DEFAULT_PRICING: PricingSettings = {
-  shippingRate: 0.1,
-  insuranceRate: 0.1,
-  customsRate: 0.2,
-  fuelRate: 0.05,
-  discountRate: 0.0,
-  taxRate: 0.085,
+  shippingFee: 120,
+  handlingFee: 10,
+  customsFee: 25,
+  taxFee: 0,
+  discountFee: 0,
+
+  fuelRate: 0.1,        // 10% of shipping
+  insuranceRate: 0.02,  // 2% of declared value
 };

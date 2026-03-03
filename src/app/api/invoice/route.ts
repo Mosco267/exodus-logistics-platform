@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { DEFAULT_PRICING } from "@/lib/pricing";
 
-const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (input: string) =>
+  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const ciExact = (field: string, value: string) => ({
   [field]: { $regex: `^${escapeRegex(value)}$`, $options: "i" },
@@ -81,7 +82,10 @@ export async function GET(req: Request) {
     const emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
 
     if (!q && !invoiceParam) {
-      return NextResponse.json({ error: "Provide q OR invoice (+ email)." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Provide q OR invoice (+ email)." },
+        { status: 400 }
+      );
     }
 
     const dbName = process.env.MONGODB_DB;
@@ -102,23 +106,40 @@ export async function GET(req: Request) {
 
     const company = {
       name: companyDoc?.name || "Exodus Logistics Ltd.",
-      address: companyDoc?.address || "1199 E Calaveras Blvd, California, USA 90201",
+      address:
+        companyDoc?.address ||
+        "1199 E Calaveras Blvd, California, USA 90201",
       phone: companyDoc?.phone || "+1 (516) 243-7836",
       email: companyDoc?.email || "support@goexoduslogistics.com",
       registrationNumber: companyDoc?.registrationNumber || "",
     };
 
-    // Pricing settings (rates)
+    // Pricing settings (defaults)
     const pricingDoc = await db
       .collection<PricingSettingsDoc>("pricing_settings")
       .findOne({ _id: "default" });
 
     const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
 
+    /**
+     * ✅ Support BOTH:
+     * - Old model (shippingRate/customsRate/taxRate/discountRate)
+     * - New model (shippingFee/handlingFee/customsFee/taxFee/discountFee + fuelRate + insuranceRate)
+     */
     const rates = {
-      shippingRate: pricing?.shippingRate ?? pricing?.shipping ?? null,
-      insuranceRate: pricing?.insuranceRate ?? pricing?.insurance ?? null,
+      // NEW model (fixed fees)
+      shippingFee: pricing?.shippingFee ?? null,
+      handlingFee: pricing?.handlingFee ?? null,
+      customsFee: pricing?.customsFee ?? null,
+      taxFee: pricing?.taxFee ?? null,
+      discountFee: pricing?.discountFee ?? null,
+
+      // NEW model (percentages)
       fuelRate: pricing?.fuelRate ?? pricing?.fuel ?? null,
+      insuranceRate: pricing?.insuranceRate ?? pricing?.insurance ?? null,
+
+      // OLD model (keep for backward compatibility)
+      shippingRate: pricing?.shippingRate ?? pricing?.shipping ?? null,
       customsRate: pricing?.customsRate ?? pricing?.customs ?? null,
       taxRate: pricing?.taxRate ?? pricing?.tax ?? null,
       discountRate: pricing?.discountRate ?? pricing?.discount ?? null,
@@ -129,22 +150,35 @@ export async function GET(req: Request) {
     // Secure: invoice + email
     if (invoiceParam) {
       if (!emailParam) {
-        return NextResponse.json({ error: "email is required when using invoice." }, { status: 400 });
+        return NextResponse.json(
+          { error: "email is required when using invoice." },
+          { status: 400 }
+        );
       }
 
       const invUpper = normUpper(invoiceParam);
 
+      // 1) Try find by invoice number fields
       shipment = await db.collection("shipments").findOne(
-  {
-    $or: [
-      ciExact("invoice.invoiceNumber", invUpper),
-      ciExact("invoiceNumber", invUpper),
-      ciExact("invoice.invoiceNo", invUpper),
-      ciExact("invoice.invoice_number", invUpper),
-    ],
-  },
-  { projection: { _id: 0 } }
-);
+        {
+          $or: [
+            ciExact("invoice.invoiceNumber", invUpper),
+            ciExact("invoiceNumber", invUpper),
+            ciExact("invoice.invoiceNo", invUpper),
+            ciExact("invoice.invoice_number", invUpper),
+          ],
+        },
+        { projection: { _id: 0 } }
+      );
+
+      // 2) ✅ Fallback: if user typed shipmentId/trackingNumber into "invoice" box
+      // This helps when invoiceNumber isn't stored yet.
+      if (!shipment) {
+        shipment = await db.collection("shipments").findOne(
+          { $or: [ciExact("trackingNumber", invUpper), ciExact("shipmentId", invUpper)] },
+          { projection: { _id: 0 } }
+        );
+      }
 
       if (!shipment) {
         return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
@@ -154,7 +188,10 @@ export async function GET(req: Request) {
       const receiverEmail = cleanStr(shipment?.receiverEmail).toLowerCase();
       const createdByEmail = cleanStr(shipment?.createdByEmail).toLowerCase();
 
-      const ok = emailParam === senderEmail || emailParam === receiverEmail || emailParam === createdByEmail;
+      const ok =
+        emailParam === senderEmail ||
+        emailParam === receiverEmail ||
+        emailParam === createdByEmail;
 
       if (!ok) {
         return NextResponse.json({ error: "Invoice/email mismatch." }, { status: 403 });
@@ -178,21 +215,17 @@ export async function GET(req: Request) {
     const inv = s?.invoice || {};
 
     const invoiceNumber =
-      normUpper(inv?.invoiceNumber) || makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
+      normUpper(inv?.invoiceNumber) ||
+      makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
 
-      // ✅ If invoiceNumber does not exist, save it permanently
-if (!inv?.invoiceNumber) {
-  await db.collection("shipments").updateOne(
-    { shipmentId: s?.shipmentId },
-    {
-      $set: {
-        "invoice.invoiceNumber": invoiceNumber,
-      },
+    // ✅ If invoiceNumber does not exist, save it permanently
+    if (!inv?.invoiceNumber) {
+      await db.collection("shipments").updateOne(
+        { shipmentId: s?.shipmentId },
+        { $set: { "invoice.invoiceNumber": invoiceNumber } }
+      );
     }
-  );
-}
 
-    const amount = Number(inv?.amount ?? 0);
     const currency = normUpper(inv?.currency || "USD") || "USD";
     const paid = Boolean(inv?.paid);
     const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
@@ -204,12 +237,14 @@ if (!inv?.invoiceNumber) {
 
     const paymentMethod = cleanStr(inv?.paymentMethod) ? cleanStr(inv?.paymentMethod) : null;
 
-    const declaredValueRaw = s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
+    const declaredValueRaw =
+      s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
     const declaredValue = Number(declaredValueRaw) || 0;
 
     const breakdownFromDb = inv?.breakdown ?? null;
 
-    const breakdown = breakdownFromDb
+    // ✅ Merge: DB breakdown wins, then fallback to defaults
+    const mergedBreakdown = breakdownFromDb
       ? {
           ...breakdownFromDb,
           declaredValue: Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
@@ -217,12 +252,25 @@ if (!inv?.invoiceNumber) {
         }
       : { declaredValue, rates };
 
-    const senderCountry = cleanStr(s?.senderCountry || s?.senderCountryName || s?.senderCountryCode) || null;
+    // ✅ total should come from DB if possible
+    // (your new invoice page should display these from breakdown)
+    const amount =
+      Number(inv?.amount ?? mergedBreakdown?.total ?? 0) || 0;
+
+    const senderCountry =
+      cleanStr(s?.senderCountry || s?.senderCountryName || s?.senderCountryCode) || null;
     const receiverCountry =
       cleanStr(s?.receiverCountry || s?.receiverCountryName || s?.destinationCountryCode) || null;
 
-    const fromFull = joinNice([s?.senderCity, s?.senderState, senderCountry]) || cleanStr(s?.origin) || "—";
-    const toFull = joinNice([s?.receiverCity, s?.receiverState, receiverCountry]) || cleanStr(s?.destination) || "—";
+    const fromFull =
+      joinNice([s?.senderCity, s?.senderState, senderCountry]) ||
+      cleanStr(s?.origin) ||
+      "—";
+
+    const toFull =
+      joinNice([s?.receiverCity, s?.receiverState, receiverCountry]) ||
+      cleanStr(s?.destination) ||
+      "—";
 
     return NextResponse.json({
       company,
@@ -237,7 +285,7 @@ if (!inv?.invoiceNumber) {
       paymentMethod,
 
       declaredValue,
-      breakdown,
+      breakdown: mergedBreakdown,
 
       shipment: {
         shipmentId: cleanStr(s?.shipmentId),
@@ -255,11 +303,11 @@ if (!inv?.invoiceNumber) {
       },
 
       parties: {
-  senderName: cleanStr(s?.senderName) || "Sender",
-  senderEmail: cleanStr(s?.senderEmail) || cleanStr(s?.createdByEmail) || "",
-  receiverName: cleanStr(s?.receiverName) || "Receiver",
-  receiverEmail: cleanStr(s?.receiverEmail) || "",
-},
+        senderName: cleanStr(s?.senderName) || "Sender",
+        senderEmail: cleanStr(s?.senderEmail) || cleanStr(s?.createdByEmail) || "",
+        receiverName: cleanStr(s?.receiverName) || "Receiver",
+        receiverEmail: cleanStr(s?.receiverEmail) || "",
+      },
 
       dates: {
         createdAt: s?.createdAt || null,

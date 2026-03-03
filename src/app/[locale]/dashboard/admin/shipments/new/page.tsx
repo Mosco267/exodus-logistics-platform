@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, CheckCircle2, Loader2, PlusCircle } from "lucide-react";
-import { computeInvoiceFromDeclaredValue, type PricingSettings } from "@/lib/pricing";
+import {
+  computeInvoiceFromDeclaredValue,
+  DEFAULT_PRICING,
+  type PricingSettings,
+} from "@/lib/pricing";
 
 type ShipmentStatus =
   | "Created"
@@ -23,15 +27,27 @@ function fromPct(pct: string) {
   return n / 100;
 }
 
+function toMoney(n: any) {
+  const x = Number(n);
+  return Number.isFinite(x) ? String(x) : "0";
+}
+function fromMoney(s: string) {
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
 type PricingApiResponse = {
   ok?: boolean;
   settings?: {
-    shippingRate?: number;
-    insuranceRate?: number;
-    customsRate?: number;
-    fuelRate?: number;
-    discountRate?: number;
-    taxRate?: number;
+    // ✅ NEW SETTINGS (matches src/lib/pricing.ts)
+    shippingFee?: number;
+    handlingFee?: number;
+    customsFee?: number;
+    taxFee?: number;
+    discountFee?: number;
+
+    fuelRate?: number; // decimals
+    insuranceRate?: number; // decimals
   };
   error?: string;
 };
@@ -63,7 +79,9 @@ export default function AdminCreateShipmentPage() {
   const [receiverPhone, setReceiverPhone] = useState("");
 
   // Shipment details
-  const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">("Standard");
+  const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">(
+    "Standard"
+  );
   const [shipmentType, setShipmentType] = useState("Parcel");
 
   const [weightKg, setWeightKg] = useState<string>("2");
@@ -81,12 +99,16 @@ export default function AdminCreateShipmentPage() {
   // ✅ Pricing defaults come ONLY from DB (Admin Pricing)
   const [ratesLoading, setRatesLoading] = useState(true);
 
-  const [shippingRatePct, setShippingRatePct] = useState("");
-  const [insuranceRatePct, setInsuranceRatePct] = useState("");
-  const [customsRatePct, setCustomsRatePct] = useState("");
+  // ✅ NEW: FIXED FEES (money)
+  const [shippingFee, setShippingFee] = useState("");
+  const [handlingFee, setHandlingFee] = useState("");
+  const [customsFee, setCustomsFee] = useState("");
+  const [taxFee, setTaxFee] = useState("");
+  const [discountFee, setDiscountFee] = useState("");
+
+  // ✅ NEW: ONLY TWO PERCENTAGES
   const [fuelRatePct, setFuelRatePct] = useState("");
-  const [discountRatePct, setDiscountRatePct] = useState("");
-  const [taxRatePct, setTaxRatePct] = useState("");
+  const [insuranceRatePct, setInsuranceRatePct] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -100,7 +122,9 @@ export default function AdminCreateShipmentPage() {
 
       try {
         const res = await fetch("/api/admin/pricing", { cache: "no-store" });
-        const json = (await res.json().catch(() => null)) as PricingApiResponse | null;
+        const json = (await res.json().catch(() => null)) as
+          | PricingApiResponse
+          | null;
 
         if (!res.ok) {
           throw new Error(json?.error || "Failed to load pricing settings.");
@@ -109,13 +133,18 @@ export default function AdminCreateShipmentPage() {
         const s = json?.settings;
         if (!s) throw new Error("Pricing settings missing.");
 
-        // DB stores decimals (0.2) -> show as percent (20)
-        setShippingRatePct(toPct(Number(s.shippingRate ?? 0)));
-        setInsuranceRatePct(toPct(Number(s.insuranceRate ?? 0)));
-        setCustomsRatePct(toPct(Number(s.customsRate ?? 0)));
-        setFuelRatePct(toPct(Number(s.fuelRate ?? 0)));
-        setDiscountRatePct(toPct(Number(s.discountRate ?? 0)));
-        setTaxRatePct(toPct(Number(s.taxRate ?? 0)));
+        // ✅ Fixed fees (money)
+        setShippingFee(toMoney(s.shippingFee ?? DEFAULT_PRICING.shippingFee));
+        setHandlingFee(toMoney(s.handlingFee ?? DEFAULT_PRICING.handlingFee));
+        setCustomsFee(toMoney(s.customsFee ?? DEFAULT_PRICING.customsFee));
+        setTaxFee(toMoney(s.taxFee ?? DEFAULT_PRICING.taxFee));
+        setDiscountFee(toMoney(s.discountFee ?? DEFAULT_PRICING.discountFee));
+
+        // ✅ Rates stored as decimals -> display as %
+        setFuelRatePct(toPct(Number(s.fuelRate ?? DEFAULT_PRICING.fuelRate)));
+        setInsuranceRatePct(
+          toPct(Number(s.insuranceRate ?? DEFAULT_PRICING.insuranceRate))
+        );
       } catch (e: any) {
         setErr(e?.message || "Failed to load pricing settings.");
       } finally {
@@ -126,21 +155,39 @@ export default function AdminCreateShipmentPage() {
     void loadDefaultRates();
   }, []);
 
-  const pricing: PricingSettings = useMemo(
+  // ✅ This is the PricingSettings object we will:
+  // 1) use for preview breakdown
+  // 2) send to /api/shipments to store inside the shipment invoice breakdown
+  const previewPricing: PricingSettings = useMemo(
     () => ({
-      shippingRate: fromPct(shippingRatePct),
-      insuranceRate: fromPct(insuranceRatePct),
-      customsRate: fromPct(customsRatePct),
+      ...DEFAULT_PRICING,
+
+      shippingFee: fromMoney(shippingFee),
+      handlingFee: fromMoney(handlingFee),
+      customsFee: fromMoney(customsFee),
+      taxFee: fromMoney(taxFee),
+      discountFee: fromMoney(discountFee),
+
       fuelRate: fromPct(fuelRatePct),
-      discountRate: fromPct(discountRatePct),
-      taxRate: fromPct(taxRatePct),
+      insuranceRate: fromPct(insuranceRatePct),
     }),
-    [shippingRatePct, insuranceRatePct, customsRatePct, fuelRatePct, discountRatePct, taxRatePct]
+    [
+      shippingFee,
+      handlingFee,
+      customsFee,
+      taxFee,
+      discountFee,
+      fuelRatePct,
+      insuranceRatePct,
+    ]
   );
 
   const breakdown = useMemo(() => {
-    return computeInvoiceFromDeclaredValue(Number(declaredValue || 0), pricing);
-  }, [declaredValue, pricing]);
+    return computeInvoiceFromDeclaredValue(
+      Number(declaredValue || 0),
+      previewPricing
+    );
+  }, [declaredValue, previewPricing]);
 
   const invoiceAmount = breakdown.total;
 
@@ -211,7 +258,8 @@ export default function AdminCreateShipmentPage() {
 
           invoicePaid,
 
-          pricing,
+          // ✅ IMPORTANT: send the NEW pricing model
+          pricing: previewPricing,
 
           status,
           statusNote,
@@ -229,7 +277,9 @@ export default function AdminCreateShipmentPage() {
       const shipmentId = String(json?.shipment?.shipmentId || "").trim();
       if (shipmentId) {
         router.push(
-          `/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`
+          `/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(
+            shipmentId
+          )}`
         );
       }
     } catch (e: any) {
@@ -243,8 +293,12 @@ export default function AdminCreateShipmentPage() {
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
       <div className="max-w-6xl mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Create Shipment</h1>
-          <p className="mt-2 text-gray-600">Fill details, preview invoice breakdown, then create shipment.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+            Create Shipment
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Fill details, preview invoice breakdown, then create shipment.
+          </p>
           {ratesLoading && (
             <p className="mt-2 text-sm font-semibold text-gray-700">
               Loading default pricing from Admin settings…
@@ -264,7 +318,9 @@ export default function AdminCreateShipmentPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Sender name</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Sender name
+                </label>
                 <input
                   value={senderName}
                   onChange={(e) => setSenderName(e.target.value)}
@@ -272,7 +328,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Sender email</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Sender email
+                </label>
                 <input
                   value={senderEmail}
                   onChange={(e) => setSenderEmail(e.target.value)}
@@ -281,7 +339,9 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Receiver name</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Receiver name
+                </label>
                 <input
                   value={receiverName}
                   onChange={(e) => setReceiverName(e.target.value)}
@@ -289,7 +349,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Receiver email</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Receiver email
+                </label>
                 <input
                   value={receiverEmail}
                   onChange={(e) => setReceiverEmail(e.target.value)}
@@ -298,28 +360,40 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Sender country code</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Sender country code
+                </label>
                 <input
                   value={senderCountryCode}
-                  onChange={(e) => setSenderCountryCode(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    setSenderCountryCode(e.target.value.toUpperCase())
+                  }
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Destination country code</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Destination country code
+                </label>
                 <input
                   value={destinationCountryCode}
-                  onChange={(e) => setDestinationCountryCode(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    setDestinationCountryCode(e.target.value.toUpperCase())
+                  }
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
               </div>
             </div>
 
             {/* Sender address */}
-            <p className="font-extrabold text-gray-900 mt-6 mb-3">Sender address</p>
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">
+              Sender address
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Country</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Country
+                </label>
                 <input
                   value={senderCountry}
                   onChange={(e) => setSenderCountry(e.target.value)}
@@ -327,7 +401,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">State</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  State
+                </label>
                 <input
                   value={senderState}
                   onChange={(e) => setSenderState(e.target.value)}
@@ -335,7 +411,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">City</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  City
+                </label>
                 <input
                   value={senderCity}
                   onChange={(e) => setSenderCity(e.target.value)}
@@ -343,7 +421,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Postal code</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Postal code
+                </label>
                 <input
                   value={senderPostalCode}
                   onChange={(e) => setSenderPostalCode(e.target.value)}
@@ -351,7 +431,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">Address</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Address
+                </label>
                 <input
                   value={senderAddress}
                   onChange={(e) => setSenderAddress(e.target.value)}
@@ -359,7 +441,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">Phone</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Phone
+                </label>
                 <input
                   value={senderPhone}
                   onChange={(e) => setSenderPhone(e.target.value)}
@@ -369,10 +453,14 @@ export default function AdminCreateShipmentPage() {
             </div>
 
             {/* Receiver address */}
-            <p className="font-extrabold text-gray-900 mt-6 mb-3">Receiver address</p>
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">
+              Receiver address
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Country</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Country
+                </label>
                 <input
                   value={receiverCountry}
                   onChange={(e) => setReceiverCountry(e.target.value)}
@@ -380,7 +468,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">State</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  State
+                </label>
                 <input
                   value={receiverState}
                   onChange={(e) => setReceiverState(e.target.value)}
@@ -388,7 +478,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">City</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  City
+                </label>
                 <input
                   value={receiverCity}
                   onChange={(e) => setReceiverCity(e.target.value)}
@@ -396,7 +488,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Postal code</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Postal code
+                </label>
                 <input
                   value={receiverPostalCode}
                   onChange={(e) => setReceiverPostalCode(e.target.value)}
@@ -404,7 +498,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">Address</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Address
+                </label>
                 <input
                   value={receiverAddress}
                   onChange={(e) => setReceiverAddress(e.target.value)}
@@ -412,7 +508,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">Phone</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Phone
+                </label>
                 <input
                   value={receiverPhone}
                   onChange={(e) => setReceiverPhone(e.target.value)}
@@ -422,10 +520,14 @@ export default function AdminCreateShipmentPage() {
             </div>
 
             {/* Shipment */}
-            <p className="font-extrabold text-gray-900 mt-6 mb-3">Shipment details</p>
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">
+              Shipment details
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Service level</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Service level
+                </label>
                 <select
                   value={serviceLevel}
                   onChange={(e) => setServiceLevel(e.target.value as any)}
@@ -437,7 +539,9 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Shipment type</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Shipment type
+                </label>
                 <input
                   value={shipmentType}
                   onChange={(e) => setShipmentType(e.target.value)}
@@ -446,7 +550,9 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Weight (kg)</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Weight (kg)
+                </label>
                 <input
                   value={weightKg}
                   onChange={(e) => setWeightKg(e.target.value)}
@@ -456,7 +562,9 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Dimensions (cm)</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Dimensions (cm)
+                </label>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   <input
                     value={lengthCm}
@@ -487,7 +595,9 @@ export default function AdminCreateShipmentPage() {
             <p className="font-extrabold text-gray-900 mt-6 mb-3">Invoice</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-700">Declared value</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Declared value
+                </label>
                 <input
                   value={declaredValue}
                   onChange={(e) => setDeclaredValue(e.target.value)}
@@ -496,7 +606,9 @@ export default function AdminCreateShipmentPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700">Currency</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Currency
+                </label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as any)}
@@ -511,14 +623,20 @@ export default function AdminCreateShipmentPage() {
 
               <div className="sm:col-span-2 flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Invoice paid?</p>
-                  <p className="text-xs text-gray-600">Default should be unpaid.</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Invoice paid?
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Default should be unpaid.
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setInvoicePaid((v) => !v)}
                   className={`px-4 py-2 rounded-xl font-bold transition ${
-                    invoicePaid ? "bg-green-600 text-white" : "bg-gray-100 text-gray-900"
+                    invoicePaid
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-100 text-gray-900"
                   }`}
                 >
                   {invoicePaid ? "PAID" : "UNPAID"}
@@ -526,7 +644,9 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Initial status</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Initial status
+                </label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as any)}
@@ -541,7 +661,9 @@ export default function AdminCreateShipmentPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700">Status note (optional)</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  Status note (optional)
+                </label>
                 <input
                   value={statusNote}
                   onChange={(e) => setStatusNote(e.target.value)}
@@ -551,57 +673,98 @@ export default function AdminCreateShipmentPage() {
             </div>
 
             {/* Pricing controls (Preview only) */}
-            <p className="font-extrabold text-gray-900 mt-6 mb-3">Rates (percent)</p>
-            <p className="text-xs text-gray-600 mb-3">
-              These are loaded from Admin Pricing (default). Editing here only affects the preview.
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">
+              Charges (Preview / Override)
             </p>
+            <p className="text-xs text-gray-600 mb-3">
+              These are loaded from Admin Pricing (default). Editing here affects the preview AND will be saved into this shipment invoice breakdown.
+            </p>
+
+            {/* ✅ Fixed fees */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-700">
+                  Shipping fee (fixed)
+                </label>
+                <input
+                  value={shippingFee}
+                  onChange={(e) => setShippingFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-700">
+                  Handling fee (fixed)
+                </label>
+                <input
+                  value={handlingFee}
+                  onChange={(e) => setHandlingFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-700">
+                  Customs fee (fixed)
+                </label>
+                <input
+                  value={customsFee}
+                  onChange={(e) => setCustomsFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-700">
+                  Tax (fixed)
+                </label>
+                <input
+                  value={taxFee}
+                  onChange={(e) => setTaxFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-700">
+                  Discount (fixed)
+                </label>
+                <input
+                  value={discountFee}
+                  onChange={(e) => setDiscountFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* ✅ Percent rates */}
+            <p className="font-extrabold text-gray-900 mt-6 mb-3">Rates (percent)</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-700">Shipping %</label>
-                <input
-                  value={shippingRatePct}
-                  onChange={(e) => setShippingRatePct(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-700">Insurance %</label>
-                <input
-                  value={insuranceRatePct}
-                  onChange={(e) => setInsuranceRatePct(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-700">Fuel %</label>
+                <label className="text-xs font-semibold text-gray-700">
+                  Fuel surcharge % (of shipping)
+                </label>
                 <input
                   value={fuelRatePct}
                   onChange={(e) => setFuelRatePct(e.target.value)}
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
                 />
               </div>
+
               <div>
-                <label className="text-xs font-semibold text-gray-700">Customs %</label>
+                <label className="text-xs font-semibold text-gray-700">
+                  Insurance % (of declared value)
+                </label>
                 <input
-                  value={customsRatePct}
-                  onChange={(e) => setCustomsRatePct(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-700">Tax %</label>
-                <input
-                  value={taxRatePct}
-                  onChange={(e) => setTaxRatePct(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-700">Discount %</label>
-                <input
-                  value={discountRatePct}
-                  onChange={(e) => setDiscountRatePct(e.target.value)}
+                  value={insuranceRatePct}
+                  onChange={(e) => setInsuranceRatePct(e.target.value)}
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm"
                 />
               </div>
@@ -654,7 +817,9 @@ export default function AdminCreateShipmentPage() {
             className="bg-white/90 backdrop-blur rounded-3xl border border-gray-200 shadow-xl p-6"
           >
             <p className="font-extrabold text-gray-900 mb-2">Invoice Preview</p>
-            <p className="text-sm text-gray-600 mb-4">Calculated from declared value using Admin default pricing.</p>
+            <p className="text-sm text-gray-600 mb-4">
+              Calculated from declared value using your pricing rules.
+            </p>
 
             <div className="rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
@@ -666,33 +831,43 @@ export default function AdminCreateShipmentPage() {
 
               <div className="p-5 space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span>Shipping ({shippingRatePct || "—"}%)</span>
+                  <span>Shipping (fixed)</span>
                   <span className="font-semibold">{breakdown.shipping.toFixed(2)}</span>
                 </div>
+
+                <div className="flex justify-between">
+                  <span>Fuel surcharge ({fuelRatePct || "—"}%)</span>
+                  <span className="font-semibold">{breakdown.fuel.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Handling (fixed)</span>
+                  <span className="font-semibold">{breakdown.handling.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Customs (fixed)</span>
+                  <span className="font-semibold">{breakdown.customs.toFixed(2)}</span>
+                </div>
+
                 <div className="flex justify-between">
                   <span>Insurance ({insuranceRatePct || "—"}%)</span>
                   <span className="font-semibold">{breakdown.insurance.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Fuel ({fuelRatePct || "—"}%)</span>
-                  <span className="font-semibold">{breakdown.fuel.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Customs / Duties ({customsRatePct || "—"}%)</span>
-                  <span className="font-semibold">{breakdown.customs.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax ({taxRatePct || "—"}%)</span>
-                  <span className="font-semibold">{breakdown.tax.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Discount ({discountRatePct || "—"}%)</span>
-                  <span className="font-semibold">-{breakdown.discount.toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between pt-3 border-t">
                   <span className="font-bold">Subtotal</span>
                   <span className="font-bold">{breakdown.subtotal.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Tax (fixed)</span>
+                  <span className="font-semibold">{breakdown.tax.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Discount (fixed)</span>
+                  <span className="font-semibold">-{breakdown.discount.toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between pt-4 border-t text-lg">
