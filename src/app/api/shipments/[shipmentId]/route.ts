@@ -210,17 +210,34 @@ if (isOnlyPaidToggle) {
 
     const nowIso = new Date().toISOString();
 
-    $set.invoice = {
-      ...prev,
-      amount: breakdown.total,
-      currency: String(prev.currency || incoming.currency || "USD").toUpperCase(),
-      paid,
-      paidAt: paid ? (incoming.paidAt ? String(incoming.paidAt) : nowIso) : null,
-      breakdown: {
-        ...breakdown,
-        rates: storedRates || (breakdown as any)?.rates || null,
-      },
-    };
+   $set.invoice = {
+  ...prev,
+  amount: breakdown.total,
+  currency: String(prev.currency || incoming.currency || "USD").toUpperCase(),
+  paid,
+  paidAt: paid ? (incoming.paidAt ? String(incoming.paidAt) : nowIso) : null,
+
+  // ✅ NEW fields coming from admin shipment form
+  status:
+    incoming.status !== undefined
+      ? String(incoming.status)
+      : prev.status || "unpaid",
+
+  dueDate:
+    incoming.dueDate !== undefined
+      ? incoming.dueDate
+      : prev.dueDate || null,
+
+  paymentMethod:
+    incoming.paymentMethod !== undefined
+      ? String(incoming.paymentMethod)
+      : prev.paymentMethod || null,
+
+  breakdown: {
+    ...breakdown,
+    rates: storedRates || (breakdown as any)?.rates || null,
+  },
+};
   }
 }
 

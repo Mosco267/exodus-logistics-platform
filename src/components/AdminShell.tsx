@@ -13,6 +13,7 @@ import {
   PlusCircle,
   LogOut,
   UserX,
+  Phone,
   
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
@@ -115,6 +116,12 @@ export default function AdminShell({ children }: Props) {
     },
 
     { href: `/${locale}/dashboard/admin/pricing`, label: "Pricing", icon: <Percent className="w-5 h-5" /> },
+
+    {
+  href: `/${locale}/dashboard/admin/company-settings`,
+  label: "Company Settings",
+  icon: <Phone className="w-5 h-5" />,
+},
 
      {
   href: `/${locale}/dashboard/admin/tracking`,

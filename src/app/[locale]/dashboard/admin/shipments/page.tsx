@@ -240,14 +240,18 @@ export default function AdminShipmentsPage() {
                     >
                       <td className="py-3 px-3 whitespace-nowrap">
                         <div className="font-semibold">{s.shipmentId}</div>
+                      </td>
+
+                      {/* ✅ Tracking + Invoice number (invoice shown as its own line/row in this cell) */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="font-semibold">{s.trackingNumber}</div>
+
                         {invNo ? (
                           <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             Invoice: <span className="font-semibold">{invNo}</span>
                           </div>
                         ) : null}
                       </td>
-
-                      <td className="py-3 px-3 whitespace-nowrap">{s.trackingNumber}</td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
                         {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
@@ -314,11 +318,11 @@ export default function AdminShipmentsPage() {
                         </button>
 
                         <Link
-                          href={`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`}
-                          className="ml-3 text-sm font-semibold text-blue-700 dark:text-cyan-300 hover:underline cursor-pointer"
-                        >
-                          View →
-                        </Link>
+  href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/edit`}
+  className="ml-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:underline cursor-pointer"
+>
+  Edit
+</Link>
                       </td>
                     </tr>
                   );

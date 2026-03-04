@@ -96,6 +96,20 @@ export default function AdminCreateShipmentPage() {
   const [status, setStatus] = useState<ShipmentStatus>("Created");
   const [statusNote, setStatusNote] = useState("");
 
+  // ✅ NEW invoice fields you requested
+  const [invoiceStatus, setInvoiceStatus] = useState<
+    "paid" | "unpaid" | "overdue" | "cancelled"
+  >("unpaid");
+  const [invoiceDueDate, setInvoiceDueDate] = useState<string>(""); // yyyy-mm-dd
+  const [invoicePaymentMethod, setInvoicePaymentMethod] = useState<string>("");
+  const [invoicePaymentMethodOther, setInvoicePaymentMethodOther] =
+    useState<string>("");
+
+  const PAYMENT_METHODS = useMemo(
+    () => ["", "Cryptocurrency", "Bank transfer", "PayPal", "Zelle", "Cash", "Other"],
+    []
+  );
+
   // ✅ Pricing defaults come ONLY from DB (Admin Pricing)
   const [ratesLoading, setRatesLoading] = useState(true);
 
@@ -113,6 +127,19 @@ export default function AdminCreateShipmentPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [okMsg, setOkMsg] = useState("");
+
+  // ✅ Keep invoicePaid in sync with invoiceStatus (without breaking your old toggle)
+  useEffect(() => {
+    if (invoiceStatus === "paid") setInvoicePaid(true);
+    else setInvoicePaid(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceStatus]);
+
+  // ✅ If user toggles paid/unpaid using your existing button, keep status aligned
+  useEffect(() => {
+    setInvoiceStatus(invoicePaid ? "paid" : "unpaid");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoicePaid]);
 
   // ✅ Load pricing settings from your admin pricing API
   useEffect(() => {
@@ -215,6 +242,12 @@ export default function AdminCreateShipmentPage() {
       return;
     }
 
+    // ✅ Payment method final value
+    const finalPaymentMethod =
+      invoicePaymentMethod === "Other"
+        ? String(invoicePaymentMethodOther || "").trim()
+        : String(invoicePaymentMethod || "").trim();
+
     setLoading(true);
     try {
       const res = await fetch("/api/shipments", {
@@ -260,6 +293,14 @@ export default function AdminCreateShipmentPage() {
 
           // ✅ IMPORTANT: send the NEW pricing model
           pricing: previewPricing,
+
+          // ✅ NEW: send invoice details (status/method/due date)
+          invoice: {
+            paid: invoicePaid,
+            status: invoiceStatus,
+            dueDate: invoiceDueDate ? invoiceDueDate : null,
+            paymentMethod: finalPaymentMethod ? finalPaymentMethod : null,
+          },
 
           status,
           statusNote,
@@ -619,6 +660,63 @@ export default function AdminCreateShipmentPage() {
                   <option value="GBP">GBP</option>
                   <option value="NGN">NGN</option>
                 </select>
+              </div>
+
+              {/* ✅ NEW invoice status */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Invoice status
+                </label>
+                <select
+                  value={invoiceStatus}
+                  onChange={(e) => setInvoiceStatus(e.target.value as any)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              {/* ✅ NEW due date */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Invoice due date
+                </label>
+                <input
+                  type="date"
+                  value={invoiceDueDate}
+                  onChange={(e) => setInvoiceDueDate(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+              </div>
+
+              {/* ✅ NEW payment method */}
+              <div className="sm:col-span-2">
+                <label className="text-sm font-semibold text-gray-700">
+                  Payment method
+                </label>
+                <select
+                  value={invoicePaymentMethod}
+                  onChange={(e) => setInvoicePaymentMethod(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {m ? m : "Select a payment method"}
+                    </option>
+                  ))}
+                </select>
+
+                {invoicePaymentMethod === "Other" && (
+                  <input
+                    value={invoicePaymentMethodOther}
+                    onChange={(e) => setInvoicePaymentMethodOther(e.target.value)}
+                    placeholder="Enter payment method"
+                    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  />
+                )}
               </div>
 
               <div className="sm:col-span-2 flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">

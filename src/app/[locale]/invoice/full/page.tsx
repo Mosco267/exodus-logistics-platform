@@ -19,7 +19,7 @@ import {
   CreditCard,
 } from "lucide-react";
 
-type InvoiceStatus = "paid" | "pending" | "overdue" | "cancelled";
+type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
 type ApiResponse = {
   company?: {
@@ -37,16 +37,23 @@ type ApiResponse = {
   dueDate?: string | null;
   paymentMethod?: string | null;
 
+  // ✅ NEW: breakdown contains actual money values (from DB or computed in API)
   breakdown?: {
     declaredValue?: number;
-    rates?: {
-      shippingRate?: number;
-      insuranceRate?: number;
-      fuelRate?: number;
-      customsRate?: number;
-      taxRate?: number;
-      discountRate?: number;
-    };
+
+    shipping?: number;
+    fuel?: number;
+    handling?: number;
+    customs?: number;
+    insurance?: number;
+
+    subtotal?: number;
+    tax?: number;
+    discount?: number;
+    total?: number;
+
+    // keep rates optional (some docs might still have it)
+    rates?: any;
   };
 
   declaredValue?: number;
@@ -65,11 +72,11 @@ type ApiResponse = {
   };
 
   parties?: {
-  senderName?: string;
-  senderEmail?: string;
-  receiverName?: string;
-  receiverEmail?: string;
-};
+    senderName?: string;
+    senderEmail?: string;
+    receiverName?: string;
+    receiverEmail?: string;
+  };
 
   dates?: {
     createdAt?: string | null;
@@ -122,33 +129,15 @@ function fmtMoney(amount: number, currency: string) {
   }
 }
 
-/**
- * IMPORTANT:
- * Some DBs store rates like 0.1 meaning 10% (fraction).
- * This normalizes:
- *  0.1 -> 10
- *  0.015 -> 1.5
- *  10 -> 10
- */
-function normalizeRatePercent(v: any, fallback: number) {
-  const x = Number(v);
-  if (!Number.isFinite(x)) return fallback;
-
-  // If it's a fraction (0 < x < 1), treat as fraction => convert to %
-  if (x > 0 && x < 1) return x * 100;
-
-  return x;
-}
-
-function fmtPercent(v: any) {
-  const x = Number(v);
-  if (!Number.isFinite(x)) return "0%";
-  const s = x % 1 === 0 ? String(x) : x.toFixed(2).replace(/\.?0+$/, "");
-  return `${s}%`;
-}
-
 function cleanTel(phone: string) {
   return phone.replace(/[^\d+]/g, "");
+}
+
+function isOverdue(dueDate?: string | null) {
+  if (!dueDate) return false;
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return false;
+  return Date.now() > d.getTime();
 }
 
 export default function InvoiceFullPage() {
@@ -212,50 +201,62 @@ export default function InvoiceFullPage() {
   const trackingNumber = safeStr(data?.shipment?.trackingNumber);
 
   const currency = safeStr(data?.currency) || "USD";
-  const totalAmount = num(data?.total);
 
+  // ✅ use breakdown declaredValue if available
   const declaredValue =
     num(data?.breakdown?.declaredValue ?? data?.declaredValue ?? 0) || 0;
 
-  // Normalize rates so they display and calculate correctly.
-  const rates = {
-    shipping: normalizeRatePercent(data?.breakdown?.rates?.shippingRate, 10),
-    insurance: normalizeRatePercent(data?.breakdown?.rates?.insuranceRate, 1.5),
-    fuel: normalizeRatePercent(data?.breakdown?.rates?.fuelRate, 0.5),
-    customs: normalizeRatePercent(data?.breakdown?.rates?.customsRate, 2),
-    tax: normalizeRatePercent(data?.breakdown?.rates?.taxRate, 0),
-    discount: normalizeRatePercent(data?.breakdown?.rates?.discountRate, 0),
-  };
-
-  const calc = useMemo(() => {
-  // 1) Shipping is based on declared value
-  const shipping = declaredValue * (rates.shipping / 100);
-
-  // 2) Everything else is based on shipping amount
-  const insurance = shipping * (rates.insurance / 100);
-  const fuel = shipping * (rates.fuel / 100);
-  const customs = shipping * (rates.customs / 100);
-  const discount = shipping * (rates.discount / 100); // subtract later
-  const tax = shipping * (rates.tax / 100); // tax is NOT part of subtotal
-
-  // 3) Subtotal excludes tax
-  const subtotal = shipping + insurance + fuel + customs - discount;
-
-  // 4) Total includes tax
-  const computedTotal = subtotal + tax;
-
-  // If admin stored a final amount, you can keep it as override ONLY if you want.
-  // I recommend using computed total so the UI always matches the rules.
-  const total = computedTotal;
-
-  return { shipping, insurance, fuel, customs, tax, discount, subtotal, total };
-}, [declaredValue, rates]);
-
-  const status: InvoiceStatus =
-    (data?.status as InvoiceStatus) || (data?.paid ? "paid" : "pending");
-
-  const paymentMethod = data?.paymentMethod ? safeStr(data.paymentMethod) : "";
   const dueDate = data?.dueDate ?? null;
+
+  // ✅ STATUS:
+  // - cancelled stays cancelled
+  // - paid stays paid
+  // - if unpaid and dueDate passed => overdue
+  // - else unpaid
+  const statusFromApi = (data?.status as InvoiceStatus) || (data?.paid ? "paid" : "unpaid");
+  const status: InvoiceStatus = useMemo(() => {
+    if (statusFromApi === "cancelled") return "cancelled";
+    if (statusFromApi === "paid") return "paid";
+    if (isOverdue(dueDate)) return "overdue";
+    return "unpaid";
+  }, [statusFromApi, dueDate]);
+
+  // ✅ Use money values coming from API breakdown (matches your lib/pricing.ts)
+  const calc = useMemo(() => {
+    const b = data?.breakdown || {};
+
+    const shipping = num(b.shipping);
+    const fuel = num(b.fuel);
+    const handling = num(b.handling);
+    const customs = num(b.customs);
+    const insurance = num(b.insurance);
+
+    const discount = num(b.discount);
+    const tax = num(b.tax);
+
+    const subtotal =
+      num(b.subtotal) || (shipping + fuel + handling + customs + insurance - discount);
+
+    const total =
+      num(b.total) || (subtotal + tax);
+
+    return { shipping, fuel, handling, customs, insurance, discount, tax, subtotal, total };
+  }, [data]);
+
+  const paymentMethodRaw = data?.paymentMethod ? safeStr(data.paymentMethod) : "";
+  const paymentMethod =
+    status === "paid"
+      ? "Payment confirmed"
+      : status === "cancelled"
+      ? "Not payable"
+      : status === "overdue"
+      ? "Payment required (Overdue)"
+      : "Payment required";
+
+  const paymentMethodLine =
+    paymentMethodRaw && status !== "paid" && status !== "cancelled"
+      ? paymentMethodRaw
+      : "";
 
   const companyName = safeStr(data?.company?.name) || "Exodus Logistics Ltd.";
   const companyAddress =
@@ -289,7 +290,7 @@ export default function InvoiceFullPage() {
       ? "OVERDUE"
       : status === "cancelled"
       ? "CANCELLED"
-      : "PAYMENT PENDING";
+      : "UNPAID";
 
   const statusColor =
     status === "paid"
@@ -307,7 +308,7 @@ export default function InvoiceFullPage() {
       ? "This invoice is overdue. Please complete payment as soon as possible to avoid delays in processing."
       : status === "cancelled"
       ? "This invoice has been cancelled. If you believe this is an error, please contact support."
-      : "Payment is pending. Please proceed with payment using one of the accepted methods above. Once payment is confirmed, the shipment will be eligible to move to the next stage.";
+      : "This invoice is unpaid. Please complete payment using one of the accepted methods below. Once payment is confirmed, the shipment will be eligible to move to the next stage.";
 
   const printNow = () => window.print();
   const backToTrackTarget = trackingNumber || shipmentId || (q ? q.toUpperCase() : "");
@@ -429,15 +430,15 @@ export default function InvoiceFullPage() {
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="flex items-center gap-4">
-  <Image
-  src="/logo.png"
-  alt="Exodus Logistics"
-  width={200}
-  height={70}
-  priority
-  className="h-12 w-auto sm:h-16 object-contain"
-/>
-</div>
+                            <Image
+                              src="/logo.png"
+                              alt="Exodus Logistics"
+                              width={200}
+                              height={70}
+                              priority
+                              className="h-12 w-auto sm:h-16 object-contain"
+                            />
+                          </div>
 
                           <div className="min-w-0">
                             <p className="text-white font-extrabold text-base sm:text-lg leading-tight">
@@ -554,6 +555,8 @@ export default function InvoiceFullPage() {
                         ? "Payment has been confirmed."
                         : status === "cancelled"
                         ? "This invoice is not payable."
+                        : status === "overdue"
+                        ? "This invoice is overdue. Please pay to avoid delays."
                         : "Please complete payment to move the shipment to the next stage."}
                     </p>
                   </div>
@@ -619,37 +622,37 @@ export default function InvoiceFullPage() {
                   </div>
                 </div>
 
-               {/* Parties */}
-<div className="mt-4 rounded-3xl border border-gray-200 bg-white shadow p-6">
-  <div className="flex items-center gap-2 mb-4">
-    <FileText className="w-5 h-5 text-blue-700" />
-    <h2 className="text-lg font-extrabold text-gray-900">Parties</h2>
-  </div>
+                {/* Parties */}
+                <div className="mt-4 rounded-3xl border border-gray-200 bg-white shadow p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="w-5 h-5 text-blue-700" />
+                    <h2 className="text-lg font-extrabold text-gray-900">Parties</h2>
+                  </div>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-    {/* Sender */}
-    <div className="rounded-2xl border border-gray-200 p-4">
-      <p className="text-xs text-gray-600">Sender</p>
-      <p className="mt-1 font-semibold text-gray-900">
-        {safeStr(data?.parties?.senderName) || "—"}
-      </p>
-      <p className="text-gray-700 break-all">
-        {safeStr(data?.parties?.senderEmail) || "—"}
-      </p>
-    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    {/* Sender */}
+                    <div className="rounded-2xl border border-gray-200 p-4">
+                      <p className="text-xs text-gray-600">Sender</p>
+                      <p className="mt-1 font-semibold text-gray-900">
+                        {safeStr(data?.parties?.senderName) || "—"}
+                      </p>
+                      <p className="text-gray-700 break-all">
+                        {safeStr(data?.parties?.senderEmail) || "—"}
+                      </p>
+                    </div>
 
-    {/* Receiver */}
-    <div className="rounded-2xl border border-gray-200 p-4">
-      <p className="text-xs text-gray-600">Receiver</p>
-      <p className="mt-1 font-semibold text-gray-900">
-        {safeStr(data?.parties?.receiverName) || "—"}
-      </p>
-      <p className="text-gray-700 break-all">
-        {safeStr(data?.parties?.receiverEmail) || "—"}
-      </p>
-    </div>
-  </div>
-</div> 
+                    {/* Receiver */}
+                    <div className="rounded-2xl border border-gray-200 p-4">
+                      <p className="text-xs text-gray-600">Receiver</p>
+                      <p className="mt-1 font-semibold text-gray-900">
+                        {safeStr(data?.parties?.receiverName) || "—"}
+                      </p>
+                      <p className="text-gray-700 break-all">
+                        {safeStr(data?.parties?.receiverEmail) || "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="rounded-3xl border border-gray-200 bg-white shadow p-6">
@@ -676,10 +679,16 @@ export default function InvoiceFullPage() {
                     </div>
 
                     <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-                      <p className="text-xs text-gray-600">Recorded method</p>
+                      <p className="text-xs text-gray-600">Status</p>
                       <p className="mt-1 text-sm font-extrabold text-gray-900">
-                        {paymentMethod ? paymentMethod : "NULL"}
+                        {paymentMethod}
                       </p>
+
+                      <p className="mt-3 text-xs text-gray-600">Recorded method</p>
+                      <p className="mt-1 text-sm font-extrabold text-gray-900">
+                        {paymentMethodLine || "—"}
+                      </p>
+
                       <p className="mt-2 text-sm text-gray-700">{paymentMessage}</p>
                     </div>
                   </div>
@@ -697,30 +706,13 @@ export default function InvoiceFullPage() {
                     </p>
 
                     <div className="mt-5 space-y-2 text-sm">
-                      <Row
-                        label={`Shipping (${fmtPercent(rates.shipping)})`}
-                        value={fmtMoney(calc.shipping, currency)}
-                      />
-                      <Row
-                        label={`Insurance (${fmtPercent(rates.insurance)})`}
-                        value={fmtMoney(calc.insurance, currency)}
-                      />
-                      <Row
-                        label={`Fuel (${fmtPercent(rates.fuel)})`}
-                        value={fmtMoney(calc.fuel, currency)}
-                      />
-                      <Row
-                        label={`Customs (${fmtPercent(rates.customs)})`}
-                        value={fmtMoney(calc.customs, currency)}
-                      />
-                      <Row
-                        label={`Tax (${fmtPercent(rates.tax)})`}
-                        value={fmtMoney(calc.tax, currency)}
-                      />
-                      <Row
-                        label={`Discount (${fmtPercent(rates.discount)})`}
-                        value={fmtMoney(calc.discount, currency)}
-                      />
+                      <Row label={`Shipping fee`} value={fmtMoney(calc.shipping, currency)} />
+                      <Row label={`Fuel surcharge`} value={fmtMoney(calc.fuel, currency)} />
+                      <Row label={`Handling fee`} value={fmtMoney(calc.handling, currency)} />
+                      <Row label={`Customs fee`} value={fmtMoney(calc.customs, currency)} />
+                      <Row label={`Insurance`} value={fmtMoney(calc.insurance, currency)} />
+                      <Row label={`Tax`} value={fmtMoney(calc.tax, currency)} />
+                      <Row label={`Discount`} value={fmtMoney(calc.discount, currency)} />
 
                       <div className="pt-3 mt-3 border-t border-gray-200 flex items-center justify-between">
                         <span className="text-gray-900 font-semibold">Subtotal</span>
@@ -740,16 +732,17 @@ export default function InvoiceFullPage() {
                     </div>
                   </div>
                 </div>
+
                 {/* Verification / Security note */}
-<div className="mt-6 mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
-  <p className="text-sm font-medium text-gray-800">
-    This invoice is system generated and valid without signature.
-  </p>
-  <p className="mt-1 text-xs text-gray-600">
-    For verification, use your{" "}
-    <span className="font-semibold text-gray-800">shipment ID</span> on our official website.
-  </p>
-</div>
+                <div className="mt-6 mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
+                  <p className="text-sm font-medium text-gray-800">
+                    This invoice is system generated and valid without signature.
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    For verification, use your{" "}
+                    <span className="font-semibold text-gray-800">shipment ID</span> on our official website.
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
