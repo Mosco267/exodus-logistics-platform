@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
+type CompanySettingsDoc = {
+  _id: string; // "default"
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  registrationNumber?: string;
+};
+
 export async function GET() {
   const dbName = process.env.MONGODB_DB;
   if (!dbName) return NextResponse.json({ error: "Missing MONGODB_DB" }, { status: 500 });
@@ -8,7 +17,10 @@ export async function GET() {
   const client = await clientPromise;
   const db = client.db(dbName);
 
-  const doc = await db.collection("company_settings").findOne({ _id: "default" });
+  const doc = await db
+    .collection<CompanySettingsDoc>("company_settings")
+    .findOne({ _id: "default" });
+
   return NextResponse.json({ ok: true, settings: doc || { _id: "default" } });
 }
 
@@ -34,12 +46,18 @@ export async function PATCH(req: Request) {
     registrationNumber: String(body?.registrationNumber || "").trim(),
   };
 
-  await db.collection("company_settings").updateOne(
+  await db.collection<CompanySettingsDoc>("company_settings").updateOne(
     { _id: "default" },
-    { $set: { _id: "default", ...update } },
+    {
+      $set: update,
+      $setOnInsert: { _id: "default" },
+    },
     { upsert: true }
   );
 
-  const doc = await db.collection("company_settings").findOne({ _id: "default" });
+  const doc = await db
+    .collection<CompanySettingsDoc>("company_settings")
+    .findOne({ _id: "default" });
+
   return NextResponse.json({ ok: true, settings: doc });
 }
