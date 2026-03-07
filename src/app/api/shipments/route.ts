@@ -190,9 +190,16 @@ export async function POST(req: Request) {
   incomingInvoice.status ?? body.invoiceStatus
 );
 
-const invoiceStatus: InvoiceStatus =
-  explicitInvoiceStatus ||
-  computeInvoiceStatus(false, invoiceDueDate);
+let invoiceStatus: InvoiceStatus;
+
+if (explicitInvoiceStatus === "paid" || explicitInvoiceStatus === "cancelled") {
+  invoiceStatus = explicitInvoiceStatus;
+} else if (invoiceDueDate) {
+  const computed = computeInvoiceStatus(false, invoiceDueDate);
+  invoiceStatus = computed === "overdue" ? "overdue" : (explicitInvoiceStatus || "unpaid");
+} else {
+  invoiceStatus = explicitInvoiceStatus || "unpaid";
+}
 
 const invoicePaid = invoiceStatus === "paid";
 

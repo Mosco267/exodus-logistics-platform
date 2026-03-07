@@ -222,13 +222,16 @@ export default function InvoiceFullPage() {
   // - paid stays paid
   // - if unpaid and dueDate passed => overdue
   // - else unpaid
-  const statusFromApi = (data?.status as InvoiceStatus) || (data?.paid ? "paid" : "unpaid");
-  const status: InvoiceStatus = useMemo(() => {
-    if (statusFromApi === "cancelled") return "cancelled";
-    if (statusFromApi === "paid") return "paid";
-    if (isOverdue(dueDate)) return "overdue";
-    return "unpaid";
-  }, [statusFromApi, dueDate]);
+ const statusFromApi =
+  (data?.status as InvoiceStatus) || (data?.paid ? "paid" : "unpaid");
+
+const status: InvoiceStatus = useMemo(() => {
+  if (statusFromApi === "cancelled") return "cancelled";
+  if (statusFromApi === "paid") return "paid";
+  if (statusFromApi === "overdue") return "overdue";
+  if (statusFromApi === "unpaid" && isOverdue(dueDate)) return "overdue";
+  return "unpaid";
+}, [statusFromApi, dueDate]);
 
   // ✅ Use money values coming from API breakdown (matches your lib/pricing.ts)
   const calc = useMemo(() => {
