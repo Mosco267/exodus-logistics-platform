@@ -430,7 +430,7 @@ export default function TrackResultPage() {
               <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                    <Receipt className="w-4 h-4 text-gray-700" />
+                    <FileText className="w-4 h-4 text-gray-700" />
                     Invoice
                   </div>
                   <p
