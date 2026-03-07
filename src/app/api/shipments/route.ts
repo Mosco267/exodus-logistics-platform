@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { generateShipmentId, generateTrackingNumber } from "@/lib/id";
-import { DEFAULT_PRICING, computeInvoiceFromDeclaredValue, type PricingSettings } from "@/lib/pricing";
+import {
+  DEFAULT_PRICING,
+  computeInvoiceFromDeclaredValue,
+  type PricingSettings,
+} from "@/lib/pricing";
 import {
   sendShipmentCreatedSenderEmail,
   sendShipmentCreatedReceiverEmailV2,
@@ -16,7 +20,6 @@ type ShipmentStatus =
 
 type DimensionsCm = { length: number; width: number; height: number };
 
-// ✅ NEW invoice status options
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
 type CreateShipmentBody = {
@@ -26,11 +29,9 @@ type CreateShipmentBody = {
   senderName?: string;
   receiverName?: string;
 
-  // ✅ emails
   senderEmail?: string;
   receiverEmail?: string;
 
-  // ✅ full sender address
   senderCountry?: string;
   senderState?: string;
   senderCity?: string;
@@ -38,7 +39,6 @@ type CreateShipmentBody = {
   senderPostalCode?: string;
   senderPhone?: string;
 
-  // ✅ full receiver address
   receiverCountry?: string;
   receiverState?: string;
   receiverCity?: string;
@@ -46,23 +46,26 @@ type CreateShipmentBody = {
   receiverPostalCode?: string;
   receiverPhone?: string;
 
-  // ✅ shipment details
   serviceLevel?: "Express" | "Standard" | string;
   shipmentType?: string;
   weightKg?: number;
   dimensionsCm?: DimensionsCm;
 
-  // ✅ declared value
   declaredValue?: number;
   declaredValueCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
 
-  // ✅ invoice
   invoicePaid?: boolean;
-  invoiceStatus?: InvoiceStatus;          // NEW
-  invoiceDueDate?: string | null;         // NEW (ISO string or null)
-  invoicePaymentMethod?: string | null;   // NEW
+  invoiceStatus?: InvoiceStatus;
+  invoiceDueDate?: string | null;
+  invoicePaymentMethod?: string | null;
 
-  // ✅ pricing used for THIS shipment
+  invoice?: {
+    paid?: boolean;
+    status?: InvoiceStatus;
+    dueDate?: string | null;
+    paymentMethod?: string | null;
+  };
+
   pricing?: Partial<PricingSettings>;
 
   status?: ShipmentStatus | string;
@@ -85,11 +88,10 @@ function toTitleStatus(input?: string): ShipmentStatus {
 }
 
 async function loadPricing(db: any): Promise<PricingSettings> {
-  const doc = await (db.collection("pricing_settings") as any).findOne({ _id: "default" });
+  const doc = await db.collection("pricing_settings").findOne({ _id: "default" });
   return (doc as any)?.settings || DEFAULT_PRICING;
 }
 
-// ✅ invoice format: EXS-INV-YYYY-MM-1234567
 function makeInvoiceNumber(seedA: string, seedB: string) {
   const now = new Date();
   const yyyy = String(now.getFullYear());
@@ -117,6 +119,15 @@ function normalizeInvoiceStatus(v: any): InvoiceStatus | null {
   return null;
 }
 
+function computeInvoiceStatus(paid: boolean, dueDate?: string | null): InvoiceStatus {
+  if (paid) return "paid";
+  if (!dueDate) return "unpaid";
+
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return "unpaid";
+  return Date.now() > d.getTime() ? "overdue" : "unpaid";
+}
+
 export async function POST(req: Request) {
   let body: CreateShipmentBody;
 
@@ -130,10 +141,16 @@ export async function POST(req: Request) {
   const destinationCountryCode = String(body.destinationCountryCode || "").toUpperCase().trim();
 
   if (!senderCountryCode || senderCountryCode.length !== 2) {
-    return NextResponse.json({ error: "senderCountryCode must be 2 letters (e.g. US)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "senderCountryCode must be 2 letters (e.g. US)" },
+      { status: 400 }
+    );
   }
   if (!destinationCountryCode || destinationCountryCode.length !== 2) {
-    return NextResponse.json({ error: "destinationCountryCode must be 2 letters (e.g. NG)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "destinationCountryCode must be 2 letters (e.g. NG)" },
+      { status: 400 }
+    );
   }
 
   const senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
@@ -141,22 +158,41 @@ export async function POST(req: Request) {
 
   const declaredValue = Number(body.declaredValue ?? 0);
   if (!Number.isFinite(declaredValue) || declaredValue < 0) {
-    return NextResponse.json({ error: "declaredValue must be a valid number >= 0" }, { status: 400 });
+    return NextResponse.json(
+      { error: "declaredValue must be a valid number >= 0" },
+      { status: 400 }
+    );
   }
 
   const declaredValueCurrency = String(body.declaredValueCurrency || "USD").toUpperCase();
 
-  const invoicePaid = Boolean(body.invoicePaid);
-  const invoiceDueDate = body.invoiceDueDate ? String(body.invoiceDueDate) : null;
-  const invoicePaymentMethod = body.invoicePaymentMethod ? String(body.invoicePaymentMethod) : null;
+  const incomingInvoice = body.invoice || {};
 
-  // ✅ invoice status logic
-  const explicitInvoiceStatus = normalizeInvoiceStatus(body.invoiceStatus);
+  const invoicePaid =
+    incomingInvoice.paid !== undefined
+      ? Boolean(incomingInvoice.paid)
+      : Boolean(body.invoicePaid);
+
+  const invoiceDueDate =
+    incomingInvoice.dueDate !== undefined
+      ? (incomingInvoice.dueDate ? String(incomingInvoice.dueDate) : null)
+      : body.invoiceDueDate
+      ? String(body.invoiceDueDate)
+      : null;
+
+  const invoicePaymentMethodRaw =
+    incomingInvoice.paymentMethod !== undefined
+      ? incomingInvoice.paymentMethod
+      : body.invoicePaymentMethod;
+
+  const invoicePaymentMethod = cleanStr(invoicePaymentMethodRaw) || null;
+
+  const explicitInvoiceStatus = normalizeInvoiceStatus(
+    incomingInvoice.status ?? body.invoiceStatus
+  );
+
   const invoiceStatus: InvoiceStatus =
-    explicitInvoiceStatus ||
-    (invoicePaid ? "paid" : invoiceDueDate ? "pending" as any : "unpaid"); // safe fallback
-  // NOTE: we keep UI choices; for strict use you can remove the "pending" fallback.
-  // If you don't want "pending" at all, comment that line and use "unpaid" instead.
+    explicitInvoiceStatus || computeInvoiceStatus(invoicePaid, invoiceDueDate);
 
   const statusTitle = toTitleStatus(body.status || "Created");
 
@@ -171,18 +207,14 @@ export async function POST(req: Request) {
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
-  // ✅ base pricing from DB, then override with per-shipment pricing
   const basePricing = await loadPricing(db);
   const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
 
-  // ✅ compute invoice breakdown using the EXACT pricing used
   const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingUsed);
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const shipmentId = generateShipmentId();
     const trackingNumber = generateTrackingNumber(senderCountryCode);
-
-    // ✅ invoice number generated & saved at creation
     const invoiceNumber = makeInvoiceNumber(shipmentId, trackingNumber);
 
     try {
@@ -191,9 +223,6 @@ export async function POST(req: Request) {
       const doc: any = {
         shipmentId,
         trackingNumber,
-
-        // ✅ NEW: store invoiceNumber also at top-level if you want (optional)
-        // invoiceNumber,
 
         senderCountryCode,
         destinationCountryCode,
@@ -219,7 +248,7 @@ export async function POST(req: Request) {
               county: "",
             },
             meta: {
-              invoicePaid: invoicePaid,
+              invoicePaid,
               invoiceAmount: Number(breakdown.total),
               currency: declaredValueCurrency,
               origin: [body?.senderCity, body?.senderState, body?.senderCountry]
@@ -261,7 +290,6 @@ export async function POST(req: Request) {
         declaredValue: breakdown.declaredValue,
         declaredValueCurrency,
 
-        // ✅ invoice saved with breakdown + pricing used + invoice number
         invoice: {
           invoiceNumber,
           amount: breakdown.total,
@@ -270,16 +298,14 @@ export async function POST(req: Request) {
           paid: invoicePaid,
           paidAt: invoicePaid ? now : null,
 
-          status: explicitInvoiceStatus || (invoicePaid ? "paid" : "unpaid"),
+          status: invoiceStatus,
           dueDate: invoiceDueDate,
           paymentMethod: invoicePaymentMethod,
 
-          // ✅ store breakdown amounts so invoice full page shows EXACT numbers
           breakdown: {
             ...breakdown,
           },
 
-          // ✅ store pricing settings used so invoice can show exact rules
           pricingUsed: {
             ...pricingUsed,
           },
@@ -291,7 +317,6 @@ export async function POST(req: Request) {
 
       await db.collection("shipments").insertOne(doc);
 
-      // ✅ EMAILS (always send ONLY 2 emails on creation: sender + receiver)
       const APP_URL = (
         process.env.APP_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
@@ -308,6 +333,7 @@ export async function POST(req: Request) {
             shipmentId,
             trackingNumber,
             paid: invoicePaid,
+            invoiceNumber,
             viewInvoiceUrl,
           });
         } catch (e) {
@@ -323,6 +349,7 @@ export async function POST(req: Request) {
             shipmentId,
             trackingNumber,
             paid: invoicePaid,
+            invoiceNumber,
             viewInvoiceUrl,
           });
         } catch (e) {
@@ -340,5 +367,8 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ error: "Could not generate a unique ID, try again." }, { status: 500 });
+  return NextResponse.json(
+    { error: "Could not generate a unique ID, try again." },
+    { status: 500 }
+  );
 }

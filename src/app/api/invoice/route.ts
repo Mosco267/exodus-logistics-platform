@@ -12,7 +12,7 @@ const ciExact = (field: string, value: string) => ({
 type PricingSettingsDoc = { _id: string; settings: any };
 
 type CompanySettingsDoc = {
-  _id: string; // "default"
+  _id: string;
   name?: string;
   address?: string;
   phone?: string;
@@ -36,7 +36,6 @@ function joinNice(parts: Array<any>) {
     .join(", ");
 }
 
-// invoice format: EXS-INV-YYYY-MM-1234567
 function makeInvoiceNumber(seedA: string, seedB: string) {
   const now = new Date();
   const yyyy = String(now.getFullYear());
@@ -50,34 +49,31 @@ function makeInvoiceNumber(seedA: string, seedB: string) {
   return `EXS-INV-${yyyy}-${mm}-${seven}`;
 }
 
-type InvoiceStatus = "paid" | "pending" | "overdue" | "cancelled";
+type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
 function normalizeInvoiceStatus(v: any): InvoiceStatus | null {
   const s = cleanStr(v).toLowerCase();
   if (s === "paid") return "paid";
-  if (s === "pending") return "pending";
+  if (s === "unpaid") return "unpaid";
   if (s === "overdue") return "overdue";
   if (s === "cancelled" || s === "canceled") return "cancelled";
   return null;
 }
 
-function computeInvoiceStatus(paid: boolean, dueDate?: string | null) {
-  if (paid) return "paid" as const;
-  if (!dueDate) return "pending" as const;
+function computeInvoiceStatus(paid: boolean, dueDate?: string | null): InvoiceStatus {
+  if (paid) return "paid";
+  if (!dueDate) return "unpaid";
 
   const d = new Date(dueDate);
-  if (Number.isNaN(d.getTime())) return "pending" as const;
-  return Date.now() > d.getTime() ? ("overdue" as const) : ("pending" as const);
+  if (Number.isNaN(d.getTime())) return "unpaid";
+  return Date.now() > d.getTime() ? "overdue" : "unpaid";
 }
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
 
-    // Option A: /api/invoice?q=TRACKING_OR_SHIPMENT
     const q = cleanStr(url.searchParams.get("q"));
-
-    // Option B: /api/invoice?invoice=...&email=...
     const invoiceParam = cleanStr(url.searchParams.get("invoice"));
     const emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
 
@@ -99,7 +95,6 @@ export async function GET(req: Request) {
     const client = await clientPromise;
     const db = client.db(dbName);
 
-    // Company settings
     const companyDoc = await db
       .collection<CompanySettingsDoc>("company_settings")
       .findOne({ _id: "default" });
@@ -114,40 +109,14 @@ export async function GET(req: Request) {
       registrationNumber: companyDoc?.registrationNumber || "",
     };
 
-    // Pricing settings (defaults)
     const pricingDoc = await db
       .collection<PricingSettingsDoc>("pricing_settings")
       .findOne({ _id: "default" });
 
-    const pricing = (pricingDoc as any)?.settings || DEFAULT_PRICING;
-
-    /**
-     * ✅ Support BOTH:
-     * - Old model (shippingRate/customsRate/taxRate/discountRate)
-     * - New model (shippingFee/handlingFee/customsFee/taxFee/discountFee + fuelRate + insuranceRate)
-     */
-    const rates = {
-      // NEW model (fixed fees)
-      shippingFee: pricing?.shippingFee ?? null,
-      handlingFee: pricing?.handlingFee ?? null,
-      customsFee: pricing?.customsFee ?? null,
-      taxFee: pricing?.taxFee ?? null,
-      discountFee: pricing?.discountFee ?? null,
-
-      // NEW model (percentages)
-      fuelRate: pricing?.fuelRate ?? pricing?.fuel ?? null,
-      insuranceRate: pricing?.insuranceRate ?? pricing?.insurance ?? null,
-
-      // OLD model (keep for backward compatibility)
-      shippingRate: pricing?.shippingRate ?? pricing?.shipping ?? null,
-      customsRate: pricing?.customsRate ?? pricing?.customs ?? null,
-      taxRate: pricing?.taxRate ?? pricing?.tax ?? null,
-      discountRate: pricing?.discountRate ?? pricing?.discount ?? null,
-    };
+    const pricingDefaults = (pricingDoc as any)?.settings || DEFAULT_PRICING;
 
     let shipment: any | null = null;
 
-    // Secure: invoice + email
     if (invoiceParam) {
       if (!emailParam) {
         return NextResponse.json(
@@ -158,7 +127,6 @@ export async function GET(req: Request) {
 
       const invUpper = normUpper(invoiceParam);
 
-      // 1) Try find by invoice number fields
       shipment = await db.collection("shipments").findOne(
         {
           $or: [
@@ -171,11 +139,11 @@ export async function GET(req: Request) {
         { projection: { _id: 0 } }
       );
 
-      // 2) ✅ Fallback: if user typed shipmentId/trackingNumber into "invoice" box
-      // This helps when invoiceNumber isn't stored yet.
       if (!shipment) {
         shipment = await db.collection("shipments").findOne(
-          { $or: [ciExact("trackingNumber", invUpper), ciExact("shipmentId", invUpper)] },
+          {
+            $or: [ciExact("trackingNumber", invUpper), ciExact("shipmentId", invUpper)],
+          },
           { projection: { _id: 0 } }
         );
       }
@@ -198,7 +166,6 @@ export async function GET(req: Request) {
       }
     }
 
-    // Simple: q = tracking/shipment
     if (!shipment && q) {
       const qq = normUpper(q);
       shipment = await db.collection("shipments").findOne(
@@ -218,7 +185,6 @@ export async function GET(req: Request) {
       normUpper(inv?.invoiceNumber) ||
       makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
 
-    // ✅ If invoiceNumber does not exist, save it permanently
     if (!inv?.invoiceNumber) {
       await db.collection("shipments").updateOne(
         { shipmentId: s?.shipmentId },
@@ -230,32 +196,49 @@ export async function GET(req: Request) {
     const paid = Boolean(inv?.paid);
     const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
 
-    // allow admin override status (cancelled, etc.)
-    const explicitStatus = normalizeInvoiceStatus(inv?.status || inv?.invoiceStatus);
     const computedStatus = computeInvoiceStatus(paid, dueDate);
-    const status: InvoiceStatus = explicitStatus || (computedStatus as InvoiceStatus);
+    const explicitStatus = normalizeInvoiceStatus(inv?.status || inv?.invoiceStatus);
 
-    const paymentMethod = cleanStr(inv?.paymentMethod) ? cleanStr(inv?.paymentMethod) : null;
+    let status: InvoiceStatus =
+      explicitStatus === "cancelled" ? "cancelled" : computedStatus;
+
+    if (explicitStatus === "paid") status = "paid";
+    if (explicitStatus === "overdue") status = "overdue";
+    if (explicitStatus === "unpaid") status = computedStatus === "overdue" ? "overdue" : "unpaid";
+
+    if (
+      status !== cleanStr(inv?.status).toLowerCase() &&
+      status !== "cancelled"
+    ) {
+      await db.collection("shipments").updateOne(
+        { shipmentId: s?.shipmentId },
+        {
+          $set: {
+            "invoice.status": status,
+            updatedAt: new Date(),
+          },
+        }
+      );
+    }
+
+    const paymentMethod = cleanStr(inv?.paymentMethod) || null;
 
     const declaredValueRaw =
       s?.declaredValue ?? s?.packageValue ?? inv?.breakdown?.declaredValue ?? 0;
     const declaredValue = Number(declaredValueRaw) || 0;
 
-    const breakdownFromDb = inv?.breakdown ?? null;
+    const pricingUsed = inv?.pricingUsed
+      ? { ...pricingDefaults, ...inv.pricingUsed }
+      : { ...pricingDefaults };
 
-    // ✅ Merge: DB breakdown wins, then fallback to defaults
-    const mergedBreakdown = breakdownFromDb
-      ? {
-          ...breakdownFromDb,
-          declaredValue: Number(breakdownFromDb?.declaredValue ?? declaredValue) || 0,
-          rates: { ...rates, ...(breakdownFromDb?.rates || {}) },
-        }
-      : { declaredValue, rates };
+    const breakdown = inv?.breakdown
+      ? { ...inv.breakdown, declaredValue: Number(inv?.breakdown?.declaredValue ?? declaredValue) || 0 }
+      : {
+          declaredValue,
+          pricingUsed,
+        };
 
-    // ✅ total should come from DB if possible
-    // (your new invoice page should display these from breakdown)
-    const amount =
-      Number(inv?.amount ?? mergedBreakdown?.total ?? 0) || 0;
+    const amount = Number(inv?.amount ?? breakdown?.total ?? 0) || 0;
 
     const senderCountry =
       cleanStr(s?.senderCountry || s?.senderCountryName || s?.senderCountryCode) || null;
@@ -285,7 +268,8 @@ export async function GET(req: Request) {
       paymentMethod,
 
       declaredValue,
-      breakdown: mergedBreakdown,
+      breakdown,
+      pricingUsed,
 
       shipment: {
         shipmentId: cleanStr(s?.shipmentId),

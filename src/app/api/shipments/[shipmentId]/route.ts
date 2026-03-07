@@ -164,81 +164,86 @@ export async function PATCH(
    // ----------------------------
 // 3) INVOICE UPDATE
 // ----------------------------
+const incomingInvoice = body?.invoice || null;
 
-// A) If ONLY toggling paid/unpaid → DO NOT recalc breakdown
-const isOnlyPaidToggle =
-  body?.invoice &&
-  Object.keys(body).length === 1 &&
-  Object.keys(body.invoice).length === 1 &&
-  body.invoice.paid !== undefined;
+const shouldRecalcInvoice =
+  incomingInvoice !== null ||
+  body?.declaredValue !== undefined ||
+  (existing as any)?.invoice === undefined;
 
-if (isOnlyPaidToggle) {
-  const prev = (existing as any).invoice || {};
-  const paid = Boolean(body.invoice.paid);
+if (shouldRecalcInvoice) {
+  const prev = (existing as any)?.invoice || {};
+
+  const pricingToUse =
+    prev?.pricingUsed
+      ? { ...DEFAULT_PRICING, ...prev.pricingUsed }
+      : pricing;
+
+  const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
+
+  const paid =
+    incomingInvoice?.paid !== undefined
+      ? Boolean(incomingInvoice.paid)
+      : Boolean(prev.paid);
+
+  const dueDate =
+    incomingInvoice?.dueDate !== undefined
+      ? incomingInvoice.dueDate
+      : prev.dueDate || null;
+
+  let status =
+    incomingInvoice?.status !== undefined
+      ? String(incomingInvoice.status || "").trim().toLowerCase()
+      : String(prev.status || "").trim().toLowerCase();
+
+  if (!status) {
+    if (paid) status = "paid";
+    else if (dueDate) {
+      const d = new Date(dueDate);
+      status =
+        !Number.isNaN(d.getTime()) && Date.now() > d.getTime()
+          ? "overdue"
+          : "unpaid";
+    } else {
+      status = "unpaid";
+    }
+  }
+
+  if (paid) {
+    status = "paid";
+  } else if (status !== "cancelled") {
+    const d = dueDate ? new Date(dueDate) : null;
+    if (d && !Number.isNaN(d.getTime()) && Date.now() > d.getTime()) {
+      status = "overdue";
+    } else if (status === "paid") {
+      status = "unpaid";
+    }
+  }
+
+  const paymentMethod =
+    incomingInvoice?.paymentMethod !== undefined
+      ? (String(incomingInvoice.paymentMethod || "").trim() || null)
+      : (prev.paymentMethod || null);
+
   const nowIso = new Date().toISOString();
 
   $set.invoice = {
     ...prev,
+    invoiceNumber: prev?.invoiceNumber || null,
+    amount: breakdown.total,
+    currency: String(prev.currency || incomingInvoice?.currency || "USD").toUpperCase(),
     paid,
-    paidAt: paid ? nowIso : null,
+    paidAt: paid ? (incomingInvoice?.paidAt ? String(incomingInvoice.paidAt) : nowIso) : null,
+    status,
+    dueDate,
+    paymentMethod,
+    breakdown: {
+      ...breakdown,
+    },
+    pricingUsed: {
+      ...pricingToUse,
+    },
   };
-} else {
-  // B) Otherwise we may need to recalc (declared value changed, invoice missing, etc.)
-  const shouldRecalcInvoice =
-    body?.invoice !== undefined ||
-    body?.declaredValue !== undefined ||
-    (existing as any)?.invoice === undefined;
-
-  if (shouldRecalcInvoice) {
-    // ✅ Use stored rates from this shipment first (if available)
-    const storedRates =
-      (existing as any)?.invoice?.breakdown?.rates ||
-      (existing as any)?.invoice?.breakdown?.pricing ||
-      null;
-
-    const pricingToUse = storedRates
-      ? { ...DEFAULT_PRICING, ...storedRates }
-      : pricing; // fallback to pricing_settings
-
-    const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
-
-    const prev = (existing as any).invoice || {};
-    const incoming = body.invoice || {};
-
-    const paid =
-      incoming.paid !== undefined ? Boolean(incoming.paid) : Boolean(prev.paid);
-
-    const nowIso = new Date().toISOString();
-
-   $set.invoice = {
-  ...prev,
-  amount: breakdown.total,
-  currency: String(prev.currency || incoming.currency || "USD").toUpperCase(),
-  paid,
-  paidAt: paid ? (incoming.paidAt ? String(incoming.paidAt) : nowIso) : null,
-
-  // ✅ NEW fields coming from admin shipment form
-  status:
-    incoming.status !== undefined
-      ? String(incoming.status)
-      : prev.status || "unpaid",
-
-  dueDate:
-    incoming.dueDate !== undefined
-      ? incoming.dueDate
-      : prev.dueDate || null,
-
-  paymentMethod:
-    incoming.paymentMethod !== undefined
-      ? String(incoming.paymentMethod)
-      : prev.paymentMethod || null,
-
-  breakdown: {
-    ...breakdown,
-    rates: storedRates || (breakdown as any)?.rates || null,
-  },
-};
-  }
 }
 
   // ----------------------------
