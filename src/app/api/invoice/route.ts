@@ -167,11 +167,11 @@ export async function GET(req: Request) {
     }
 
     if (!shipment && q) {
-      const qq = normUpper(q);
-      shipment = await db.collection("shipments").findOne(
-        { $or: [ciExact("trackingNumber", qq), ciExact("shipmentId", qq)] },
-        { projection: { _id: 0 } }
-      );
+  const qq = normUpper(q);
+  shipment = await db.collection("shipments").findOne(
+    { trackingNumber: { $regex: `^${escapeRegex(qq)}$`, $options: "i" } },
+    { projection: { _id: 0 } }
+  );
 
       if (!shipment) {
         return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
@@ -193,33 +193,40 @@ export async function GET(req: Request) {
     }
 
     const currency = normUpper(inv?.currency || "USD") || "USD";
-    const paid = Boolean(inv?.paid);
-    const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
+const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
 
-    const computedStatus = computeInvoiceStatus(paid, dueDate);
-    const explicitStatus = normalizeInvoiceStatus(inv?.status || inv?.invoiceStatus);
+const explicitStatus = normalizeInvoiceStatus(inv?.status || inv?.invoiceStatus);
+const computedStatus = computeInvoiceStatus(false, dueDate);
 
-    let status: InvoiceStatus =
-      explicitStatus === "cancelled" ? "cancelled" : computedStatus;
+let status: InvoiceStatus;
 
-    if (explicitStatus === "paid") status = "paid";
-    if (explicitStatus === "overdue") status = "overdue";
-    if (explicitStatus === "unpaid") status = computedStatus === "overdue" ? "overdue" : "unpaid";
+if (explicitStatus === "paid") {
+  status = "paid";
+} else if (explicitStatus === "cancelled") {
+  status = "cancelled";
+} else if (explicitStatus === "overdue") {
+  status = "overdue";
+} else if (computedStatus === "overdue") {
+  status = "overdue";
+} else {
+  status = "unpaid";
+}
 
-    if (
-      status !== cleanStr(inv?.status).toLowerCase() &&
-      status !== "cancelled"
-    ) {
-      await db.collection("shipments").updateOne(
-        { shipmentId: s?.shipmentId },
-        {
-          $set: {
-            "invoice.status": status,
-            updatedAt: new Date(),
-          },
-        }
-      );
+const paid = status === "paid";
+
+if (status !== cleanStr(inv?.status).toLowerCase()) {
+  await db.collection("shipments").updateOne(
+    { shipmentId: s?.shipmentId },
+    {
+      $set: {
+        "invoice.status": status,
+        "invoice.paid": paid,
+        "invoice.paidAt": paid ? (inv?.paidAt || new Date()) : null,
+        updatedAt: new Date(),
+      },
     }
+  );
+}
 
     const paymentMethod = cleanStr(inv?.paymentMethod) || null;
 
