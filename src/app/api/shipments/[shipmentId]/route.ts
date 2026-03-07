@@ -248,33 +248,43 @@ export async function PATCH(
           : prev.dueDate || null;
 
       let nextStatus = String(
-        incomingInvoice?.status !== undefined
-          ? incomingInvoice.status
-          : prev.status || ""
-      )
-        .trim()
-        .toLowerCase();
+  incomingInvoice?.status !== undefined
+    ? incomingInvoice.status
+    : prev.status || ""
+)
+  .trim()
+  .toLowerCase();
 
-      if (!nextStatus) {
-        if (dueDate) {
-          const d = new Date(dueDate);
-          nextStatus =
-            !Number.isNaN(d.getTime()) && Date.now() > d.getTime()
-              ? "overdue"
-              : "unpaid";
-        } else {
-          nextStatus = "unpaid";
-        }
-      }
+if (
+  nextStatus !== "paid" &&
+  nextStatus !== "unpaid" &&
+  nextStatus !== "overdue" &&
+  nextStatus !== "cancelled"
+) {
+  nextStatus = "";
+}
 
-      if (nextStatus !== "paid" && nextStatus !== "unpaid" && nextStatus !== "overdue" && nextStatus !== "cancelled") {
-        nextStatus = "unpaid";
-      }
-
-     if ((nextStatus === "unpaid" || nextStatus === "overdue") && dueDate) {
-  const d = new Date(dueDate);
-  if (!Number.isNaN(d.getTime())) {
-    nextStatus = Date.now() > d.getTime() ? "overdue" : nextStatus === "overdue" ? "unpaid" : nextStatus;
+// rules:
+// paid stays paid
+// cancelled stays cancelled
+// overdue stays overdue if set manually
+// unpaid should become overdue automatically when due date has passed
+if (nextStatus === "paid") {
+  nextStatus = "paid";
+} else if (nextStatus === "cancelled") {
+  nextStatus = "cancelled";
+} else if (nextStatus === "overdue") {
+  nextStatus = "overdue";
+} else {
+  if (dueDate) {
+    const d = new Date(dueDate);
+    if (!Number.isNaN(d.getTime()) && Date.now() > d.getTime()) {
+      nextStatus = "overdue";
+    } else {
+      nextStatus = "unpaid";
+    }
+  } else {
+    nextStatus = "unpaid";
   }
 }
 
@@ -461,7 +471,7 @@ if (!updated) {
         trackingNumber,
         status: nextStatus,
         invoiceNumber: nextInvoice.invoiceNumber || undefined,
-        viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`,
+        viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(trackingNumber)}`,
       }).catch(() => null);
     }
   }
@@ -581,4 +591,4 @@ if (receiverEmail) {
     console.error(error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-}
+} 
