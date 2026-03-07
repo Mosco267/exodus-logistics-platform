@@ -168,10 +168,7 @@ export async function POST(req: Request) {
 
   const incomingInvoice = body.invoice || {};
 
-  const invoicePaid =
-    incomingInvoice.paid !== undefined
-      ? Boolean(incomingInvoice.paid)
-      : Boolean(body.invoicePaid);
+  
 
   const invoiceDueDate =
     incomingInvoice.dueDate !== undefined
@@ -187,12 +184,15 @@ export async function POST(req: Request) {
 
   const invoicePaymentMethod = cleanStr(invoicePaymentMethodRaw) || null;
 
-  const explicitInvoiceStatus = normalizeInvoiceStatus(
-    incomingInvoice.status ?? body.invoiceStatus
-  );
+ const explicitInvoiceStatus = normalizeInvoiceStatus(
+  incomingInvoice.status ?? body.invoiceStatus
+);
 
-  const invoiceStatus: InvoiceStatus =
-    explicitInvoiceStatus || computeInvoiceStatus(invoicePaid, invoiceDueDate);
+const invoiceStatus: InvoiceStatus =
+  explicitInvoiceStatus ||
+  computeInvoiceStatus(false, invoiceDueDate);
+
+const invoicePaid = invoiceStatus === "paid";
 
   const statusTitle = toTitleStatus(body.status || "Created");
 

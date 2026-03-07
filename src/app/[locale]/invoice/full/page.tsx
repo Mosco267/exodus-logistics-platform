@@ -129,6 +129,15 @@ function fmtMoney(amount: number, currency: string) {
   }
 }
 
+function fmtPercentFromDecimal(v: any) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "0%";
+  const pct = n * 100;
+  const s =
+    pct % 1 === 0 ? String(pct) : pct.toFixed(2).replace(/\.?0+$/, "");
+  return `${s}%`;
+}
+
 function cleanTel(phone: string) {
   return phone.replace(/[^\d+]/g, "");
 }
@@ -686,7 +695,7 @@ export default function InvoiceFullPage() {
 
                       <p className="mt-3 text-xs text-gray-600">Recorded method</p>
                       <p className="mt-1 text-sm font-extrabold text-gray-900">
-                        {paymentMethodLine || "—"}
+                        {paymentMethodLine ? paymentMethodLine : "NULL"}
                       </p>
 
                       <p className="mt-2 text-sm text-gray-700">{paymentMessage}</p>
@@ -706,13 +715,27 @@ export default function InvoiceFullPage() {
                     </p>
 
                     <div className="mt-5 space-y-2 text-sm">
-                      <Row label={`Shipping fee`} value={fmtMoney(calc.shipping, currency)} />
-                      <Row label={`Fuel surcharge`} value={fmtMoney(calc.fuel, currency)} />
-                      <Row label={`Handling fee`} value={fmtMoney(calc.handling, currency)} />
-                      <Row label={`Customs fee`} value={fmtMoney(calc.customs, currency)} />
-                      <Row label={`Insurance`} value={fmtMoney(calc.insurance, currency)} />
-                      <Row label={`Tax`} value={fmtMoney(calc.tax, currency)} />
-                      <Row label={`Discount`} value={fmtMoney(calc.discount, currency)} />
+  <Row label={`Shipping fee`} value={fmtMoney(calc.shipping, currency)} />
+  <Row
+    label={`Fuel surcharge (${fmtPercentFromDecimal(
+      (data as any)?.breakdown?.pricingUsed?.fuelRate ??
+        (data as any)?.pricingUsed?.fuelRate ??
+        0
+    )})`}
+    value={fmtMoney(calc.fuel, currency)}
+  />
+  <Row label={`Handling fee`} value={fmtMoney(calc.handling, currency)} />
+  <Row label={`Customs fee`} value={fmtMoney(calc.customs, currency)} />
+  <Row
+    label={`Insurance (${fmtPercentFromDecimal(
+      (data as any)?.breakdown?.pricingUsed?.insuranceRate ??
+        (data as any)?.pricingUsed?.insuranceRate ??
+        0
+    )})`}
+    value={fmtMoney(calc.insurance, currency)}
+  />
+  <Row label={`Tax`} value={fmtMoney(calc.tax, currency)} />
+  <Row label={`Discount`} value={fmtMoney(calc.discount, currency)} />
 
                       <div className="pt-3 mt-3 border-t border-gray-200 flex items-center justify-between">
                         <span className="text-gray-900 font-semibold">Subtotal</span>

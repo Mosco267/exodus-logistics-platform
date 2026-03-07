@@ -107,31 +107,6 @@ export default function AdminShipmentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const togglePaid = async (shipmentId: string, currentPaid: boolean) => {
-    const nextPaid = !currentPaid;
-
-    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        invoice: { paid: nextPaid },
-      }),
-    });
-
-    const json = await res.json();
-    if (!res.ok) {
-      alert(json?.error || 'Failed to update invoice payment');
-      return;
-    }
-
-    setShipments((prev) =>
-      prev.map((s) => (s.shipmentId === shipmentId ? (json?.shipment as Shipment) : s))
-    );
-
-    setMsg(nextPaid ? 'Invoice marked as PAID ✅' : 'Invoice marked as UNPAID ✅');
-    window.setTimeout(() => setMsg(''), 1800);
-  };
-
   const updateStatus = async (shipmentId: string) => {
     const key = normalizeKey(selectedKey[shipmentId] || '');
     if (!key) return;
@@ -178,7 +153,7 @@ export default function AdminShipmentsPage() {
               ADMIN DASHBOARD: SHIPMENTS
             </h1>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              Update shipment status + toggle invoice paid/unpaid.
+              Update shipment status and manage shipment records.
             </p>
           </div>
 
@@ -306,20 +281,9 @@ export default function AdminShipmentsPage() {
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <button
-                          onClick={() => togglePaid(s.shipmentId, paid)}
-                          className={`px-4 py-2 rounded-xl font-semibold border transition cursor-pointer ${
-                            paid
-                              ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
-                              : 'bg-white dark:bg-white/5 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-white/10 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-cyan-500 dark:hover:border-cyan-500'
-                          }`}
-                        >
-                          Mark as {paid ? 'Unpaid' : 'Paid'}
-                        </button>
-
                         <Link
   href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/edit`}
-  className="ml-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:underline cursor-pointer"
+  className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:underline cursor-pointer"
 >
   Edit
 </Link>

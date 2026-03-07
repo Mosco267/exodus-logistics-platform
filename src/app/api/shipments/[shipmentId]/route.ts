@@ -144,6 +144,48 @@ export async function PATCH(
       if (body.statusNote !== undefined) $set.statusNote = String(body.statusNote || "").trim();
       if (body.nextStep !== undefined) $set.nextStep = String(body.nextStep || "").trim();
     }
+    
+    // ----------------------------
+    // 1B) OTHER SHIPMENT FIELDS FROM EDIT PAGE
+    // ----------------------------
+    if (body?.senderName !== undefined) $set.senderName = String(body.senderName || "").trim() || null;
+    if (body?.senderEmail !== undefined) $set.senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
+    if (body?.senderCountryCode !== undefined) $set.senderCountryCode = String(body.senderCountryCode || "").trim().toUpperCase() || null;
+    if (body?.senderCountry !== undefined) $set.senderCountry = String(body.senderCountry || "").trim() || null;
+    if (body?.senderState !== undefined) $set.senderState = String(body.senderState || "").trim() || null;
+    if (body?.senderCity !== undefined) $set.senderCity = String(body.senderCity || "").trim() || null;
+    if (body?.senderAddress !== undefined) $set.senderAddress = String(body.senderAddress || "").trim() || null;
+    if (body?.senderPostalCode !== undefined) $set.senderPostalCode = String(body.senderPostalCode || "").trim() || null;
+    if (body?.senderPhone !== undefined) $set.senderPhone = String(body.senderPhone || "").trim() || null;
+
+    if (body?.receiverName !== undefined) $set.receiverName = String(body.receiverName || "").trim() || null;
+    if (body?.receiverEmail !== undefined) $set.receiverEmail = String(body.receiverEmail || "").trim().toLowerCase() || null;
+    if (body?.destinationCountryCode !== undefined) $set.destinationCountryCode = String(body.destinationCountryCode || "").trim().toUpperCase() || null;
+    if (body?.receiverCountry !== undefined) $set.receiverCountry = String(body.receiverCountry || "").trim() || null;
+    if (body?.receiverState !== undefined) $set.receiverState = String(body.receiverState || "").trim() || null;
+    if (body?.receiverCity !== undefined) $set.receiverCity = String(body.receiverCity || "").trim() || null;
+    if (body?.receiverAddress !== undefined) $set.receiverAddress = String(body.receiverAddress || "").trim() || null;
+    if (body?.receiverPostalCode !== undefined) $set.receiverPostalCode = String(body.receiverPostalCode || "").trim() || null;
+    if (body?.receiverPhone !== undefined) $set.receiverPhone = String(body.receiverPhone || "").trim() || null;
+
+    if (body?.serviceLevel !== undefined) $set.serviceLevel = String(body.serviceLevel || "").trim() || null;
+    if (body?.shipmentType !== undefined) $set.shipmentType = String(body.shipmentType || "").trim() || null;
+    if (body?.weightKg !== undefined) {
+      const weight = Number(body.weightKg);
+      $set.weightKg = Number.isFinite(weight) ? weight : null;
+    }
+
+    if (body?.dimensionsCm !== undefined) {
+      $set.dimensionsCm = {
+        length: Number(body?.dimensionsCm?.length || 0),
+        width: Number(body?.dimensionsCm?.width || 0),
+        height: Number(body?.dimensionsCm?.height || 0),
+      };
+    }
+
+    if (body?.declaredValueCurrency !== undefined) {
+      $set.declaredValueCurrency = String(body.declaredValueCurrency || "USD").trim().toUpperCase();
+    }
 
     // ----------------------------
     // 2) DECLARED VALUE (supports declaredValue or packageValue)
@@ -162,89 +204,100 @@ export async function PATCH(
     }
 
    // ----------------------------
-// 3) INVOICE UPDATE
-// ----------------------------
-const incomingInvoice = body?.invoice || null;
+    // 3) INVOICE UPDATE
+    // ----------------------------
+    const incomingInvoice = body?.invoice || null;
 
-const shouldRecalcInvoice =
-  incomingInvoice !== null ||
-  body?.declaredValue !== undefined ||
-  (existing as any)?.invoice === undefined;
+    const shouldRecalcInvoice =
+      incomingInvoice !== null ||
+      body?.declaredValue !== undefined ||
+      body?.declaredValueCurrency !== undefined ||
+      (existing as any)?.invoice === undefined;
 
-if (shouldRecalcInvoice) {
-  const prev = (existing as any)?.invoice || {};
+    if (shouldRecalcInvoice) {
+      const prev = (existing as any)?.invoice || {};
 
-  const pricingToUse =
-    prev?.pricingUsed
-      ? { ...DEFAULT_PRICING, ...prev.pricingUsed }
-      : pricing;
+      const pricingToUse =
+        prev?.pricingUsed
+          ? { ...DEFAULT_PRICING, ...prev.pricingUsed }
+          : pricing;
 
-  const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
+      const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
 
-  const paid =
-    incomingInvoice?.paid !== undefined
-      ? Boolean(incomingInvoice.paid)
-      : Boolean(prev.paid);
+      const dueDate =
+        incomingInvoice?.dueDate !== undefined
+          ? incomingInvoice.dueDate
+          : prev.dueDate || null;
 
-  const dueDate =
-    incomingInvoice?.dueDate !== undefined
-      ? incomingInvoice.dueDate
-      : prev.dueDate || null;
+      let nextStatus = String(
+        incomingInvoice?.status !== undefined
+          ? incomingInvoice.status
+          : prev.status || ""
+      )
+        .trim()
+        .toLowerCase();
 
-  let status =
-    incomingInvoice?.status !== undefined
-      ? String(incomingInvoice.status || "").trim().toLowerCase()
-      : String(prev.status || "").trim().toLowerCase();
+      if (!nextStatus) {
+        if (dueDate) {
+          const d = new Date(dueDate);
+          nextStatus =
+            !Number.isNaN(d.getTime()) && Date.now() > d.getTime()
+              ? "overdue"
+              : "unpaid";
+        } else {
+          nextStatus = "unpaid";
+        }
+      }
 
-  if (!status) {
-    if (paid) status = "paid";
-    else if (dueDate) {
-      const d = new Date(dueDate);
-      status =
-        !Number.isNaN(d.getTime()) && Date.now() > d.getTime()
-          ? "overdue"
-          : "unpaid";
-    } else {
-      status = "unpaid";
+      if (nextStatus !== "paid" && nextStatus !== "unpaid" && nextStatus !== "overdue" && nextStatus !== "cancelled") {
+        nextStatus = "unpaid";
+      }
+
+      if (nextStatus === "unpaid" && dueDate) {
+        const d = new Date(dueDate);
+        if (!Number.isNaN(d.getTime()) && Date.now() > d.getTime()) {
+          nextStatus = "overdue";
+        }
+      }
+
+      const paid = nextStatus === "paid";
+
+      const paymentMethod =
+        incomingInvoice?.paymentMethod !== undefined
+          ? (String(incomingInvoice.paymentMethod || "").trim() || null)
+          : (prev.paymentMethod || null);
+
+      const currency =
+        String(
+          body?.declaredValueCurrency ||
+          incomingInvoice?.currency ||
+          prev.currency ||
+          (existing as any)?.declaredValueCurrency ||
+          "USD"
+        )
+          .trim()
+          .toUpperCase();
+
+      const nowIso = new Date().toISOString();
+
+      $set.invoice = {
+        ...prev,
+        invoiceNumber: prev?.invoiceNumber || null,
+        amount: breakdown.total,
+        currency,
+        paid,
+        paidAt: paid ? (prev?.paidAt || nowIso) : null,
+        status: nextStatus,
+        dueDate,
+        paymentMethod,
+        breakdown: {
+          ...breakdown,
+        },
+        pricingUsed: {
+          ...pricingToUse,
+        },
+      };
     }
-  }
-
-  if (paid) {
-    status = "paid";
-  } else if (status !== "cancelled") {
-    const d = dueDate ? new Date(dueDate) : null;
-    if (d && !Number.isNaN(d.getTime()) && Date.now() > d.getTime()) {
-      status = "overdue";
-    } else if (status === "paid") {
-      status = "unpaid";
-    }
-  }
-
-  const paymentMethod =
-    incomingInvoice?.paymentMethod !== undefined
-      ? (String(incomingInvoice.paymentMethod || "").trim() || null)
-      : (prev.paymentMethod || null);
-
-  const nowIso = new Date().toISOString();
-
-  $set.invoice = {
-    ...prev,
-    invoiceNumber: prev?.invoiceNumber || null,
-    amount: breakdown.total,
-    currency: String(prev.currency || incomingInvoice?.currency || "USD").toUpperCase(),
-    paid,
-    paidAt: paid ? (incomingInvoice?.paidAt ? String(incomingInvoice.paidAt) : nowIso) : null,
-    status,
-    dueDate,
-    paymentMethod,
-    breakdown: {
-      ...breakdown,
-    },
-    pricingUsed: {
-      ...pricingToUse,
-    },
-  };
-}
 
   // ----------------------------
 // 0) TRACKING EVENT (timeline)
@@ -310,13 +363,29 @@ await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
       message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
     }
 
-    if (body?.invoice?.paid !== undefined) {
-  const paid = Boolean(body.invoice.paid);
+    if (body?.invoice !== undefined) {
+  const nextInvoice = ($set.invoice || (existing as any)?.invoice || {}) as any;
+  const invoiceStatus = String(nextInvoice.status || "unpaid").toLowerCase();
+  const paid = invoiceStatus === "paid";
 
-  title = "Invoice Updated";
-  message = `Invoice for shipment ${shipmentId} is now ${paid ? "PAID" : "UNPAID"}.`;
+  title =
+    invoiceStatus === "paid"
+      ? "Invoice Paid"
+      : invoiceStatus === "overdue"
+      ? "Invoice Overdue"
+      : invoiceStatus === "cancelled"
+      ? "Invoice Cancelled"
+      : "Invoice Updated";
 
-  // ✅ Send emails to BOTH sender + receiver
+  message =
+    invoiceStatus === "paid"
+      ? `Invoice for shipment ${shipmentId} is now PAID.`
+      : invoiceStatus === "overdue"
+      ? `Invoice for shipment ${shipmentId} is now OVERDUE.`
+      : invoiceStatus === "cancelled"
+      ? `Invoice for shipment ${shipmentId} has been CANCELLED.`
+      : `Invoice for shipment ${shipmentId} is now UNPAID.`;
+
   const senderEmail = String(
     (existing as any)?.senderEmail || (existing as any)?.createdByEmail || ""
   )
@@ -331,26 +400,31 @@ await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
   const receiverName = String((existing as any)?.receiverName || "Customer").trim();
   const trackingNumber = String((existing as any)?.trackingNumber || "").trim();
 
-  // sender
   if (senderEmail) {
-    await sendInvoiceUpdateEmail(senderEmail, { name: senderName, shipmentId, paid }).catch(() => null);
+   await sendInvoiceUpdateEmail(senderEmail, {
+  name: senderName,
+  shipmentId,
+  status: invoiceStatus,
+  trackingNumber,
+  invoiceNumber: nextInvoice.invoiceNumber || undefined,
+}).catch(() => null);
   }
 
-  // receiver
   if (receiverEmail) {
     const base =
       (process.env.APP_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
         "https://www.goexoduslogistics.com").replace(/\/$/, "");
 
-    await sendInvoiceStatusReceiverEmail(receiverEmail, {
-      name: receiverName,
-      senderName: senderName || "Sender",
-      shipmentId,
-      trackingNumber,
-      paid,
-      viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`,
-    }).catch(() => null);
+   await sendInvoiceStatusReceiverEmail(receiverEmail, {
+  name: receiverName,
+  senderName: senderName || "Sender",
+  shipmentId,
+  trackingNumber,
+  status: invoiceStatus,
+  invoiceNumber: nextInvoice.invoiceNumber || undefined,
+  viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`,
+}).catch(() => null);
   }
 }
 
@@ -391,13 +465,17 @@ await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
       }).catch(() => null);
     }
 
-    if (body?.invoice?.paid !== undefined && userEmail) {
-      await sendInvoiceUpdateEmail(userEmail, {
-        name: userName,
-        shipmentId,
-        paid: Boolean(body.invoice.paid),
-      }).catch(() => null);
-    }
+   if (body?.invoice !== undefined && userEmail) {
+  const nextInvoice = ($set.invoice || (existing as any)?.invoice || {}) as any;
+
+  await sendInvoiceUpdateEmail(userEmail, {
+  name: userName,
+  shipmentId,
+  status: String(nextInvoice.status || "unpaid").toLowerCase(),
+  invoiceNumber: nextInvoice.invoiceNumber || undefined,
+  trackingNumber: String((existing as any)?.trackingNumber || "").trim() || undefined,
+}).catch(() => null);
+}
 
     const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId), {
       projection: { _id: 0 },

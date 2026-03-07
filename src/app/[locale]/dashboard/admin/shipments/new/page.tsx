@@ -92,7 +92,7 @@ export default function AdminCreateShipmentPage() {
   // Invoice
   const [currency, setCurrency] = useState<"USD" | "EUR" | "GBP" | "NGN">("USD");
   const [declaredValue, setDeclaredValue] = useState<string>("1000");
-  const [invoicePaid, setInvoicePaid] = useState(false);
+  
   const [status, setStatus] = useState<ShipmentStatus>("Created");
   const [statusNote, setStatusNote] = useState("");
 
@@ -128,18 +128,7 @@ export default function AdminCreateShipmentPage() {
   const [err, setErr] = useState("");
   const [okMsg, setOkMsg] = useState("");
 
-  // ✅ Keep invoicePaid in sync with invoiceStatus (without breaking your old toggle)
-  useEffect(() => {
-    if (invoiceStatus === "paid") setInvoicePaid(true);
-    else setInvoicePaid(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceStatus]);
-
-  // ✅ If user toggles paid/unpaid using your existing button, keep status aligned
-  useEffect(() => {
-    setInvoiceStatus(invoicePaid ? "paid" : "unpaid");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoicePaid]);
+  
 
   // ✅ Load pricing settings from your admin pricing API
   useEffect(() => {
@@ -243,10 +232,12 @@ export default function AdminCreateShipmentPage() {
     }
 
     // ✅ Payment method final value
-    const finalPaymentMethod =
-      invoicePaymentMethod === "Other"
-        ? String(invoicePaymentMethodOther || "").trim()
-        : String(invoicePaymentMethod || "").trim();
+   const finalPaymentMethod =
+  invoicePaymentMethod === "Other"
+    ? String(invoicePaymentMethodOther || "").trim()
+    : String(invoicePaymentMethod || "").trim();
+
+const finalPaymentMethodOrNull = finalPaymentMethod || null;
 
     setLoading(true);
     try {
@@ -289,17 +280,14 @@ export default function AdminCreateShipmentPage() {
           declaredValue: dv,
           declaredValueCurrency: currency,
 
-          invoicePaid,
-
           // ✅ IMPORTANT: send the NEW pricing model
           pricing: previewPricing,
 
           // ✅ NEW: send invoice details (status/method/due date)
           invoice: {
-            paid: invoicePaid,
             status: invoiceStatus,
             dueDate: invoiceDueDate ? invoiceDueDate : null,
-            paymentMethod: finalPaymentMethod ? finalPaymentMethod : null,
+            paymentMethod: finalPaymentMethodOrNull,
           },
 
           status,
@@ -719,27 +707,7 @@ export default function AdminCreateShipmentPage() {
                 )}
               </div>
 
-              <div className="sm:col-span-2 flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    Invoice paid?
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Default should be unpaid.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setInvoicePaid((v) => !v)}
-                  className={`px-4 py-2 rounded-xl font-bold transition ${
-                    invoicePaid
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  {invoicePaid ? "PAID" : "UNPAID"}
-                </button>
-              </div>
+              
 
               <div>
                 <label className="text-sm font-semibold text-gray-700">
