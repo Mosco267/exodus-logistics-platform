@@ -65,14 +65,22 @@ type TrackApiResponse = {
   } | null;
 
   events: GroupedEvent[];
-  estimatedDelivery?: string;
+  estimatedDelivery?: string | null;
+  shipmentMeans?: string | null;
 };
 
 function fmtDate(iso?: string) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString();
+  return d.toLocaleDateString();
+}
+
+function fmtDateOnly(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString();
 }
 
 function fmtLoc(loc?: LocationLite) {
@@ -269,14 +277,14 @@ export default function TrackResultPage() {
           </Link>
 
           {invoiceQ ? (
-            <Link
-              href={`/${locale}/invoice/full?q=${encodeURIComponent(String(invoiceQ).toUpperCase())}`}
-              className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
-                         hover:border-blue-600 hover:text-blue-700 transition"
-            >
-              <FileText className="w-5 h-5 mr-2" /> View Invoice
-            </Link>
-          ) : null}
+  <Link
+    href={`/${locale}/invoice`}
+    className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
+               hover:border-blue-600 hover:text-blue-700 transition"
+  >
+    <FileText className="w-5 h-5 mr-2" /> View Invoice
+  </Link>
+) : null}
         </div>
 
         {loading && (
@@ -366,7 +374,7 @@ export default function TrackResultPage() {
                       <p className="mt-2 text-xs text-gray-600">
                         Estimated delivery:{" "}
                         <span className="font-semibold">
-                          {fmtDate(data.estimatedDelivery)}
+                          {fmtDateOnly(data.estimatedDelivery)}
                         </span>
                       </p>
 
@@ -454,6 +462,21 @@ export default function TrackResultPage() {
                     {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
                   </p>
                 </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4">
+  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+    <Truck className="w-4 h-4 text-gray-700" />
+    Delivery Details
+  </div>
+  <p className="mt-2 text-sm text-gray-800">
+    <span className="font-semibold">Estimated delivery:</span>{" "}
+    {fmtDateOnly(data.estimatedDelivery)}
+  </p>
+  <p className="mt-1 text-sm text-gray-800">
+    <span className="font-semibold">Shipment means:</span>{" "}
+    {data.shipmentMeans || "—"}
+  </p>
+</div>
 
                 <div className="rounded-2xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-gray-900">

@@ -939,3 +939,55 @@ export async function sendInvoiceStatusEmail(
   `;
   return sendEmail(to, subject, html);
 }
+
+export async function sendShipmentDeletedEmail(
+  to: string,
+  args: {
+    name?: string;
+    shipmentId: string;
+    trackingNumber?: string;
+    locale?: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = cleanStr(args.name) || "Customer";
+
+  const subject = `Exodus Logistics: Shipment record removed (${args.shipmentId})`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Please be informed that the shipment record for <strong>${esc(args.shipmentId)}</strong> has been removed from our tracking system.
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      As a result, this shipment will no longer be available for tracking on our website.
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
+      <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
+      ${args.trackingNumber ? `<strong>Tracking number:</strong> ${esc(args.trackingNumber)}` : ""}
+    </p>
+
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      If you believe this action was made in error or you need further clarification, please contact our support team.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject,
+    title: "Shipment removed",
+    preheader: `Shipment ${args.shipmentId} has been removed from tracking.`,
+    bodyHtml,
+    button: { text: "Contact support", href: SUPPORT_URL },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return sendEmail(to, subject, html);
+} 

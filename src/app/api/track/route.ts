@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
     if (!q) {
       return NextResponse.json(
-        { error: "Tracking number or shipmentId is required" },
+        { error: "Tracking number is required" },
         { status: 400 }
       );
     }
@@ -72,11 +72,11 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // ✅ allow both trackingNumber OR shipmentId search
-    const shipment = await db.collection("shipments").findOne(
-      { $or: [ciExact("trackingNumber", q), ciExact("shipmentId", q)] },
-      { projection: { _id: 0 } }
-    );
+   // ✅ allow ONLY tracking number search
+const shipment = await db.collection("shipments").findOne(
+  ciExact("trackingNumber", q),
+  { projection: { _id: 0 } }
+);
 
     if (!shipment) {
       return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
@@ -201,8 +201,9 @@ export async function POST(req: Request) {
     const currentLocation = lastGroup?.location ? fmtLoc(lastGroup.location) : "";
 
     const estimatedDelivery =
-      s?.estimatedDelivery ||
-      new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toDateString();
+  s?.estimatedDeliveryDate ||
+  s?.estimatedDelivery ||
+  null;
 
     return NextResponse.json({
       shipmentId: cleanStr(s?.shipmentId),
@@ -223,6 +224,7 @@ export async function POST(req: Request) {
 
       events: groups,
       estimatedDelivery,
+      shipmentMeans: cleanStr(s?.shipmentMeans) || null,
     });
   } catch (e) {
     console.error(e);

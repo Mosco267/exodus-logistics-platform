@@ -6,6 +6,7 @@ import {
   sendShipmentStatusEmail,
   sendInvoiceUpdateEmail,
   sendInvoiceStatusReceiverEmail,
+  sendShipmentDeletedEmail,
 } from "@/lib/email";
 
 const normalizeStatus = (status?: string) =>
@@ -270,19 +271,19 @@ export async function PATCH(
         nextStatus = "unpaid";
       }
 
-      if (nextStatus === "unpaid" && dueDate) {
-        const d = new Date(dueDate);
-        if (!Number.isNaN(d.getTime()) && Date.now() > d.getTime()) {
-          nextStatus = "overdue";
-        }
-      }
+     if ((nextStatus === "unpaid" || nextStatus === "overdue") && dueDate) {
+  const d = new Date(dueDate);
+  if (!Number.isNaN(d.getTime())) {
+    nextStatus = Date.now() > d.getTime() ? "overdue" : nextStatus === "overdue" ? "unpaid" : nextStatus;
+  }
+}
 
       const paid = nextStatus === "paid";
 
       const paymentMethod =
-        incomingInvoice?.paymentMethod !== undefined
-          ? (String(incomingInvoice.paymentMethod || "").trim() || null)
-          : (prev.paymentMethod || null);
+  incomingInvoice?.paymentMethod !== undefined
+    ? (String(incomingInvoice.paymentMethod ?? "").trim() || null)
+    : (prev?.paymentMethod ?? null);
 
       const currency =
         String(
@@ -466,120 +467,7 @@ if (!updated) {
   }
 }
 
-// ----------------------------
-    // 5B) SEND EDITED-FIELDS EMAIL TO SENDER + RECEIVER
-    // ----------------------------
-    const oldShipment: any = existing || {};
-    const newShipment: any = updated || {};
-    const oldInvoice: any = oldShipment.invoice || {};
-    const newInvoice: any = newShipment.invoice || {};
 
-    const changes: Array<{ label: string; oldValue?: any; newValue?: any }> = [];
-
-    const addChange = (label: string, oldValue: any, newValue: any) => {
-      const oldNorm = String(oldValue ?? "").trim();
-      const newNorm = String(newValue ?? "").trim();
-      if (oldNorm !== newNorm) {
-        changes.push({ label, oldValue: oldValue ?? "—", newValue: newValue ?? "—" });
-      }
-    };
-
-    // sender
-    addChange("Sender name", oldShipment.senderName, newShipment.senderName);
-    addChange("Sender email", oldShipment.senderEmail, newShipment.senderEmail);
-    addChange("Sender country code", oldShipment.senderCountryCode, newShipment.senderCountryCode);
-    addChange("Sender full address",
-      joinNice([
-        oldShipment.senderAddress,
-        oldShipment.senderCity,
-        oldShipment.senderState,
-        oldShipment.senderPostalCode,
-        oldShipment.senderCountry,
-      ]),
-      joinNice([
-        newShipment.senderAddress,
-        newShipment.senderCity,
-        newShipment.senderState,
-        newShipment.senderPostalCode,
-        newShipment.senderCountry,
-      ])
-    );
-    addChange("Sender phone", oldShipment.senderPhone, newShipment.senderPhone);
-
-    // receiver
-    addChange("Receiver name", oldShipment.receiverName, newShipment.receiverName);
-    addChange("Receiver email", oldShipment.receiverEmail, newShipment.receiverEmail);
-    addChange("Destination country code", oldShipment.destinationCountryCode, newShipment.destinationCountryCode);
-    addChange("Receiver full address",
-      joinNice([
-        oldShipment.receiverAddress,
-        oldShipment.receiverCity,
-        oldShipment.receiverState,
-        oldShipment.receiverPostalCode,
-        oldShipment.receiverCountry,
-      ]),
-      joinNice([
-        newShipment.receiverAddress,
-        newShipment.receiverCity,
-        newShipment.receiverState,
-        newShipment.receiverPostalCode,
-        newShipment.receiverCountry,
-      ])
-    );
-    addChange("Receiver phone", oldShipment.receiverPhone, newShipment.receiverPhone);
-
-    // shipment
-    addChange("Service level", oldShipment.serviceLevel, newShipment.serviceLevel);
-    addChange("Shipment type", oldShipment.shipmentType, newShipment.shipmentType);
-    addChange("Weight (kg)", oldShipment.weightKg, newShipment.weightKg);
-
-    addChange(
-      "Dimensions (cm)",
-      joinNice([
-        oldShipment?.dimensionsCm?.length,
-        oldShipment?.dimensionsCm?.width,
-        oldShipment?.dimensionsCm?.height,
-      ]),
-      joinNice([
-        newShipment?.dimensionsCm?.length,
-        newShipment?.dimensionsCm?.width,
-        newShipment?.dimensionsCm?.height,
-      ])
-    );
-
-    addChange(
-      "Route",
-      `${joinNice([oldShipment.senderCity, oldShipment.senderState, oldShipment.senderCountry])} → ${joinNice([oldShipment.receiverCity, oldShipment.receiverState, oldShipment.receiverCountry])}`,
-      `${joinNice([newShipment.senderCity, newShipment.senderState, newShipment.senderCountry])} → ${joinNice([newShipment.receiverCity, newShipment.receiverState, newShipment.receiverCountry])}`
-    );
-
-    addChange("Shipment status", oldShipment.status, newShipment.status);
-    addChange("Status note", oldShipment.statusNote, newShipment.statusNote);
-
-    // invoice
-    addChange(
-      "Declared value",
-      `${oldShipment.declaredValue ?? "—"} ${oldShipment.declaredValueCurrency || oldInvoice.currency || ""}`.trim(),
-      `${newShipment.declaredValue ?? "—"} ${newShipment.declaredValueCurrency || newInvoice.currency || ""}`.trim()
-    );
-    addChange("Invoice status", oldInvoice.status, newInvoice.status);
-    addChange("Invoice due date", oldInvoice.dueDate, newInvoice.dueDate);
-    addChange("Payment method", oldInvoice.paymentMethod || "NULL", newInvoice.paymentMethod || "NULL");
-    addChange("Invoice amount", oldInvoice.amount, newInvoice.amount);
-    addChange("Invoice currency", oldInvoice.currency, newInvoice.currency);
-
-    const finalSenderEmail = String(
-      newShipment?.senderEmail || newShipment?.createdByEmail || oldShipment?.senderEmail || oldShipment?.createdByEmail || ""
-    ).trim().toLowerCase();
-
-    const finalReceiverEmail = String(
-      newShipment?.receiverEmail || oldShipment?.receiverEmail || ""
-    ).trim().toLowerCase();
-
-    const finalSenderName = String(newShipment?.senderName || oldShipment?.senderName || "Customer").trim();
-    const finalReceiverName = String(newShipment?.receiverName || oldShipment?.receiverName || "Customer").trim();
-    const finalTrackingNumber = String(newShipment?.trackingNumber || oldShipment?.trackingNumber || "").trim();
-    const finalInvoiceNumber = String(newInvoice?.invoiceNumber || oldInvoice?.invoiceNumber || "").trim();
 
 
    await db.collection("notifications").insertOne({
@@ -659,6 +547,34 @@ export async function DELETE(
     }
 
     await db.collection("shipments").deleteOne(shipmentIdQuery(shipmentId));
+
+    const senderEmail = String(
+  (existing as any)?.senderEmail || (existing as any)?.createdByEmail || ""
+).trim().toLowerCase();
+
+const receiverEmail = String((existing as any)?.receiverEmail || "")
+  .trim()
+  .toLowerCase();
+
+const senderName = String((existing as any)?.senderName || "Customer").trim();
+const receiverName = String((existing as any)?.receiverName || "Customer").trim();
+const trackingNumber = String((existing as any)?.trackingNumber || "").trim();
+
+if (senderEmail) {
+  await sendShipmentDeletedEmail(senderEmail, {
+    name: senderName,
+    shipmentId,
+    trackingNumber,
+  }).catch(() => null);
+}
+
+if (receiverEmail) {
+  await sendShipmentDeletedEmail(receiverEmail, {
+    name: receiverName,
+    shipmentId,
+    trackingNumber,
+  }).catch(() => null);
+}
 
     return NextResponse.json({ ok: true, deleted: true });
   } catch (error) {

@@ -74,6 +74,7 @@ export default function AdminShipmentsPage() {
   const [copiedKey, setCopiedKey] = useState<string>('');
   
   const [deletingId, setDeletingId] = useState<string>('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string>('');
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [statuses, setStatuses] = useState<StatusDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,34 +173,30 @@ export default function AdminShipmentsPage() {
   };
 
   const deleteShipment = async (shipmentId: string) => {
-    const yes = window.confirm(
-      `Are you sure you want to delete shipment ${shipmentId}? This action cannot be undone.`
-    );
-    if (!yes) return;
+  setDeletingId(shipmentId);
+  setMsg('');
 
-    setDeletingId(shipmentId);
-    setMsg('');
+  try {
+    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+      method: 'DELETE',
+    });
 
-    try {
-      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-        method: 'DELETE',
-      });
+    const json = await res.json().catch(() => null);
 
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setMsg(json?.error || 'Failed to delete shipment.');
-        return;
-      }
-
-      setShipments((prev) => prev.filter((s) => s.shipmentId !== shipmentId));
-      setMsg(`Shipment ${shipmentId} deleted successfully.`);
-    } catch {
-      setMsg('Network error while deleting shipment.');
-    } finally {
-      setDeletingId('');
+    if (!res.ok) {
+      setMsg(json?.error || 'Failed to delete shipment.');
+      return;
     }
-  };
+
+    setShipments((prev) => prev.filter((s) => s.shipmentId !== shipmentId));
+    setMsg(`Shipment ${shipmentId} deleted successfully.`);
+  } catch {
+    setMsg('Network error while deleting shipment.');
+  } finally {
+    setDeletingId('');
+    setConfirmDeleteId('');
+  }
+};
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -402,7 +399,7 @@ export default function AdminShipmentsPage() {
 
                         <button
                           type="button"
-                          onClick={() => deleteShipment(s.shipmentId)}
+                          onClick={() => setConfirmDeleteId(s.shipmentId)}
                           disabled={deletingId === s.shipmentId}
                           className="ml-4 text-sm font-semibold text-red-600 hover:underline disabled:opacity-60 cursor-pointer"
                         >
@@ -417,6 +414,39 @@ export default function AdminShipmentsPage() {
             </table>
           </div>
         )}
+        {confirmDeleteId ? (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-200 p-6">
+      <h3 className="text-xl font-extrabold text-gray-900">
+        Delete shipment?
+      </h3>
+      <p className="mt-3 text-sm text-gray-600 leading-6">
+        You are about to permanently delete shipment{" "}
+        <span className="font-semibold text-gray-900">{confirmDeleteId}</span>.
+        This action cannot be undone, and the shipment will no longer be available for tracking on your website.
+      </p>
+
+      <div className="mt-6 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => setConfirmDeleteId('')}
+          className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-800 font-semibold hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={() => deleteShipment(confirmDeleteId)}
+          disabled={deletingId === confirmDeleteId}
+          className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
+        >
+          {deletingId === confirmDeleteId ? 'Deleting…' : 'Yes, delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+) : null}
       </div>
     </div>
   );
