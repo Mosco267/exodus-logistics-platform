@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING } from "@/lib/pricing";
-import { sendShipmentStatusEmail, sendInvoiceUpdateEmail, sendInvoiceStatusReceiverEmail } from "@/lib/email";
+import {
+  sendShipmentStatusEmail,
+  sendInvoiceUpdateEmail,
+  sendInvoiceStatusReceiverEmail,
+} from "@/lib/email";
 
 const normalizeStatus = (status?: string) =>
   (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
@@ -17,6 +21,13 @@ function escapeRegex(input: string) {
 
 function shipmentIdQuery(id: string) {
   return { shipmentId: { $regex: `^${escapeRegex(id)}$`, $options: "i" } };
+}
+
+function joinNice(parts: Array<any>) {
+  return parts
+    .map((x) => String(x ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
 }
 
 // ✅ Fix TS errors on _id by typing the collection doc
@@ -170,6 +181,8 @@ export async function PATCH(
 
     if (body?.serviceLevel !== undefined) $set.serviceLevel = String(body.serviceLevel || "").trim() || null;
     if (body?.shipmentType !== undefined) $set.shipmentType = String(body.shipmentType || "").trim() || null;
+    if (body?.shipmentMeans !== undefined) $set.shipmentMeans = String(body.shipmentMeans || "").trim() || null;
+    if (body?.estimatedDeliveryDate !== undefined) $set.estimatedDeliveryDate = body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null;
     if (body?.weightKg !== undefined) {
       const weight = Number(body.weightKg);
       $set.weightKg = Number.isFinite(weight) ? weight : null;
@@ -217,10 +230,14 @@ export async function PATCH(
     if (shouldRecalcInvoice) {
       const prev = (existing as any)?.invoice || {};
 
-      const pricingToUse =
-        prev?.pricingUsed
-          ? { ...DEFAULT_PRICING, ...prev.pricingUsed }
-          : pricing;
+     const incomingPricingUsed = incomingInvoice?.pricingUsed || null;
+
+  const pricingToUse =
+    incomingPricingUsed
+      ? { ...DEFAULT_PRICING, ...incomingPricingUsed }
+      : prev?.pricingUsed
+      ? { ...DEFAULT_PRICING, ...prev.pricingUsed }
+      : pricing;
 
       const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
 
@@ -350,6 +367,14 @@ if (Object.keys($push).length) update.$push = $push;
 
 await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
 
+const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId), {
+  projection: { _id: 0 },
+});
+
+if (!updated) {
+  return NextResponse.json({ error: "Updated shipment not found" }, { status: 500 });
+}
+
     // ----------------------------
     // 5) NOTIFICATION + EMAIL
     // ----------------------------
@@ -363,73 +388,205 @@ await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
       message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
     }
 
-    if (body?.invoice !== undefined) {
-  const nextInvoice = ($set.invoice || (existing as any)?.invoice || {}) as any;
-  const invoiceStatus = String(nextInvoice.status || "unpaid").toLowerCase();
-  const paid = invoiceStatus === "paid";
+   if (body?.invoice !== undefined) {
+  const prevInvoice = ((existing as any)?.invoice || {}) as any;
+  const nextInvoice = (($set as any).invoice || prevInvoice) as any;
 
-  title =
-    invoiceStatus === "paid"
-      ? "Invoice Paid"
-      : invoiceStatus === "overdue"
-      ? "Invoice Overdue"
-      : invoiceStatus === "cancelled"
-      ? "Invoice Cancelled"
-      : "Invoice Updated";
+  const prevStatus = String(prevInvoice.status || "unpaid").toLowerCase();
+  const nextStatus = String(nextInvoice.status || "unpaid").toLowerCase();
 
-  message =
-    invoiceStatus === "paid"
-      ? `Invoice for shipment ${shipmentId} is now PAID.`
-      : invoiceStatus === "overdue"
-      ? `Invoice for shipment ${shipmentId} is now OVERDUE.`
-      : invoiceStatus === "cancelled"
-      ? `Invoice for shipment ${shipmentId} has been CANCELLED.`
-      : `Invoice for shipment ${shipmentId} is now UNPAID.`;
+  if (prevStatus !== nextStatus) {
+    title =
+      nextStatus === "paid"
+        ? "Invoice Paid"
+        : nextStatus === "overdue"
+        ? "Invoice Overdue"
+        : nextStatus === "cancelled"
+        ? "Invoice Cancelled"
+        : "Invoice Updated";
 
-  const senderEmail = String(
-    (existing as any)?.senderEmail || (existing as any)?.createdByEmail || ""
-  )
-    .trim()
-    .toLowerCase();
+    message =
+      nextStatus === "paid"
+        ? `Invoice for shipment ${shipmentId} is now PAID.`
+        : nextStatus === "overdue"
+        ? `Invoice for shipment ${shipmentId} is now OVERDUE.`
+        : nextStatus === "cancelled"
+        ? `Invoice for shipment ${shipmentId} has been CANCELLED.`
+        : `Invoice for shipment ${shipmentId} is now UNPAID.`;
 
-  const receiverEmail = String((existing as any)?.receiverEmail || "")
-    .trim()
-    .toLowerCase();
+    const senderEmail = String(
+      (updated as any)?.senderEmail ||
+      (existing as any)?.senderEmail ||
+      (existing as any)?.createdByEmail ||
+      ""
+    ).trim().toLowerCase();
 
-  const senderName = String((existing as any)?.senderName || "Customer").trim();
-  const receiverName = String((existing as any)?.receiverName || "Customer").trim();
-  const trackingNumber = String((existing as any)?.trackingNumber || "").trim();
+    const receiverEmail = String(
+      (updated as any)?.receiverEmail || (existing as any)?.receiverEmail || ""
+    ).trim().toLowerCase();
 
-  if (senderEmail) {
-   await sendInvoiceUpdateEmail(senderEmail, {
-  name: senderName,
-  shipmentId,
-  status: invoiceStatus,
-  trackingNumber,
-  invoiceNumber: nextInvoice.invoiceNumber || undefined,
-}).catch(() => null);
-  }
+    const senderName = String(
+      (updated as any)?.senderName || (existing as any)?.senderName || "Customer"
+    ).trim();
 
-  if (receiverEmail) {
-    const base =
-      (process.env.APP_URL ||
-        process.env.NEXT_PUBLIC_APP_URL ||
-        "https://www.goexoduslogistics.com").replace(/\/$/, "");
+    const receiverName = String(
+      (updated as any)?.receiverName || (existing as any)?.receiverName || "Customer"
+    ).trim();
 
-   await sendInvoiceStatusReceiverEmail(receiverEmail, {
-  name: receiverName,
-  senderName: senderName || "Sender",
-  shipmentId,
-  trackingNumber,
-  status: invoiceStatus,
-  invoiceNumber: nextInvoice.invoiceNumber || undefined,
-  viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`,
-}).catch(() => null);
+    const trackingNumber = String(
+      (updated as any)?.trackingNumber || (existing as any)?.trackingNumber || ""
+    ).trim();
+
+    if (senderEmail) {
+      await sendInvoiceUpdateEmail(senderEmail, {
+        name: senderName,
+        shipmentId,
+        status: nextStatus,
+        trackingNumber,
+        invoiceNumber: nextInvoice.invoiceNumber || undefined,
+      }).catch(() => null);
+    }
+
+    if (receiverEmail) {
+      const base =
+        (process.env.APP_URL ||
+          process.env.NEXT_PUBLIC_APP_URL ||
+          "https://www.goexoduslogistics.com").replace(/\/$/, "");
+
+      await sendInvoiceStatusReceiverEmail(receiverEmail, {
+        name: receiverName,
+        senderName: senderName || "Sender",
+        shipmentId,
+        trackingNumber,
+        status: nextStatus,
+        invoiceNumber: nextInvoice.invoiceNumber || undefined,
+        viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`,
+      }).catch(() => null);
+    }
   }
 }
 
-    await db.collection("notifications").insertOne({
-     userEmail: String(
+// ----------------------------
+    // 5B) SEND EDITED-FIELDS EMAIL TO SENDER + RECEIVER
+    // ----------------------------
+    const oldShipment: any = existing || {};
+    const newShipment: any = updated || {};
+    const oldInvoice: any = oldShipment.invoice || {};
+    const newInvoice: any = newShipment.invoice || {};
+
+    const changes: Array<{ label: string; oldValue?: any; newValue?: any }> = [];
+
+    const addChange = (label: string, oldValue: any, newValue: any) => {
+      const oldNorm = String(oldValue ?? "").trim();
+      const newNorm = String(newValue ?? "").trim();
+      if (oldNorm !== newNorm) {
+        changes.push({ label, oldValue: oldValue ?? "—", newValue: newValue ?? "—" });
+      }
+    };
+
+    // sender
+    addChange("Sender name", oldShipment.senderName, newShipment.senderName);
+    addChange("Sender email", oldShipment.senderEmail, newShipment.senderEmail);
+    addChange("Sender country code", oldShipment.senderCountryCode, newShipment.senderCountryCode);
+    addChange("Sender full address",
+      joinNice([
+        oldShipment.senderAddress,
+        oldShipment.senderCity,
+        oldShipment.senderState,
+        oldShipment.senderPostalCode,
+        oldShipment.senderCountry,
+      ]),
+      joinNice([
+        newShipment.senderAddress,
+        newShipment.senderCity,
+        newShipment.senderState,
+        newShipment.senderPostalCode,
+        newShipment.senderCountry,
+      ])
+    );
+    addChange("Sender phone", oldShipment.senderPhone, newShipment.senderPhone);
+
+    // receiver
+    addChange("Receiver name", oldShipment.receiverName, newShipment.receiverName);
+    addChange("Receiver email", oldShipment.receiverEmail, newShipment.receiverEmail);
+    addChange("Destination country code", oldShipment.destinationCountryCode, newShipment.destinationCountryCode);
+    addChange("Receiver full address",
+      joinNice([
+        oldShipment.receiverAddress,
+        oldShipment.receiverCity,
+        oldShipment.receiverState,
+        oldShipment.receiverPostalCode,
+        oldShipment.receiverCountry,
+      ]),
+      joinNice([
+        newShipment.receiverAddress,
+        newShipment.receiverCity,
+        newShipment.receiverState,
+        newShipment.receiverPostalCode,
+        newShipment.receiverCountry,
+      ])
+    );
+    addChange("Receiver phone", oldShipment.receiverPhone, newShipment.receiverPhone);
+
+    // shipment
+    addChange("Service level", oldShipment.serviceLevel, newShipment.serviceLevel);
+    addChange("Shipment type", oldShipment.shipmentType, newShipment.shipmentType);
+    addChange("Weight (kg)", oldShipment.weightKg, newShipment.weightKg);
+
+    addChange(
+      "Dimensions (cm)",
+      joinNice([
+        oldShipment?.dimensionsCm?.length,
+        oldShipment?.dimensionsCm?.width,
+        oldShipment?.dimensionsCm?.height,
+      ]),
+      joinNice([
+        newShipment?.dimensionsCm?.length,
+        newShipment?.dimensionsCm?.width,
+        newShipment?.dimensionsCm?.height,
+      ])
+    );
+
+    addChange(
+      "Route",
+      `${joinNice([oldShipment.senderCity, oldShipment.senderState, oldShipment.senderCountry])} → ${joinNice([oldShipment.receiverCity, oldShipment.receiverState, oldShipment.receiverCountry])}`,
+      `${joinNice([newShipment.senderCity, newShipment.senderState, newShipment.senderCountry])} → ${joinNice([newShipment.receiverCity, newShipment.receiverState, newShipment.receiverCountry])}`
+    );
+
+    addChange("Shipment status", oldShipment.status, newShipment.status);
+    addChange("Status note", oldShipment.statusNote, newShipment.statusNote);
+
+    // invoice
+    addChange(
+      "Declared value",
+      `${oldShipment.declaredValue ?? "—"} ${oldShipment.declaredValueCurrency || oldInvoice.currency || ""}`.trim(),
+      `${newShipment.declaredValue ?? "—"} ${newShipment.declaredValueCurrency || newInvoice.currency || ""}`.trim()
+    );
+    addChange("Invoice status", oldInvoice.status, newInvoice.status);
+    addChange("Invoice due date", oldInvoice.dueDate, newInvoice.dueDate);
+    addChange("Payment method", oldInvoice.paymentMethod || "NULL", newInvoice.paymentMethod || "NULL");
+    addChange("Invoice amount", oldInvoice.amount, newInvoice.amount);
+    addChange("Invoice currency", oldInvoice.currency, newInvoice.currency);
+
+    const finalSenderEmail = String(
+      newShipment?.senderEmail || newShipment?.createdByEmail || oldShipment?.senderEmail || oldShipment?.createdByEmail || ""
+    ).trim().toLowerCase();
+
+    const finalReceiverEmail = String(
+      newShipment?.receiverEmail || oldShipment?.receiverEmail || ""
+    ).trim().toLowerCase();
+
+    const finalSenderName = String(newShipment?.senderName || oldShipment?.senderName || "Customer").trim();
+    const finalReceiverName = String(newShipment?.receiverName || oldShipment?.receiverName || "Customer").trim();
+    const finalTrackingNumber = String(newShipment?.trackingNumber || oldShipment?.trackingNumber || "").trim();
+    const finalInvoiceNumber = String(newInvoice?.invoiceNumber || oldInvoice?.invoiceNumber || "").trim();
+
+
+   await db.collection("notifications").insertOne({
+ userEmail: String(
+  (updated as any)?.senderEmail ||
+  (updated as any)?.receiverEmail ||
+  (updated as any)?.createdByEmail ||
   (existing as any)?.senderEmail ||
   (existing as any)?.receiverEmail ||
   (existing as any)?.createdByEmail ||
@@ -453,35 +610,57 @@ await db.collection("shipments").updateOne(shipmentIdQuery(shipmentId), update);
       if ((uDoc as any)?.name) userName = String((uDoc as any).name || "Customer");
     }
 
-    if (typeof body.status === "string" && userEmail) {
-      const finalStatus = String(
-        $set?.status || body.status || (existing as any)?.status || "Updated"
-      );
+  if (body?.invoice !== undefined && userEmail) {
+  const prevInvoice = ((existing as any)?.invoice || {}) as any;
+  const nextInvoice = (($set.invoice || (existing as any)?.invoice || {}) as any);
 
-      await sendShipmentStatusEmail(userEmail, {
-        name: userName,
-        shipmentId,
-        statusLabel: finalStatus,
-      }).catch(() => null);
-    }
-
-   if (body?.invoice !== undefined && userEmail) {
-  const nextInvoice = ($set.invoice || (existing as any)?.invoice || {}) as any;
-
-  await sendInvoiceUpdateEmail(userEmail, {
-  name: userName,
-  shipmentId,
-  status: String(nextInvoice.status || "unpaid").toLowerCase(),
-  invoiceNumber: nextInvoice.invoiceNumber || undefined,
-  trackingNumber: String((existing as any)?.trackingNumber || "").trim() || undefined,
-}).catch(() => null);
+  if (String(prevInvoice.status || "unpaid").toLowerCase() !== String(nextInvoice.status || "unpaid").toLowerCase()) {
+    await sendInvoiceUpdateEmail(userEmail, {
+      name: userName,
+      shipmentId,
+      status: String(nextInvoice.status || "unpaid").toLowerCase(),
+      invoiceNumber: nextInvoice.invoiceNumber || undefined,
+      trackingNumber:
+        String((updated as any)?.trackingNumber || (existing as any)?.trackingNumber || "").trim() || undefined,
+    }).catch(() => null);
+  }
 }
 
-    const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId), {
-      projection: { _id: 0 },
-    });
+    
 
     return NextResponse.json({ ok: true, shipment: updated });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _req: Request,
+  context: { params: Promise<{ shipmentId: string }> }
+) {
+  try {
+    const session = await auth();
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { shipmentId: raw } = await context.params;
+    const shipmentId = normalizeShipmentId(raw);
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    const existing = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId));
+    if (!existing) {
+      return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
+    }
+
+    await db.collection("shipments").deleteOne(shipmentIdQuery(shipmentId));
+
+    return NextResponse.json({ ok: true, deleted: true });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

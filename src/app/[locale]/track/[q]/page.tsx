@@ -362,12 +362,28 @@ export default function TrackResultPage() {
                   </p>
 
                   {data.estimatedDelivery ? (
-                    <p className="mt-2 text-xs text-gray-600">
-                      Estimated delivery:{" "}
-                      <span className="font-semibold">
-                        {fmtDate(data.estimatedDelivery)}
-                      </span>
-                    </p>
+                    <>
+                      <p className="mt-2 text-xs text-gray-600">
+                        Estimated delivery:{" "}
+                        <span className="font-semibold">
+                          {fmtDate(data.estimatedDelivery)}
+                        </span>
+                      </p>
+
+                      {new Date(data.estimatedDelivery).getTime() < Date.now() &&
+                      String(data.currentStatus || '').toLowerCase() !== 'delivered' ? (
+                        <p className="mt-2 text-xs text-red-600">
+                          The estimated delivery date has passed. Please contact{" "}
+                          <a
+                            href="mailto:support@goexoduslogistics.com"
+                            className="font-semibold underline"
+                          >
+                            support
+                          </a>{" "}
+                          for an updated delivery timeline and further assistance.
+                        </p>
+                      ) : null}
+                    </>
                   ) : null}
                 </div>
               </div>

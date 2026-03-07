@@ -28,12 +28,23 @@ export async function GET() {
       _id: 0,
       shipmentId: 1,
       trackingNumber: 1,
+
+      senderName: 1,
+      senderEmail: 1,
+      receiverName: 1,
+      receiverEmail: 1,
+
       senderCountryCode: 1,
       destinationCountryCode: 1,
+
       status: 1,
       statusColor: 1,
       statusNote: 1,
       nextStep: 1,
+
+      shipmentMeans: 1,
+      estimatedDeliveryDate: 1,
+
       createdAt: 1,
       updatedAt: 1,
       invoice: 1,

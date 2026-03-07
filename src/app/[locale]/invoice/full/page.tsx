@@ -252,8 +252,8 @@ export default function InvoiceFullPage() {
     return { shipping, fuel, handling, customs, insurance, discount, tax, subtotal, total };
   }, [data]);
 
-  const paymentMethodRaw = data?.paymentMethod ? safeStr(data.paymentMethod) : "";
-  const paymentMethod =
+ const paymentMethodRaw = safeStr(data?.paymentMethod);
+  const paymentStatusText =
     status === "paid"
       ? "Payment confirmed"
       : status === "cancelled"
@@ -261,11 +261,6 @@ export default function InvoiceFullPage() {
       : status === "overdue"
       ? "Payment required (Overdue)"
       : "Payment required";
-
-  const paymentMethodLine =
-    paymentMethodRaw && status !== "paid" && status !== "cancelled"
-      ? paymentMethodRaw
-      : "";
 
   const companyName = safeStr(data?.company?.name) || "Exodus Logistics Ltd.";
   const companyAddress =
@@ -690,12 +685,12 @@ export default function InvoiceFullPage() {
                     <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
                       <p className="text-xs text-gray-600">Status</p>
                       <p className="mt-1 text-sm font-extrabold text-gray-900">
-                        {paymentMethod}
+                        {paymentStatusText}
                       </p>
 
                       <p className="mt-3 text-xs text-gray-600">Recorded method</p>
                       <p className="mt-1 text-sm font-extrabold text-gray-900">
-                        {paymentMethodLine ? paymentMethodLine : "NULL"}
+                        {paymentMethodRaw || "NULL"}
                       </p>
 
                       <p className="mt-2 text-sm text-gray-700">{paymentMessage}</p>

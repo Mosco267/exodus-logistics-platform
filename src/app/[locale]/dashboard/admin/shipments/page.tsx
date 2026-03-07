@@ -1,15 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 type Shipment = {
   shipmentId: string;
   trackingNumber: string;
-
-  // ✅ optional invoice number if API provides it
   invoiceNumber?: string;
+
+  senderName?: string;
+  senderEmail?: string;
+  receiverName?: string;
+  receiverEmail?: string;
 
   senderCountryCode?: string;
   destinationCountryCode?: string;
@@ -24,8 +28,7 @@ type Shipment = {
     currency?: string;
     paid?: boolean;
     paidAt?: string | null;
-
-    // ✅ if your API returns invoice.invoiceNumber instead
+    status?: string;
     invoiceNumber?: string;
   };
 
@@ -43,10 +46,34 @@ type StatusDoc = {
 const normalizeKey = (v?: string) =>
   (v ?? '').toLowerCase().trim().replace(/[\s_-]+/g, '');
 
+async function copyToClipboard(text: string) {
+  const v = String(text || '').trim();
+  if (!v) return;
+
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(v);
+    return;
+  }
+
+  const ta = document.createElement('textarea');
+  ta.value = v;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+
 export default function AdminShipmentsPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
+  
 
+  const [copiedKey, setCopiedKey] = useState<string>('');
+  
+  const [deletingId, setDeletingId] = useState<string>('');
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [statuses, setStatuses] = useState<StatusDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,6 +171,36 @@ export default function AdminShipmentsPage() {
     }
   };
 
+  const deleteShipment = async (shipmentId: string) => {
+    const yes = window.confirm(
+      `Are you sure you want to delete shipment ${shipmentId}? This action cannot be undone.`
+    );
+    if (!yes) return;
+
+    setDeletingId(shipmentId);
+    setMsg('');
+
+    try {
+      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+        method: 'DELETE',
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setMsg(json?.error || 'Failed to delete shipment.');
+        return;
+      }
+
+      setShipments((prev) => prev.filter((s) => s.shipmentId !== shipmentId));
+      setMsg(`Shipment ${shipmentId} deleted successfully.`);
+    } catch {
+      setMsg('Network error while deleting shipment.');
+    } finally {
+      setDeletingId('');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-md">
@@ -185,6 +242,8 @@ export default function AdminShipmentsPage() {
                 <tr>
                   <th className="py-3 px-3 text-left font-semibold">Shipment ID</th>
                   <th className="py-3 px-3 text-left font-semibold">Tracking #</th>
+                  <th className="py-3 px-3 text-left font-semibold">Sender</th>
+                  <th className="py-3 px-3 text-left font-semibold">Receiver</th>
                   <th className="py-3 px-3 text-left font-semibold">Route</th>
                   <th className="py-3 px-3 text-left font-semibold">Status</th>
                   <th className="py-3 px-3 text-left font-semibold">Invoice</th>
@@ -214,18 +273,71 @@ export default function AdminShipmentsPage() {
                       className="border-b border-gray-100 dark:border-white/10 hover:bg-blue-50/60 dark:hover:bg-white/5 transition"
                     >
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="font-semibold">{s.shipmentId}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold">{s.shipmentId}</div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await copyToClipboard(s.shipmentId);
+                              setCopiedKey(`ship-${s.shipmentId}`);
+                              window.setTimeout(() => setCopiedKey(''), 1200);
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-1 hover:bg-gray-50"
+                          >
+                            {copiedKey === `ship-${s.shipmentId}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </td>
 
                       {/* ✅ Tracking + Invoice number (invoice shown as its own line/row in this cell) */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="font-semibold">{s.trackingNumber}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold">{s.trackingNumber}</div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await copyToClipboard(s.trackingNumber);
+                              setCopiedKey(`track-${s.shipmentId}`);
+                              window.setTimeout(() => setCopiedKey(''), 1200);
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-1 hover:bg-gray-50"
+                          >
+                            {copiedKey === `track-${s.shipmentId}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
 
                         {invNo ? (
-                          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Invoice: <span className="font-semibold">{invNo}</span>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span>
+                              Invoice: <span className="font-semibold">{invNo}</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await copyToClipboard(invNo);
+                                setCopiedKey(`inv-${s.shipmentId}`);
+                                window.setTimeout(() => setCopiedKey(''), 1200);
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-1 hover:bg-gray-50"
+                            >
+                              {copiedKey === `inv-${s.shipmentId}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
                           </div>
                         ) : null}
+                      </td>
+
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="font-semibold">{s.senderName || '—'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {s.senderEmail || '—'}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="font-semibold">{s.receiverName || '—'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {s.receiverEmail || '—'}
+                        </div>
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
@@ -282,11 +394,20 @@ export default function AdminShipmentsPage() {
 
                       <td className="py-3 px-3 whitespace-nowrap">
                         <Link
-  href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/edit`}
-  className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:underline cursor-pointer"
->
-  Edit
-</Link>
+                          href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/edit`}
+                          className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:underline cursor-pointer"
+                        >
+                          Edit
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteShipment(s.shipmentId)}
+                          disabled={deletingId === s.shipmentId}
+                          className="ml-4 text-sm font-semibold text-red-600 hover:underline disabled:opacity-60 cursor-pointer"
+                        >
+                          {deletingId === s.shipmentId ? 'Deleting…' : 'Delete'}
+                        </button>
                       </td>
                     </tr>
                   );

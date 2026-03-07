@@ -5,6 +5,11 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  computeInvoiceFromDeclaredValue,
+  DEFAULT_PRICING,
+  type PricingSettings,
+} from "@/lib/pricing";
+import {
   AlertCircle,
   CheckCircle2,
   Loader2,
@@ -37,6 +42,24 @@ function toDateInputValue(v: any) {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function toPct(rate: number) {
+  const pct = Number(rate) * 100;
+  return Number.isFinite(pct) ? pct.toFixed(2).replace(/\.00$/, "") : "0";
+}
+function fromPct(pct: string) {
+  const n = Number(pct);
+  if (!Number.isFinite(n)) return 0;
+  return n / 100;
+}
+function toMoney(n: any) {
+  const x = Number(n);
+  return Number.isFinite(x) ? String(x) : "0";
+}
+function fromMoney(s: string) {
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 }
 
 export default function AdminEditShipmentPage() {
@@ -76,6 +99,8 @@ export default function AdminEditShipmentPage() {
     "Standard"
   );
   const [shipmentType, setShipmentType] = useState("");
+  const [shipmentMeans, setShipmentMeans] = useState("");
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState<string>("");
   const [weightKg, setWeightKg] = useState<string>("");
   const [lengthCm, setLengthCm] = useState<string>("");
   const [widthCm, setWidthCm] = useState<string>("");
@@ -89,6 +114,13 @@ export default function AdminEditShipmentPage() {
   const [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus>("unpaid");
   const [invoiceDueDate, setInvoiceDueDate] = useState<string>("");
   const [invoicePaymentMethod, setInvoicePaymentMethod] = useState<string>("");
+  const [shippingFee, setShippingFee] = useState<string>("");
+  const [handlingFee, setHandlingFee] = useState<string>("");
+  const [customsFee, setCustomsFee] = useState<string>("");
+  const [taxFee, setTaxFee] = useState<string>("");
+  const [discountFee, setDiscountFee] = useState<string>("");
+  const [fuelRatePct, setFuelRatePct] = useState<string>("");
+  const [insuranceRatePct, setInsuranceRatePct] = useState<string>(""); 
 
   const dueIso = useMemo(() => {
     const v = safeStr(invoiceDueDate);
@@ -97,6 +129,35 @@ export default function AdminEditShipmentPage() {
     if (Number.isNaN(d.getTime())) return null;
     return d.toISOString();
   }, [invoiceDueDate]);
+
+  const previewPricing: PricingSettings = useMemo(
+    () => ({
+      ...DEFAULT_PRICING,
+      shippingFee: fromMoney(shippingFee),
+      handlingFee: fromMoney(handlingFee),
+      customsFee: fromMoney(customsFee),
+      taxFee: fromMoney(taxFee),
+      discountFee: fromMoney(discountFee),
+      fuelRate: fromPct(fuelRatePct),
+      insuranceRate: fromPct(insuranceRatePct),
+    }),
+    [
+      shippingFee,
+      handlingFee,
+      customsFee,
+      taxFee,
+      discountFee,
+      fuelRatePct,
+      insuranceRatePct,
+    ]
+  );
+
+  const breakdown = useMemo(() => {
+    return computeInvoiceFromDeclaredValue(
+      Number(declaredValue || 0),
+      previewPricing
+    );
+  }, [declaredValue, previewPricing]);
 
   useEffect(() => {
     const load = async () => {
@@ -124,6 +185,7 @@ export default function AdminEditShipmentPage() {
 
         const sh = json?.shipment || {};
         const inv = sh?.invoice || {};
+        const pricingUsed = inv?.pricingUsed || {};
         const dims = sh?.dimensionsCm || {};
 
         // parties
@@ -152,6 +214,8 @@ export default function AdminEditShipmentPage() {
           safeStr(sh?.serviceLevel) === "Express" ? "Express" : "Standard"
         );
         setShipmentType(safeStr(sh?.shipmentType));
+        setShipmentMeans(safeStr(sh?.shipmentMeans));
+        setEstimatedDeliveryDate(toDateInputValue(sh?.estimatedDeliveryDate));
         setWeightKg(
           sh?.weightKg !== undefined && sh?.weightKg !== null
             ? String(sh.weightKg)
@@ -198,6 +262,15 @@ export default function AdminEditShipmentPage() {
         setInvoiceStatus(normalized);
         setInvoiceDueDate(toDateInputValue(inv?.dueDate));
         setInvoicePaymentMethod(safeStr(inv?.paymentMethod));
+        setShippingFee(toMoney(pricingUsed?.shippingFee ?? DEFAULT_PRICING.shippingFee));
+        setHandlingFee(toMoney(pricingUsed?.handlingFee ?? DEFAULT_PRICING.handlingFee));
+        setCustomsFee(toMoney(pricingUsed?.customsFee ?? DEFAULT_PRICING.customsFee));
+        setTaxFee(toMoney(pricingUsed?.taxFee ?? DEFAULT_PRICING.taxFee));
+        setDiscountFee(toMoney(pricingUsed?.discountFee ?? DEFAULT_PRICING.discountFee));
+        setFuelRatePct(toPct(Number(pricingUsed?.fuelRate ?? DEFAULT_PRICING.fuelRate)));
+        setInsuranceRatePct(
+          toPct(Number(pricingUsed?.insuranceRate ?? DEFAULT_PRICING.insuranceRate))
+        );
       } catch (e: any) {
         setErr(e?.message || "Network error while loading shipment.");
       } finally {
@@ -258,6 +331,8 @@ export default function AdminEditShipmentPage() {
 
             serviceLevel,
             shipmentType,
+            shipmentMeans,
+            estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate).toISOString() : null,
             weightKg: num(weightKg),
             dimensionsCm: {
               length: num(lengthCm),
@@ -268,14 +343,14 @@ export default function AdminEditShipmentPage() {
             declaredValue: dv,
             declaredValueCurrency: currency,
 
-            status,
-            statusNote,
+            
 
-            invoice: {
+           invoice: {
               status: invoiceStatus,
               dueDate: dueIso,
               paymentMethod: safeStr(invoicePaymentMethod) || null,
               currency,
+              pricingUsed: previewPricing,
             },
           }),
         }
@@ -532,6 +607,35 @@ export default function AdminEditShipmentPage() {
               </div>
 
               <div>
+                <label className="text-sm font-semibold text-gray-700">Shipment means</label>
+                <select
+                  value={shipmentMeans}
+                  onChange={(e) => setShipmentMeans(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white"
+                >
+                  <option value="">Select means</option>
+                  <option value="Air Cargo">Air Cargo</option>
+                  <option value="Sea Freight">Sea Freight</option>
+                  <option value="Land Freight">Land Freight</option>
+                  <option value="Truck">Truck</option>
+                  <option value="Van">Van</option>
+                  <option value="Ship">Ship</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Estimated delivery date
+                </label>
+                <input
+                  type="date"
+                  value={estimatedDeliveryDate}
+                  onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white"
+                />
+              </div>
+
+              <div>
                 <label className="text-sm font-semibold text-gray-700">Weight (kg)</label>
                 <input
                   value={weightKg}
@@ -541,31 +645,7 @@ export default function AdminEditShipmentPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-semibold text-gray-700">Shipment status</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white"
-                >
-                  <option value="Created">Created</option>
-                  <option value="In Transit">In Transit</option>
-                  <option value="Custom Clearance">Custom Clearance</option>
-                  <option value="Unclaimed">Unclaimed</option>
-                  <option value="Delivered">Delivered</option>
-                </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">
-                  Status note
-                </label>
-                <input
-                  value={statusNote}
-                  onChange={(e) => setStatusNote(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
-                />
-              </div>
+              
 
               <div className="sm:col-span-2">
                 <label className="text-sm font-semibold text-gray-700">
@@ -656,6 +736,152 @@ export default function AdminEditShipmentPage() {
                   placeholder="e.g. Bank transfer / PayPal / Crypto"
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
+              </div>
+            </div>
+
+            <p className="font-extrabold text-gray-900 mt-8 mb-4">Charges summary</p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Shipping fee (fixed)
+                </label>
+                <input
+                  value={shippingFee}
+                  onChange={(e) => setShippingFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Handling fee (fixed)
+                </label>
+                <input
+                  value={handlingFee}
+                  onChange={(e) => setHandlingFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Customs fee (fixed)
+                </label>
+                <input
+                  value={customsFee}
+                  onChange={(e) => setCustomsFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Tax fee (fixed)
+                </label>
+                <input
+                  value={taxFee}
+                  onChange={(e) => setTaxFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Discount fee (fixed)
+                </label>
+                <input
+                  value={discountFee}
+                  onChange={(e) => setDiscountFee(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Fuel surcharge %
+                </label>
+                <input
+                  value={fuelRatePct}
+                  onChange={(e) => setFuelRatePct(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Insurance %
+                </label>
+                <input
+                  value={insuranceRatePct}
+                  onChange={(e) => setInsuranceRatePct(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 overflow-hidden mb-6">
+              <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+                <p className="font-extrabold text-gray-900">Declared Value</p>
+                <p className="text-sm text-gray-700">
+                  {Number(breakdown.declaredValue).toLocaleString()} {currency}
+                </p>
+              </div>
+
+              <div className="p-5 space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span>Shipping (fixed)</span>
+                  <span className="font-semibold">{breakdown.shipping.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Fuel surcharge ({fuelRatePct || "—"}%)</span>
+                  <span className="font-semibold">{breakdown.fuel.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Handling (fixed)</span>
+                  <span className="font-semibold">{breakdown.handling.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Customs (fixed)</span>
+                  <span className="font-semibold">{breakdown.customs.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Insurance ({insuranceRatePct || "—"}%)</span>
+                  <span className="font-semibold">{breakdown.insurance.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between pt-3 border-t">
+                  <span className="font-bold">Subtotal</span>
+                  <span className="font-bold">{breakdown.subtotal.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Tax (fixed)</span>
+                  <span className="font-semibold">{breakdown.tax.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Discount (fixed)</span>
+                  <span className="font-semibold">-{breakdown.discount.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between pt-4 border-t text-lg">
+                  <span className="font-extrabold text-gray-900">Total</span>
+                  <span className="font-extrabold text-blue-700">
+                    {breakdown.total.toFixed(2)} {currency}
+                  </span>
+                </div>
               </div>
             </div>
 

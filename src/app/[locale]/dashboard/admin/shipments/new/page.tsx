@@ -83,6 +83,8 @@ export default function AdminCreateShipmentPage() {
     "Standard"
   );
   const [shipmentType, setShipmentType] = useState("Parcel");
+  const [shipmentMeans, setShipmentMeans] = useState("");
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState<string>("");
 
   const [weightKg, setWeightKg] = useState<string>("2");
   const [lengthCm, setLengthCm] = useState<string>("24");
@@ -269,6 +271,9 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
 
           serviceLevel,
           shipmentType,
+
+          shipmentMeans,
+          estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate).toISOString() : null,
 
           weightKg: Number(weightKg || 0),
           dimensionsCm: {
@@ -575,6 +580,37 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
                   value={shipmentType}
                   onChange={(e) => setShipmentType(e.target.value)}
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Shipment means
+                </label>
+                <select
+                  value={shipmentMeans}
+                  onChange={(e) => setShipmentMeans(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  <option value="">Select means</option>
+                  <option value="Air Cargo">Air Cargo</option>
+                  <option value="Sea Freight">Sea Freight</option>
+                  <option value="Land Freight">Land Freight</option>
+                  <option value="Truck">Truck</option>
+                  <option value="Van">Van</option>
+                  <option value="Ship">Ship</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  Estimated delivery date
+                </label>
+                <input
+                  type="date"
+                  value={estimatedDeliveryDate}
+                  onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
               </div>
 

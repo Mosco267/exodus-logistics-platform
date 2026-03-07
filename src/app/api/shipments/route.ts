@@ -50,6 +50,8 @@ type CreateShipmentBody = {
   shipmentType?: string;
   weightKg?: number;
   dimensionsCm?: DimensionsCm;
+  shipmentMeans?: string;
+  estimatedDeliveryDate?: string | null;
 
   declaredValue?: number;
   declaredValueCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
@@ -284,6 +286,8 @@ const invoicePaid = invoiceStatus === "paid";
 
         serviceLevel: body.serviceLevel || "Standard",
         shipmentType: body.shipmentType || null,
+        shipmentMeans: body.shipmentMeans || null,
+        estimatedDeliveryDate: body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null,
         weightKg: Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : null,
         dimensionsCm: body.dimensionsCm || null,
 
