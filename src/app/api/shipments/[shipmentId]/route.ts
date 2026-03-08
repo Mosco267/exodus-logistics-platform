@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
-import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING } from "@/lib/pricing";
+import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING, type PricingProfiles } from "@/lib/pricing";
 import {
   sendShipmentStatusEmail,
   sendInvoiceUpdateEmail,
@@ -32,10 +32,10 @@ function joinNice(parts: Array<any>) {
 }
 
 // ✅ Fix TS errors on _id by typing the collection doc
-type PricingSettings = typeof DEFAULT_PRICING;
+type PricingSettings = PricingProfiles;
 type PricingSettingsDoc = {
   _id: string; // "default"
-  settings: PricingSettings;
+  settings: PricingProfiles;
   updatedAt?: Date;
 };
 
@@ -102,7 +102,7 @@ export async function PATCH(
       .collection<PricingSettingsDoc>("pricing_settings")
       .findOne({ _id: "default" });
 
-    const pricing: PricingSettings = pricingDoc?.settings ?? DEFAULT_PRICING;
+    const pricingProfiles: PricingProfiles = pricingDoc?.settings ?? DEFAULT_PRICING;
 
     const now = new Date();
     const $set: Record<string, any> = { updatedAt: now };
@@ -179,7 +179,13 @@ export async function PATCH(
     if (body?.receiverAddress !== undefined) $set.receiverAddress = String(body.receiverAddress || "").trim() || null;
     if (body?.receiverPostalCode !== undefined) $set.receiverPostalCode = String(body.receiverPostalCode || "").trim() || null;
     if (body?.receiverPhone !== undefined) $set.receiverPhone = String(body.receiverPhone || "").trim() || null;
-
+    
+    if (body?.shipmentScope !== undefined) {
+  $set.shipmentScope =
+    String(body.shipmentScope || "").trim().toLowerCase() === "local"
+      ? "local"
+      : "international";
+}
     if (body?.serviceLevel !== undefined) $set.serviceLevel = String(body.serviceLevel || "").trim() || null;
     if (body?.shipmentType !== undefined) $set.shipmentType = String(body.shipmentType || "").trim() || null;
     if (body?.shipmentMeans !== undefined) $set.shipmentMeans = String(body.shipmentMeans || "").trim() || null;
@@ -233,12 +239,24 @@ export async function PATCH(
 
      const incomingPricingUsed = incomingInvoice?.pricingUsed || null;
 
-  const pricingToUse =
-    incomingPricingUsed
-      ? { ...DEFAULT_PRICING, ...incomingPricingUsed }
-      : prev?.pricingUsed
-      ? { ...DEFAULT_PRICING, ...prev.pricingUsed }
-      : pricing;
+  const shipmentScope =
+  String(
+    body?.shipmentScope ??
+      $set?.shipmentScope ??
+      (existing as any)?.shipmentScope ??
+      "international"
+  ).toLowerCase() === "local"
+    ? "local"
+    : "international";
+
+const basePricing = pricingProfiles[shipmentScope] || DEFAULT_PRICING[shipmentScope];
+
+const pricingToUse =
+  incomingPricingUsed
+    ? { ...basePricing, ...incomingPricingUsed }
+    : prev?.pricingUsed
+    ? { ...basePricing, ...prev.pricingUsed }
+    : basePricing;
 
       const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingToUse);
 

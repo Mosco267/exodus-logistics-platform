@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Save,
 } from "lucide-react";
+import { s } from "framer-motion/client";
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 type ShipmentStatus =
@@ -98,6 +99,7 @@ export default function AdminEditShipmentPage() {
   const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">(
     "Standard"
   );
+  const [shipmentScope, setShipmentScope] = useState<"international" | "local">("international");
   const [shipmentType, setShipmentType] = useState("");
   const [shipmentMeans, setShipmentMeans] = useState("");
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState<string>("");
@@ -122,6 +124,11 @@ export default function AdminEditShipmentPage() {
   const [fuelRatePct, setFuelRatePct] = useState<string>("");
   const [insuranceRatePct, setInsuranceRatePct] = useState<string>(""); 
 
+  const activeDefaultPricing =
+  shipmentScope === "local"
+    ? DEFAULT_PRICING.local
+    : DEFAULT_PRICING.international;
+
   const dueIso = useMemo(() => {
     const v = safeStr(invoiceDueDate);
     if (!v) return null;
@@ -131,25 +138,26 @@ export default function AdminEditShipmentPage() {
   }, [invoiceDueDate]);
 
   const previewPricing: PricingSettings = useMemo(
-    () => ({
-      ...DEFAULT_PRICING,
-      shippingFee: fromMoney(shippingFee),
-      handlingFee: fromMoney(handlingFee),
-      customsFee: fromMoney(customsFee),
-      taxFee: fromMoney(taxFee),
-      discountFee: fromMoney(discountFee),
-      fuelRate: fromPct(fuelRatePct),
-      insuranceRate: fromPct(insuranceRatePct),
-    }),
+  () => ({
+    ...activeDefaultPricing,
+    shippingFee: fromMoney(shippingFee),
+    handlingFee: fromMoney(handlingFee),
+    customsFee: fromMoney(customsFee),
+    taxFee: fromMoney(taxFee),
+    discountFee: fromMoney(discountFee),
+    fuelRate: fromPct(fuelRatePct),
+    insuranceRate: fromPct(insuranceRatePct),
+  }),
     [
-      shippingFee,
-      handlingFee,
-      customsFee,
-      taxFee,
-      discountFee,
-      fuelRatePct,
-      insuranceRatePct,
-    ]
+  activeDefaultPricing,
+  shippingFee,
+  handlingFee,
+  customsFee,
+  taxFee,
+  discountFee,
+  fuelRatePct,
+  insuranceRatePct,
+]
   );
 
   const breakdown = useMemo(() => {
@@ -211,8 +219,14 @@ export default function AdminEditShipmentPage() {
 
         // shipment details
         setServiceLevel(
-          safeStr(sh?.serviceLevel) === "Express" ? "Express" : "Standard"
-        );
+  safeStr(sh?.serviceLevel) === "Express" ? "Express" : "Standard"
+);
+setShipmentScope(
+  safeStr(sh?.shipmentScope).toLowerCase() === "local"
+    ? "local"
+    : "international"
+);
+setShipmentType(safeStr(sh?.shipmentType));
         setShipmentType(safeStr(sh?.shipmentType));
         setShipmentMeans(safeStr(sh?.shipmentMeans));
         setEstimatedDeliveryDate(toDateInputValue(sh?.estimatedDeliveryDate));
@@ -262,15 +276,25 @@ export default function AdminEditShipmentPage() {
         setInvoiceStatus(normalized);
         setInvoiceDueDate(toDateInputValue(inv?.dueDate));
         setInvoicePaymentMethod(safeStr(inv?.paymentMethod));
-        setShippingFee(toMoney(pricingUsed?.shippingFee ?? DEFAULT_PRICING.shippingFee));
-        setHandlingFee(toMoney(pricingUsed?.handlingFee ?? DEFAULT_PRICING.handlingFee));
-        setCustomsFee(toMoney(pricingUsed?.customsFee ?? DEFAULT_PRICING.customsFee));
-        setTaxFee(toMoney(pricingUsed?.taxFee ?? DEFAULT_PRICING.taxFee));
-        setDiscountFee(toMoney(pricingUsed?.discountFee ?? DEFAULT_PRICING.discountFee));
-        setFuelRatePct(toPct(Number(pricingUsed?.fuelRate ?? DEFAULT_PRICING.fuelRate)));
-        setInsuranceRatePct(
-          toPct(Number(pricingUsed?.insuranceRate ?? DEFAULT_PRICING.insuranceRate))
-        );
+        const scope =
+  safeStr(sh?.shipmentScope).toLowerCase() === "local"
+    ? "local"
+    : "international";
+
+const fallbackPricing =
+  scope === "local"
+    ? DEFAULT_PRICING.local
+    : DEFAULT_PRICING.international;
+
+setShippingFee(toMoney(pricingUsed?.shippingFee ?? fallbackPricing.shippingFee));
+setHandlingFee(toMoney(pricingUsed?.handlingFee ?? fallbackPricing.handlingFee));
+setCustomsFee(toMoney(pricingUsed?.customsFee ?? fallbackPricing.customsFee));
+setTaxFee(toMoney(pricingUsed?.taxFee ?? fallbackPricing.taxFee));
+setDiscountFee(toMoney(pricingUsed?.discountFee ?? fallbackPricing.discountFee));
+setFuelRatePct(toPct(Number(pricingUsed?.fuelRate ?? fallbackPricing.fuelRate)));
+setInsuranceRatePct(
+  toPct(Number(pricingUsed?.insuranceRate ?? fallbackPricing.insuranceRate))
+);
       } catch (e: any) {
         setErr(e?.message || "Network error while loading shipment.");
       } finally {
@@ -330,6 +354,7 @@ export default function AdminEditShipmentPage() {
             receiverPhone,
 
             serviceLevel,
+            shipmentScope,
             shipmentType,
             shipmentMeans,
             estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate).toISOString() : null,
@@ -585,6 +610,17 @@ export default function AdminEditShipmentPage() {
             <p className="font-extrabold text-gray-900 mt-8 mb-4">Shipment details</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+  <label className="text-sm font-semibold text-gray-700">Shipping type</label>
+  <select
+    value={shipmentScope}
+    onChange={(e) => setShipmentScope(e.target.value as "international" | "local")}
+    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white"
+  >
+    <option value="international">International</option>
+    <option value="local">Local</option>
+  </select>
+</div>
               <div>
                 <label className="text-sm font-semibold text-gray-700">Service level</label>
                 <select

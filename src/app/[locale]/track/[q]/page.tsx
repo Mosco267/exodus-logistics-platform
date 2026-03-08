@@ -67,13 +67,27 @@ type TrackApiResponse = {
   events: GroupedEvent[];
   estimatedDelivery?: string | null;
   shipmentMeans?: string | null;
+  shipmentScope?: string | null;
+  serviceLevel?: string | null;
+  shipmentType?: string | null;
+  weightKg?: number | string | null;
+  dimensionsCm?: { length?: any; width?: any; height?: any; unit?: string } | null;
+  carrierName?: string | null;
 };
 
-function fmtDate(iso?: string) {
+function fmtDate(iso?: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString();
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).format(d) + " UTC";
 }
 
 function fmtDateOnly(iso?: string | null) {
@@ -81,6 +95,44 @@ function fmtDateOnly(iso?: string | null) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString();
+}
+
+function fmtEstimatedRange(
+  iso?: string | null,
+  serviceLevel?: string | null,
+  shipmentScope?: string | null
+) {
+  if (!iso) return "—";
+
+  const end = new Date(iso);
+  if (Number.isNaN(end.getTime())) return "—";
+
+  let daysBack = 3;
+
+  if (String(serviceLevel || "").toLowerCase() === "express") {
+    daysBack = String(shipmentScope || "").toLowerCase() === "local" ? 1 : 2;
+  } else {
+    daysBack = String(shipmentScope || "").toLowerCase() === "local" ? 2 : 5;
+  }
+
+  const start = new Date(end);
+  start.setDate(end.getDate() - daysBack);
+
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+
+  const startMonth = start.toLocaleString("en-US", { month: "short" });
+  const endMonth = end.toLocaleString("en-US", { month: "short" });
+
+  if (sameMonth) {
+    return `${startMonth} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`;
+  }
+
+  if (sameYear) {
+    return `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+  }
+
+  return `${startMonth} ${start.getDate()}, ${start.getFullYear()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
 }
 
 function fmtLoc(loc?: LocationLite) {
@@ -363,18 +415,18 @@ export default function TrackResultPage() {
                     {data.currentStatus || events[currentIndex]?.label || "—"}
                   </p>
                   <p className="mt-1 text-xs text-gray-600">
-                    Updated:{" "}
-                    <span className="font-semibold">
-                      {fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}
-                    </span>
-                  </p>
+  Last updated:{" "}
+  <span className="font-semibold">
+    {fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}
+  </span>
+</p>
 
                   {data.estimatedDelivery ? (
                     <>
                       <p className="mt-2 text-xs text-gray-600">
                         Estimated delivery:{" "}
                         <span className="font-semibold">
-                          {fmtDateOnly(data.estimatedDelivery)}
+                          {fmtEstimatedRange(data.estimatedDelivery, data.serviceLevel, data.shipmentScope)}
                         </span>
                       </p>
 
@@ -427,7 +479,7 @@ export default function TrackResultPage() {
               </div>
 
               {/* Cards */}
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                     <FileText className="w-4 h-4 text-gray-700" />
@@ -470,12 +522,69 @@ export default function TrackResultPage() {
   </div>
   <p className="mt-2 text-sm text-gray-800">
     <span className="font-semibold">Estimated delivery:</span>{" "}
-    {fmtDateOnly(data.estimatedDelivery)}
+    {fmtEstimatedRange(data.estimatedDelivery, data.serviceLevel, data.shipmentScope)}
   </p>
   <p className="mt-1 text-sm text-gray-800">
     <span className="font-semibold">Shipment means:</span>{" "}
     {data.shipmentMeans || "—"}
   </p>
+</div>
+
+<div className="rounded-2xl border border-gray-200 p-4">
+  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+    <Package className="w-4 h-4 text-gray-700" />
+    Package Details
+  </div>
+  <div className="mt-2 space-y-1 text-sm text-gray-800">
+    <p>
+      <span className="font-semibold">Weight:</span>{" "}
+      {data.weightKg != null && String(data.weightKg).trim() !== ""
+        ? `${data.weightKg} kg`
+        : "—"}
+    </p>
+    <p>
+      <span className="font-semibold">Dimensions:</span>{" "}
+      {data.dimensionsCm
+        ? `${data.dimensionsCm.length || "—"} × ${data.dimensionsCm.width || "—"} × ${data.dimensionsCm.height || "—"} cm`
+        : "—"}
+    </p>
+    <p>
+      <span className="font-semibold">Service type:</span>{" "}
+      {data.serviceLevel || "—"}{" "}
+      {data.shipmentScope
+        ? `(${String(data.shipmentScope).charAt(0).toUpperCase()}${String(data.shipmentScope).slice(1)})`
+        : ""}
+    </p>
+    <p>
+      <span className="font-semibold">Package type:</span>{" "}
+      {data.shipmentType || "—"}
+    </p>
+  </div>
+</div>
+
+<div className="rounded-2xl border border-gray-200 p-4">
+  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+    <Truck className="w-4 h-4 text-gray-700" />
+    Carrier Information
+  </div>
+  <div className="mt-2 space-y-1 text-sm text-gray-800">
+    <p>
+      <span className="font-semibold">Carrier:</span>{" "}
+      {data.carrierName || "Exodus Logistics"}
+    </p>
+    <p>
+      <span className="font-semibold">Tracking number:</span>{" "}
+      {data.trackingNumber || "—"}
+    </p>
+    <p>
+      <span className="font-semibold">Shipment means:</span>{" "}
+      {data.shipmentMeans || "—"}
+    </p>
+    <p>
+      <span className="font-semibold">Route:</span>{" "}
+      {data.origin && data.destination ? `${data.origin} → ${data.destination}` : "—"}
+    </p>
+  </div>
 </div>
 
                 <div className="rounded-2xl border border-gray-200 p-4">

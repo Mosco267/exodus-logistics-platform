@@ -8,7 +8,9 @@ import {
   computeInvoiceFromDeclaredValue,
   DEFAULT_PRICING,
   type PricingSettings,
+  type PricingProfiles,
 } from "@/lib/pricing";
+import { s } from "framer-motion/client";
 
 type ShipmentStatus =
   | "Created"
@@ -38,17 +40,7 @@ function fromMoney(s: string) {
 
 type PricingApiResponse = {
   ok?: boolean;
-  settings?: {
-    // ✅ NEW SETTINGS (matches src/lib/pricing.ts)
-    shippingFee?: number;
-    handlingFee?: number;
-    customsFee?: number;
-    taxFee?: number;
-    discountFee?: number;
-
-    fuelRate?: number; // decimals
-    insuranceRate?: number; // decimals
-  };
+  settings?: PricingProfiles;
   error?: string;
 };
 
@@ -82,6 +74,7 @@ export default function AdminCreateShipmentPage() {
   const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">(
     "Standard"
   );
+  const [shipmentScope, setShipmentScope] = useState<"international" | "local">("international");
   const [shipmentType, setShipmentType] = useState("Parcel");
   const [shipmentMeans, setShipmentMeans] = useState("");
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState<string>("");
@@ -114,6 +107,8 @@ export default function AdminCreateShipmentPage() {
 
   // ✅ Pricing defaults come ONLY from DB (Admin Pricing)
   const [ratesLoading, setRatesLoading] = useState(true);
+
+  const [pricingProfiles, setPricingProfiles] = useState<PricingProfiles>(DEFAULT_PRICING);
 
   // ✅ NEW: FIXED FEES (money)
   const [shippingFee, setShippingFee] = useState("");
@@ -149,20 +144,34 @@ export default function AdminCreateShipmentPage() {
         }
 
         const s = json?.settings;
-        if (!s) throw new Error("Pricing settings missing.");
 
-        // ✅ Fixed fees (money)
-        setShippingFee(toMoney(s.shippingFee ?? DEFAULT_PRICING.shippingFee));
-        setHandlingFee(toMoney(s.handlingFee ?? DEFAULT_PRICING.handlingFee));
-        setCustomsFee(toMoney(s.customsFee ?? DEFAULT_PRICING.customsFee));
-        setTaxFee(toMoney(s.taxFee ?? DEFAULT_PRICING.taxFee));
-        setDiscountFee(toMoney(s.discountFee ?? DEFAULT_PRICING.discountFee));
+      useEffect(() => {
+  const active = pricingProfiles[shipmentScope] || DEFAULT_PRICING[shipmentScope];
 
-        // ✅ Rates stored as decimals -> display as %
-        setFuelRatePct(toPct(Number(s.fuelRate ?? DEFAULT_PRICING.fuelRate)));
-        setInsuranceRatePct(
-          toPct(Number(s.insuranceRate ?? DEFAULT_PRICING.insuranceRate))
-        );
+  setShippingFee(toMoney(active.shippingFee));
+  setHandlingFee(toMoney(active.handlingFee));
+  setCustomsFee(toMoney(active.customsFee));
+  setTaxFee(toMoney(active.taxFee));
+  setDiscountFee(toMoney(active.discountFee));
+  setFuelRatePct(toPct(Number(active.fuelRate)));
+  setInsuranceRatePct(toPct(Number(active.insuranceRate)));
+}, [shipmentScope, pricingProfiles]);
+
+if (!s) throw new Error("Pricing settings missing.");
+
+setPricingProfiles(s);
+
+const active = s[shipmentScope] || DEFAULT_PRICING[shipmentScope];
+
+setShippingFee(toMoney(active.shippingFee ?? DEFAULT_PRICING[shipmentScope].shippingFee));
+setHandlingFee(toMoney(active.handlingFee ?? DEFAULT_PRICING[shipmentScope].handlingFee));
+setCustomsFee(toMoney(active.customsFee ?? DEFAULT_PRICING[shipmentScope].customsFee));
+setTaxFee(toMoney(active.taxFee ?? DEFAULT_PRICING[shipmentScope].taxFee));
+setDiscountFee(toMoney(active.discountFee ?? DEFAULT_PRICING[shipmentScope].discountFee));
+setFuelRatePct(toPct(Number(active.fuelRate ?? DEFAULT_PRICING[shipmentScope].fuelRate)));
+setInsuranceRatePct(
+  toPct(Number(active.insuranceRate ?? DEFAULT_PRICING[shipmentScope].insuranceRate))
+);
       } catch (e: any) {
         setErr(e?.message || "Failed to load pricing settings.");
       } finally {
@@ -268,7 +277,8 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
           receiverAddress,
           receiverPostalCode,
           receiverPhone,
-
+          
+          shipmentScope,
           serviceLevel,
           shipmentType,
 
@@ -558,6 +568,19 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
               Shipment details
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+  <label className="text-sm font-semibold text-gray-700">
+    Shipping type
+  </label>
+  <select
+    value={shipmentScope}
+    onChange={(e) => setShipmentScope(e.target.value as "international" | "local")}
+    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+  >
+    <option value="international">International</option>
+    <option value="local">Local</option>
+  </select>
+</div>
               <div>
                 <label className="text-sm font-semibold text-gray-700">
                   Service level

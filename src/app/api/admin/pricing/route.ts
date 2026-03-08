@@ -17,21 +17,36 @@ export type PricingSettings = {
   insuranceRate: number;  // % of declared value
 };
 
-// ✅ DEFAULTS
-export const DEFAULT_PRICING: PricingSettings = {
-  shippingFee: 120,
-  handlingFee: 10,
-  customsFee: 25,
-  taxFee: 0,
-  discountFee: 0,
+export type PricingProfiles = {
+  international: PricingSettings;
+  local: PricingSettings;
+};
 
-  fuelRate: 0.10,
-  insuranceRate: 0.02,
+// ✅ DEFAULTS
+export const DEFAULT_PRICING: PricingProfiles = {
+  international: {
+    shippingFee: 120,
+    handlingFee: 10,
+    customsFee: 25,
+    taxFee: 0,
+    discountFee: 0,
+    fuelRate: 0.10,
+    insuranceRate: 0.02,
+  },
+  local: {
+    shippingFee: 45,
+    handlingFee: 5,
+    customsFee: 0,
+    taxFee: 0,
+    discountFee: 0,
+    fuelRate: 0.06,
+    insuranceRate: 0.01,
+  },
 };
 
 type PricingSettingsDoc = {
   _id: typeof DOC_ID;
-  settings: PricingSettings;
+  settings: PricingProfiles;
   updatedAt?: Date;
 };
 
@@ -60,17 +75,33 @@ function toMoney(v: any, fallback: number) {
 }
 
 // Normalize on read/write
-function normalizeSettings(s: any): PricingSettings {
+function normalizeSettings(
+  s: any,
+  fallback: PricingSettings
+): PricingSettings {
   const incoming = s || {};
   return {
-    shippingFee: toMoney(incoming.shippingFee, DEFAULT_PRICING.shippingFee),
-    handlingFee: toMoney(incoming.handlingFee, DEFAULT_PRICING.handlingFee),
-    customsFee: toMoney(incoming.customsFee, DEFAULT_PRICING.customsFee),
-    taxFee: toMoney(incoming.taxFee, DEFAULT_PRICING.taxFee),
-    discountFee: toMoney(incoming.discountFee, DEFAULT_PRICING.discountFee),
+    shippingFee: toMoney(incoming.shippingFee, fallback.shippingFee),
+    handlingFee: toMoney(incoming.handlingFee, fallback.handlingFee),
+    customsFee: toMoney(incoming.customsFee, fallback.customsFee),
+    taxFee: toMoney(incoming.taxFee, fallback.taxFee),
+    discountFee: toMoney(incoming.discountFee, fallback.discountFee),
 
-    fuelRate: toDecimalPercent(incoming.fuelRate, DEFAULT_PRICING.fuelRate),
-    insuranceRate: toDecimalPercent(incoming.insuranceRate, DEFAULT_PRICING.insuranceRate),
+    fuelRate: toDecimalPercent(incoming.fuelRate, fallback.fuelRate),
+    insuranceRate: toDecimalPercent(incoming.insuranceRate, fallback.insuranceRate),
+  };
+}
+
+function normalizeProfiles(s: any): PricingProfiles {
+  return {
+    international: normalizeSettings(
+      s?.international ?? DEFAULT_PRICING.international,
+      DEFAULT_PRICING.international
+    ),
+    local: normalizeSettings(
+      s?.local ?? DEFAULT_PRICING.local,
+      DEFAULT_PRICING.local
+    ),
   };
 }
 
@@ -87,7 +118,7 @@ export async function GET() {
       .collection<PricingSettingsDoc>("pricing_settings")
       .findOne({ _id: DOC_ID });
 
-    const settings = normalizeSettings(doc?.settings ?? DEFAULT_PRICING);
+    const settings = normalizeProfiles(doc?.settings ?? DEFAULT_PRICING);
 
     // optional: auto-fix legacy % values if any existed
     if (doc?.settings) {
@@ -122,7 +153,7 @@ export async function PATCH(req: Request) {
     const body = await req.json().catch(() => ({}));
     const incoming = body?.settings ?? body ?? {};
 
-    const settings: PricingSettings = normalizeSettings(incoming);
+    const settings: PricingProfiles = normalizeProfiles(incoming);
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);

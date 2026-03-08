@@ -103,7 +103,15 @@ function fmtDate(iso?: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString();
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).format(d) + " UTC";
 }
 
 function num(v: any) {
@@ -501,11 +509,11 @@ const status: InvoiceStatus = useMemo(() => {
                       {fmtDate(data?.dates?.createdAt || null)}
                     </p>
                     <p className="mt-1 text-xs text-gray-600">
-                      Updated:{" "}
-                      <span className="font-semibold">
-                        {fmtDate(data?.dates?.updatedAt || null)}
-                      </span>
-                    </p>
+  Last updated:{" "}
+  <span className="font-semibold">
+    {fmtDate(data?.dates?.updatedAt || null)}
+  </span>
+</p>
                   </div>
 
                   <div className="rounded-2xl border border-gray-200 p-4">

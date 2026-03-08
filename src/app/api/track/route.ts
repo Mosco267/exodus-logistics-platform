@@ -225,6 +225,12 @@ const shipment = await db.collection("shipments").findOne(
       events: groups,
       estimatedDelivery,
       shipmentMeans: cleanStr(s?.shipmentMeans) || null,
+      shipmentScope: cleanStr(s?.shipmentScope) || "international",
+      serviceLevel: cleanStr(s?.serviceLevel) || null,
+      shipmentType: cleanStr(s?.shipmentType) || null,
+      weightKg: s?.weightKg ?? null,
+      dimensionsCm: s?.dimensionsCm || null,
+      carrierName: "Exodus Logistics",
     });
   } catch (e) {
     console.error(e);

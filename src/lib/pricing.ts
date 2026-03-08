@@ -13,6 +13,11 @@ export type PricingSettings = {
   insuranceRate: number;   // % of declaredValue
 };
 
+export type PricingProfiles = {
+  international: PricingSettings;
+  local: PricingSettings;
+};
+ 
 export type InvoiceBreakdown = {
   declaredValue: number;
 
@@ -72,13 +77,23 @@ export function computeInvoiceFromDeclaredValue(
 }
 
 // ✅ Defaults
-export const DEFAULT_PRICING: PricingSettings = {
-  shippingFee: 120,
-  handlingFee: 10,
-  customsFee: 25,
-  taxFee: 0,
-  discountFee: 0,
-
-  fuelRate: 0.1,        // 10% of shipping
-  insuranceRate: 0.02,  // 2% of declared value
+export const DEFAULT_PRICING: PricingProfiles = {
+  international: {
+    shippingFee: 120,
+    handlingFee: 10,
+    customsFee: 25,
+    taxFee: 0,
+    discountFee: 0,
+    fuelRate: 0.1,
+    insuranceRate: 0.02,
+  },
+  local: {
+    shippingFee: 45,
+    handlingFee: 5,
+    customsFee: 0,
+    taxFee: 0,
+    discountFee: 0,
+    fuelRate: 0.06,
+    insuranceRate: 0.01,
+  },
 };

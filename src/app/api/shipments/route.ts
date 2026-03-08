@@ -5,6 +5,7 @@ import {
   DEFAULT_PRICING,
   computeInvoiceFromDeclaredValue,
   type PricingSettings,
+  type PricingProfiles,
 } from "@/lib/pricing";
 import {
   sendShipmentCreatedSenderEmail,
@@ -47,6 +48,7 @@ type CreateShipmentBody = {
   receiverPhone?: string;
 
   serviceLevel?: "Express" | "Standard" | string;
+  shipmentScope?: "international" | "local" | string;
   shipmentType?: string;
   weightKg?: number;
   dimensionsCm?: DimensionsCm;
@@ -89,7 +91,7 @@ function toTitleStatus(input?: string): ShipmentStatus {
   return "Created";
 }
 
-async function loadPricing(db: any): Promise<PricingSettings> {
+async function loadPricing(db: any): Promise<PricingProfiles> {
   const doc = await db.collection("pricing_settings").findOne({ _id: "default" });
   return (doc as any)?.settings || DEFAULT_PRICING;
 }
@@ -216,8 +218,14 @@ const invoicePaid = invoiceStatus === "paid";
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
-  const basePricing = await loadPricing(db);
-  const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
+  const shipmentScope =
+  String(body.shipmentScope || "").toLowerCase() === "local"
+    ? "local"
+    : "international";
+
+const allPricing = await loadPricing(db);
+const basePricing = allPricing[shipmentScope] || DEFAULT_PRICING[shipmentScope];
+const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
 
   const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingUsed);
 
@@ -292,6 +300,7 @@ const invoicePaid = invoiceStatus === "paid";
         receiverPhone: body.receiverPhone || null,
 
         serviceLevel: body.serviceLevel || "Standard",
+        shipmentScope,
         shipmentType: body.shipmentType || null,
         shipmentMeans: body.shipmentMeans || null,
         estimatedDeliveryDate: body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null,
