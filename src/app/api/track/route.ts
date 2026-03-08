@@ -88,19 +88,32 @@ const shipment = await db.collection("shipments").findOne(
       normUpper(s?.invoice?.invoiceNumber) ||
       makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
 
-    const invoice = s?.invoice
-      ? {
-          invoiceNumber,
-          paid: Boolean(s.invoice?.paid),
-          amount: Number(s.invoice?.amount ?? 0),
-          currency: cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
-        }
-      : {
-          invoiceNumber,
-          paid: false,
-          amount: 0,
-          currency: cleanStr(s?.declaredValueCurrency || "USD") || "USD",
-        };
+    const rawInvoiceStatus = cleanStr(s?.invoice?.status).toLowerCase();
+
+const invoiceStatus =
+  rawInvoiceStatus === "paid"
+    ? "paid"
+    : rawInvoiceStatus === "overdue"
+    ? "overdue"
+    : rawInvoiceStatus === "cancelled" || rawInvoiceStatus === "canceled"
+    ? "cancelled"
+    : "unpaid";
+
+const invoice = s?.invoice
+  ? {
+      invoiceNumber,
+      paid: invoiceStatus === "paid",
+      status: invoiceStatus,
+      amount: Number(s.invoice?.amount ?? 0),
+      currency: cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
+    }
+  : {
+      invoiceNumber,
+      paid: false,
+      status: "unpaid",
+      amount: 0,
+      currency: cleanStr(s?.declaredValueCurrency || "USD") || "USD",
+    };
 
     const destination = [s?.receiverCity, s?.receiverState, s?.receiverCountry]
       .map(cleanStr)

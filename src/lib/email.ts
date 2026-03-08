@@ -206,6 +206,19 @@ function escapeHtml(s: string) {
     .replace(/>/g, "&gt;");
 }
 
+function formatEstimatedDeliveryDate(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+
 /** -------------------------
  * Shipment Created - Sender
  * ------------------------- */
@@ -218,6 +231,7 @@ export async function sendShipmentCreatedSenderEmail(
     trackingNumber: string;
     paid: boolean;
     invoiceNumber?: string;
+    estimatedDeliveryDate?: string | null;
     locale?: string;
     viewInvoiceUrl?: string;
   }
@@ -245,46 +259,59 @@ export async function sendShipmentCreatedSenderEmail(
     ? `Shipment created: ${args.shipmentId}`
     : `Action required: Payment needed for shipment ${args.shipmentId}`;
 
-  const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Hello ${esc(name)},
+  const estimatedDeliveryText = formatEstimatedDeliveryDate(args.estimatedDeliveryDate);
+
+const bodyHtml = `
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    Hello ${esc(name)},
+  </p>
+
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to
+    <strong>${esc(receiverName)}</strong>.
+  </p>
+
+  <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+    <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
+    <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
+    ${
+      paid
+        ? "We will move your shipment to the next stage shortly and keep you updated."
+        : "Please complete payment so we can move your shipment to the next stage of processing."
+    }
+  </p>
+
+  <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment ID</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.shipmentId)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.trackingNumber)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice number</td>
+        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;">${esc(invoiceNumber)}</td>
+      </tr>
+    </table>
+
+    <p style="margin:12px 0 0 0;font-size:12px;color:#6b7280;">
+      Tip: Save these details for verification on our official website.
     </p>
+  </div>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to
-      <strong>${esc(receiverName)}</strong>.
-    </p>
+  <p style="margin:0;font-size:15px;color:#6b7280;">
+    You can view shipment status or open your invoice using the buttons below.
+  </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
-      ${
-        paid
-          ? "We will move your shipment to the next stage shortly and keep you updated."
-          : "Please complete payment so we can move your shipment to the next stage of processing."
-      }
-    </p>
-
-    <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-      <p style="margin:0;font-size:15px;color:#111827;">
-        <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
-        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}<br/>
-        <strong>Invoice number:</strong> ${esc(invoiceNumber)}
-      </p>
-      <p style="margin:10px 0 0 0;font-size:12px;color:#6b7280;">
-        Tip: Save these details for verification on our official website.
-      </p>
-    </div>
-
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      You can view shipment status or open your invoice using the buttons below.
-    </p>
-
-    <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
-        View Invoice
-      </a>
-    </div>
-  `;
+  <div style="margin-top:12px">
+    <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+      View Invoice
+    </a>
+  </div>
+`;
 
   const html = renderEmailTemplate({
     subject,
@@ -314,6 +341,7 @@ export async function sendShipmentCreatedReceiverEmailV2(
     trackingNumber: string;
     paid: boolean;
     invoiceNumber?: string;
+    estimatedDeliveryDate?: string | null;
     locale?: string;
     viewInvoiceUrl?: string;
   }
@@ -341,38 +369,50 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ? `Shipment on the way: ${args.shipmentId}`
     : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
 
-  const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Hello ${esc(name)},
-    </p>
+  const estimatedDeliveryText = formatEstimatedDeliveryDate(args.estimatedDeliveryDate);
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      A shipment has been created for you by <strong>${esc(senderName)}</strong>.
-    </p>
+const bodyHtml = `
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    Hello ${esc(name)},
+  </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
-      ${
-        paid
-          ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
-          : "Once payment is completed, the shipment will move to the next stage and you will receive updates."
-      }
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    A shipment has been created for you by <strong>${esc(senderName)}</strong>.
+  </p>
 
-    <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-      <p style="margin:0;font-size:15px;color:#111827;">
-        <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
-        <strong>Tracking number:</strong> ${esc(args.trackingNumber)}<br/>
-        <strong>Invoice number:</strong> ${esc(invoiceNumber)}
-      </p>
-    </div>
+  <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+    <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
+    <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
+    ${
+      paid
+        ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
+        : "Once payment is completed, the shipment will move to the next stage and you will receive updates."
+    }
+  </p>
 
-    <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
-        View Invoice
-      </a>
-    </div>
-  `;
+  <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment ID</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.shipmentId)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.trackingNumber)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice number</td>
+        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;">${esc(invoiceNumber)}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="margin-top:12px">
+    <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+      View Invoice
+    </a>
+  </div>
+`;
 
   const html = renderEmailTemplate({
     subject,
@@ -551,48 +591,98 @@ export async function sendShipmentStatusEmail(
   let buttonLink = TRACK_URL;
 
   switch (status.toLowerCase()) {
-    case "in transit":
-      title = "Shipment in transit";
-      bodyMessage = `
-        Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
-        <strong>In Transit</strong> and moving to its next destination.
-      `;
-      break;
+  case "pickup":
+    title = "Shipment picked up";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully
+      <strong>picked up</strong> and is now under processing.
+    `;
+    buttonText = "Track Shipment";
+    break;
 
-    case "custom clearance":
-      title = "Shipment under customs review";
-      bodyMessage = `
-        Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently
-        undergoing <strong>Custom Clearance</strong>.
-      `;
-      buttonText = "View Shipment Status";
-      break;
+  case "warehouse":
+    title = "Shipment at warehouse";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently
+      at our <strong>warehouse</strong> awaiting the next movement stage.
+    `;
+    buttonText = "View Shipment Status";
+    break;
 
-    case "delivered":
-      title = "Shipment delivered";
-      bodyMessage = `
-        Your shipment <strong>${esc(opts.shipmentId)}</strong> has been
-        <strong>Delivered</strong> successfully.
-      `;
-      buttonText = "View Delivery Details";
-      break;
+  case "in transit":
+    title = "Shipment in transit";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
+      <strong>In Transit</strong> and moving to its next destination.
+    `;
+    break;
 
-    case "out for delivery":
-      title = "Out for delivery";
-      bodyMessage = `
-        Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
-        <strong>Out for Delivery</strong>.
-      `;
-      buttonText = "Track Live Delivery";
-      break;
+  case "out for delivery":
+    title = "Out for delivery";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
+      <strong>Out for Delivery</strong>.
+    `;
+    buttonText = "Track Live Delivery";
+    break;
 
-    default:
-      bodyMessage = `
-        Your shipment <strong>${esc(opts.shipmentId)}</strong> status has been updated to
-        <strong>${esc(status)}</strong>.
-      `;
-      buttonText = "View Shipment";
-  }
+  case "delivered":
+    title = "Shipment delivered";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> has been
+      <strong>Delivered</strong> successfully.
+    `;
+    buttonText = "View Delivery Details";
+    break;
+
+  case "cancelled":
+  case "canceled":
+    title = "Shipment cancelled";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> has been marked as
+      <strong>Cancelled</strong>. Please contact support if you need clarification.
+    `;
+    buttonText = "Contact Support";
+    buttonLink = SUPPORT_URL;
+    break;
+
+  case "custom clearance":
+    title = "Shipment under customs review";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently
+      undergoing <strong>Custom Clearance</strong>.
+    `;
+    buttonText = "View Shipment Status";
+    break;
+
+  case "unclaimed":
+    title = "Shipment marked unclaimed";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently marked as
+      <strong>Unclaimed</strong>. Please contact support for assistance.
+    `;
+    buttonText = "Contact Support";
+    buttonLink = SUPPORT_URL;
+    break;
+
+  case "invalid address":
+    title = "Shipment has an address issue";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently on hold due to an
+      <strong>Invalid Address</strong>. Please contact support to confirm the correct delivery address.
+    `;
+    buttonText = "Contact Support";
+    buttonLink = SUPPORT_URL;
+    break;
+
+  default:
+    title = "Shipment update";
+    bodyMessage = `
+      Your shipment <strong>${esc(opts.shipmentId)}</strong> status has been updated to
+      <strong>${esc(status)}</strong>.
+    `;
+    buttonText = "View Shipment";
+}
 
   const bodyHtml = `
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">

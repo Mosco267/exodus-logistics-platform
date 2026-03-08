@@ -417,6 +417,70 @@ if (!updated) {
       message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
     }
 
+    if (body?.trackingEvent) {
+  const trackingLabel = String($set?.status || body?.trackingEvent?.label || "Shipment Update").trim();
+
+  title = trackingLabel;
+  message = `Shipment ${shipmentId} was updated to ${trackingLabel}.`;
+
+  const senderEmail = String(
+    (updated as any)?.senderEmail ||
+    (existing as any)?.senderEmail ||
+    (existing as any)?.createdByEmail ||
+    ""
+  ).trim().toLowerCase();
+
+  const receiverEmail = String(
+    (updated as any)?.receiverEmail ||
+    (existing as any)?.receiverEmail ||
+    ""
+  ).trim().toLowerCase();
+
+  const senderName = String(
+    (updated as any)?.senderName ||
+    (existing as any)?.senderName ||
+    "Customer"
+  ).trim();
+
+  const receiverName = String(
+    (updated as any)?.receiverName ||
+    (existing as any)?.receiverName ||
+    "Customer"
+  ).trim();
+
+  const trackingNumber = String(
+    (updated as any)?.trackingNumber ||
+    (existing as any)?.trackingNumber ||
+    ""
+  ).trim();
+
+  const invoiceNumber = String(
+    (updated as any)?.invoice?.invoiceNumber ||
+    (existing as any)?.invoice?.invoiceNumber ||
+    ""
+  ).trim();
+
+  if (senderEmail) {
+    await sendShipmentStatusEmail(senderEmail, {
+      name: senderName,
+      shipmentId,
+      statusLabel: trackingLabel,
+      trackingNumber,
+      invoiceNumber: invoiceNumber || undefined,
+    }).catch(() => null);
+  }
+
+  if (receiverEmail) {
+    await sendShipmentStatusEmail(receiverEmail, {
+      name: receiverName,
+      shipmentId,
+      statusLabel: trackingLabel,
+      trackingNumber,
+      invoiceNumber: invoiceNumber || undefined,
+    }).catch(() => null);
+  }
+}
+
    if (body?.invoice !== undefined) {
   const prevInvoice = ((existing as any)?.invoice || {}) as any;
   const nextInvoice = (($set as any).invoice || prevInvoice) as any;

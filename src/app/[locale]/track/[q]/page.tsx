@@ -46,6 +46,7 @@ type GroupedEvent = {
 type TrackApiResponse = {
   shipmentId: string;
   trackingNumber: string;
+  
 
   currentStatus?: string;
   statusNote?: string;
@@ -60,6 +61,7 @@ type TrackApiResponse = {
 
   invoice?: {
     paid: boolean;
+    status?: "paid" | "unpaid" | "overdue" | "cancelled";
     amount: number;
     currency: string;
     invoiceNumber?: string; // ✅ add invoice number here
@@ -294,6 +296,7 @@ export default function TrackResultPage() {
   const currentIndex = Math.max(0, events.length - 1);
 
   const invoicePaid = Boolean(data?.invoice?.paid);
+  const invoiceStatus = String(data?.invoice?.status || (invoicePaid ? "paid" : "unpaid")).toLowerCase();
   const invoiceAmount = Number(data?.invoice?.amount ?? 0);
   const invoiceCurrency = String(data?.invoice?.currency || "USD");
   const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
@@ -482,13 +485,25 @@ export default function TrackResultPage() {
                     Invoice
                   </div>
                   <p
-                    className={`mt-2 text-sm font-extrabold ${
-                      invoicePaid ? "text-green-700" : "text-amber-700"
-                    }`}
-                  >
-                    {invoicePaid ? "PAID" : "UNPAID"} • {invoiceAmount.toFixed(2)}{" "}
-                    {invoiceCurrency}
-                  </p>
+  className={`mt-2 text-sm font-extrabold ${
+    invoiceStatus === "paid"
+      ? "text-green-700"
+      : invoiceStatus === "overdue"
+      ? "text-red-700"
+      : invoiceStatus === "cancelled"
+      ? "text-gray-700"
+      : "text-amber-700"
+  }`}
+>
+  {invoiceStatus === "paid"
+    ? "PAID"
+    : invoiceStatus === "overdue"
+    ? "OVERDUE"
+    : invoiceStatus === "cancelled"
+    ? "CANCELLED"
+    : "UNPAID"}{" "}
+  • {invoiceAmount.toFixed(2)} {invoiceCurrency}
+</p>
                   {invoiceNumber ? (
                     <p className="mt-1 text-xs text-gray-600">
                       Invoice number:{" "}
@@ -715,8 +730,14 @@ export default function TrackResultPage() {
                                       <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
                                         <div>
                                           <span className="font-semibold">Invoice:</span>{" "}
-                                          {invoicePaid ? "PAID" : "UNPAID"} •{" "}
-                                          {invoiceAmount.toFixed(2)} {invoiceCurrency}
+                                          {invoiceStatus === "paid"
+  ? "PAID"
+  : invoiceStatus === "overdue"
+  ? "OVERDUE"
+  : invoiceStatus === "cancelled"
+  ? "CANCELLED"
+  : "UNPAID"}{" "}
+• {invoiceAmount.toFixed(2)} {invoiceCurrency}
                                         </div>
                                         <div>
                                           <span className="font-semibold">Destination:</span>{" "}
