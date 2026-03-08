@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 
-type Settings = {
-  // fixed fees (money)
+type PricingProfile = {
   shippingFee: number;
   handlingFee: number;
   customsFee: number;
   taxFee: number;
   discountFee: number;
 
-  // rates (decimals)
   fuelRate: number;
   insuranceRate: number;
+};
+
+type Settings = {
+  international: PricingProfile;
+  local: PricingProfile;
 };
 
 const toPercent = (n: number) => (Number(n || 0) * 100).toFixed(2).replace(/\.00$/, "");
@@ -104,74 +107,109 @@ export default function AdminPricingPage() {
           </button>
         </div>
 
-        {/* Fixed fees */}
-        <p className="mt-6 text-sm font-extrabold text-gray-900 dark:text-gray-100">
-          Fixed fees (amount)
-        </p>
-        <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-          These are flat amounts (not percentages).
-        </p>
+        {(["international", "local"] as const).map((scope) => {
+  const profile = settings[scope];
 
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(
-            [
-              ["shippingFee", "Shipping Fee (fixed)"],
-              ["handlingFee", "Handling Fee (fixed)"],
-              ["customsFee", "Customs Clearance (fixed)"],
-              ["taxFee", "Tax (fixed)"],
-              ["discountFee", "Discount (fixed)"],
-            ] as const
-          ).map(([k, label]) => (
-            <div key={k} className="rounded-2xl border border-gray-100 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</p>
-              <input
-                value={toMoneyStr((settings as any)[k])}
-                onChange={(e) =>
-                  setSettings((prev) =>
-                    prev ? ({ ...prev, [k]: moneyToNum(e.target.value) }) : prev
-                  )
-                }
-                className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm"
-                inputMode="decimal"
-              />
-            </div>
-          ))}
-        </div>
+  return (
+    <div key={scope} className="mt-8">
+      <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100">
+        {scope === "international" ? "International Pricing" : "Local Pricing"}
+      </h2>
 
-        {/* Percent rates */}
-        <p className="mt-8 text-sm font-extrabold text-gray-900 dark:text-gray-100">
-          Percentage rates
-        </p>
-        <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-          Fuel is % of Shipping fee. Insurance is % of Declared value.
-        </p>
+      <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+        Default pricing used for {scope} shipments.
+      </p>
 
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(
-            [
-              ["fuelRate", "Fuel Surcharge (% of Shipping)"],
-              ["insuranceRate", "Insurance (% of Declared Value)"],
-            ] as const
-          ).map(([k, label]) => (
-            <div key={k} className="rounded-2xl border border-gray-100 dark:border-white/10 p-4">
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</p>
-              <input
-                value={toPercent((settings as any)[k])}
-                onChange={(e) =>
-                  setSettings((prev) =>
-                    prev ? ({ ...prev, [k]: pctToDec(e.target.value) }) : prev
-                  )
-                }
-                className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm"
-                inputMode="decimal"
-              />
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Type as percent (example: 10, 2, 0).
-              </p>
-            </div>
-          ))}
-        </div>
+      {/* Fixed fees */}
+      <p className="mt-6 text-sm font-bold text-gray-900 dark:text-gray-100">
+        Fixed fees (amount)
+      </p>
+
+      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(
+          [
+            ["shippingFee", "Shipping Fee"],
+            ["handlingFee", "Handling Fee"],
+            ["customsFee", "Customs Clearance"],
+            ["taxFee", "Tax"],
+            ["discountFee", "Discount"],
+          ] as const
+        ).map(([k, label]) => (
+          <div
+            key={k}
+            className="rounded-2xl border border-gray-100 dark:border-white/10 p-4"
+          >
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              {label}
+            </p>
+
+            <input
+              value={toMoneyStr((profile as any)[k])}
+              onChange={(e) =>
+                setSettings((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        [scope]: {
+                          ...prev[scope],
+                          [k]: moneyToNum(e.target.value),
+                        },
+                      }
+                    : prev
+                )
+              }
+              className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm"
+              inputMode="decimal"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Percentage rates */}
+      <p className="mt-8 text-sm font-bold text-gray-900 dark:text-gray-100">
+        Percentage rates
+      </p>
+
+      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(
+          [
+            ["fuelRate", "Fuel surcharge % (of shipping)"],
+            ["insuranceRate", "Insurance % (of declared value)"],
+          ] as const
+        ).map(([k, label]) => (
+          <div
+            key={k}
+            className="rounded-2xl border border-gray-100 dark:border-white/10 p-4"
+          >
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              {label}
+            </p>
+
+            <input
+              value={toPercent((profile as any)[k])}
+              onChange={(e) =>
+                setSettings((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        [scope]: {
+                          ...prev[scope],
+                          [k]: pctToDec(e.target.value),
+                        },
+                      }
+                    : prev
+                )
+              }
+              className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm"
+              inputMode="decimal"
+            />
+          </div>
+        ))}
       </div>
     </div>
+  );
+})}
+        </div>
+      </div>
   );
 }
