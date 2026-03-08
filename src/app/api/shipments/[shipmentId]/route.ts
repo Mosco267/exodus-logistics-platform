@@ -350,6 +350,10 @@ if (nextStatus === "paid") {
 // ----------------------------
 const $push: Record<string, any> = {};
 
+let shouldSendTrackingStageEmail = false;
+let trackingStageEmailLabel = "";
+let trackingStageEmailNote = "";
+
 if (body?.trackingEvent) {
   const ev = body.trackingEvent;
 
@@ -375,6 +379,24 @@ if (body?.trackingEvent) {
     county: String(ev?.location?.county || "").trim(),
   },
 };
+
+const existingEvents = Array.isArray((existing as any)?.trackingEvents)
+  ? (existing as any).trackingEvents
+  : [];
+
+const stageAlreadyExists = existingEvents.some((x: any) => {
+  const existingKey = String(x?.key || "").trim().toLowerCase();
+  const newKey = String(event.key || "").trim().toLowerCase();
+
+  const existingLabel = String(x?.label || "").trim().toLowerCase();
+  const newLabel = String(event.label || "").trim().toLowerCase();
+
+  return existingKey === newKey || existingLabel === newLabel;
+});
+
+shouldSendTrackingStageEmail = !stageAlreadyExists;
+trackingStageEmailLabel = event.label;
+trackingStageEmailNote = event.note || "";
 
   // push to shipment timeline
   $push.trackingEvents = event;
@@ -402,6 +424,82 @@ const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmen
 
 if (!updated) {
   return NextResponse.json({ error: "Updated shipment not found" }, { status: 500 });
+}
+
+if (shouldSendTrackingStageEmail) {
+  const senderEmail = String(
+    (updated as any)?.senderEmail ||
+    (existing as any)?.senderEmail ||
+    (existing as any)?.createdByEmail ||
+    ""
+  ).trim().toLowerCase();
+
+  const receiverEmail = String(
+    (updated as any)?.receiverEmail || (existing as any)?.receiverEmail || ""
+  ).trim().toLowerCase();
+
+  const senderName = String(
+    (updated as any)?.senderName || (existing as any)?.senderName || "Customer"
+  ).trim();
+
+  const receiverName = String(
+    (updated as any)?.receiverName || (existing as any)?.receiverName || "Customer"
+  ).trim();
+
+  const trackingNumber = String(
+    (updated as any)?.trackingNumber || (existing as any)?.trackingNumber || ""
+  ).trim();
+
+  const invoiceNumber = String(
+    (updated as any)?.invoice?.invoiceNumber ||
+    (existing as any)?.invoice?.invoiceNumber ||
+    ""
+  ).trim();
+
+  const destination = joinNice([
+    (updated as any)?.receiverCity,
+    (updated as any)?.receiverState,
+    (updated as any)?.receiverCountry,
+  ]);
+
+  const origin = joinNice([
+    (updated as any)?.senderCity,
+    (updated as any)?.senderState,
+    (updated as any)?.senderCountry,
+  ]);
+
+  const estimatedDeliveryDate =
+    (updated as any)?.estimatedDeliveryDate ||
+    (existing as any)?.estimatedDeliveryDate ||
+    null;
+
+  if (senderEmail) {
+    await sendShipmentStatusEmail(senderEmail, {
+      name: senderName,
+      shipmentId,
+      statusLabel: trackingStageEmailLabel,
+      trackingNumber,
+      invoiceNumber: invoiceNumber || undefined,
+      destination,
+      origin,
+      note: trackingStageEmailNote,
+      estimatedDeliveryDate,
+    }).catch(() => null);
+  }
+
+  if (receiverEmail) {
+    await sendShipmentStatusEmail(receiverEmail, {
+      name: receiverName,
+      shipmentId,
+      statusLabel: trackingStageEmailLabel,
+      trackingNumber,
+      invoiceNumber: invoiceNumber || undefined,
+      destination,
+      origin,
+      note: trackingStageEmailNote,
+      estimatedDeliveryDate,
+    }).catch(() => null);
+  }
 }
 
     // ----------------------------

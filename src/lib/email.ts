@@ -556,6 +556,18 @@ export async function sendDeletedByAdminEmail(
   return sendEmail(to, subject, html);
 }
 
+function formatEmailDate(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 // ✅ Auto emails for shipment updates
 export async function sendShipmentStatusEmail(
   to: string,
@@ -565,159 +577,193 @@ export async function sendShipmentStatusEmail(
     statusLabel: string;
     trackingNumber?: string;
     invoiceNumber?: string;
+    destination?: string;
+    origin?: string;
+    note?: string;
+    estimatedDeliveryDate?: string | null;
     locale?: string;
   }
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = (opts.name || "Customer").trim();
-  const status = String(opts.statusLabel || "").trim();
-  const locale = opts.locale || DEFAULT_LOCALE;
+const status = String(opts.statusLabel || "").trim();
+const locale = opts.locale || DEFAULT_LOCALE;
 
-  const q = opts.trackingNumber || opts.shipmentId;
-  const TRACK_URL = buildTrackUrl(q, locale);
-  const INVOICE_URL = buildInvoiceFullUrlByQ(q, locale);
+const q = opts.trackingNumber || opts.shipmentId;
+const TRACK_URL = buildTrackUrl(q, locale);
+const INVOICE_URL = buildInvoiceFullUrlByQ(q, locale);
 
-  const invoiceNumber = makeInvoiceNumber({
-    shipmentId: opts.shipmentId,
-    trackingNumber: opts.trackingNumber,
-    invoiceNumber: opts.invoiceNumber,
-  });
+const invoiceNumber = makeInvoiceNumber({
+  shipmentId: opts.shipmentId,
+  trackingNumber: opts.trackingNumber,
+  invoiceNumber: opts.invoiceNumber,
+});
 
-  let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
-  let title = "Shipment update";
-  let bodyMessage = "";
-  let buttonText = "Track Shipment";
-  let buttonLink = TRACK_URL;
+const destination = cleanStr(opts.destination) || "the destination address on file";
+const origin = cleanStr(opts.origin) || "origin facility";
+const note = cleanStr(opts.note);
+const estimatedDelivery = formatEmailDate(opts.estimatedDeliveryDate);
 
-  switch (status.toLowerCase()) {
+let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
+let title = "Shipment update";
+let buttonText = "Track Shipment";
+let buttonLink = TRACK_URL;
+let intro = "";
+let detail = "";
+
+switch (status.toLowerCase()) {
   case "pickup":
     title = "Shipment picked up";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully
-      <strong>picked up</strong> and is now under processing.
-    `;
-    buttonText = "Track Shipment";
+    subject = `Exodus Logistics: Shipment picked up (${opts.shipmentId})`;
+    intro = `We are pleased to inform you that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully picked up and entered into our logistics network.`;
+    detail = `The shipment is now being processed for movement from <strong>${esc(origin)}</strong> toward <strong>${esc(destination)}</strong>.`;
     break;
 
   case "warehouse":
-    title = "Shipment at warehouse";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently
-      at our <strong>warehouse</strong> awaiting the next movement stage.
-    `;
-    buttonText = "View Shipment Status";
+    title = "Shipment received at warehouse";
+    subject = `Exodus Logistics: Shipment received at warehouse (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been received at our warehouse facility.`;
+    detail = `It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>${esc(destination)}</strong>.`;
     break;
 
   case "in transit":
     title = "Shipment in transit";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
-      <strong>In Transit</strong> and moving to its next destination.
-    `;
+    subject = `Exodus Logistics: Shipment in transit (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>in transit</strong>.`;
+    detail = `It is currently moving toward <strong>${esc(destination)}</strong> from <strong>${esc(origin)}</strong>.`;
     break;
 
   case "out for delivery":
-    title = "Out for delivery";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> is now
-      <strong>Out for Delivery</strong>.
-    `;
-    buttonText = "Track Live Delivery";
+    title = "Shipment out for delivery";
+    subject = `Exodus Logistics: Out for delivery (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>out for delivery</strong>.`;
+    detail = `Our delivery process is in progress and the shipment is on its final route toward <strong>${esc(destination)}</strong>.`;
+    buttonText = "Track Delivery";
     break;
 
   case "delivered":
     title = "Shipment delivered";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> has been
-      <strong>Delivered</strong> successfully.
-    `;
-    buttonText = "View Delivery Details";
+    subject = `Exodus Logistics: Shipment delivered (${opts.shipmentId})`;
+    intro = `This is to confirm that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully <strong>delivered</strong>.`;
+    detail = `Delivery has been completed at <strong>${esc(destination)}</strong>.`;
+    buttonText = "View Shipment";
     break;
 
   case "cancelled":
   case "canceled":
     title = "Shipment cancelled";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> has been marked as
-      <strong>Cancelled</strong>. Please contact support if you need clarification.
-    `;
+    subject = `Exodus Logistics: Shipment cancelled (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been marked as <strong>cancelled</strong>.`;
+    detail = `If you believe this update was made in error or require clarification, please contact our support team.`;
     buttonText = "Contact Support";
     buttonLink = SUPPORT_URL;
     break;
 
   case "custom clearance":
-    title = "Shipment under customs review";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently
-      undergoing <strong>Custom Clearance</strong>.
-    `;
-    buttonText = "View Shipment Status";
+    title = "Shipment under customs clearance";
+    subject = `Exodus Logistics: Customs clearance update (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently undergoing <strong>customs clearance</strong>.`;
+    detail = `This is a routine compliance stage before the shipment proceeds toward <strong>${esc(destination)}</strong>.`;
     break;
 
   case "unclaimed":
     title = "Shipment marked unclaimed";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently marked as
-      <strong>Unclaimed</strong>. Please contact support for assistance.
-    `;
+    subject = `Exodus Logistics: Shipment marked unclaimed (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently marked as <strong>unclaimed</strong>.`;
+    detail = `Please contact our support team as soon as possible for assistance regarding the next required action.`;
     buttonText = "Contact Support";
     buttonLink = SUPPORT_URL;
     break;
 
   case "invalid address":
-    title = "Shipment has an address issue";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently on hold due to an
-      <strong>Invalid Address</strong>. Please contact support to confirm the correct delivery address.
-    `;
+    title = "Address issue on shipment";
+    subject = `Exodus Logistics: Address issue detected (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently on hold due to an <strong>address issue</strong>.`;
+    detail = `Please contact support to confirm or correct the delivery address for <strong>${esc(destination)}</strong> so processing can continue.`;
     buttonText = "Contact Support";
     buttonLink = SUPPORT_URL;
     break;
 
   default:
     title = "Shipment update";
-    bodyMessage = `
-      Your shipment <strong>${esc(opts.shipmentId)}</strong> status has been updated to
-      <strong>${esc(status)}</strong>.
-    `;
-    buttonText = "View Shipment";
+    subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
+    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>${esc(status)}</strong>.`;
+    detail = `You may review the latest shipment progress using the tracking page.`;
+    break;
 }
 
-  const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Hello ${esc(name)},
-    </p>
+const bodyHtml = `
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    Hello ${esc(name)},
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      ${bodyMessage}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${intro}
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Shipment ID:</strong> ${esc(opts.shipmentId)}<br/>
-      ${opts.trackingNumber ? `<strong>Tracking number:</strong> ${esc(opts.trackingNumber)}<br/>` : ""}
-      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${detail}
+  </p>
 
-    <div style="margin-top:12px">
-      <a href="${INVOICE_URL}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
-        View Invoice
-      </a>
-    </div>
-  `;
+  <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment ID</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(opts.shipmentId)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(opts.trackingNumber || "—")}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Invoice number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(invoiceNumber)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Destination</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;">${esc(destination)}</td>
+      </tr>
+      <tr>
+        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Estimated delivery</td>
+        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;">${esc(estimatedDelivery)}</td>
+      </tr>
+    </table>
+  </div>
 
-  const html = renderEmailTemplate({
-    subject,
-    title,
-    preheader: `${status} – Shipment ${opts.shipmentId}`,
-    bodyHtml,
-    button: { text: buttonText, href: buttonLink },
-    appUrl: APP_URL,
-    supportEmail: SUPPORT_EMAIL,
-    sentTo: to,
-  });
+  ${
+    note
+      ? `<div style="margin:0 0 16px 0;padding:12px 14px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
+           <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">
+             <strong>Additional note:</strong> ${esc(note)}
+           </p>
+         </div>`
+      : ""
+  }
 
-  return sendEmail(to, subject, html);
+  <p style="margin:0;font-size:15px;color:#6b7280;">
+    You can track the shipment or review the invoice using the links below.
+  </p>
+
+  <div style="margin-top:12px">
+    <a href="${INVOICE_URL}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+      View Invoice
+    </a>
+  </div>
+`;
+
+const html = renderEmailTemplate({
+  subject,
+  title,
+  preheader: `${status} – Shipment ${opts.shipmentId}`,
+  bodyHtml,
+  button: { text: buttonText, href: buttonLink },
+  appUrl: APP_URL,
+  supportEmail: SUPPORT_EMAIL,
+  sentTo: to,
+});
+
+return sendEmail(to, subject, html);
 }
 
 /** -------------------------
