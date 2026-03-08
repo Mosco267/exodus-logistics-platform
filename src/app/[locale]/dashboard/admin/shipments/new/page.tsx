@@ -10,7 +10,7 @@ import {
   type PricingSettings,
   type PricingProfiles,
 } from "@/lib/pricing";
-import { s } from "framer-motion/client";
+
 
 type ShipmentStatus =
   | "Created"
@@ -145,17 +145,7 @@ export default function AdminCreateShipmentPage() {
 
         const s = json?.settings;
 
-      useEffect(() => {
-  const active = pricingProfiles[shipmentScope] || DEFAULT_PRICING[shipmentScope];
-
-  setShippingFee(toMoney(active.shippingFee));
-  setHandlingFee(toMoney(active.handlingFee));
-  setCustomsFee(toMoney(active.customsFee));
-  setTaxFee(toMoney(active.taxFee));
-  setDiscountFee(toMoney(active.discountFee));
-  setFuelRatePct(toPct(Number(active.fuelRate)));
-  setInsuranceRatePct(toPct(Number(active.insuranceRate)));
-}, [shipmentScope, pricingProfiles]);
+      
 
 if (!s) throw new Error("Pricing settings missing.");
 
@@ -181,6 +171,21 @@ setInsuranceRatePct(
 
     void loadDefaultRates();
   }, []);
+
+  useEffect(() => {
+    const active =
+      pricingProfiles[shipmentScope] || DEFAULT_PRICING[shipmentScope];
+
+    setShippingFee(toMoney(active.shippingFee ?? DEFAULT_PRICING[shipmentScope].shippingFee));
+    setHandlingFee(toMoney(active.handlingFee ?? DEFAULT_PRICING[shipmentScope].handlingFee));
+    setCustomsFee(toMoney(active.customsFee ?? DEFAULT_PRICING[shipmentScope].customsFee));
+    setTaxFee(toMoney(active.taxFee ?? DEFAULT_PRICING[shipmentScope].taxFee));
+    setDiscountFee(toMoney(active.discountFee ?? DEFAULT_PRICING[shipmentScope].discountFee));
+    setFuelRatePct(toPct(Number(active.fuelRate ?? DEFAULT_PRICING[shipmentScope].fuelRate)));
+    setInsuranceRatePct(
+      toPct(Number(active.insuranceRate ?? DEFAULT_PRICING[shipmentScope].insuranceRate))
+    );
+  }, [shipmentScope, pricingProfiles]);
 
   // ✅ This is the PricingSettings object we will:
   // 1) use for preview breakdown
