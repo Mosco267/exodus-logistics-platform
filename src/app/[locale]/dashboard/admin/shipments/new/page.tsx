@@ -122,7 +122,7 @@ export default function AdminCreateShipmentPage() {
   const [insuranceRatePct, setInsuranceRatePct] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<string>("");
   const [okMsg, setOkMsg] = useState("");
 
   
@@ -173,7 +173,7 @@ setInsuranceRatePct(
   toPct(Number(active.insuranceRate ?? DEFAULT_PRICING[shipmentScope].insuranceRate))
 );
       } catch (e: any) {
-        setErr(e?.message || "Failed to load pricing settings.");
+        setErr(String(e?.message || "Failed to load pricing settings."));
       } finally {
         setRatesLoading(false);
       }
@@ -313,7 +313,7 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setErr(json?.error || "Failed to create shipment.");
+        setErr(String(json?.error || "Failed to create shipment."));
         return;
       }
 
@@ -327,7 +327,7 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
         );
       }
     } catch (e: any) {
-      setErr(e?.message || "Failed to create shipment.");
+      setErr(String(e?.message || "Failed to create shipment."));
     } finally {
       setLoading(false);
     }
@@ -924,7 +924,7 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
             {err && (
               <div className="mt-4 flex items-center text-red-600 font-semibold">
                 <AlertCircle className="w-5 h-5 mr-2" />
-                {err}
+                {String(err)}
               </div>
             )}
             {okMsg && (

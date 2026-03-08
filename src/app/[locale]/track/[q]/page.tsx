@@ -17,6 +17,7 @@ import {
   Info,
   CornerDownRight,
   Truck,
+  LifeBuoy
 } from "lucide-react";
 
 type LocationLite = {
@@ -94,45 +95,40 @@ function fmtDateOnly(iso?: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString();
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function fmtEstimatedRange(
   iso?: string | null,
-  serviceLevel?: string | null,
   shipmentScope?: string | null
 ) {
   if (!iso) return "—";
 
-  const end = new Date(iso);
-  if (Number.isNaN(end.getTime())) return "—";
+  const start = new Date(iso);
+  if (Number.isNaN(start.getTime())) return "—";
 
-  let daysBack = 3;
+  const end = new Date(start);
+  const extraDays =
+    String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
 
-  if (String(serviceLevel || "").toLowerCase() === "express") {
-    daysBack = String(shipmentScope || "").toLowerCase() === "local" ? 1 : 2;
-  } else {
-    daysBack = String(shipmentScope || "").toLowerCase() === "local" ? 2 : 5;
-  }
+  end.setDate(end.getDate() + extraDays);
 
-  const start = new Date(end);
-  start.setDate(end.getDate() - daysBack);
+  const startText = start.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 
-  const sameYear = start.getFullYear() === end.getFullYear();
-  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  const endText = end.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
-  const startMonth = start.toLocaleString("en-US", { month: "short" });
-  const endMonth = end.toLocaleString("en-US", { month: "short" });
-
-  if (sameMonth) {
-    return `${startMonth} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`;
-  }
-
-  if (sameYear) {
-    return `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
-  }
-
-  return `${startMonth} ${start.getDate()}, ${start.getFullYear()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+  return `${startText} - ${endText}`;
 }
 
 function fmtLoc(loc?: LocationLite) {
@@ -426,7 +422,7 @@ export default function TrackResultPage() {
                       <p className="mt-2 text-xs text-gray-600">
                         Estimated delivery:{" "}
                         <span className="font-semibold">
-                          {fmtEstimatedRange(data.estimatedDelivery, data.serviceLevel, data.shipmentScope)}
+                          {fmtEstimatedRange(data.estimatedDelivery, data.shipmentScope)}
                         </span>
                       </p>
 
@@ -522,7 +518,7 @@ export default function TrackResultPage() {
   </div>
   <p className="mt-2 text-sm text-gray-800">
     <span className="font-semibold">Estimated delivery:</span>{" "}
-    {fmtEstimatedRange(data.estimatedDelivery, data.serviceLevel, data.shipmentScope)}
+    {fmtEstimatedRange(data.estimatedDelivery, data.shipmentScope)}
   </p>
   <p className="mt-1 text-sm text-gray-800">
     <span className="font-semibold">Shipment means:</span>{" "}
@@ -548,13 +544,7 @@ export default function TrackResultPage() {
         ? `${data.dimensionsCm.length || "—"} × ${data.dimensionsCm.width || "—"} × ${data.dimensionsCm.height || "—"} cm`
         : "—"}
     </p>
-    <p>
-      <span className="font-semibold">Service type:</span>{" "}
-      {data.serviceLevel || "—"}{" "}
-      {data.shipmentScope
-        ? `(${String(data.shipmentScope).charAt(0).toUpperCase()}${String(data.shipmentScope).slice(1)})`
-        : ""}
-    </p>
+    
     <p>
       <span className="font-semibold">Package type:</span>{" "}
       {data.shipmentType || "—"}
@@ -564,7 +554,7 @@ export default function TrackResultPage() {
 
 <div className="rounded-2xl border border-gray-200 p-4">
   <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-    <Truck className="w-4 h-4 text-gray-700" />
+    <LifeBuoy className="w-4 h-4 text-gray-700" />
     Carrier Information
   </div>
   <div className="mt-2 space-y-1 text-sm text-gray-800">
@@ -573,16 +563,17 @@ export default function TrackResultPage() {
       {data.carrierName || "Exodus Logistics"}
     </p>
     <p>
-      <span className="font-semibold">Tracking number:</span>{" "}
-      {data.trackingNumber || "—"}
+      <span className="font-semibold">Service type:</span>{" "}
+      {`${String(data.shipmentScope || "").toLowerCase() === "local" ? "Local" : "International"} ${data.serviceLevel || ""}`.trim() || "—"}
     </p>
     <p>
-      <span className="font-semibold">Shipment means:</span>{" "}
-      {data.shipmentMeans || "—"}
-    </p>
-    <p>
-      <span className="font-semibold">Route:</span>{" "}
-      {data.origin && data.destination ? `${data.origin} → ${data.destination}` : "—"}
+      <span className="font-semibold">Support:</span>{" "}
+      <a
+        href="mailto:support@goexoduslogistics.com"
+        className="text-blue-700 underline font-medium"
+      >
+        support@goexoduslogistics.com
+      </a>
     </p>
   </div>
 </div>
