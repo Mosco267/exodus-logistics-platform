@@ -353,7 +353,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
 
       if (senderEmail) {
         try {
-          await sendShipmentCreatedSenderEmail(senderEmail, {
+         await sendShipmentCreatedSenderEmail(senderEmail, {
   name: doc.senderName || "Customer",
   receiverName: doc.receiverName || "Receiver",
   shipmentId,
@@ -361,6 +361,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
   paid: invoicePaid,
   invoiceNumber,
   estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
+  shipmentScope: doc.shipmentScope || "international",
   viewInvoiceUrl,
 });
         } catch (e) {
@@ -370,7 +371,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
 
       if (receiverEmail) {
         try {
-          await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
+         await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
   name: doc.receiverName || "Customer",
   senderName: doc.senderName || "Sender",
   shipmentId,
@@ -378,6 +379,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
   paid: invoicePaid,
   invoiceNumber,
   estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
+  shipmentScope: doc.shipmentScope || "international",
   viewInvoiceUrl,
 });
         } catch (e) {

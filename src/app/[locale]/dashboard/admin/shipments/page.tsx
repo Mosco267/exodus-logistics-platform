@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -72,7 +72,7 @@ export default function AdminShipmentsPage() {
   
 
   const [copiedKey, setCopiedKey] = useState<string>('');
-  
+  const [openMenuId, setOpenMenuId] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string>('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string>('');
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -389,23 +389,57 @@ export default function AdminShipmentsPage() {
                         </span>
                       </td>
 
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <Link
-                          href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/edit`}
-                          className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:underline cursor-pointer"
-                        >
-                          Edit
-                        </Link>
+                      <td className="py-3 px-3 whitespace-nowrap relative">
+  <button
+    type="button"
+    onClick={() =>
+      setOpenMenuId((prev) => (prev === s.shipmentId ? '' : s.shipmentId))
+    }
+    className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 transition"
+  >
+    <MoreVertical className="w-4 h-4" />
+  </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteId(s.shipmentId)}
-                          disabled={deletingId === s.shipmentId}
-                          className="ml-4 text-sm font-semibold text-red-600 hover:underline disabled:opacity-60 cursor-pointer"
-                        >
-                          {deletingId === s.shipmentId ? 'Deleting…' : 'Delete'}
-                        </button>
-                      </td>
+  {openMenuId === s.shipmentId ? (
+    <div className="absolute right-3 top-14 z-20 w-44 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-xl overflow-hidden">
+      <Link
+        href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/edit`}
+        className="block px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10"
+        onClick={() => setOpenMenuId('')}
+      >
+        Edit
+      </Link>
+
+      <Link
+        href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/tracking`}
+        className="block px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10"
+        onClick={() => setOpenMenuId('')}
+      >
+        Tracking
+      </Link>
+
+      <Link
+        href={`/${locale}/dashboard/admin/shipments/${encodeURIComponent(s.shipmentId)}/send-email`}
+        className="block px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10"
+        onClick={() => setOpenMenuId('')}
+      >
+        Send Email
+      </Link>
+
+      <button
+        type="button"
+        onClick={() => {
+          setOpenMenuId('');
+          setConfirmDeleteId(s.shipmentId);
+        }}
+        disabled={deletingId === s.shipmentId}
+        className="block w-full text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-60"
+      >
+        {deletingId === s.shipmentId ? 'Deleting…' : 'Delete'}
+      </button>
+    </div>
+  ) : null}
+</td>
                     </tr>
                   );
                 })}

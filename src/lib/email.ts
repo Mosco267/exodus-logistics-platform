@@ -186,7 +186,7 @@ function invoiceSearchUrl(locale = DEFAULT_LOCALE) {
   return `${APP_URL}/${locale}/invoice`;
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
+export async function sendEmail(to: string, subject: string, html: string) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   return resend.emails.send({
@@ -206,16 +206,33 @@ function escapeHtml(s: string) {
     .replace(/>/g, "&gt;");
 }
 
-function formatEstimatedDeliveryDate(iso?: string | null) {
+function formatEstimatedDeliveryDateRange(
+  iso?: string | null,
+  shipmentScope?: string | null
+) {
   if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
 
-  return d.toLocaleDateString("en-US", {
+  const start = new Date(iso);
+  if (Number.isNaN(start.getTime())) return "—";
+
+  const end = new Date(start);
+  const extraDays =
+    String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
+
+  end.setDate(end.getDate() + extraDays);
+
+  const startText = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+  const endText = end.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+
+  return `${startText} - ${endText}`;
 }
 
 
@@ -232,6 +249,7 @@ export async function sendShipmentCreatedSenderEmail(
     paid: boolean;
     invoiceNumber?: string;
     estimatedDeliveryDate?: string | null;
+    shipmentScope?: string | null;
     locale?: string;
     viewInvoiceUrl?: string;
   }
@@ -259,7 +277,7 @@ export async function sendShipmentCreatedSenderEmail(
     ? `Shipment created: ${args.shipmentId}`
     : `Action required: Payment needed for shipment ${args.shipmentId}`;
 
-  const estimatedDeliveryText = formatEstimatedDeliveryDate(args.estimatedDeliveryDate);
+  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(args.estimatedDeliveryDate, args.shipmentScope);
 
 const bodyHtml = `
   <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
@@ -342,6 +360,7 @@ export async function sendShipmentCreatedReceiverEmailV2(
     paid: boolean;
     invoiceNumber?: string;
     estimatedDeliveryDate?: string | null;
+    shipmentScope?: string | null;
     locale?: string;
     viewInvoiceUrl?: string;
   }
@@ -369,7 +388,7 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ? `Shipment on the way: ${args.shipmentId}`
     : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
 
-  const estimatedDeliveryText = formatEstimatedDeliveryDate(args.estimatedDeliveryDate);
+  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(args.estimatedDeliveryDate, args.shipmentScope);
 
 const bodyHtml = `
   <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
@@ -603,7 +622,7 @@ const invoiceNumber = makeInvoiceNumber({
 const destination = cleanStr(opts.destination) || "the destination address on file";
 const origin = cleanStr(opts.origin) || "origin facility";
 const note = cleanStr(opts.note);
-const estimatedDelivery = formatEmailDate(opts.estimatedDeliveryDate);
+
 
 let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
 let title = "Shipment update";
@@ -724,10 +743,7 @@ const bodyHtml = `
         <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Destination</td>
         <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;">${esc(destination)}</td>
       </tr>
-      <tr>
-        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Estimated delivery</td>
-        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;">${esc(estimatedDelivery)}</td>
-      </tr>
+      
     </table>
   </div>
 

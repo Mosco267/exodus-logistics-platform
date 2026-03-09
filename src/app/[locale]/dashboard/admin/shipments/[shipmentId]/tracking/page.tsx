@@ -41,7 +41,7 @@ export default function AdminShipmentTrackingPage() {
   const [ok, setOk] = useState("");
 
   // form fields
-  const [label, setLabel] = useState("Warehouse");
+  const [label, setLabel] = useState("Picked Up");
   const [note, setNote] = useState("");
 
   // ✅ NEW: color picker (default green)
