@@ -468,10 +468,7 @@ if (shouldSendTrackingStageEmail) {
     (updated as any)?.senderCountry,
   ]);
 
-  const estimatedDeliveryDate =
-    (updated as any)?.estimatedDeliveryDate ||
-    (existing as any)?.estimatedDeliveryDate ||
-    null;
+  
 
   if (senderEmail) {
     await sendShipmentStatusEmail(senderEmail, {
@@ -483,7 +480,7 @@ if (shouldSendTrackingStageEmail) {
       destination,
       origin,
       note: trackingStageEmailNote,
-      estimatedDeliveryDate,
+      
     }).catch(() => null);
   }
 
@@ -497,7 +494,7 @@ if (shouldSendTrackingStageEmail) {
       destination,
       origin,
       note: trackingStageEmailNote,
-      estimatedDeliveryDate,
+      
     }).catch(() => null);
   }
 }
@@ -515,68 +512,10 @@ if (shouldSendTrackingStageEmail) {
       message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
     }
 
-    if (body?.trackingEvent) {
+   if (body?.trackingEvent) {
   const trackingLabel = String($set?.status || body?.trackingEvent?.label || "Shipment Update").trim();
-
   title = trackingLabel;
   message = `Shipment ${shipmentId} was updated to ${trackingLabel}.`;
-
-  const senderEmail = String(
-    (updated as any)?.senderEmail ||
-    (existing as any)?.senderEmail ||
-    (existing as any)?.createdByEmail ||
-    ""
-  ).trim().toLowerCase();
-
-  const receiverEmail = String(
-    (updated as any)?.receiverEmail ||
-    (existing as any)?.receiverEmail ||
-    ""
-  ).trim().toLowerCase();
-
-  const senderName = String(
-    (updated as any)?.senderName ||
-    (existing as any)?.senderName ||
-    "Customer"
-  ).trim();
-
-  const receiverName = String(
-    (updated as any)?.receiverName ||
-    (existing as any)?.receiverName ||
-    "Customer"
-  ).trim();
-
-  const trackingNumber = String(
-    (updated as any)?.trackingNumber ||
-    (existing as any)?.trackingNumber ||
-    ""
-  ).trim();
-
-  const invoiceNumber = String(
-    (updated as any)?.invoice?.invoiceNumber ||
-    (existing as any)?.invoice?.invoiceNumber ||
-    ""
-  ).trim();
-
-  if (senderEmail) {
-    await sendShipmentStatusEmail(senderEmail, {
-      name: senderName,
-      shipmentId,
-      statusLabel: trackingLabel,
-      trackingNumber,
-      invoiceNumber: invoiceNumber || undefined,
-    }).catch(() => null);
-  }
-
-  if (receiverEmail) {
-    await sendShipmentStatusEmail(receiverEmail, {
-      name: receiverName,
-      shipmentId,
-      statusLabel: trackingLabel,
-      trackingNumber,
-      invoiceNumber: invoiceNumber || undefined,
-    }).catch(() => null);
-  }
 }
 
    if (body?.invoice !== undefined) {
@@ -604,6 +543,33 @@ if (shouldSendTrackingStageEmail) {
         : nextStatus === "cancelled"
         ? `Invoice for shipment ${shipmentId} has been CANCELLED.`
         : `Invoice for shipment ${shipmentId} is now UNPAID.`;
+
+        const createdColor =
+      nextStatus === "paid"
+        ? "#22c55e"
+        : nextStatus === "cancelled"
+        ? "#ef4444"
+        : "#f59e0b";
+
+    await db.collection("shipments").updateOne(
+      shipmentIdQuery(shipmentId),
+      {
+        $set: {
+          "trackingEvents.$[created].color": createdColor,
+        },
+      },
+      {
+        arrayFilters: [{ "created.key": "created" }],
+      }
+    );
+
+    if ((updated as any)?.trackingEvents && Array.isArray((updated as any).trackingEvents)) {
+      (updated as any).trackingEvents = (updated as any).trackingEvents.map((ev: any) =>
+        String(ev?.key || "").toLowerCase() === "created"
+          ? { ...ev, color: createdColor }
+          : ev
+      );
+    }
 
     const senderEmail = String(
       (updated as any)?.senderEmail ||

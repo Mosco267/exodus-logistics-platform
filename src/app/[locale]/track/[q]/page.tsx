@@ -273,10 +273,18 @@ export default function TrackResultPage() {
     const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
 
     // sort oldest -> newest by stage time
-    evs.sort(
-      (a, b) =>
-        new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
-    );
+   evs.sort((a, b) => {
+  const aKey = String(a?.key || "").toLowerCase();
+  const bKey = String(b?.key || "").toLowerCase();
+
+  if (aKey === "created" && bKey !== "created") return -1;
+  if (bKey === "created" && aKey !== "created") return 1;
+
+  return (
+    new Date(a?.occurredAt || 0).getTime() -
+    new Date(b?.occurredAt || 0).getTime()
+  );
+});
 
     // stage entries oldest -> newest
     evs.forEach((ev: any) => {

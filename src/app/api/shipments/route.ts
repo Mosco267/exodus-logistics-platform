@@ -258,6 +258,12 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
             label: statusTitle || "Created",
             note: String(body.statusNote || defaultStatusNote).trim(),
             occurredAt: now.toISOString(),
+            color:
+      invoiceStatus === "paid"
+        ? "#22c55e"
+        : invoiceStatus === "cancelled"
+        ? "#ef4444"
+        : "#f59e0b",
             location: {
               country: String(body?.senderCountry || senderCountryCode || "").trim(),
               state: String(body?.senderState || "").trim(),
