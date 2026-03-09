@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Mail, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -18,6 +18,34 @@ export default function AdminShipmentSendEmailPage() {
   const [sending, setSending] = useState(false);
   const [ok, setOk] = useState("");
   const [err, setErr] = useState("");
+
+  const [loadingRecipient, setLoadingRecipient] = useState(true);
+const [senderEmail, setSenderEmail] = useState("");
+const [receiverEmail, setReceiverEmail] = useState("");
+
+useEffect(() => {
+  const loadShipment = async () => {
+    setLoadingRecipient(true);
+    try {
+      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+        cache: "no-store",
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) throw new Error(json?.error || "Failed to load shipment.");
+
+      const sh = json?.shipment || {};
+      setSenderEmail(String(sh?.senderEmail || sh?.createdByEmail || "").trim());
+      setReceiverEmail(String(sh?.receiverEmail || "").trim());
+    } catch (e: any) {
+      setErr(e?.message || "Failed to load shipment.");
+    } finally {
+      setLoadingRecipient(false);
+    }
+  };
+
+  if (shipmentId) void loadShipment();
+}, [shipmentId]);
 
   const submit = async () => {
     setOk("");
@@ -84,8 +112,8 @@ export default function AdminShipmentSendEmailPage() {
           </div>
 
           <p className="mt-2 text-sm text-gray-600">
-            By default, the email goes to the receiver. You can switch to sender or enter another email manually.
-          </p>
+  Select the recipient below. The real email address saved on the shipment will be used automatically unless you enter a custom email.
+</p>
 
           <div className="mt-6 grid grid-cols-1 gap-4">
             <div>
@@ -95,8 +123,12 @@ export default function AdminShipmentSendEmailPage() {
                 onChange={(e) => setRecipientType(e.target.value as "receiver" | "sender")}
                 className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white"
               >
-                <option value="receiver">Receiver email</option>
-                <option value="sender">Sender email</option>
+                <option value="receiver">
+  Receiver email {receiverEmail ? `(${receiverEmail})` : "(not available)"}
+</option>
+<option value="sender">
+  Sender email {senderEmail ? `(${senderEmail})` : "(not available)"}
+</option>
               </select>
             </div>
 
@@ -111,6 +143,14 @@ export default function AdminShipmentSendEmailPage() {
                 className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
               />
             </div>
+
+            <p className="mt-1 text-xs text-gray-500">
+  {loadingRecipient
+    ? "Loading saved recipient emails..."
+    : recipientType === "sender"
+    ? `Saved sender email: ${senderEmail || "Not available"}`
+    : `Saved receiver email: ${receiverEmail || "Not available"}`}
+</p>
 
             <div>
               <label className="text-sm font-semibold text-gray-700">Subject</label>

@@ -58,6 +58,7 @@ type TrackApiResponse = {
   origin?: string | null;
   destination?: string | null;
   currentLocation?: string | null;
+  packageDescription?: string | null;
 
   invoice?: {
     paid: boolean;
@@ -574,6 +575,18 @@ export default function TrackResultPage() {
     </p>
   </div>
 </div>
+
+{data.packageDescription ? (
+  <div className="rounded-2xl border border-gray-200 p-4">
+    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+      <Package className="w-4 h-4 text-gray-700" />
+      Package Description
+    </div>
+    <p className="mt-2 text-sm text-gray-800 whitespace-pre-line">
+      {data.packageDescription}
+    </p>
+  </div>
+) : null}
 
 <div className="rounded-2xl border border-gray-200 p-4">
   <div className="flex items-center gap-2 text-sm font-bold text-gray-900">

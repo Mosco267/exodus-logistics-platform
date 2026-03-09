@@ -250,9 +250,9 @@ export default function AdminShipmentsPage() {
 
               <tbody className="text-gray-800 dark:text-gray-100">
                 {shipments.map((s) => {
-                  const paid = Boolean(s?.invoice?.paid);
-                  const amount = Number(s?.invoice?.amount ?? 0);
-                  const currency = String(s?.invoice?.currency || 'USD').toUpperCase();
+                  const invoiceStatus = String(s?.invoice?.status || (s?.invoice?.paid ? "paid" : "unpaid")).toLowerCase();
+const amount = Number(s?.invoice?.amount ?? 0);
+const currency = String(s?.invoice?.currency || 'USD').toUpperCase();
 
                   // ✅ invoice number can come either as top-level or inside invoice
                   const invNo =
@@ -342,36 +342,25 @@ export default function AdminShipmentsPage() {
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={currentKey}
-                            onChange={(e) =>
-                              setSelectedKey((p) => ({ ...p, [s.shipmentId]: e.target.value }))
-                            }
-                            className="px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10
-                                       bg-white dark:bg-white/5 text-sm cursor-pointer"
-                          >
-                            {statuses.map((st) => (
-                              <option key={st.key} value={normalizeKey(st.key)}>
-                                {st.label}
-                              </option>
-                            ))}
-                          </select>
+  <div className="flex items-center gap-2">
+    <span
+      className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold border"
+      style={{
+        backgroundColor: `${s.statusColor || "#e5e7eb"}22`,
+        color: s.statusColor || "#1f2937",
+        borderColor: `${s.statusColor || "#d1d5db"}55`,
+      }}
+    >
+      {s.status || "—"}
+    </span>
+  </div>
 
-                          <button
-                            onClick={() => updateStatus(s.shipmentId)}
-                            disabled={Boolean(savingKey[s.shipmentId])}
-                            className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold
-                                       hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer"
-                          >
-                            {savingKey[s.shipmentId] ? 'Updating…' : 'Update'}
-                          </button>
-                        </div>
-
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Current: <span className="font-semibold">{statusLabel}</span>
-                        </p>
-                      </td>
+  {s.statusNote ? (
+    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-[220px] truncate">
+      {s.statusNote}
+    </p>
+  ) : null}
+</td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span className="font-semibold">
@@ -379,14 +368,24 @@ export default function AdminShipmentsPage() {
                         </span>
 
                         <span
-                          className={`ml-2 text-xs font-bold px-2 py-1 rounded-full border ${
-                            paid
-                              ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/20'
-                              : 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/20'
-                          }`}
-                        >
-                          {paid ? 'PAID' : 'UNPAID'}
-                        </span>
+  className={`ml-2 text-xs font-bold px-2 py-1 rounded-full border ${
+    invoiceStatus === "paid"
+      ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/20'
+      : invoiceStatus === "overdue"
+      ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/20'
+      : invoiceStatus === "cancelled"
+      ? 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-500/15 dark:text-gray-300 dark:border-gray-500/20'
+      : 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/20'
+  }`}
+>
+  {invoiceStatus === "paid"
+    ? "PAID"
+    : invoiceStatus === "overdue"
+    ? "OVERDUE"
+    : invoiceStatus === "cancelled"
+    ? "CANCELLED"
+    : "UNPAID"}
+</span>
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap relative">

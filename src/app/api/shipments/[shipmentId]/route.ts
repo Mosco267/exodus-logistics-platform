@@ -189,6 +189,7 @@ export async function PATCH(
     if (body?.serviceLevel !== undefined) $set.serviceLevel = String(body.serviceLevel || "").trim() || null;
     if (body?.shipmentType !== undefined) $set.shipmentType = String(body.shipmentType || "").trim() || null;
     if (body?.shipmentMeans !== undefined) $set.shipmentMeans = String(body.shipmentMeans || "").trim() || null;
+    if (body?.packageDescription !== undefined) $set.packageDescription = String(body.packageDescription || "").trim() || null;
     if (body?.estimatedDeliveryDate !== undefined) $set.estimatedDeliveryDate = body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null;
     if (body?.weightKg !== undefined) {
       const weight = Number(body.weightKg);

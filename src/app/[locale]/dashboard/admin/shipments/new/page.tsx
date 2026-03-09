@@ -70,6 +70,8 @@ export default function AdminCreateShipmentPage() {
   const [receiverPostalCode, setReceiverPostalCode] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
 
+const [packageDescription, setPackageDescription] = useState("");
+
   // Shipment details
   const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">(
     "Standard"
@@ -286,6 +288,7 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
           shipmentScope,
           serviceLevel,
           shipmentType,
+          packageDescription,
 
           shipmentMeans,
           estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate).toISOString() : null,
@@ -611,6 +614,19 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
                 />
               </div>
 
+              <div className="sm:col-span-2">
+  <label className="text-sm font-semibold text-gray-700">
+    Package description
+  </label>
+  <textarea
+    value={packageDescription}
+    onChange={(e) => setPackageDescription(e.target.value)}
+    rows={4}
+    placeholder="Describe the package contents..."
+    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+  />
+</div>
+
               <div>
                 <label className="text-sm font-semibold text-gray-700">
                   Shipment means
@@ -621,7 +637,7 @@ const finalPaymentMethodOrNull = finalPaymentMethod || null;
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 >
                   <option value="">Select means</option>
-                  <option value="Air Cargo">Air Cargo</option>
+                  <option value="Air Freight">Air Freight</option>
                   <option value="Sea Freight">Sea Freight</option>
                   <option value="Land Freight">Land Freight</option>
                   <option value="Truck">Truck</option>

@@ -232,6 +232,7 @@ const invoice = s?.invoice
       origin: origin || null,
       destination: destination || null,
       currentLocation: currentLocation || null,
+      packageDescription: cleanStr(s?.packageDescription || null),
 
       invoice, // ✅ includes invoiceNumber
 

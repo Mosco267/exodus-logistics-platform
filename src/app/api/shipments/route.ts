@@ -50,6 +50,7 @@ type CreateShipmentBody = {
   serviceLevel?: "Express" | "Standard" | string;
   shipmentScope?: "international" | "local" | string;
   shipmentType?: string;
+  packageDescription?: string;
   weightKg?: number;
   dimensionsCm?: DimensionsCm;
   shipmentMeans?: string;
@@ -308,6 +309,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
         serviceLevel: body.serviceLevel || "Standard",
         shipmentScope,
         shipmentType: body.shipmentType || null,
+        packageDescription: String(body.packageDescription || "").trim() || null,
         shipmentMeans: body.shipmentMeans || null,
         estimatedDeliveryDate: body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null,
         weightKg: Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : null,
@@ -349,7 +351,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
         "https://www.goexoduslogistics.com"
       ).replace(/\/$/, "");
 
-      const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(shipmentId)}`;
+      const viewInvoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(trackingNumber)}`;
 
       if (senderEmail) {
         try {

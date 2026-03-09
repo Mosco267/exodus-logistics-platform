@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Save,
 } from "lucide-react";
-import { s } from "framer-motion/client";
+
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 type ShipmentStatus =
@@ -94,6 +94,8 @@ export default function AdminEditShipmentPage() {
   const [receiverAddress, setReceiverAddress] = useState("");
   const [receiverPostalCode, setReceiverPostalCode] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
+  
+  const [packageDescription, setPackageDescription] = useState(""); 
 
   // shipment details
   const [serviceLevel, setServiceLevel] = useState<"Standard" | "Express">(
@@ -227,9 +229,9 @@ setShipmentScope(
     : "international"
 );
 setShipmentType(safeStr(sh?.shipmentType));
-        setShipmentType(safeStr(sh?.shipmentType));
-        setShipmentMeans(safeStr(sh?.shipmentMeans));
-        setEstimatedDeliveryDate(toDateInputValue(sh?.estimatedDeliveryDate));
+setShipmentMeans(safeStr(sh?.shipmentMeans));
+setPackageDescription(safeStr(sh?.packageDescription));
+setEstimatedDeliveryDate(toDateInputValue(sh?.estimatedDeliveryDate));
         setWeightKg(
           sh?.weightKg !== undefined && sh?.weightKg !== null
             ? String(sh.weightKg)
@@ -357,6 +359,7 @@ setInsuranceRatePct(
             shipmentScope,
             shipmentType,
             shipmentMeans,
+            packageDescription,
             estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate).toISOString() : null,
             weightKg: num(weightKg),
             dimensionsCm: {
@@ -650,7 +653,7 @@ setInsuranceRatePct(
                   className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white"
                 >
                   <option value="">Select means</option>
-                  <option value="Air Cargo">Air Cargo</option>
+                  <option value="Air Freight">Air Freight</option>
                   <option value="Sea Freight">Sea Freight</option>
                   <option value="Land Freight">Land Freight</option>
                   <option value="Truck">Truck</option>
@@ -681,6 +684,18 @@ setInsuranceRatePct(
                 />
               </div>
 
+              <div className="sm:col-span-2">
+  <label className="text-sm font-semibold text-gray-700">
+    Package Description
+  </label>
+  <textarea
+    value={packageDescription}
+    onChange={(e) => setPackageDescription(e.target.value)}
+    rows={3}
+    placeholder="Describe the package contents..."
+    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+  />
+</div>
               
 
               <div className="sm:col-span-2">
