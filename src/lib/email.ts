@@ -106,7 +106,7 @@ function formatChangedFields(
 
       return `
         <tr>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;vertical-align:top;width:26%;">
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;vertical-align:top;width:26%;">
             ${esc(c.label)}
           </td>
           <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;word-break:break-word;line-height:22px;width:37%;">
