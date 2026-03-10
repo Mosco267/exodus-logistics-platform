@@ -815,93 +815,97 @@ export default function TrackResultPage() {
     </div>
 
     {isOpen && (
-      <div className="mt-5 border-t border-gray-200 pt-4">
-        <div className="relative pl-6">
-          {(ev.entries || []).length > 1 ? (
-            <div className="absolute left-[5px] top-2 bottom-2 w-[2px] bg-gray-300 rounded-full" />
-          ) : null}
+  <div className="mt-5 border-t border-gray-200 pt-4">
+    <div className="relative">
+      <div className="space-y-0">
+        {(ev.entries || []).map((en, j) => {
+          const loc = fmtLoc(en.location);
+          const when = fmtDate(en.occurredAt);
 
-          <div className="space-y-3">
-            {(ev.entries || []).map((en, j) => {
-              const loc = fmtLoc(en.location);
-              const when = fmtDate(en.occurredAt);
+          const isStageCompleted = idx < currentIndex;
+          const isLastEntry = j === (ev.entries?.length || 0) - 1;
 
-              const isStageCompleted = idx < currentIndex;
-              const isLastEntry = j === (ev.entries?.length || 0) - 1;
+          const entryDotBg =
+            isStageCompleted && isLastEntry
+              ? "#22c55e"
+              : safeColor(en.color) || "#9ca3af";
 
-              const entryDotBg =
-                isStageCompleted && isLastEntry
-                  ? "#22c55e"
-                  : safeColor(en.color) || "#9ca3af";
+          return (
+            <div
+              key={`${ev.key || ev.label}-entry-${j}`}
+              className="relative pl-12"
+            >
+              {/* grey connector line */}
+              {!isLastEntry ? (
+                <div className="absolute left-[17px] top-6 bottom-[-14px] w-[2px] bg-gray-300" />
+              ) : null}
 
-              return (
+              {/* entry dot */}
+              <div className="absolute left-[11px] top-5">
                 <div
-                  key={`${ev.key || ev.label}-entry-${j}`}
-                  className="relative rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                >
-                  <div className="absolute -left-[21px] top-5">
-                    <div
-                      className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
-                      style={{ background: entryDotBg }}
-                    />
-                  </div>
+                  className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
+                  style={{ background: entryDotBg }}
+                />
+              </div>
 
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-gray-500">
-                      {when}
-                      {loc ? ` • ${loc}` : ""}
-                    </p>
-                    <p className="text-sm text-gray-800 mt-1 leading-6">
-                      {en.note?.trim()
-                        ? en.note
-                        : "No additional details were provided for this update."}
-                    </p>
-                  </div>
+              <div className={`${j === 0 ? "" : "mt-0"} rounded-2xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-3" : ""}`}>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-gray-500">
+                    {when}
+                    {loc ? ` • ${loc}` : ""}
+                  </p>
+                  <p className="text-sm text-gray-800 mt-1 leading-6">
+                    {en.note?.trim()
+                      ? en.note
+                      : "No additional details were provided for this update."}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-              Invoice
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {invoiceStatus === "paid"
-                ? "PAID"
-                : invoiceStatus === "overdue"
-                ? "OVERDUE"
-                : invoiceStatus === "cancelled"
-                ? "CANCELLED"
-                : "UNPAID"}{" "}
-              • {invoiceAmount.toFixed(2)} {invoiceCurrency}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-              Destination
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {data.destination || "—"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-              Current Location
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {data.currentLocation ||
-                fmtLoc(events[currentIndex]?.location) ||
-                "—"}
-            </p>
-          </div>
-        </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    )}
+    </div>
+
+    <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+          Invoice
+        </p>
+        <p className="mt-1 text-sm font-semibold text-gray-900">
+          {invoiceStatus === "paid"
+            ? "PAID"
+            : invoiceStatus === "overdue"
+            ? "OVERDUE"
+            : invoiceStatus === "cancelled"
+            ? "CANCELLED"
+            : "UNPAID"}{" "}
+          • {invoiceAmount.toFixed(2)} {invoiceCurrency}
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+          Destination
+        </p>
+        <p className="mt-1 text-sm font-semibold text-gray-900">
+          {data.destination || "—"}
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+          Current Location
+        </p>
+        <p className="mt-1 text-sm font-semibold text-gray-900">
+          {data.currentLocation ||
+            fmtLoc(events[currentIndex]?.location) ||
+            "—"}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
   </button>
 </div>
 </div>
