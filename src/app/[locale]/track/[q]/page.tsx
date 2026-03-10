@@ -837,11 +837,11 @@ export default function TrackResultPage() {
             >
               {/* grey connector line */}
               {!isLastEntry ? (
-                <div className="absolute left-[17px] top-6 bottom-[-14px] w-[2px] bg-gray-300" />
-              ) : null}
+  <div className="absolute left-[17px] top-[14px] bottom-[-18px] w-[2px] bg-gray-300 rounded-full" />
+) : null}
 
               {/* entry dot */}
-              <div className="absolute left-[11px] top-5">
+              <div className="absolute left-[11px] top-[12px]">
                 <div
                   className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
                   style={{ background: entryDotBg }}
