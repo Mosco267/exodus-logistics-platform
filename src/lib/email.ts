@@ -95,21 +95,24 @@ function formatAddress(parts: Array<any>) {
     .join(", ");
 }
 
-function formatChangedFields(changes: Array<{ label: string; oldValue?: any; newValue?: any }>) {
+function formatChangedFields(
+  changes: Array<{ label: string; oldValue?: any; newValue?: any }>
+) {
   const rows = changes
     .filter((c) => cleanStr(c.newValue))
     .map((c) => {
       const oldVal = cleanStr(c.oldValue) || "—";
       const newVal = cleanStr(c.newValue) || "—";
+
       return `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:600;vertical-align:top;">
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;vertical-align:top;width:26%;">
             ${esc(c.label)}
           </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;">
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;word-break:break-word;line-height:22px;width:37%;">
             ${esc(oldVal)}
           </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;">
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;word-break:break-word;line-height:22px;width:37%;">
             ${esc(newVal)}
           </td>
         </tr>
@@ -120,13 +123,13 @@ function formatChangedFields(changes: Array<{ label: string; oldValue?: any; new
   if (!rows) return "";
 
   return `
-    <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#ffffff;">
+    <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
         <thead>
           <tr style="background:#f9fafb;">
-            <th align="left" style="padding:10px 12px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
-            <th align="left" style="padding:10px 12px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
-            <th align="left" style="padding:10px 12px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
+            <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
+            <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
+            <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
           </tr>
         </thead>
         <tbody>
@@ -302,16 +305,16 @@ const bodyHtml = `
   <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment ID</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.shipmentId)}</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment Number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.shipmentId)}</td>
       </tr>
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.trackingNumber)}</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking Number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.trackingNumber)}</td>
       </tr>
       <tr>
-        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice number</td>
-        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;">${esc(invoiceNumber)}</td>
+        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice Number</td>
+        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(invoiceNumber)}</td>
       </tr>
     </table>
 
@@ -412,16 +415,16 @@ const bodyHtml = `
   <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment ID</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.shipmentId)}</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment Number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.shipmentId)}</td>
       </tr>
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(args.trackingNumber)}</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking Number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.trackingNumber)}</td>
       </tr>
       <tr>
-        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice number</td>
-        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;">${esc(invoiceNumber)}</td>
+        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice Number</td>
+        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(invoiceNumber)}</td>
       </tr>
     </table>
   </div>
@@ -728,16 +731,16 @@ const bodyHtml = `
   <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment ID</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment Number</td>
         <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(opts.shipmentId)}</td>
       </tr>
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(opts.trackingNumber || "—")}</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking Number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(opts.trackingNumber || "—")}</td>
       </tr>
       <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Invoice number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(invoiceNumber)}</td>
+        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Invoice Number</td>
+        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(invoiceNumber)}</td>
       </tr>
       <tr>
         <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Destination</td>
@@ -835,7 +838,7 @@ export async function sendInvoiceUpdateEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
+      <strong>Invoice Number:</strong> ${esc(invoiceNumber)}
     </p>
 
     <div style="margin-top:12px">
@@ -915,7 +918,7 @@ export async function sendInvoiceStatusReceiverEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
+      <strong>Invoice Number:</strong> ${esc(invoiceNumber)}
     </p>
 
     <p style="margin:0;font-size:15px;color:#6b7280;">
@@ -984,9 +987,9 @@ export async function sendShipmentEditedEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
-      ${args.trackingNumber ? `<strong>Tracking number:</strong> ${esc(args.trackingNumber)}<br/>` : ""}
-      <strong>Invoice number:</strong> ${esc(invoiceNumber)}
+      <strong>Shipment Number:</strong> ${esc(args.shipmentId)}<br/>
+      ${args.trackingNumber ? `<strong>Tracking Number:</strong> ${esc(args.trackingNumber)}<br/>` : ""}
+      <strong>Invoice Number:</strong> ${esc(invoiceNumber)}
     </p>
 
     ${tableHtml}
@@ -1033,7 +1036,7 @@ export async function sendShipmentCreatedEmail(
       <p>Your shipment has been created and is being prepared to be shipped to <b>${escapeHtml(
         args.receiverName
       )}</b>.</p>
-      <p><b>Shipment ID:</b> ${escapeHtml(args.shipmentId)}<br/>
+      <p><b>Shipment Number:</b> ${escapeHtml(args.shipmentId)}<br/>
          <b>Tracking:</b> ${escapeHtml(args.trackingNumber)}</p>
       <p>
         <a href="${args.viewShipmentUrl}" style="display:inline-block;padding:12px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;">
@@ -1121,8 +1124,8 @@ export async function sendShipmentDeletedEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Shipment ID:</strong> ${esc(args.shipmentId)}<br/>
-      ${args.trackingNumber ? `<strong>Tracking number:</strong> ${esc(args.trackingNumber)}` : ""}
+      <strong>Shipment Number:</strong> ${esc(args.shipmentId)}<br/>
+      ${args.trackingNumber ? `<strong>Tracking Number:</strong> ${esc(args.trackingNumber)}` : ""}
     </p>
 
     <p style="margin:0;font-size:15px;color:#6b7280;">

@@ -684,9 +684,10 @@ export default function TrackResultPage() {
 
                         return (
                           <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10">
+  {/* Left timeline rail */}
   <div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
     <div
-      className="mt-5 h-5 w-5 rounded-full border-4 border-white shadow-md flex items-center justify-center"
+      className="h-5 w-5 rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 mt-6"
       style={dotStyle}
     >
       {idx < currentIndex ? (
@@ -696,8 +697,8 @@ export default function TrackResultPage() {
 
     {idx !== events.length - 1 ? (
       <div
-        className={`w-1 flex-1 rounded-full mt-2 ${
-          idx < currentIndex ? "bg-green-500" : "bg-gray-200"
+        className={`w-[3px] flex-1 -mt-1 rounded-full ${
+          idx < currentIndex ? "bg-green-500" : "bg-gray-300"
         }`}
       />
     ) : null}
@@ -773,26 +774,30 @@ export default function TrackResultPage() {
 
       {isOpen && (
         <div className="mt-5 border-t border-gray-200 pt-4">
-          <div className="space-y-3">
-            {(ev.entries || []).map((en, j) => {
-              const loc = fmtLoc(en.location);
-              const when = fmtDate(en.occurredAt);
+          <div className="relative pl-6">
+            {(ev.entries || []).length > 1 ? (
+              <div className="absolute left-[5px] top-2 bottom-2 w-[2px] bg-gray-300 rounded-full" />
+            ) : null}
 
-              const isStageCompleted = idx < currentIndex;
-              const isLastEntry = j === (ev.entries?.length || 0) - 1;
+            <div className="space-y-3">
+              {(ev.entries || []).map((en, j) => {
+                const loc = fmtLoc(en.location);
+                const when = fmtDate(en.occurredAt);
 
-              const entryDotBg =
-                isStageCompleted && isLastEntry
-                  ? "#22c55e"
-                  : safeColor(en.color) || "#9ca3af";
+                const isStageCompleted = idx < currentIndex;
+                const isLastEntry = j === (ev.entries?.length || 0) - 1;
 
-              return (
-                <div
-                  key={`${ev.key || ev.label}-entry-${j}`}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="pt-1">
+                const entryDotBg =
+                  isStageCompleted && isLastEntry
+                    ? "#22c55e"
+                    : safeColor(en.color) || "#9ca3af";
+
+                return (
+                  <div
+                    key={`${ev.key || ev.label}-entry-${j}`}
+                    className="relative rounded-2xl border border-gray-200 bg-white px-4 py-3"
+                  >
+                    <div className="absolute -left-[21px] top-5">
                       <div
                         className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
                         style={{ background: entryDotBg }}
@@ -811,9 +816,9 @@ export default function TrackResultPage() {
                       </p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
