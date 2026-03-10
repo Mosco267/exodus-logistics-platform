@@ -7,6 +7,7 @@ import {
   sendInvoiceUpdateEmail,
   sendInvoiceStatusReceiverEmail,
   sendShipmentDeletedEmail,
+  sendShipmentEditedEmail
 } from "@/lib/email";
 
 const normalizeStatus = (status?: string) =>
@@ -30,6 +31,20 @@ function joinNice(parts: Array<any>) {
     .filter(Boolean)
     .join(", ");
 }
+
+function sameValue(a: any, b: any) {
+  return String(a ?? "").trim() === String(b ?? "").trim();
+}
+
+function dimsText(v: any) {
+  if (!v) return "";
+  const l = Number(v?.length || 0);
+  const w = Number(v?.width || 0);
+  const h = Number(v?.height || 0);
+  if (!l && !w && !h) return "";
+  return `${l || 0} × ${w || 0} × ${h || 0} cm`;
+}
+
 
 // ✅ Fix TS errors on _id by typing the collection doc
 type PricingSettings = PricingProfiles;
@@ -106,6 +121,7 @@ export async function PATCH(
 
     const now = new Date();
     const $set: Record<string, any> = { updatedAt: now };
+    const editedChanges: Array<{ label: string; oldValue?: any; newValue?: any }> = [];
 
     // ----------------------------
     // 1) STATUS UPDATE (key/label -> label + defaults)
@@ -160,53 +176,344 @@ export async function PATCH(
     // ----------------------------
     // 1B) OTHER SHIPMENT FIELDS FROM EDIT PAGE
     // ----------------------------
-    if (body?.senderName !== undefined) $set.senderName = String(body.senderName || "").trim() || null;
-    if (body?.senderEmail !== undefined) $set.senderEmail = String(body.senderEmail || "").trim().toLowerCase() || null;
-    if (body?.senderCountryCode !== undefined) $set.senderCountryCode = String(body.senderCountryCode || "").trim().toUpperCase() || null;
-    if (body?.senderCountry !== undefined) $set.senderCountry = String(body.senderCountry || "").trim() || null;
-    if (body?.senderState !== undefined) $set.senderState = String(body.senderState || "").trim() || null;
-    if (body?.senderCity !== undefined) $set.senderCity = String(body.senderCity || "").trim() || null;
-    if (body?.senderAddress !== undefined) $set.senderAddress = String(body.senderAddress || "").trim() || null;
-    if (body?.senderPostalCode !== undefined) $set.senderPostalCode = String(body.senderPostalCode || "").trim() || null;
-    if (body?.senderPhone !== undefined) $set.senderPhone = String(body.senderPhone || "").trim() || null;
+    if (body?.senderName !== undefined) {
+  const next = String(body.senderName || "").trim() || null;
+  $set.senderName = next;
+  if (!sameValue((existing as any)?.senderName, next)) {
+    editedChanges.push({
+      label: "Sender name",
+      oldValue: (existing as any)?.senderName,
+      newValue: next,
+    });
+  }
+}
 
-    if (body?.receiverName !== undefined) $set.receiverName = String(body.receiverName || "").trim() || null;
-    if (body?.receiverEmail !== undefined) $set.receiverEmail = String(body.receiverEmail || "").trim().toLowerCase() || null;
-    if (body?.destinationCountryCode !== undefined) $set.destinationCountryCode = String(body.destinationCountryCode || "").trim().toUpperCase() || null;
-    if (body?.receiverCountry !== undefined) $set.receiverCountry = String(body.receiverCountry || "").trim() || null;
-    if (body?.receiverState !== undefined) $set.receiverState = String(body.receiverState || "").trim() || null;
-    if (body?.receiverCity !== undefined) $set.receiverCity = String(body.receiverCity || "").trim() || null;
-    if (body?.receiverAddress !== undefined) $set.receiverAddress = String(body.receiverAddress || "").trim() || null;
-    if (body?.receiverPostalCode !== undefined) $set.receiverPostalCode = String(body.receiverPostalCode || "").trim() || null;
-    if (body?.receiverPhone !== undefined) $set.receiverPhone = String(body.receiverPhone || "").trim() || null;
-    
-    if (body?.shipmentScope !== undefined) {
-  $set.shipmentScope =
+if (body?.senderEmail !== undefined) {
+  const next = String(body.senderEmail || "").trim().toLowerCase() || null;
+  $set.senderEmail = next;
+  if (!sameValue((existing as any)?.senderEmail, next)) {
+    editedChanges.push({
+      label: "Sender email",
+      oldValue: (existing as any)?.senderEmail,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderCountryCode !== undefined) {
+  const next = String(body.senderCountryCode || "").trim().toUpperCase() || null;
+  $set.senderCountryCode = next;
+  if (!sameValue((existing as any)?.senderCountryCode, next)) {
+    editedChanges.push({
+      label: "Sender country code",
+      oldValue: (existing as any)?.senderCountryCode,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderCountry !== undefined) {
+  const next = String(body.senderCountry || "").trim() || null;
+  $set.senderCountry = next;
+  if (!sameValue((existing as any)?.senderCountry, next)) {
+    editedChanges.push({
+      label: "Sender country",
+      oldValue: (existing as any)?.senderCountry,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderState !== undefined) {
+  const next = String(body.senderState || "").trim() || null;
+  $set.senderState = next;
+  if (!sameValue((existing as any)?.senderState, next)) {
+    editedChanges.push({
+      label: "Sender state",
+      oldValue: (existing as any)?.senderState,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderCity !== undefined) {
+  const next = String(body.senderCity || "").trim() || null;
+  $set.senderCity = next;
+  if (!sameValue((existing as any)?.senderCity, next)) {
+    editedChanges.push({
+      label: "Sender city",
+      oldValue: (existing as any)?.senderCity,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderAddress !== undefined) {
+  const next = String(body.senderAddress || "").trim() || null;
+  $set.senderAddress = next;
+  if (!sameValue((existing as any)?.senderAddress, next)) {
+    editedChanges.push({
+      label: "Sender address",
+      oldValue: (existing as any)?.senderAddress,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderPostalCode !== undefined) {
+  const next = String(body.senderPostalCode || "").trim() || null;
+  $set.senderPostalCode = next;
+  if (!sameValue((existing as any)?.senderPostalCode, next)) {
+    editedChanges.push({
+      label: "Sender postal code",
+      oldValue: (existing as any)?.senderPostalCode,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.senderPhone !== undefined) {
+  const next = String(body.senderPhone || "").trim() || null;
+  $set.senderPhone = next;
+  if (!sameValue((existing as any)?.senderPhone, next)) {
+    editedChanges.push({
+      label: "Sender phone",
+      oldValue: (existing as any)?.senderPhone,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverName !== undefined) {
+  const next = String(body.receiverName || "").trim() || null;
+  $set.receiverName = next;
+  if (!sameValue((existing as any)?.receiverName, next)) {
+    editedChanges.push({
+      label: "Receiver name",
+      oldValue: (existing as any)?.receiverName,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverEmail !== undefined) {
+  const next = String(body.receiverEmail || "").trim().toLowerCase() || null;
+  $set.receiverEmail = next;
+  if (!sameValue((existing as any)?.receiverEmail, next)) {
+    editedChanges.push({
+      label: "Receiver email",
+      oldValue: (existing as any)?.receiverEmail,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.destinationCountryCode !== undefined) {
+  const next = String(body.destinationCountryCode || "").trim().toUpperCase() || null;
+  $set.destinationCountryCode = next;
+  if (!sameValue((existing as any)?.destinationCountryCode, next)) {
+    editedChanges.push({
+      label: "Destination country code",
+      oldValue: (existing as any)?.destinationCountryCode,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverCountry !== undefined) {
+  const next = String(body.receiverCountry || "").trim() || null;
+  $set.receiverCountry = next;
+  if (!sameValue((existing as any)?.receiverCountry, next)) {
+    editedChanges.push({
+      label: "Receiver country",
+      oldValue: (existing as any)?.receiverCountry,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverState !== undefined) {
+  const next = String(body.receiverState || "").trim() || null;
+  $set.receiverState = next;
+  if (!sameValue((existing as any)?.receiverState, next)) {
+    editedChanges.push({
+      label: "Receiver state",
+      oldValue: (existing as any)?.receiverState,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverCity !== undefined) {
+  const next = String(body.receiverCity || "").trim() || null;
+  $set.receiverCity = next;
+  if (!sameValue((existing as any)?.receiverCity, next)) {
+    editedChanges.push({
+      label: "Receiver city",
+      oldValue: (existing as any)?.receiverCity,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverAddress !== undefined) {
+  const next = String(body.receiverAddress || "").trim() || null;
+  $set.receiverAddress = next;
+  if (!sameValue((existing as any)?.receiverAddress, next)) {
+    editedChanges.push({
+      label: "Receiver address",
+      oldValue: (existing as any)?.receiverAddress,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverPostalCode !== undefined) {
+  const next = String(body.receiverPostalCode || "").trim() || null;
+  $set.receiverPostalCode = next;
+  if (!sameValue((existing as any)?.receiverPostalCode, next)) {
+    editedChanges.push({
+      label: "Receiver postal code",
+      oldValue: (existing as any)?.receiverPostalCode,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.receiverPhone !== undefined) {
+  const next = String(body.receiverPhone || "").trim() || null;
+  $set.receiverPhone = next;
+  if (!sameValue((existing as any)?.receiverPhone, next)) {
+    editedChanges.push({
+      label: "Receiver phone",
+      oldValue: (existing as any)?.receiverPhone,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.shipmentScope !== undefined) {
+  const next =
     String(body.shipmentScope || "").trim().toLowerCase() === "local"
       ? "local"
       : "international";
+
+  $set.shipmentScope = next;
+  if (!sameValue((existing as any)?.shipmentScope, next)) {
+    editedChanges.push({
+      label: "Shipping type",
+      oldValue: (existing as any)?.shipmentScope,
+      newValue: next,
+    });
+  }
 }
-    if (body?.serviceLevel !== undefined) $set.serviceLevel = String(body.serviceLevel || "").trim() || null;
-    if (body?.shipmentType !== undefined) $set.shipmentType = String(body.shipmentType || "").trim() || null;
-    if (body?.shipmentMeans !== undefined) $set.shipmentMeans = String(body.shipmentMeans || "").trim() || null;
-    if (body?.packageDescription !== undefined) $set.packageDescription = String(body.packageDescription || "").trim() || null;
-    if (body?.estimatedDeliveryDate !== undefined) $set.estimatedDeliveryDate = body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null;
-    if (body?.weightKg !== undefined) {
-      const weight = Number(body.weightKg);
-      $set.weightKg = Number.isFinite(weight) ? weight : null;
-    }
 
-    if (body?.dimensionsCm !== undefined) {
-      $set.dimensionsCm = {
-        length: Number(body?.dimensionsCm?.length || 0),
-        width: Number(body?.dimensionsCm?.width || 0),
-        height: Number(body?.dimensionsCm?.height || 0),
-      };
-    }
+if (body?.serviceLevel !== undefined) {
+  const next = String(body.serviceLevel || "").trim() || null;
+  $set.serviceLevel = next;
+  if (!sameValue((existing as any)?.serviceLevel, next)) {
+    editedChanges.push({
+      label: "Service level",
+      oldValue: (existing as any)?.serviceLevel,
+      newValue: next,
+    });
+  }
+}
 
-    if (body?.declaredValueCurrency !== undefined) {
-      $set.declaredValueCurrency = String(body.declaredValueCurrency || "USD").trim().toUpperCase();
-    }
+if (body?.shipmentType !== undefined) {
+  const next = String(body.shipmentType || "").trim() || null;
+  $set.shipmentType = next;
+  if (!sameValue((existing as any)?.shipmentType, next)) {
+    editedChanges.push({
+      label: "Shipment type",
+      oldValue: (existing as any)?.shipmentType,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.shipmentMeans !== undefined) {
+  const next = String(body.shipmentMeans || "").trim() || null;
+  $set.shipmentMeans = next;
+  if (!sameValue((existing as any)?.shipmentMeans, next)) {
+    editedChanges.push({
+      label: "Shipment means",
+      oldValue: (existing as any)?.shipmentMeans,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.packageDescription !== undefined) {
+  const next = String(body.packageDescription || "").trim() || null;
+  $set.packageDescription = next;
+  if (!sameValue((existing as any)?.packageDescription, next)) {
+    editedChanges.push({
+      label: "Package description",
+      oldValue: (existing as any)?.packageDescription,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.estimatedDeliveryDate !== undefined) {
+  const next = body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null;
+  $set.estimatedDeliveryDate = next;
+  if (!sameValue((existing as any)?.estimatedDeliveryDate, next)) {
+    editedChanges.push({
+      label: "Estimated delivery date",
+      oldValue: (existing as any)?.estimatedDeliveryDate,
+      newValue: next,
+    });
+  }
+}
+
+if (body?.weightKg !== undefined) {
+  const weight = Number(body.weightKg);
+  const next = Number.isFinite(weight) ? weight : null;
+  $set.weightKg = next;
+
+  if (Number((existing as any)?.weightKg ?? 0) !== Number(next ?? 0)) {
+    editedChanges.push({
+      label: "Weight",
+      oldValue:
+        (existing as any)?.weightKg !== undefined && (existing as any)?.weightKg !== null
+          ? `${(existing as any)?.weightKg} kg`
+          : null,
+      newValue: next !== null ? `${next} kg` : null,
+    });
+  }
+}
+
+if (body?.dimensionsCm !== undefined) {
+  const nextDims = {
+    length: Number(body?.dimensionsCm?.length || 0),
+    width: Number(body?.dimensionsCm?.width || 0),
+    height: Number(body?.dimensionsCm?.height || 0),
+  };
+
+  $set.dimensionsCm = nextDims;
+
+  if (dimsText((existing as any)?.dimensionsCm) !== dimsText(nextDims)) {
+    editedChanges.push({
+      label: "Dimensions",
+      oldValue: dimsText((existing as any)?.dimensionsCm),
+      newValue: dimsText(nextDims),
+    });
+  }
+}
+
+if (body?.declaredValueCurrency !== undefined) {
+  const next = String(body.declaredValueCurrency || "USD").trim().toUpperCase();
+  $set.declaredValueCurrency = next;
+  if (!sameValue((existing as any)?.declaredValueCurrency, next)) {
+    editedChanges.push({
+      label: "Currency",
+      oldValue: (existing as any)?.declaredValueCurrency,
+      newValue: next,
+    });
+  }
+}
 
     // ----------------------------
     // 2) DECLARED VALUE (supports declaredValue or packageValue)
@@ -425,6 +732,76 @@ const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmen
 
 if (!updated) {
   return NextResponse.json({ error: "Updated shipment not found" }, { status: 500 });
+}
+
+const prevInvoice = ((existing as any)?.invoice || {}) as any;
+const nextInvoice = ((updated as any)?.invoice || prevInvoice) as any;
+
+const prevInvoiceStatus = String(prevInvoice.status || "unpaid").toLowerCase();
+const nextInvoiceStatus = String(nextInvoice.status || "unpaid").toLowerCase();
+
+const invoiceStatusActuallyChanged = prevInvoiceStatus !== nextInvoiceStatus;
+
+const onlyInvoiceStatusChanged =
+  invoiceStatusActuallyChanged &&
+  editedChanges.length === 0 &&
+  !body?.trackingEvent &&
+  body?.status === undefined;
+
+if (!onlyInvoiceStatusChanged && editedChanges.length > 0) {
+  const senderEmail = String(
+    (updated as any)?.senderEmail ||
+    (existing as any)?.senderEmail ||
+    (existing as any)?.createdByEmail ||
+    ""
+  ).trim().toLowerCase();
+
+  const receiverEmail = String(
+    (updated as any)?.receiverEmail || (existing as any)?.receiverEmail || ""
+  ).trim().toLowerCase();
+
+  const senderName = String(
+    (updated as any)?.senderName || (existing as any)?.senderName || "Customer"
+  ).trim();
+
+  const receiverName = String(
+    (updated as any)?.receiverName || (existing as any)?.receiverName || "Customer"
+  ).trim();
+
+  const trackingNumber = String(
+    (updated as any)?.trackingNumber || (existing as any)?.trackingNumber || ""
+  ).trim();
+
+  const invoiceNumber = String(
+    (updated as any)?.invoice?.invoiceNumber ||
+    (existing as any)?.invoice?.invoiceNumber ||
+    ""
+  ).trim();
+
+  const intro =
+    "Please be informed that certain shipment details have been updated in our system. Kindly review the latest shipment and invoice information using the tracking or invoice page for the most current details.";
+
+  if (senderEmail) {
+    await sendShipmentEditedEmail(senderEmail, {
+      name: senderName,
+      shipmentId,
+      trackingNumber,
+      invoiceNumber: invoiceNumber || undefined,
+      intro,
+      changes: editedChanges,
+    }).catch(() => null);
+  }
+
+  if (receiverEmail) {
+    await sendShipmentEditedEmail(receiverEmail, {
+      name: receiverName,
+      shipmentId,
+      trackingNumber,
+      invoiceNumber: invoiceNumber || undefined,
+      intro,
+      changes: editedChanges,
+    }).catch(() => null);
+  }
 }
 
 if (shouldSendTrackingStageEmail) {

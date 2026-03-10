@@ -10,14 +10,20 @@ import {
   ChevronDown,
   MapPin,
   Package,
-  Receipt,
   FileText,
   Copy,
   Check,
   Info,
   CornerDownRight,
   Truck,
-  LifeBuoy
+  LifeBuoy,
+  CheckCircle2,
+  CircleDashed,
+  Warehouse,
+  Plane,
+  ShieldCheck,
+  Home,
+  Clock3
 } from "lucide-react";
 
 type LocationLite = {
@@ -145,6 +151,22 @@ function fmtLoc(loc?: LocationLite) {
 function safeColor(c?: string) {
   const v = String(c || "").trim();
   return v || "";
+}
+
+function getStageIcon(label?: string) {
+  const v = String(label || "").trim().toLowerCase();
+
+  if (v.includes("created")) return Package;
+  if (v.includes("pickup")) return Truck;
+  if (v.includes("warehouse")) return Warehouse;
+  if (v.includes("air") || v.includes("flight") || v.includes("freight")) return Plane;
+  if (v.includes("custom")) return ShieldCheck;
+  if (v.includes("out for delivery")) return Truck;
+  if (v.includes("delivered")) return Home;
+  if (v.includes("transit")) return Truck;
+  if (v.includes("unclaimed")) return Clock3;
+
+  return CircleDashed;
 }
 
 /**
@@ -649,10 +671,7 @@ export default function TrackResultPage() {
                     No tracking updates yet.
                   </div>
                 ) : (
-                  <div className="relative">
-                    <div className="absolute left-[10px] top-2 bottom-2 w-[2px] bg-gray-200" />
-
-                    <div className="space-y-4">
+                  <div className="space-y-5">
                       {events.map((ev, idx) => {
                         const isOpen = openIdx === idx;
                         const stageLoc = fmtLoc(ev.location);
@@ -664,123 +683,185 @@ export default function TrackResultPage() {
                         const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);
 
                         return (
-                          <div key={`${ev.key || ev.label}-${idx}`} className="relative">
-                            <button
-                              type="button"
-                              onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
-                              className="w-full text-left rounded-2xl border border-gray-200 hover:border-blue-200 transition bg-white p-4"
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="relative pt-1">
-                                  <div
-                                    className="h-3 w-3 rounded-full ring-2 ring-white"
-                                    style={dotStyle}
-                                  />
-                                </div>
+                          <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10">
+  <div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
+    <div
+      className="mt-5 h-5 w-5 rounded-full border-4 border-white shadow-md flex items-center justify-center"
+      style={dotStyle}
+    >
+      {idx < currentIndex ? (
+        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+      ) : null}
+    </div>
 
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="text-base sm:text-lg font-extrabold text-gray-900 truncate">
-                                        {ev.label}
-                                      </p>
-                                      <p className="mt-1 text-xs text-gray-600">
-                                        {stageWhen}
-                                        {stageLoc ? ` • ${stageLoc}` : ""}
-                                      </p>
-                                    </div>
+    {idx !== events.length - 1 ? (
+      <div
+        className={`w-1 flex-1 rounded-full mt-2 ${
+          idx < currentIndex ? "bg-green-500" : "bg-gray-200"
+        }`}
+      />
+    ) : null}
+  </div>
 
-                                    <ChevronDown
-                                      className={`w-5 h-5 text-gray-500 transition ${
-                                        isOpen ? "rotate-180" : ""
-                                      }`}
-                                    />
-                                  </div>
+  <div
+    className={`rounded-3xl border shadow-sm transition overflow-hidden ${
+      idx < currentIndex
+        ? "border-green-200 bg-green-50/40"
+        : idx === currentIndex
+        ? "border-blue-200 bg-blue-50/40 shadow-md"
+        : "border-gray-200 bg-white"
+    }`}
+  >
+    <button
+      type="button"
+      onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+      className="w-full text-left p-5"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4 min-w-0">
+          <div
+            className={`shrink-0 h-12 w-12 rounded-2xl flex items-center justify-center border ${
+              idx < currentIndex
+                ? "bg-green-100 border-green-200 text-green-700"
+                : idx === currentIndex
+                ? "bg-blue-100 border-blue-200 text-blue-700"
+                : "bg-gray-100 border-gray-200 text-gray-600"
+            }`}
+          >
+            {(() => {
+              const Icon = getStageIcon(ev.label);
+              return <Icon className="w-5 h-5" />;
+            })()}
+          </div>
 
-                                  {isOpen && (
-                                    <div className="mt-3 rounded-xl bg-gray-50 border border-gray-200 p-3">
-                                      <div className="relative pl-6">
-                                        <div className="absolute left-[8px] top-2 bottom-2 w-[2px] bg-gray-200" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-base sm:text-lg font-extrabold text-gray-900">
+                {ev.label}
+              </p>
 
-                                        <div className="space-y-3">
-                                          {(ev.entries || []).map((en, j) => {
-                                            const loc = fmtLoc(en.location);
-                                            const when = fmtDate(en.occurredAt);
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold border ${
+                  idx < currentIndex
+                    ? "bg-green-100 text-green-700 border-green-200"
+                    : idx === currentIndex
+                    ? "bg-blue-100 text-blue-700 border-blue-200"
+                    : "bg-gray-100 text-gray-600 border-gray-200"
+                }`}
+              >
+                {idx < currentIndex
+                  ? "Completed"
+                  : idx === currentIndex
+                  ? "Current Stage"
+                  : "Upcoming"}
+              </span>
+            </div>
 
-                                            const isStageCompleted = idx < currentIndex;
-                                            const isLastEntry =
-                                              j === (ev.entries?.length || 0) - 1;
+            <p className="mt-1 text-sm text-gray-600">
+              {stageWhen}
+              {stageLoc ? ` • ${stageLoc}` : ""}
+            </p>
+          </div>
+        </div>
 
-                                            const entryDotBg =
-                                              isStageCompleted && isLastEntry
-                                                ? "#22c55e"
-                                                : safeColor(en.color) || "#9ca3af";
+        <ChevronDown
+          className={`w-5 h-5 text-gray-500 transition shrink-0 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </div>
 
-                                            return (
-                                              <div
-                                                key={`${ev.key || ev.label}-entry-${j}`}
-                                                className="relative"
-                                              >
-                                                <div className="flex items-start gap-3">
-                                                  <div className="pt-1">
-                                                    <div
-                                                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white"
-                                                      style={{ background: entryDotBg }}
-                                                    />
-                                                  </div>
+      {isOpen && (
+        <div className="mt-5 border-t border-gray-200 pt-4">
+          <div className="space-y-3">
+            {(ev.entries || []).map((en, j) => {
+              const loc = fmtLoc(en.location);
+              const when = fmtDate(en.occurredAt);
 
-                                                  <div className="flex-1">
-                                                    <p className="text-xs text-gray-600">
-                                                      {when}
-                                                      {loc ? ` • ${loc}` : ""}
-                                                    </p>
-                                                    <p className="text-sm text-gray-800 mt-1">
-                                                      <span className="font-bold">Details:</span>{" "}
-                                                      {en.note?.trim()
-                                                        ? en.note
-                                                        : "No additional details for this update."}
-                                                    </p>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
+              const isStageCompleted = idx < currentIndex;
+              const isLastEntry = j === (ev.entries?.length || 0) - 1;
 
-                                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
-                                        <div>
-                                          <span className="font-semibold">Invoice:</span>{" "}
-                                          {invoiceStatus === "paid"
-  ? "PAID"
-  : invoiceStatus === "overdue"
-  ? "OVERDUE"
-  : invoiceStatus === "cancelled"
-  ? "CANCELLED"
-  : "UNPAID"}{" "}
-• {invoiceAmount.toFixed(2)} {invoiceCurrency}
-                                        </div>
-                                        <div>
-                                          <span className="font-semibold">Destination:</span>{" "}
-                                          {data.destination || "—"}
-                                        </div>
-                                        <div>
-                                          <span className="font-semibold">Current location:</span>{" "}
-                                          {data.currentLocation ||
-                                            fmtLoc(events[currentIndex]?.location) ||
-                                            "—"}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </button>
-                          </div>
+              const entryDotBg =
+                isStageCompleted && isLastEntry
+                  ? "#22c55e"
+                  : safeColor(en.color) || "#9ca3af";
+
+              return (
+                <div
+                  key={`${ev.key || ev.label}-entry-${j}`}
+                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="pt-1">
+                      <div
+                        className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
+                        style={{ background: entryDotBg }}
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-gray-500">
+                        {when}
+                        {loc ? ` • ${loc}` : ""}
+                      </p>
+                      <p className="text-sm text-gray-800 mt-1 leading-6">
+                        {en.note?.trim()
+                          ? en.note
+                          : "No additional details were provided for this update."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                Invoice
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {invoiceStatus === "paid"
+                  ? "PAID"
+                  : invoiceStatus === "overdue"
+                  ? "OVERDUE"
+                  : invoiceStatus === "cancelled"
+                  ? "CANCELLED"
+                  : "UNPAID"}{" "}
+                • {invoiceAmount.toFixed(2)} {invoiceCurrency}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                Destination
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {data.destination || "—"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                Current Location
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {data.currentLocation ||
+                  fmtLoc(events[currentIndex]?.location) ||
+                  "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </button>
+  </div>
+</div>
                         );
                       })}
                     </div>
-                  </div>
+                  
                 )}
               </div>
             </motion.div>
