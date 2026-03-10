@@ -302,26 +302,26 @@ const bodyHtml = `
     }
   </p>
 
-  <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.shipmentId)}</td>
-      </tr>
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.trackingNumber)}</td>
-      </tr>
-      <tr>
-        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice Number</td>
-        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(invoiceNumber)}</td>
-      </tr>
-    </table>
+  <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
+  </p>
 
-    <p style="margin:12px 0 0 0;font-size:12px;color:#6b7280;">
-      Tip: Save these details for verification on our official website.
-    </p>
-  </div>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
+  </p>
+
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+  </p>
+
+  <p style="margin:0;font-size:12px;color:#6b7280;">
+    Tip: Save these details for verification on our official website.
+  </p>
+</div>
 
   <p style="margin:0;font-size:15px;color:#6b7280;">
     You can view shipment status or open your invoice using the buttons below.
@@ -412,22 +412,22 @@ const bodyHtml = `
     }
   </p>
 
-  <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.shipmentId)}</td>
-      </tr>
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(args.trackingNumber)}</td>
-      </tr>
-      <tr>
-        <td style="padding:0;font-size:14px;color:#6b7280;font-weight:600;">Invoice Number</td>
-        <td style="padding:0 0 0 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(invoiceNumber)}</td>
-      </tr>
-    </table>
-  </div>
+  <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
+  </p>
+
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+  </p>
+</div>
 
   <div style="margin-top:12px">
     <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
@@ -728,27 +728,26 @@ const bodyHtml = `
     ${detail}
   </p>
 
-  <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Shipment Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;">${esc(opts.shipmentId)}</td>
-      </tr>
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Tracking Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(opts.trackingNumber || "—")}</td>
-      </tr>
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Invoice Number</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;">${esc(invoiceNumber)}</td>
-      </tr>
-      <tr>
-        <td style="padding:0 0 10px 0;font-size:14px;color:#6b7280;font-weight:600;">Destination</td>
-        <td style="padding:0 0 10px 16px;font-size:15px;color:#111827;">${esc(destination)}</td>
-      </tr>
-      
-    </table>
-  </div>
+  <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(opts.shipmentId)}</span>
+  </p>
+
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(opts.trackingNumber || "—")}</span>
+  </p>
+
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Destination:</strong> ${esc(destination)}
+  </p>
+</div>
 
   ${
     note
@@ -986,12 +985,26 @@ export async function sendShipmentEditedEmail(
       )}
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Shipment Number:</strong> ${esc(args.shipmentId)}<br/>
-      ${args.trackingNumber ? `<strong>Tracking Number:</strong> ${esc(args.trackingNumber)}<br/>` : ""}
-      <strong>Invoice Number:</strong> ${esc(invoiceNumber)}
-    </p>
+    <div style="margin:0 0 14px 0;">
+  <p style="margin:0 0 8px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
+  </p>
 
+  ${
+    args.trackingNumber
+      ? `<p style="margin:0 0 8px 0;font-size:15px;line-height:24px;color:#111827;">
+           <strong>Tracking Number:</strong>
+           <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
+         </p>`
+      : ""
+  }
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+  </p>
+</div>
     ${tableHtml}
 
     <div style="margin-top:12px">
@@ -1123,10 +1136,21 @@ export async function sendShipmentDeletedEmail(
       As a result, this shipment will no longer be available for tracking on our website.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Shipment Number:</strong> ${esc(args.shipmentId)}<br/>
-      ${args.trackingNumber ? `<strong>Tracking Number:</strong> ${esc(args.trackingNumber)}` : ""}
-    </p>
+    <div style="margin:0 0 14px 0;">
+  <p style="margin:0 0 8px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
+  </p>
+
+  ${
+    args.trackingNumber
+      ? `<p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+           <strong>Tracking Number:</strong>
+           <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
+         </p>`
+      : ""
+  }
+</div>
 
     <p style="margin:0;font-size:15px;color:#6b7280;">
       If you believe this action was made in error or you need further clarification, please contact our support team.
