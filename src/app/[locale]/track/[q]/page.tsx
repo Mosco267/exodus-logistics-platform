@@ -745,14 +745,20 @@ export default function TrackResultPage() {
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-start gap-4 min-w-0">
         <div
-          className={`shrink-0 h-12 w-12 rounded-2xl flex items-center justify-center border ${
-            idx < currentIndex
-              ? "bg-green-100 border-green-200 text-green-700"
-              : idx === currentIndex
-              ? "bg-blue-100 border-blue-200 text-blue-700"
-              : "bg-gray-100 border-gray-200 text-gray-600"
-          }`}
-        >
+  className={`shrink-0 h-12 w-12 rounded-2xl flex items-center justify-center border ${
+    idx < currentIndex
+      ? "bg-green-100 border-green-200 text-green-700"
+      : idx === currentIndex &&
+        String(ev.label || "").trim().toLowerCase() === "cancelled"
+      ? "bg-red-100 border-red-200 text-red-700"
+      : idx === currentIndex &&
+        String(ev.label || "").trim().toLowerCase() === "delivered"
+      ? "bg-green-100 border-green-200 text-green-700"
+      : idx === currentIndex
+      ? "bg-blue-100 border-blue-200 text-blue-700"
+      : "bg-gray-100 border-gray-200 text-gray-600"
+  }`}
+>
           {(() => {
             const Icon = getStageIcon(ev.label);
             return <Icon className="w-5 h-5" />;
@@ -766,20 +772,32 @@ export default function TrackResultPage() {
             </p>
 
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold border ${
-                idx < currentIndex
-                  ? "bg-green-100 text-green-700 border-green-200"
-                  : idx === currentIndex
-                  ? "bg-blue-100 text-blue-700 border-blue-200"
-                  : "bg-gray-100 text-gray-600 border-gray-200"
-              }`}
-            >
-              {idx < currentIndex
-                ? "Completed"
-                : idx === currentIndex
-                ? "Current Stage"
-                : "Upcoming"}
-            </span>
+  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold border ${
+    idx < currentIndex
+      ? "bg-green-100 text-green-700 border-green-200"
+      : idx === currentIndex &&
+        String(ev.label || "").trim().toLowerCase() === "cancelled"
+      ? "bg-red-100 text-red-700 border-red-200"
+      : idx === currentIndex &&
+        String(ev.label || "").trim().toLowerCase() === "delivered"
+      ? "bg-green-100 text-green-700 border-green-200"
+      : idx === currentIndex
+      ? "bg-blue-100 text-blue-700 border-blue-200"
+      : "bg-gray-100 text-gray-600 border-gray-200"
+  }`}
+>
+  {idx < currentIndex
+    ? "Completed"
+    : idx === currentIndex &&
+      String(ev.label || "").trim().toLowerCase() === "cancelled"
+    ? "Shipment Cancelled"
+    : idx === currentIndex &&
+      String(ev.label || "").trim().toLowerCase() === "delivered"
+    ? "Successfully Delivered"
+    : idx === currentIndex
+    ? "Current Stage"
+    : "Upcoming"}
+</span>
           </div>
 
           <p className="mt-1 text-sm text-gray-600">
