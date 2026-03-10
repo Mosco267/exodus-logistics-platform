@@ -394,7 +394,7 @@ export default function TrackResultPage() {
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-600">Shipment ID</p>
+                  <p className="text-xs text-gray-600">Shipment Number:</p>
 
                   <div className="flex items-start gap-3 flex-wrap">
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 break-all">
@@ -671,7 +671,7 @@ export default function TrackResultPage() {
                     No tracking updates yet.
                   </div>
                 ) : (
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                       {events.map((ev, idx) => {
                         const isOpen = openIdx === idx;
                         const stageLoc = fmtLoc(ev.location);
@@ -683,195 +683,218 @@ export default function TrackResultPage() {
                         const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);
 
                         return (
-                          <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10">
+                          <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10 pb-2">
   {/* Left timeline rail */}
-  <div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
-    <div
-      className="h-5 w-5 rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 mt-6"
-      style={dotStyle}
-    >
-      {idx < currentIndex ? (
-        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-      ) : null}
-    </div>
+<div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
+  {(() => {
+    const nextEvent = events[idx + 1];
 
-    {idx !== events.length - 1 ? (
-      <div
-        className={`w-[3px] flex-1 -mt-1 rounded-full ${
-          idx < currentIndex ? "bg-green-500" : "bg-gray-300"
-        }`}
-      />
-    ) : null}
-  </div>
-
-  <div
-    className={`rounded-3xl border shadow-sm transition overflow-hidden ${
+    const currentDotColor =
       idx < currentIndex
-        ? "border-green-200 bg-green-50/40"
-        : idx === currentIndex
-        ? "border-blue-200 bg-blue-50/40 shadow-md"
-        : "border-gray-200 bg-white"
-    }`}
-  >
-    <button
-      type="button"
-      onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
-      className="w-full text-left p-5"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4 min-w-0">
+        ? "#22c55e"
+        : safeColor(stageBaseColor) || "#f59e0b";
+
+    const nextDotColor =
+      idx !== events.length - 1
+        ? idx + 1 < currentIndex
+          ? "#22c55e"
+          : safeColor(nextEvent?.entries?.[0]?.color) ||
+            safeColor(nextEvent?.color) ||
+            "#d1d5db"
+        : currentDotColor;
+
+    return (
+      <>
+        <div
+          className="h-5 w-5 rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 mt-5"
+          style={{ background: currentDotColor }}
+        >
+          {idx < currentIndex ? (
+            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+          ) : null}
+        </div>
+
+        {idx !== events.length - 1 ? (
           <div
-            className={`shrink-0 h-12 w-12 rounded-2xl flex items-center justify-center border ${
-              idx < currentIndex
-                ? "bg-green-100 border-green-200 text-green-700"
+            className="w-[4px] flex-1 -mt-[2px] rounded-full"
+            style={{
+              minHeight: "96px",
+              background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
+            }}
+          />
+        ) : null}
+      </>
+    );
+  })()}
+</div>
+
+<div
+  className={`rounded-3xl border shadow-sm transition overflow-hidden ${
+    idx < currentIndex
+      ? "border-green-200 bg-green-50/40"
+      : idx === currentIndex
+      ? "border-blue-200 bg-blue-50/40 shadow-md"
+      : "border-gray-200 bg-white"
+  }`}
+>
+  <button
+    type="button"
+    onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+    className="w-full text-left p-5"
+  >
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start gap-4 min-w-0">
+        <div
+          className={`shrink-0 h-12 w-12 rounded-2xl flex items-center justify-center border ${
+            idx < currentIndex
+              ? "bg-green-100 border-green-200 text-green-700"
+              : idx === currentIndex
+              ? "bg-blue-100 border-blue-200 text-blue-700"
+              : "bg-gray-100 border-gray-200 text-gray-600"
+          }`}
+        >
+          {(() => {
+            const Icon = getStageIcon(ev.label);
+            return <Icon className="w-5 h-5" />;
+          })()}
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-base sm:text-lg font-extrabold text-gray-900">
+              {ev.label}
+            </p>
+
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold border ${
+                idx < currentIndex
+                  ? "bg-green-100 text-green-700 border-green-200"
+                  : idx === currentIndex
+                  ? "bg-blue-100 text-blue-700 border-blue-200"
+                  : "bg-gray-100 text-gray-600 border-gray-200"
+              }`}
+            >
+              {idx < currentIndex
+                ? "Completed"
                 : idx === currentIndex
-                ? "bg-blue-100 border-blue-200 text-blue-700"
-                : "bg-gray-100 border-gray-200 text-gray-600"
-            }`}
-          >
-            {(() => {
-              const Icon = getStageIcon(ev.label);
-              return <Icon className="w-5 h-5" />;
-            })()}
+                ? "Current Stage"
+                : "Upcoming"}
+            </span>
           </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-base sm:text-lg font-extrabold text-gray-900">
-                {ev.label}
-              </p>
+          <p className="mt-1 text-sm text-gray-600">
+            {stageWhen}
+            {stageLoc ? ` • ${stageLoc}` : ""}
+          </p>
+        </div>
+      </div>
 
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold border ${
-                  idx < currentIndex
-                    ? "bg-green-100 text-green-700 border-green-200"
-                    : idx === currentIndex
-                    ? "bg-blue-100 text-blue-700 border-blue-200"
-                    : "bg-gray-100 text-gray-600 border-gray-200"
-                }`}
-              >
-                {idx < currentIndex
-                  ? "Completed"
-                  : idx === currentIndex
-                  ? "Current Stage"
-                  : "Upcoming"}
-              </span>
-            </div>
+      <ChevronDown
+        className={`w-5 h-5 text-gray-500 transition shrink-0 ${
+          isOpen ? "rotate-180" : ""
+        }`}
+      />
+    </div>
 
-            <p className="mt-1 text-sm text-gray-600">
-              {stageWhen}
-              {stageLoc ? ` • ${stageLoc}` : ""}
+    {isOpen && (
+      <div className="mt-5 border-t border-gray-200 pt-4">
+        <div className="relative pl-6">
+          {(ev.entries || []).length > 1 ? (
+            <div className="absolute left-[5px] top-2 bottom-2 w-[2px] bg-gray-300 rounded-full" />
+          ) : null}
+
+          <div className="space-y-3">
+            {(ev.entries || []).map((en, j) => {
+              const loc = fmtLoc(en.location);
+              const when = fmtDate(en.occurredAt);
+
+              const isStageCompleted = idx < currentIndex;
+              const isLastEntry = j === (ev.entries?.length || 0) - 1;
+
+              const entryDotBg =
+                isStageCompleted && isLastEntry
+                  ? "#22c55e"
+                  : safeColor(en.color) || "#9ca3af";
+
+              return (
+                <div
+                  key={`${ev.key || ev.label}-entry-${j}`}
+                  className="relative rounded-2xl border border-gray-200 bg-white px-4 py-3"
+                >
+                  <div className="absolute -left-[21px] top-5">
+                    <div
+                      className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
+                      style={{ background: entryDotBg }}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-gray-500">
+                      {when}
+                      {loc ? ` • ${loc}` : ""}
+                    </p>
+                    <p className="text-sm text-gray-800 mt-1 leading-6">
+                      {en.note?.trim()
+                        ? en.note
+                        : "No additional details were provided for this update."}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+              Invoice
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {invoiceStatus === "paid"
+                ? "PAID"
+                : invoiceStatus === "overdue"
+                ? "OVERDUE"
+                : invoiceStatus === "cancelled"
+                ? "CANCELLED"
+                : "UNPAID"}{" "}
+              • {invoiceAmount.toFixed(2)} {invoiceCurrency}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+              Destination
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {data.destination || "—"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+              Current Location
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {data.currentLocation ||
+                fmtLoc(events[currentIndex]?.location) ||
+                "—"}
             </p>
           </div>
         </div>
-
-        <ChevronDown
-          className={`w-5 h-5 text-gray-500 transition shrink-0 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
       </div>
-
-      {isOpen && (
-        <div className="mt-5 border-t border-gray-200 pt-4">
-          <div className="relative pl-6">
-            {(ev.entries || []).length > 1 ? (
-              <div className="absolute left-[5px] top-2 bottom-2 w-[2px] bg-gray-300 rounded-full" />
-            ) : null}
-
-            <div className="space-y-3">
-              {(ev.entries || []).map((en, j) => {
-                const loc = fmtLoc(en.location);
-                const when = fmtDate(en.occurredAt);
-
-                const isStageCompleted = idx < currentIndex;
-                const isLastEntry = j === (ev.entries?.length || 0) - 1;
-
-                const entryDotBg =
-                  isStageCompleted && isLastEntry
-                    ? "#22c55e"
-                    : safeColor(en.color) || "#9ca3af";
-
-                return (
-                  <div
-                    key={`${ev.key || ev.label}-entry-${j}`}
-                    className="relative rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                  >
-                    <div className="absolute -left-[21px] top-5">
-                      <div
-                        className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
-                        style={{ background: entryDotBg }}
-                      />
-                    </div>
-
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-gray-500">
-                        {when}
-                        {loc ? ` • ${loc}` : ""}
-                      </p>
-                      <p className="text-sm text-gray-800 mt-1 leading-6">
-                        {en.note?.trim()
-                          ? en.note
-                          : "No additional details were provided for this update."}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                Invoice
-              </p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                {invoiceStatus === "paid"
-                  ? "PAID"
-                  : invoiceStatus === "overdue"
-                  ? "OVERDUE"
-                  : invoiceStatus === "cancelled"
-                  ? "CANCELLED"
-                  : "UNPAID"}{" "}
-                • {invoiceAmount.toFixed(2)} {invoiceCurrency}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                Destination
-              </p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                {data.destination || "—"}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                Current Location
-              </p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                {data.currentLocation ||
-                  fmtLoc(events[currentIndex]?.location) ||
-                  "—"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </button>
-  </div>
+    )}
+  </button>
+</div>
 </div>
                         );
                       })}
                     </div>
-                  
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
       </div>
     </div>
   );
