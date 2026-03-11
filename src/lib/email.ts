@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { renderEmailTemplate } from "@/lib/emailTemplate";
 import clientPromise from "@/lib/mongodb";
 
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ Server should use APP_URL (not PUBLIC_APP_URL)
