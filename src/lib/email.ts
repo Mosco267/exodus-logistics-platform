@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { renderEmailTemplate } from "@/lib/emailTemplate";
+import clientPromise from "@/lib/mongodb";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -183,6 +184,34 @@ function buildTrackUrl(q: string, locale = DEFAULT_LOCALE) {
 function buildInvoiceFullUrlByQ(q: string, locale = DEFAULT_LOCALE) {
   const qq = normUpper(q);
   return `${APP_URL}/${locale}/invoice/full?q=${encodeURIComponent(qq)}`;
+}
+
+function normalizeTemplateKey(v: string) {
+  return String(v || "").toLowerCase().trim().replace(/[\s_-]+/g, "");
+}
+
+function fillVars(template: string, vars: Record<string, any>) {
+  let out = String(template || "");
+  for (const [k, v] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`{{\\s*${k}\\s*}}`, "g"), String(v ?? ""));
+  }
+  return out;
+}
+
+async function getEmailTemplate(key: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    const doc = await db.collection("email_templates").findOne(
+      { key },
+      { projection: { _id: 0 } }
+    );
+
+    return doc as any;
+  } catch {
+    return null;
+  }
 }
 
 function invoiceSearchUrl(locale = DEFAULT_LOCALE) {
@@ -626,6 +655,9 @@ const destination = cleanStr(opts.destination) || "the destination address on fi
 const origin = cleanStr(opts.origin) || "origin facility";
 const note = cleanStr(opts.note);
 
+const templateKey = `timeline:${normalizeTemplateKey(status)}`;
+const templateOverride = await getEmailTemplate(templateKey);
+
 
 let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
 let title = "Shipment update";
@@ -715,7 +747,7 @@ switch (status.toLowerCase()) {
     break;
 }
 
-const bodyHtml = `
+const defaultBodyHtml = `
   <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
     Hello ${esc(name)},
   </p>
@@ -729,25 +761,25 @@ const bodyHtml = `
   </p>
 
   <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Shipment Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(opts.shipmentId)}</span>
-  </p>
+    <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+      <strong>Shipment Number:</strong>
+      <span style="white-space:nowrap;word-break:keep-all;"> ${esc(opts.shipmentId)}</span>
+    </p>
 
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Tracking Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(opts.trackingNumber || "—")}</span>
-  </p>
+    <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+      <strong>Tracking Number:</strong>
+      <span style="white-space:nowrap;word-break:keep-all;"> ${esc(opts.trackingNumber || "—")}</span>
+    </p>
 
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Invoice Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
-  </p>
+    <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+      <strong>Invoice Number:</strong>
+      <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+    </p>
 
-  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Destination:</strong> ${esc(destination)}
-  </p>
-</div>
+    <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+      <strong>Destination:</strong> ${esc(destination)}
+    </p>
+  </div>
 
   ${
     note
@@ -770,18 +802,60 @@ const bodyHtml = `
   </div>
 `;
 
+const vars = {
+  name: esc(name),
+  shipmentId: esc(opts.shipmentId),
+  trackingNumber: esc(opts.trackingNumber || "—"),
+  invoiceNumber: esc(invoiceNumber),
+  destination: esc(destination),
+  origin: esc(origin),
+  note: esc(note),
+  trackUrl: TRACK_URL,
+  invoiceUrl: INVOICE_URL,
+  status: esc(status),
+};
+
+const finalSubject = templateOverride?.subject
+  ? fillVars(templateOverride.subject, vars)
+  : subject;
+
+const finalTitle = templateOverride?.title
+  ? fillVars(templateOverride.title, vars)
+  : title;
+
+const finalPreheader = templateOverride?.preheader
+  ? fillVars(templateOverride.preheader, vars)
+  : `${status} – Shipment ${opts.shipmentId}`;
+
+const finalBodyHtml = templateOverride?.bodyHtml
+  ? fillVars(templateOverride.bodyHtml, vars)
+  : defaultBodyHtml;
+
+const finalButtonText = templateOverride?.buttonText
+  ? fillVars(templateOverride.buttonText, vars)
+  : buttonText;
+
+const finalButtonHrefRaw = templateOverride?.buttonHref
+  ? fillVars(templateOverride.buttonHref, vars)
+  : buttonLink;
+
+const finalButtonHref =
+  finalButtonHrefRaw === "{{trackUrl}}" ? TRACK_URL :
+  finalButtonHrefRaw === "{{invoiceUrl}}" ? INVOICE_URL :
+  finalButtonHrefRaw || buttonLink;
+
 const html = renderEmailTemplate({
-  subject,
-  title,
-  preheader: `${status} – Shipment ${opts.shipmentId}`,
-  bodyHtml,
-  button: { text: buttonText, href: buttonLink },
+  subject: finalSubject,
+  title: finalTitle,
+  preheader: finalPreheader,
+  bodyHtml: finalBodyHtml,
+  button: { text: finalButtonText, href: finalButtonHref },
   appUrl: APP_URL,
   supportEmail: SUPPORT_EMAIL,
   sentTo: to,
 });
 
-return sendEmail(to, subject, html);
+return sendEmail(to, finalSubject, html);
 }
 
 /** -------------------------

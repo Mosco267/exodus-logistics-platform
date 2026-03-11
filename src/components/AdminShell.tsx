@@ -7,13 +7,15 @@ import {
   Menu,
   X,
   Users,
-  Package,
+  Package, 
   Tags,
   Search,
   PlusCircle,
   LogOut,
   UserX,
   Phone,
+  Mail,
+  Workflow,
   
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
@@ -127,6 +129,17 @@ export default function AdminShell({ children }: Props) {
   href: `/${locale}/dashboard/admin/tracking`,
   label: "Tracking Updates",
   icon: <Route className="w-5 h-5" />,
+},
+
+{
+  href: `/${locale}/dashboard/admin/email-templates`,
+  label: "Email Templates",
+  icon: <Mail className="w-5 h-5" />,
+},
+{
+  href: `/${locale}/dashboard/admin/timeline`,
+  label: "Shipment Timeline",
+  icon: <Workflow className="w-5 h-5" />,
 },
 
     // ✅ NEW: Deleted Users
