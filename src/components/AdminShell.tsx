@@ -7,7 +7,7 @@ import {
   Menu,
   X,
   Users,
-  Package, 
+  Package,
   Tags,
   Search,
   PlusCircle,
@@ -16,7 +16,6 @@ import {
   Phone,
   Mail,
   Workflow,
-  
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -37,10 +36,8 @@ export default function AdminShell({ children }: Props) {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
 
-  // ✅ default collapsed
   const [open, setOpen] = useState(false);
 
-  // search
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +83,6 @@ export default function AdminShell({ children }: Props) {
     setShowDrop(false);
     setQ("");
 
-    // ✅ Best: open user detail page if we have createdByUserId
     if (h.createdByUserId) {
       router.push(
         `/${locale}/dashboard/admin/users/${encodeURIComponent(
@@ -96,7 +92,6 @@ export default function AdminShell({ children }: Props) {
       return;
     }
 
-    // ✅ Fallback
     router.push(`/${locale}/dashboard/admin/shipments`);
   };
 
@@ -113,36 +108,29 @@ export default function AdminShell({ children }: Props) {
     },
     {
       href: `/${locale}/dashboard/admin/statuses`,
-      label: "Statuses",
-      icon: <Tags className="w-5 h-5" />,
+      label: "Shipment Timeline",
+      icon: <Workflow className="w-5 h-5" />,
     },
-
-    { href: `/${locale}/dashboard/admin/pricing`, label: "Pricing", icon: <Percent className="w-5 h-5" /> },
-
     {
-  href: `/${locale}/dashboard/admin/company-settings`,
-  label: "Company Settings",
-  icon: <Phone className="w-5 h-5" />,
-},
-
-     {
-  href: `/${locale}/dashboard/admin/tracking`,
-  label: "Tracking Updates",
-  icon: <Route className="w-5 h-5" />,
-},
-
-{
-  href: `/${locale}/dashboard/admin/email-templates`,
-  label: "Email Templates",
-  icon: <Mail className="w-5 h-5" />,
-},
-{
-  href: `/${locale}/dashboard/admin/timeline`,
-  label: "Shipment Timeline",
-  icon: <Workflow className="w-5 h-5" />,
-},
-
-    // ✅ NEW: Deleted Users
+      href: `/${locale}/dashboard/admin/email-templates`,
+      label: "Email Templates",
+      icon: <Mail className="w-5 h-5" />,
+    },
+    {
+      href: `/${locale}/dashboard/admin/pricing`,
+      label: "Pricing",
+      icon: <Percent className="w-5 h-5" />,
+    },
+    {
+      href: `/${locale}/dashboard/admin/company-settings`,
+      label: "Company Settings",
+      icon: <Phone className="w-5 h-5" />,
+    },
+    {
+      href: `/${locale}/dashboard/admin/tracking`,
+      label: "Tracking Updates",
+      icon: <Route className="w-5 h-5" />,
+    },
     {
       href: `/${locale}/dashboard/admin/deleted-users`,
       label: "Deleted Users",
@@ -152,7 +140,6 @@ export default function AdminShell({ children }: Props) {
 
   return (
     <div className="min-h-screen flex overflow-x-hidden bg-gradient-to-br from-white via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      {/* ✅ ONLY ONE ADMIN SIDEBAR */}
       <aside
         className={`text-white transition-all duration-300 shadow-xl flex-shrink-0 flex flex-col
         bg-gradient-to-b from-blue-800 via-blue-700 to-cyan-700 sticky top-0 h-screen
@@ -169,7 +156,7 @@ export default function AdminShell({ children }: Props) {
                 <div className="min-w-0">
                   <p className="text-sm font-extrabold truncate">Admin Panel</p>
                   <p className="text-[11px] text-white/70 truncate">
-                    Manage users & shipments
+                    Manage users, emails & shipment flow
                   </p>
                 </div>
                 <button
@@ -232,16 +219,13 @@ export default function AdminShell({ children }: Props) {
         </div>
       </aside>
 
-      {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* TOPBAR */}
         <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-950/85 backdrop-blur border-b border-gray-200 dark:border-gray-800">
           <div className="h-16 px-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-[220px]">
               <img src="/logo.svg" alt="Logo" className="h-10 w-auto" />
             </div>
 
-            {/* Search */}
             <div className="hidden md:block flex-1 max-w-xl" ref={wrapRef}>
               <div className="relative">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -289,7 +273,6 @@ export default function AdminShell({ children }: Props) {
               </div>
             </div>
 
-            {/* Create shipment (admin) */}
             <Link
               href={`/${locale}/dashboard/admin/shipments/new`}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold shadow-sm cursor-pointer"
