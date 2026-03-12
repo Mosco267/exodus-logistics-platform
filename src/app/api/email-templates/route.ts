@@ -133,6 +133,34 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
+    /* ---------------------------
+       TIMELINE TEMPLATE UPDATE
+    ----------------------------*/
+    if (key.startsWith("timeline:")) {
+
+      const statusKey = key.replace("timeline:", "");
+
+      await db.collection("statuses").updateOne(
+        { key: statusKey },
+        {
+          $set: {
+            emailSubject: doc.subject,
+            emailTitle: doc.title,
+            emailPreheader: doc.preheader,
+            emailBodyHtml: doc.bodyHtml,
+            emailButtonText: doc.buttonText,
+            emailButtonUrlType: doc.buttonUrlType,
+            updatedAt: new Date(),
+          },
+        }
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
+    /* ---------------------------
+       NORMAL TEMPLATE SAVE
+    ----------------------------*/
     await db.collection(COLLECTION).updateOne(
       { key },
       {
@@ -143,6 +171,7 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ ok: true, template: doc });
+
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to save email template." }, { status: 500 });

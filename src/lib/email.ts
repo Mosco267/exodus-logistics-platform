@@ -380,8 +380,9 @@ const bodyHtml = `
     You can view shipment status or open your invoice using the buttons below.
   </p>
 
-  <div style="margin-top:12px">
-    <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+  <div style="margin-top:18px;margin-bottom:12px;">
+  <a href="${invoiceUrl}"
+style="color:#2563eb;font-weight:700;text-decoration:none;">
       View Invoice
     </a>
   </div>

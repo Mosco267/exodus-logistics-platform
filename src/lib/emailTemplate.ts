@@ -88,8 +88,9 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
       </tr>
 
       <tr>
-        <td align="center" style="padding:28px 12px;">
-          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:600px;max-width:600px;">
+        <td align="center" style="padding:28px 16px;">
+          <table role="presentation" width="100%"
+  style="max-width:600px;margin:0 auto;" cellspacing="0" cellpadding="0" style="width:600px;max-width:600px;">
             <tr>
               <td style="padding:0;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
