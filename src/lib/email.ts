@@ -215,6 +215,29 @@ async function getEmailTemplate(key: string) {
   }
 }
 
+async function getStatusEmailConfig(statusLabel: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    const normalized = normalizeTemplateKey(statusLabel);
+
+    const all = await db
+      .collection("statuses")
+      .find({})
+      .project({ _id: 0 })
+      .toArray();
+
+    return (
+      all.find((s: any) => normalizeTemplateKey(s?.key || "") === normalized) ||
+      all.find((s: any) => normalizeTemplateKey(s?.label || "") === normalized) ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
 function invoiceSearchUrl(locale = DEFAULT_LOCALE) {
   return `${APP_URL}/${locale}/invoice`;
 }
@@ -656,8 +679,7 @@ const destination = cleanStr(opts.destination) || "the destination address on fi
 const origin = cleanStr(opts.origin) || "origin facility";
 const note = cleanStr(opts.note);
 
-const templateKey = `timeline:${normalizeTemplateKey(status)}`;
-const templateOverride = await getEmailTemplate(templateKey);
+const statusOverride = await getStatusEmailConfig(status);
 
 
 let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
@@ -816,41 +838,45 @@ const vars = {
   status: esc(status),
 };
 
-const finalSubject = templateOverride?.subject
-  ? fillVars(templateOverride.subject, vars)
+const finalSubject = statusOverride?.emailSubject
+  ? fillVars(statusOverride.emailSubject, vars)
   : subject;
 
-const finalTitle = templateOverride?.title
-  ? fillVars(templateOverride.title, vars)
+const finalTitle = statusOverride?.emailTitle
+  ? fillVars(statusOverride.emailTitle, vars)
   : title;
 
-const finalPreheader = templateOverride?.preheader
-  ? fillVars(templateOverride.preheader, vars)
+const finalPreheader = statusOverride?.emailPreheader
+  ? fillVars(statusOverride.emailPreheader, vars)
   : `${status} – Shipment ${opts.shipmentId}`;
 
-const finalBodyHtml = templateOverride?.bodyHtml
-  ? fillVars(templateOverride.bodyHtml, vars)
+const finalBodyHtml = statusOverride?.emailBodyHtml
+  ? fillVars(statusOverride.emailBodyHtml, vars)
   : defaultBodyHtml;
 
-const finalButtonText = templateOverride?.buttonText
-  ? fillVars(templateOverride.buttonText, vars)
+const finalButtonText = statusOverride?.emailButtonText
+  ? fillVars(statusOverride.emailButtonText, vars)
   : buttonText;
 
-const finalButtonHrefRaw = templateOverride?.buttonHref
-  ? fillVars(templateOverride.buttonHref, vars)
-  : buttonLink;
+const statusButtonType = String(statusOverride?.emailButtonUrlType || "").trim().toLowerCase();
 
 const finalButtonHref =
-  finalButtonHrefRaw === "{{trackUrl}}" ? TRACK_URL :
-  finalButtonHrefRaw === "{{invoiceUrl}}" ? INVOICE_URL :
-  finalButtonHrefRaw || buttonLink;
+  statusButtonType === "invoice"
+    ? INVOICE_URL
+    : statusButtonType === "support"
+    ? SUPPORT_URL
+    : statusButtonType === "none"
+    ? ""
+    : TRACK_URL;
 
 const html = renderEmailTemplate({
   subject: finalSubject,
   title: finalTitle,
   preheader: finalPreheader,
   bodyHtml: finalBodyHtml,
-  button: { text: finalButtonText, href: finalButtonHref },
+  button: finalButtonHref
+  ? { text: finalButtonText || "Track Shipment", href: finalButtonHref }
+  : undefined,
   appUrl: APP_URL,
   supportEmail: SUPPORT_EMAIL,
   sentTo: to,
