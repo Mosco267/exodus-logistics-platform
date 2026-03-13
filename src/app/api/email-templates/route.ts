@@ -180,67 +180,81 @@ export async function GET() {
     const col = db.collection(COLLECTION);
 
     const existing = await col.find({}).project({ _id: 0 }).toArray();
-const existingKeys = new Set(existing.map((t: any) => String(t.key || "").trim()));
+    const existingKeys = new Set(existing.map((t: any) => String(t.key || "").trim()));
 
-const missingDefaults = DEFAULT_TEMPLATES.filter((t) => !existingKeys.has(t.key));
+    const missingDefaults = DEFAULT_TEMPLATES.filter((t) => !existingKeys.has(t.key));
 
-if (missingDefaults.length) {
-  const now = new Date();
-  await col.insertMany(
-    missingDefaults.map((t) => ({
-      ...t,
-      isCustom: false,
-      createdAt: now,
+    if (missingDefaults.length) {
+      const now = new Date();
+      await col.insertMany(
+        missingDefaults.map((t) => ({
+          ...t,
+          isCustom: false,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      );
+    }
+
+    const statuses = await db
+      .collection("statuses")
+      .find({})
+      .project({ _id: 0 })
+      .toArray();
+
+    const now = new Date();
+
+    const timelineTemplates = statuses.map((s: any) => ({
+      key: `timeline:${String(s.key || "").trim()}`,
+      label: `Timeline: ${String(s.label || "Timeline Stage").trim()}`,
+      category: "timeline",
+      subject: String(s.emailSubject || `Shipment update: {{shipmentId}}`).trim(),
+      title: String(s.emailTitle || s.label || "Shipment update").trim(),
+      preheader:
+        String(s.emailPreheader || `Shipment ${String(s.label || "update").trim()} update`).trim(),
+      bodyHtml:
+        String(s.emailBodyHtml || "").trim() ||
+        `<p>Hello {{name}},</p>
+<p>Your shipment <strong>{{shipmentId}}</strong> has been updated to <strong>{{status}}</strong>.</p>
+<p><strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span><br/>
+<strong>Destination:</strong> {{destination}}</p>
+<p>{{note}}</p>`,
+      buttonText: String(s.emailButtonText || "Track Shipment").trim(),
+      buttonUrlType: String(s.emailButtonUrlType || "track").trim(),
+      isCustom: true,
       updatedAt: now,
-    }))
-  );
-}
+    }));
 
-    // sync timeline statuses into email_templates
-    
+    for (const t of timelineTemplates) {
+      await col.updateOne(
+        { key: t.key },
+        {
+          $set: {
+            label: t.label,
+            category: t.category,
+            subject: t.subject,
+            title: t.title,
+            preheader: t.preheader,
+            bodyHtml: t.bodyHtml,
+            buttonText: t.buttonText,
+            buttonUrlType: t.buttonUrlType,
+            isCustom: true,
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
+          },
+        },
+        { upsert: true }
+      );
+    }
 
-   const statuses = await db.collection("statuses").find({}).project({ _id: 0 }).toArray();
-
-const timelineTemplates = statuses
-  .filter((s: any) => s?.emailSubject || s?.emailBodyHtml || s?.emailTitle)
-  .map((s: any) => ({
-    key: `timeline:${String(s.key || "").trim()}`,
-    label: `${String(s.label || "Timeline Stage").trim()} Timeline Email`,
-    category: "timeline",
-    subject: String(s.emailSubject || `Shipment update (${s.label})`).trim(),
-    title: String(s.emailTitle || s.label || "Shipment update").trim(),
-    preheader: String(s.emailPreheader || "").trim(),
-    bodyHtml: String(s.emailBodyHtml || "").trim(),
-    buttonText: String(s.emailButtonText || "Track Shipment").trim(),
-    buttonUrlType: String(s.emailButtonUrlType || "track").trim(),
-    isCustom: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }));
-
-for (const t of timelineTemplates) {
-  await col.updateOne(
-    { key: t.key },
-    {
-      $set: {
-        label: t.label,
-        category: t.category,
-        subject: t.subject,
-        title: t.title,
-        preheader: t.preheader,
-        bodyHtml: t.bodyHtml,
-        buttonText: t.buttonText,
-        buttonUrlType: t.buttonUrlType,
-        isCustom: true,
-        updatedAt: new Date(),
-      },
-      $setOnInsert: {
-        createdAt: new Date(),
-      },
-    },
-    { upsert: true }
-  );
-}
+    // remove old/legacy timeline-style labels that are not using "Timeline: ..."
+    await col.deleteMany({
+      category: "timeline",
+      label: { $not: /^Timeline:\s/i },
+    });
 
     const templates = await col
       .find({})
@@ -281,11 +295,7 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    /* ---------------------------
-       TIMELINE TEMPLATE UPDATE
-    ----------------------------*/
     if (key.startsWith("timeline:")) {
-
       const statusKey = key.replace("timeline:", "");
 
       await db.collection("statuses").updateOne(
@@ -303,12 +313,22 @@ export async function POST(req: Request) {
         }
       );
 
+      await db.collection(COLLECTION).updateOne(
+        { key },
+        {
+          $set: {
+            ...doc,
+            label: `Timeline: ${String(body?.label || "").replace(/^Timeline:\s*/i, "").trim()}` || doc.label,
+            category: "timeline",
+          },
+          $setOnInsert: { createdAt: new Date() },
+        },
+        { upsert: true }
+      );
+
       return NextResponse.json({ ok: true });
     }
 
-    /* ---------------------------
-       NORMAL TEMPLATE SAVE
-    ----------------------------*/
     await db.collection(COLLECTION).updateOne(
       { key },
       {
@@ -319,7 +339,6 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ ok: true, template: doc });
-
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to save email template." }, { status: 500 });

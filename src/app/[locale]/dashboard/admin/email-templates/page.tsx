@@ -34,33 +34,9 @@ export default function AdminEmailTemplatesPage() {
   const fetchTemplates = async () => {
     setLoading(true);
     try {
-      const [tplRes, statusRes] = await Promise.all([
-  fetch("/api/email-templates", { cache: "no-store" }),
-  fetch("/api/statuses", { cache: "no-store" })
-]);
-
-const tplData = await tplRes.json();
-const statusData = await statusRes.json();
-
-const normalTemplates = Array.isArray(tplData?.templates)
-  ? tplData.templates
-  : [];
-
-const timelineTemplates = (statusData?.statuses || [])
-  .filter((s: any) => s.emailSubject || s.emailBodyHtml)
-  .map((s: any) => ({
-    key: `timeline:${s.key}`,
-    label: `Timeline: ${s.label}`,
-    category: "timeline",
-    subject: s.emailSubject || "",
-    title: s.emailTitle || "",
-    preheader: s.emailPreheader || "",
-    bodyHtml: s.emailBodyHtml || "",
-    buttonText: s.emailButtonText || "",
-    buttonUrlType: s.emailButtonUrlType || "track"
-  }));
-
-setTemplates([...normalTemplates, ...timelineTemplates]);
+      const res = await fetch("/api/email-templates", { cache: "no-store" });
+      const data = await res.json();
+      setTemplates(Array.isArray(data?.templates) ? data.templates : []);
     } catch {
       setTemplates([]);
     } finally {
