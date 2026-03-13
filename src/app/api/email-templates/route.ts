@@ -197,49 +197,50 @@ if (missingDefaults.length) {
 }
 
     // sync timeline statuses into email_templates
-    const statuses = await db
-      .collection("statuses")
-      .find({})
-      .project({ _id: 0 })
-      .toArray();
+    
 
-    for (const s of statuses) {
-      const key = `timeline:${String((s as any).key || "").trim()}`;
-      if (!key || key === "timeline:") continue;
+   const statuses = await db.collection("statuses").find({}).project({ _id: 0 }).toArray();
 
-      const exists = await col.findOne({ key });
-      if (!exists) {
-        await col.insertOne({
-          key,
-          label: `${String((s as any).label || "Timeline Stage").trim()} Email`,
-          category: "timeline",
-          subject:
-            String((s as any).emailSubject || "").trim() ||
-            `Shipment update: {{shipmentId}}`,
-          title:
-            String((s as any).emailTitle || "").trim() ||
-            String((s as any).label || "Shipment update").trim(),
-          preheader:
-            String((s as any).emailPreheader || "").trim() ||
-            `Shipment ${String((s as any).label || "update").trim()} update`,
-          bodyHtml:
-            String((s as any).emailBodyHtml || "").trim() ||
-            `<p>Hello {{name}},</p>
-<p>Your shipment <strong>{{shipmentId}}</strong> has been updated to <strong>{{status}}</strong>.</p>
-<p><strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span><br/>
-<strong>Destination:</strong> {{destination}}</p>
-<p>{{note}}</p>`,
-          buttonText:
-            String((s as any).emailButtonText || "").trim() || "Track Shipment",
-          buttonUrlType:
-            String((s as any).emailButtonUrlType || "").trim() || "track",
-          isCustom: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    }
+const timelineTemplates = statuses
+  .filter((s: any) => s?.emailSubject || s?.emailBodyHtml || s?.emailTitle)
+  .map((s: any) => ({
+    key: `timeline:${String(s.key || "").trim()}`,
+    label: `${String(s.label || "Timeline Stage").trim()} Timeline Email`,
+    category: "timeline",
+    subject: String(s.emailSubject || `Shipment update (${s.label})`).trim(),
+    title: String(s.emailTitle || s.label || "Shipment update").trim(),
+    preheader: String(s.emailPreheader || "").trim(),
+    bodyHtml: String(s.emailBodyHtml || "").trim(),
+    buttonText: String(s.emailButtonText || "Track Shipment").trim(),
+    buttonUrlType: String(s.emailButtonUrlType || "track").trim(),
+    isCustom: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+
+for (const t of timelineTemplates) {
+  await col.updateOne(
+    { key: t.key },
+    {
+      $set: {
+        label: t.label,
+        category: t.category,
+        subject: t.subject,
+        title: t.title,
+        preheader: t.preheader,
+        bodyHtml: t.bodyHtml,
+        buttonText: t.buttonText,
+        buttonUrlType: t.buttonUrlType,
+        isCustom: true,
+        updatedAt: new Date(),
+      },
+      $setOnInsert: {
+        createdAt: new Date(),
+      },
+    },
+    { upsert: true }
+  );
+}
 
     const templates = await col
       .find({})

@@ -12,6 +12,90 @@ const DEFAULT_STATUSES = [
     icon: "package",
     defaultUpdate: "Shipment has been created and is being processed.",
     nextStep: "Dispatch will be scheduled once processing is complete.",
+    emailSubject: "Shipment created: {{shipmentId}}",
+    emailTitle: "Shipment created",
+    emailPreheader: "Shipment {{shipmentId}} has been created successfully.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is being prepared for delivery to <strong>{{receiverName}}</strong>.</p>
+
+<p><strong>Invoice status:</strong> {{invoiceStatus}}<br/>
+<strong>Estimated delivery date:</strong> {{estimatedDeliveryDate}}<br/>
+{{paymentMessage}}</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span></p>
+
+<p>You can view the invoice from the link below.</p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "View Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "pickup",
+    label: "Picked Up",
+    color: "amber",
+    icon: "package",
+    defaultUpdate: "Shipment has been picked up and entered into our logistics network.",
+    nextStep: "The package will be moved to the next processing facility shortly.",
+    emailSubject: "Shipment picked up: {{shipmentId}}",
+    emailTitle: "Shipment picked up",
+    emailPreheader: "Your shipment has been picked up.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>We are pleased to inform you that your shipment <strong>{{shipmentId}}</strong> has been successfully picked up and entered into our logistics network.</p>
+
+<p>The shipment is now being processed for movement from <strong>{{origin}}</strong> toward <strong>{{destination}}</strong>.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<p>{{note}}</p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "warehouse",
+    label: "Warehouse",
+    color: "green",
+    icon: "warehouse",
+    defaultUpdate: "Shipment has been received at our warehouse facility.",
+    nextStep: "Internal handling and dispatch preparation are in progress.",
+    emailSubject: "Shipment received at warehouse: {{shipmentId}}",
+    emailTitle: "Shipment received at warehouse",
+    emailPreheader: "Your shipment is now at our warehouse.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> has been received at our warehouse facility.</p>
+
+<p>It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>{{destination}}</strong>.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<p>{{note}}</p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
   },
   {
     key: "intransit",
@@ -20,15 +104,90 @@ const DEFAULT_STATUSES = [
     icon: "truck",
     defaultUpdate: "Shipment is in transit and moving toward the destination.",
     nextStep: "Continue tracking for real-time movement updates.",
+    emailSubject: "Shipment in transit: {{shipmentId}}",
+    emailTitle: "Shipment in transit",
+    emailPreheader: "Your shipment is currently in transit.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> is now <strong>in transit</strong>.</p>
+
+<p>It is currently moving toward <strong>{{destination}}</strong> from <strong>{{origin}}</strong>.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<p>{{note}}</p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
   },
   {
     key: "customclearance",
     label: "Custom Clearance",
     color: "orange",
     icon: "shield",
-    defaultUpdate:
-      "Shipment is undergoing customs clearance. Additional verification may be required.",
+    defaultUpdate: "Shipment is undergoing customs clearance. Additional verification may be required.",
     nextStep: "We will update you once customs clearance is completed.",
+    emailSubject: "Customs clearance update: {{shipmentId}}",
+    emailTitle: "Shipment under customs clearance",
+    emailPreheader: "Your shipment is currently under customs clearance.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> is currently undergoing <strong>customs clearance</strong>.</p>
+
+<p>This is a routine compliance stage before the shipment proceeds toward <strong>{{destination}}</strong>.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<p>{{note}}</p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "outfordelivery",
+    label: "Out for Delivery",
+    color: "indigo",
+    icon: "home",
+    defaultUpdate: "Shipment is out for delivery and on the final route to the receiver.",
+    nextStep: "Please remain available to receive or pick up the shipment.",
+    emailSubject: "Out for delivery: {{shipmentId}}",
+    emailTitle: "Shipment out for delivery",
+    emailPreheader: "Your shipment is now out for delivery.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> is now <strong>out for delivery</strong>.</p>
+
+<p>Our delivery team is currently on the final route to the receiver's address below. Please be available and ready to receive or pick up the shipment.</p>
+
+<p><strong>Delivery address:</strong><br/>{{destination}}</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<p>{{note}}</p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
   },
   {
     key: "delivered",
@@ -36,16 +195,75 @@ const DEFAULT_STATUSES = [
     color: "green",
     icon: "check",
     defaultUpdate: "Shipment has been delivered successfully to the destination.",
-    nextStep:
-      "If there are delivery concerns, please contact support with your tracking number.",
+    nextStep: "If there are delivery concerns, please contact support with your tracking number.",
+    emailSubject: "Shipment delivered: {{shipmentId}}",
+    emailTitle: "Shipment delivered successfully",
+    emailPreheader: "Your shipment has been delivered.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>This is to confirm that your shipment <strong>{{shipmentId}}</strong> has been successfully <strong>delivered</strong>.</p>
+
+<p>Delivery has been completed at <strong>{{destination}}</strong>.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<div style="margin-top:12px;">
+  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
+</div>
+`.trim(),
+    emailButtonText: "View Shipment",
+    emailButtonUrlType: "track",
   },
   {
     key: "unclaimed",
     label: "Unclaimed",
     color: "red",
-    icon: "clock",
+    icon: "alert",
     defaultUpdate: "Shipment is available for pickup but has not yet been claimed.",
     nextStep: "Please arrange pickup or contact support for assistance.",
+    emailSubject: "Shipment marked unclaimed: {{shipmentId}}",
+    emailTitle: "Shipment marked unclaimed",
+    emailPreheader: "Your shipment currently requires attention.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> is currently marked as <strong>unclaimed</strong>.</p>
+
+<p>Please contact our support team as soon as possible for assistance regarding the next required action.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+`.trim(),
+    emailButtonText: "Contact support",
+    emailButtonUrlType: "support",
+  },
+  {
+    key: "cancelled",
+    label: "Cancelled",
+    color: "red",
+    icon: "alert",
+    defaultUpdate: "Shipment has been cancelled.",
+    nextStep: "Please contact support if you need clarification.",
+    emailSubject: "Shipment cancelled: {{shipmentId}}",
+    emailTitle: "Shipment cancelled",
+    emailPreheader: "Your shipment has been cancelled.",
+    emailBodyHtml: `
+<p>Hello {{name}},</p>
+
+<p>Your shipment <strong>{{shipmentId}}</strong> has been marked as <strong>cancelled</strong>.</p>
+
+<p>If you believe this update was made in error or require clarification, please contact our support team.</p>
+
+<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
+<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+`.trim(),
+    emailButtonText: "Contact support",
+    emailButtonUrlType: "support",
   },
 ];
 
