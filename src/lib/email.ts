@@ -329,79 +329,127 @@ export async function sendShipmentCreatedSenderEmail(
   const invoiceUrl =
     args.viewInvoiceUrl || buildInvoiceFullUrlByQ(trackingOrShip, locale);
 
-  const subject = paid
+  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(
+    args.estimatedDeliveryDate,
+    args.shipmentScope
+  );
+
+  const invoiceStatus = paid ? "PAID" : "UNPAID";
+
+  const templateOverride = await getEmailTemplate("shipment_created_sender");
+
+  const defaultSubject = paid
     ? `Shipment created: ${args.shipmentId}`
     : `Action required: Payment needed for shipment ${args.shipmentId}`;
 
-  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(args.estimatedDeliveryDate, args.shipmentScope);
+  const defaultTitle = paid ? "Shipment created" : "Payment required";
 
-const bodyHtml = `
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-    Hello ${esc(name)},
-  </p>
+  const defaultPreheader = paid
+    ? `Shipment ${args.shipmentId} created (Paid)`
+    : `Shipment ${args.shipmentId} created (Unpaid)`;
 
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-    Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to
-    <strong>${esc(receiverName)}</strong>.
-  </p>
+  const defaultBodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
 
-  <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-    <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
-    <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
-    ${
-      paid
-        ? "We will move your shipment to the next stage shortly and keep you updated."
-        : "Please complete payment so we can move your shipment to the next stage of processing."
-    }
-  </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to
+      <strong>${esc(receiverName)}</strong>.
+    </p>
 
-  <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Shipment Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
-  </p>
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
+      ${
+        paid
+          ? "We will move your shipment to the next stage shortly and keep you updated."
+          : "Please complete payment so we can move your shipment to the next stage of processing."
+      }
+    </p>
 
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Tracking Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
-  </p>
+    <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+        <strong>Shipment Number:</strong>
+        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
+      </p>
 
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Invoice Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
-  </p>
+      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+        <strong>Tracking Number:</strong>
+        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
+      </p>
 
-  <p style="margin:0;font-size:12px;color:#6b7280;">
-    Tip: Save these details for verification on our official website.
-  </p>
-</div>
+      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+        <strong>Invoice Number:</strong>
+        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+      </p>
 
-  <p style="margin:0;font-size:15px;color:#6b7280;">
-    You can view shipment status or open your invoice using the buttons below.
-  </p>
+      <p style="margin:0;font-size:12px;color:#6b7280;">
+        Tip: Save these details for verification on our official website.
+      </p>
+    </div>
 
-  <div style="margin-top:18px;margin-bottom:12px;">
-  <a href="${invoiceUrl}"
-style="color:#2563eb;font-weight:700;text-decoration:none;">
-      View Invoice
-    </a>
-  </div>
-`;
+    <div style="margin:12px 0 0 0;">
+      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+        View Invoice
+      </a>
+    </div>
+  `;
+
+  const vars = {
+    name: esc(name),
+    receiverName: esc(receiverName),
+    shipmentId: esc(args.shipmentId),
+    trackingNumber: esc(args.trackingNumber),
+    invoiceNumber: esc(invoiceNumber),
+    invoiceStatus: esc(invoiceStatus),
+    estimatedDeliveryDate: esc(estimatedDeliveryText),
+    trackUrl,
+    invoiceUrl,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "View Shipment";
+
+  const finalButtonHref =
+    templateOverride?.buttonUrlType === "invoice"
+      ? invoiceUrl
+      : templateOverride?.buttonUrlType === "support"
+      ? SUPPORT_URL
+      : trackUrl;
 
   const html = renderEmailTemplate({
-    subject,
-    title: paid ? "Shipment created" : "Payment required",
-    preheader: paid
-      ? `Shipment ${args.shipmentId} created (Paid)`
-      : `Shipment ${args.shipmentId} created (Unpaid)`,
-    bodyHtml,
-    button: { text: "View Shipment", href: trackUrl },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button:
+      templateOverride?.buttonUrlType === "none"
+        ? undefined
+        : { text: finalButtonText, href: finalButtonHref },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
 
 /** -------------------------
@@ -441,71 +489,122 @@ export async function sendShipmentCreatedReceiverEmailV2(
   const invoiceUrl =
     args.viewInvoiceUrl || buildInvoiceFullUrlByQ(trackingOrShip, locale);
 
-  const subject = paid
+  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(
+    args.estimatedDeliveryDate,
+    args.shipmentScope
+  );
+
+  const invoiceStatus = paid ? "PAID" : "UNPAID";
+
+  const templateOverride = await getEmailTemplate("shipment_created_receiver");
+
+  const defaultSubject = paid
     ? `Shipment on the way: ${args.shipmentId}`
     : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
 
-  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(args.estimatedDeliveryDate, args.shipmentScope);
+  const defaultTitle = "Shipment created";
+  const defaultPreheader = paid
+    ? `Shipment ${args.shipmentId} created (Paid)`
+    : `Shipment ${args.shipmentId} created (Unpaid)`;
 
-const bodyHtml = `
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-    Hello ${esc(name)},
-  </p>
+  const defaultBodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
 
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-    A shipment has been created for you by <strong>${esc(senderName)}</strong>.
-  </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      A shipment has been created for you by <strong>${esc(senderName)}</strong>.
+    </p>
 
-  <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-    <strong>Invoice status:</strong> ${paid ? "<strong>PAID</strong>" : "<strong>UNPAID</strong>"}<br/>
-    <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
-    ${
-      paid
-        ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
-        : "Once payment is completed, the shipment will move to the next stage and you will receive updates."
-    }
-  </p>
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
+      ${
+        paid
+          ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
+          : "Once payment is completed, the shipment will move to the next stage and you will receive updates."
+      }
+    </p>
 
-  <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Shipment Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
-  </p>
+    <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+        <strong>Shipment Number:</strong>
+        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
+      </p>
 
-  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Tracking Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
-  </p>
+      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+        <strong>Tracking Number:</strong>
+        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
+      </p>
 
-  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Invoice Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
-  </p>
-</div>
+      <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+        <strong>Invoice Number:</strong>
+        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
+      </p>
+    </div>
 
-  <div style="margin-top:12px">
-    <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
-      View Invoice
-    </a>
-  </div>
-`;
+    <div style="margin:12px 0 0 0;">
+      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+        View Invoice
+      </a>
+    </div>
+  `;
+
+  const vars = {
+    name: esc(name),
+    senderName: esc(senderName),
+    shipmentId: esc(args.shipmentId),
+    trackingNumber: esc(args.trackingNumber),
+    invoiceNumber: esc(invoiceNumber),
+    invoiceStatus: esc(invoiceStatus),
+    estimatedDeliveryDate: esc(estimatedDeliveryText),
+    trackUrl,
+    invoiceUrl,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "View Shipment";
+
+  const finalButtonHref =
+    templateOverride?.buttonUrlType === "invoice"
+      ? invoiceUrl
+      : templateOverride?.buttonUrlType === "support"
+      ? SUPPORT_URL
+      : trackUrl;
 
   const html = renderEmailTemplate({
-    subject,
-    title: "Shipment created",
-    preheader: paid
-      ? `Shipment ${args.shipmentId} created (Paid)`
-      : `Shipment ${args.shipmentId} created (Unpaid)`,
-    bodyHtml,
-    button: { text: "View Shipment", href: trackUrl },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button:
+      templateOverride?.buttonUrlType === "none"
+        ? undefined
+        : { text: finalButtonText, href: finalButtonHref },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
-
 /** Existing: ban email */
 export async function sendBanEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");

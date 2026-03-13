@@ -94,6 +94,51 @@ export async function GET() {
       );
     }
 
+    // sync timeline statuses into email_templates
+    const statuses = await db
+      .collection("statuses")
+      .find({})
+      .project({ _id: 0 })
+      .toArray();
+
+    for (const s of statuses) {
+      const key = `timeline:${String((s as any).key || "").trim()}`;
+      if (!key || key === "timeline:") continue;
+
+      const exists = await col.findOne({ key });
+      if (!exists) {
+        await col.insertOne({
+          key,
+          label: `${String((s as any).label || "Timeline Stage").trim()} Email`,
+          category: "timeline",
+          subject:
+            String((s as any).emailSubject || "").trim() ||
+            `Shipment update: {{shipmentId}}`,
+          title:
+            String((s as any).emailTitle || "").trim() ||
+            String((s as any).label || "Shipment update").trim(),
+          preheader:
+            String((s as any).emailPreheader || "").trim() ||
+            `Shipment ${String((s as any).label || "update").trim()} update`,
+          bodyHtml:
+            String((s as any).emailBodyHtml || "").trim() ||
+            `<p>Hello {{name}},</p>
+<p>Your shipment <strong>{{shipmentId}}</strong> has been updated to <strong>{{status}}</strong>.</p>
+<p><strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span><br/>
+<strong>Destination:</strong> {{destination}}</p>
+<p>{{note}}</p>`,
+          buttonText:
+            String((s as any).emailButtonText || "").trim() || "Track Shipment",
+          buttonUrlType:
+            String((s as any).emailButtonUrlType || "").trim() || "track",
+          isCustom: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+
     const templates = await col
       .find({})
       .project({ _id: 0 })
