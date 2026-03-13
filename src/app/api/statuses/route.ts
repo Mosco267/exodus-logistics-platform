@@ -18,17 +18,13 @@ const DEFAULT_STATUSES = [
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
-<p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is being prepared for delivery to <strong>{{receiverName}}</strong>.</p>
+<p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is now being processed by our logistics team.</p>
 
-<p><strong>Invoice status:</strong> {{invoiceStatus}}<br/>
-<strong>Estimated delivery date:</strong> {{estimatedDeliveryDate}}<br/>
-{{paymentMessage}}</p>
+<p><strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
+<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span><br/>
+<strong>Destination:</strong> {{destination}}</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span></p>
-
-<p>You can view the invoice from the link below.</p>
+<p>{{note}}</p>
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -40,13 +36,13 @@ const DEFAULT_STATUSES = [
   {
     key: "pickup",
     label: "Picked Up",
-    color: "amber",
+    color: "green",
     icon: "package",
-    defaultUpdate: "Shipment has been picked up and entered into our logistics network.",
-    nextStep: "The package will be moved to the next processing facility shortly.",
+    defaultUpdate: "Shipment has been picked up successfully and entered into our logistics network.",
+    nextStep: "The shipment will move to warehouse processing shortly.",
     emailSubject: "Shipment picked up: {{shipmentId}}",
     emailTitle: "Shipment picked up",
-    emailPreheader: "Your shipment has been picked up.",
+    emailPreheader: "Your shipment has been picked up successfully.",
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
@@ -70,13 +66,13 @@ const DEFAULT_STATUSES = [
   {
     key: "warehouse",
     label: "Warehouse",
-    color: "green",
+    color: "cyan",
     icon: "warehouse",
-    defaultUpdate: "Shipment has been received at our warehouse facility.",
-    nextStep: "Internal handling and dispatch preparation are in progress.",
+    defaultUpdate: "Shipment has arrived at our warehouse facility for handling and preparation.",
+    nextStep: "The shipment will move to transit after warehouse processing.",
     emailSubject: "Shipment received at warehouse: {{shipmentId}}",
     emailTitle: "Shipment received at warehouse",
-    emailPreheader: "Your shipment is now at our warehouse.",
+    emailPreheader: "Your shipment is now at our warehouse facility.",
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
@@ -128,21 +124,25 @@ const DEFAULT_STATUSES = [
     emailButtonUrlType: "track",
   },
   {
-    key: "customclearance",
-    label: "Custom Clearance",
-    color: "orange",
-    icon: "shield",
-    defaultUpdate: "Shipment is undergoing customs clearance. Additional verification may be required.",
-    nextStep: "We will update you once customs clearance is completed.",
-    emailSubject: "Customs clearance update: {{shipmentId}}",
-    emailTitle: "Shipment under customs clearance",
-    emailPreheader: "Your shipment is currently under customs clearance.",
+    key: "outfordelivery",
+    label: "Out for Delivery",
+    color: "purple",
+    icon: "route",
+    defaultUpdate: "Shipment is out for final delivery.",
+    nextStep: "Please be available to receive or pick up the shipment.",
+    emailSubject: "Out for delivery: {{shipmentId}}",
+    emailTitle: "Shipment out for delivery",
+    emailPreheader: "Your shipment is now on its final delivery route.",
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
-<p>Your shipment <strong>{{shipmentId}}</strong> is currently undergoing <strong>customs clearance</strong>.</p>
+<p>Your shipment <strong>{{shipmentId}}</strong> is now <strong>out for delivery</strong>.</p>
 
-<p>This is a routine compliance stage before the shipment proceeds toward <strong>{{destination}}</strong>.</p>
+<p>Our delivery process is in progress and the shipment is on its final route to the delivery address below.</p>
+
+<p><strong>Delivery Address:</strong><br/>{{destination}}</p>
+
+<p>Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.</p>
 
 <p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
 <strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
@@ -154,27 +154,25 @@ const DEFAULT_STATUSES = [
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
 </div>
 `.trim(),
-    emailButtonText: "Track Shipment",
+    emailButtonText: "Track Delivery",
     emailButtonUrlType: "track",
   },
   {
-    key: "outfordelivery",
-    label: "Out for Delivery",
-    color: "indigo",
-    icon: "home",
-    defaultUpdate: "Shipment is out for delivery and on the final route to the receiver.",
-    nextStep: "Please remain available to receive or pick up the shipment.",
-    emailSubject: "Out for delivery: {{shipmentId}}",
-    emailTitle: "Shipment out for delivery",
-    emailPreheader: "Your shipment is now out for delivery.",
+    key: "customclearance",
+    label: "Custom Clearance",
+    color: "orange",
+    icon: "shield",
+    defaultUpdate: "Shipment is undergoing customs clearance. Additional verification may be required.",
+    nextStep: "We will update you once customs clearance is completed.",
+    emailSubject: "Customs clearance update: {{shipmentId}}",
+    emailTitle: "Shipment under customs clearance",
+    emailPreheader: "Your shipment is undergoing customs clearance.",
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
-<p>Your shipment <strong>{{shipmentId}}</strong> is now <strong>out for delivery</strong>.</p>
+<p>Your shipment <strong>{{shipmentId}}</strong> is currently undergoing <strong>customs clearance</strong>.</p>
 
-<p>Our delivery team is currently on the final route to the receiver's address below. Please be available and ready to receive or pick up the shipment.</p>
-
-<p><strong>Delivery address:</strong><br/>{{destination}}</p>
+<p>This is a routine compliance stage before the shipment proceeds toward <strong>{{destination}}</strong>.</p>
 
 <p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
 <strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
@@ -197,8 +195,8 @@ const DEFAULT_STATUSES = [
     defaultUpdate: "Shipment has been delivered successfully to the destination.",
     nextStep: "If there are delivery concerns, please contact support with your tracking number.",
     emailSubject: "Shipment delivered: {{shipmentId}}",
-    emailTitle: "Shipment delivered successfully",
-    emailPreheader: "Your shipment has been delivered.",
+    emailTitle: "Shipment delivered",
+    emailPreheader: "Your shipment has been delivered successfully.",
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
@@ -209,6 +207,8 @@ const DEFAULT_STATUSES = [
 <p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
 <strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
 <strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+
+<p>{{note}}</p>
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -226,7 +226,7 @@ const DEFAULT_STATUSES = [
     nextStep: "Please arrange pickup or contact support for assistance.",
     emailSubject: "Shipment marked unclaimed: {{shipmentId}}",
     emailTitle: "Shipment marked unclaimed",
-    emailPreheader: "Your shipment currently requires attention.",
+    emailPreheader: "Your shipment is currently marked as unclaimed.",
     emailBodyHtml: `
 <p>Hello {{name}},</p>
 
@@ -237,30 +237,8 @@ const DEFAULT_STATUSES = [
 <p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
 <strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
 <strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
-`.trim(),
-    emailButtonText: "Contact support",
-    emailButtonUrlType: "support",
-  },
-  {
-    key: "cancelled",
-    label: "Cancelled",
-    color: "red",
-    icon: "alert",
-    defaultUpdate: "Shipment has been cancelled.",
-    nextStep: "Please contact support if you need clarification.",
-    emailSubject: "Shipment cancelled: {{shipmentId}}",
-    emailTitle: "Shipment cancelled",
-    emailPreheader: "Your shipment has been cancelled.",
-    emailBodyHtml: `
-<p>Hello {{name}},</p>
 
-<p>Your shipment <strong>{{shipmentId}}</strong> has been marked as <strong>cancelled</strong>.</p>
-
-<p>If you believe this update was made in error or require clarification, please contact our support team.</p>
-
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<p>{{note}}</p>
 `.trim(),
     emailButtonText: "Contact support",
     emailButtonUrlType: "support",
@@ -307,18 +285,44 @@ export async function GET(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    const dbStatuses = await db
-      .collection("statuses")
-      .find({})
-      .project({ _id: 0 })
-      .toArray();
+    const col = db.collection("statuses");
 
-    const mergedMap: Record<string, any> = {};
-    for (const d of DEFAULT_STATUSES) mergedMap[normalizeKey(d.key)] = d;
-    for (const s of dbStatuses) {
-      const k = normalizeKey(String((s as any).key || ""));
-      if (k) mergedMap[k] = s;
-    }
+const dbStatuses = await col
+  .find({})
+  .project({ _id: 0 })
+  .toArray();
+
+const dbKeys = new Set(
+  dbStatuses.map((s: any) => normalizeKey(String(s?.key || "")))
+);
+
+const now = new Date();
+
+const missingDefaults = DEFAULT_STATUSES.filter(
+  (s) => !dbKeys.has(normalizeKey(s.key))
+);
+
+if (missingDefaults.length) {
+  await col.insertMany(
+    missingDefaults.map((s) => ({
+      ...s,
+      createdAt: now,
+      updatedAt: now,
+    }))
+  );
+}
+
+const freshStatuses = await col
+  .find({})
+  .project({ _id: 0 })
+  .toArray();
+
+const mergedMap: Record<string, any> = {};
+for (const d of DEFAULT_STATUSES) mergedMap[normalizeKey(d.key)] = d;
+for (const s of freshStatuses) {
+  const k = normalizeKey(String((s as any).key || ""));
+  if (k) mergedMap[k] = s;
+}
 
     if (key) {
       const one = mergedMap[key] || null;
