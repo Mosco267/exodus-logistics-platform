@@ -70,6 +70,16 @@ function invoiceStatusLabel(status: InvoiceStatus) {
   return "UNPAID";
 }
 
+function getButtonHrefFromType(
+  buttonUrlType: string,
+  urls: { trackUrl: string; invoiceUrl: string; supportUrl: string }
+) {
+  if (buttonUrlType === "invoice") return urls.invoiceUrl;
+  if (buttonUrlType === "support") return urls.supportUrl;
+  if (buttonUrlType === "none") return "";
+  return urls.trackUrl;
+}
+
 function invoiceStatusSubject(status: InvoiceStatus) {
   if (status === "paid") return "Paid";
   if (status === "overdue") return "Overdue";
@@ -334,7 +344,10 @@ export async function sendShipmentCreatedSenderEmail(
     args.shipmentScope
   );
 
-  const invoiceStatus = paid ? "PAID" : "UNPAID";
+  const invoiceStatusText = paid ? "PAID" : "UNPAID";
+  const paymentMessage = paid
+    ? "We will move your shipment to the next stage shortly and keep you updated."
+    : "Please complete payment so we can move your shipment to the next stage of processing.";
 
   const templateOverride = await getEmailTemplate("shipment_created_sender");
 
@@ -359,13 +372,9 @@ export async function sendShipmentCreatedSenderEmail(
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
       <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
-      ${
-        paid
-          ? "We will move your shipment to the next stage shortly and keep you updated."
-          : "Please complete payment so we can move your shipment to the next stage of processing."
-      }
+      ${paymentMessage}
     </p>
 
     <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
@@ -389,7 +398,11 @@ export async function sendShipmentCreatedSenderEmail(
       </p>
     </div>
 
-    <div style="margin:12px 0 0 0;">
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      You can view shipment status or open your invoice using the links below.
+    </p>
+
+    <div style="margin-top:12px">
       <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
         View Invoice
       </a>
@@ -402,8 +415,9 @@ export async function sendShipmentCreatedSenderEmail(
     shipmentId: esc(args.shipmentId),
     trackingNumber: esc(args.trackingNumber),
     invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(invoiceStatus),
+    invoiceStatus: esc(invoiceStatusText),
     estimatedDeliveryDate: esc(estimatedDeliveryText),
+    paymentMessage: esc(paymentMessage),
     trackUrl,
     invoiceUrl,
   };
@@ -494,7 +508,10 @@ export async function sendShipmentCreatedReceiverEmailV2(
     args.shipmentScope
   );
 
-  const invoiceStatus = paid ? "PAID" : "UNPAID";
+  const invoiceStatusText = paid ? "PAID" : "UNPAID";
+  const paymentMessage = paid
+    ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
+    : "Once payment is completed, the shipment will move to the next stage and you will receive updates.";
 
   const templateOverride = await getEmailTemplate("shipment_created_receiver");
 
@@ -503,6 +520,7 @@ export async function sendShipmentCreatedReceiverEmailV2(
     : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
 
   const defaultTitle = "Shipment created";
+
   const defaultPreheader = paid
     ? `Shipment ${args.shipmentId} created (Paid)`
     : `Shipment ${args.shipmentId} created (Unpaid)`;
@@ -517,13 +535,9 @@ export async function sendShipmentCreatedReceiverEmailV2(
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
       <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
-      ${
-        paid
-          ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
-          : "Once payment is completed, the shipment will move to the next stage and you will receive updates."
-      }
+      ${paymentMessage}
     </p>
 
     <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
@@ -537,13 +551,17 @@ export async function sendShipmentCreatedReceiverEmailV2(
         <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
       </p>
 
-      <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
         <strong>Invoice Number:</strong>
         <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
       </p>
     </div>
 
-    <div style="margin:12px 0 0 0;">
+    <p style="margin:0;font-size:15px;color:#6b7280;">
+      You can view shipment status or open your invoice using the links below.
+    </p>
+
+    <div style="margin-top:12px">
       <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
         View Invoice
       </a>
@@ -556,8 +574,9 @@ export async function sendShipmentCreatedReceiverEmailV2(
     shipmentId: esc(args.shipmentId),
     trackingNumber: esc(args.trackingNumber),
     invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(invoiceStatus),
+    invoiceStatus: esc(invoiceStatusText),
     estimatedDeliveryDate: esc(estimatedDeliveryText),
+    paymentMessage: esc(paymentMessage),
     trackUrl,
     invoiceUrl,
   };
