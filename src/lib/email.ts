@@ -1264,7 +1264,7 @@ export async function sendShipmentStatusEmail(
           </td>
           <td
             align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+            style="padding:8px 6px;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
           >
             ${esc(opts.shipmentId)}
           </td>
@@ -1272,13 +1272,13 @@ export async function sendShipmentStatusEmail(
 
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+            style="padding:8px 6px;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
           >
             Tracking Number:
           </td>
           <td
             align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+            style="padding:8px 6px;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
           >
             ${esc(opts.trackingNumber || "—")}
           </td>
@@ -1292,7 +1292,7 @@ export async function sendShipmentStatusEmail(
           </td>
           <td
             align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
           >
             ${esc(invoiceNumber)}
           </td>
