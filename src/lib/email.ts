@@ -1245,55 +1245,100 @@ export async function sendShipmentStatusEmail(
   width="100%"
   cellspacing="0"
   cellpadding="0"
-  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
+  style="
+    margin:22px auto 0 auto;
+    border-collapse:separate;
+    width:100%;
+    max-width:620px;
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:16px;
+  "
 >
   <tr>
-    <td style="padding:14px 20px;border-radius:16px;">
+    <td style="padding:14px 22px;border-radius:16px;">
       <table
         role="presentation"
         width="100%"
         cellspacing="0"
         cellpadding="0"
-        style="border-collapse:collapse;width:100%;table-layout:fixed;"
+        style="
+          border-collapse:collapse;
+          width:100%;
+          table-layout:fixed;
+        "
       >
         <tr>
-          <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
-          >
+          <td style="
+            padding:8px 0;
+            font-size:13px;
+            line-height:18px;
+            color:#6b7280;
+            font-weight:700;
+            width:42%;
+            white-space:nowrap;
+          ">
             Shipment Number:
           </td>
-          <td
-            align="right"
-            style="padding:8px 6px;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
-          >
+          <td align="right" style="
+            padding:8px 0;
+            font-size:13px;
+            line-height:18px;
+            color:#1d4ed8;
+            font-weight:800;
+            width:58%;
+            white-space:nowrap;
+          ">
             ${esc(opts.shipmentId)}
           </td>
         </tr>
 
         <tr>
-          <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:64%;"
-          >
+          <td style="
+            padding:8px 0;
+            font-size:13px;
+            line-height:18px;
+            color:#6b7280;
+            font-weight:700;
+            width:42%;
+            white-space:nowrap;
+          ">
             Tracking Number:
           </td>
-          <td
-            align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
-          >
+          <td align="right" style="
+            padding:8px 0;
+            font-size:13px;
+            line-height:18px;
+            color:#1d4ed8;
+            font-weight:800;
+            width:58%;
+            white-space:nowrap;
+          ">
             ${esc(opts.trackingNumber || "—")}
           </td>
         </tr>
 
         <tr>
-          <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:50%;"
-          >
+          <td style="
+            padding:8px 0;
+            font-size:13px;
+            line-height:18px;
+            color:#6b7280;
+            font-weight:700;
+            width:42%;
+            white-space:nowrap;
+          ">
             Invoice Number:
           </td>
-          <td
-            align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
-          >
+          <td align="right" style="
+            padding:8px 0;
+            font-size:13px;
+            line-height:18px;
+            color:#1d4ed8;
+            font-weight:800;
+            width:58%;
+            white-space:nowrap;
+          ">
             ${esc(invoiceNumber)}
           </td>
         </tr>
@@ -1314,13 +1359,43 @@ export async function sendShipmentStatusEmail(
     </div>
   `;
 
-  const statusBadgeHtml = `
-    <div style="margin:0 0 14px 0;">
-      <span style="display:inline-block;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:800;letter-spacing:.3px;padding:6px 10px;border-radius:999px;text-transform:uppercase;">
-        ${esc(status)}
-      </span>
-    </div>
-  `;
+  const badgeTone =
+  normalizedStatus === "delivered"
+    ? {
+        bg: "#dcfce7",
+        text: "#166534",
+      }
+    : normalizedStatus === "cancelled" ||
+      normalizedStatus === "canceled" ||
+      normalizedStatus === "invalidaddress" ||
+      normalizedStatus === "paymentissue" ||
+      normalizedStatus === "unclaimed"
+    ? {
+        bg: "#fee2e2",
+        text: "#b91c1c",
+      }
+    : {
+        bg: "#dbeafe",
+        text: "#1d4ed8",
+      };
+
+const statusBadgeHtml = `
+  <div style="margin:0 0 14px 0;">
+    <span style="
+      display:inline-block;
+      background:${badgeTone.bg};
+      color:${badgeTone.text};
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.3px;
+      padding:6px 12px;
+      border-radius:999px;
+      text-transform:uppercase;
+    ">
+      ${esc(status)}
+    </span>
+  </div>
+`;
 
   const defaultBodyHtml = `
     ${statusBadgeHtml}
