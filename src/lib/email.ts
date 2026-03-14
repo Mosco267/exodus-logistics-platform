@@ -1255,96 +1255,84 @@ export async function sendShipmentStatusEmail(
     border-radius:16px;
   "
 >
-  <tr>
-    <td style="padding:14px 22px;border-radius:16px;">
-      <table
-        role="presentation"
-        width="100%"
-        cellspacing="0"
-        cellpadding="0"
-        style="
-          border-collapse:collapse;
-          width:100%;
-          table-layout:fixed;
-        "
-      >
-        <tr>
-          <td style="
-            padding:8px 0;
-            font-size:13px;
-            line-height:18px;
-            color:#6b7280;
-            font-weight:700;
-            width:45%;
-            white-space:nowrap;
-          ">
-            Shipment Number:
-          </td>
-          <td align="right" style="
-            padding:8px 0;
-            font-size:13px;
-            line-height:18px;
-            color:#1d4ed8;
-            font-weight:800;
-            width:64%;
-            white-space:nowrap;
-          ">
-            ${esc(opts.shipmentId)}
-          </td>
-        </tr>
+<tr>
+<td style="padding:16px 22px;border-radius:16px;">
 
-        <tr>
-          <td style="
-            padding:8px 0;
-            font-size:13px;
-            line-height:18px;
-            color:#6b7280;
-            font-weight:700;
-            width:45%;
-            white-space:nowrap;
-          ">
-            Tracking Number:
-          </td>
-          <td align="right" style="
-            padding:8px 0;
-            font-size:13px;
-            line-height:18px;
-            color:#1d4ed8;
-            font-weight:800;
-            width:64%;
-            white-space:nowrap;
-          ">
-            ${esc(opts.trackingNumber || "—")}
-          </td>
-        </tr>
+<table
+  role="presentation"
+  width="100%"
+  cellspacing="0"
+  cellpadding="0"
+  style="border-collapse:collapse;width:100%;"
+>
 
-        <tr>
-          <td style="
-            padding:8px 0;
-            font-size:13px;
-            line-height:18px;
-            color:#6b7280;
-            font-weight:700;
-            width:50%;
-            white-space:nowrap;
-          ">
-            Invoice Number:
-          </td>
-          <td align="right" style="
-            padding:8px 0;
-            font-size:13px;
-            line-height:18px;
-            color:#1d4ed8;
-            font-weight:800;
-            width:55%;
-            white-space:nowrap;
-          ">
-            ${esc(invoiceNumber)}
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
+<tr>
+<td style="
+padding:10px 0;
+font-size:14px;
+color:#6b7280;
+font-weight:700;
+">
+Shipment Number
+</td>
+
+<td align="right" style="
+padding:10px 0;
+font-size:14px;
+color:#1d4ed8;
+font-weight:800;
+white-space:nowrap;
+">
+${esc(opts.shipmentId)}
+</td>
+</tr>
+
+<tr>
+<td style="
+padding:10px 0;
+font-size:14px;
+color:#6b7280;
+font-weight:700;
+">
+Tracking Number
+</td>
+
+<td align="right" style="
+padding:10px 0;
+font-size:14px;
+color:#1d4ed8;
+font-weight:800;
+white-space:nowrap;
+">
+${esc(opts.trackingNumber || "—")}
+</td>
+</tr>
+
+<tr>
+<td style="
+padding:10px 0;
+font-size:14px;
+color:#6b7280;
+font-weight:700;
+">
+Invoice Number
+</td>
+
+<td align="right" style="
+padding:10px 0;
+font-size:14px;
+color:#1d4ed8;
+font-weight:800;
+white-space:nowrap;
+">
+${esc(invoiceNumber)}
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
 </table>
 `;
 
