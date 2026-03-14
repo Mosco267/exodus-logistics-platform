@@ -20,11 +20,23 @@ const DEFAULT_STATUSES = [
 
 <p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is now being processed by our logistics team.</p>
 
-<p><strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span><br/>
-<strong>Destination:</strong> {{destination}}</p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Destination:</strong> {{destination}}
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -50,11 +62,24 @@ const DEFAULT_STATUSES = [
 
 <p>The shipment is now being processed for movement from <strong>{{origin}}</strong> toward <strong>{{destination}}</strong>.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -80,11 +105,24 @@ const DEFAULT_STATUSES = [
 
 <p>It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>{{destination}}</strong>.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -110,11 +148,24 @@ const DEFAULT_STATUSES = [
 
 <p>It is currently moving toward <strong>{{destination}}</strong> from <strong>{{origin}}</strong>.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -140,15 +191,31 @@ const DEFAULT_STATUSES = [
 
 <p>Our delivery process is in progress and the shipment is on its final route to the delivery address below.</p>
 
-<p><strong>Delivery Address:</strong><br/>{{destination}}</p>
+<p style="margin:0 0 16px 0;font-size:15px;line-height:24px;color:#111827;">
+  <strong>Delivery Address:</strong><br/>
+  {{destination}}
+</p>
 
 <p>Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -174,11 +241,24 @@ const DEFAULT_STATUSES = [
 
 <p>This is a routine compliance stage before the shipment proceeds toward <strong>{{destination}}</strong>.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -204,11 +284,24 @@ const DEFAULT_STATUSES = [
 
 <p>Delivery has been completed at <strong>{{destination}}</strong>.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 
 <div style="margin-top:12px;">
   <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
@@ -234,11 +327,24 @@ const DEFAULT_STATUSES = [
 
 <p>Please contact our support team as soon as possible for assistance regarding the next required action.</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span></p>
+<div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Shipment Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span>
+  </p>
 
-<p>{{note}}</p>
+  <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Tracking Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span>
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
+    <strong>Invoice Number:</strong>
+    <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span>
+  </p>
+</div>
+
+{{note}}
 `.trim(),
     emailButtonText: "Contact support",
     emailButtonUrlType: "support",

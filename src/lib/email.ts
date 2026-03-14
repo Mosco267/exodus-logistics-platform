@@ -772,6 +772,7 @@ export async function sendShipmentStatusEmail(
     trackingNumber?: string;
     invoiceNumber?: string;
     destination?: string;
+    fullDestination?: string;
     origin?: string;
     note?: string;
     estimatedDeliveryDate?: string | null;
@@ -795,6 +796,7 @@ const invoiceNumber = makeInvoiceNumber({
 });
 
 const destination = cleanStr(opts.destination) || "the destination address on file";
+const fullDestination = cleanStr((opts as any).fullDestination) || destination;
 const origin = cleanStr(opts.origin) || "origin facility";
 const note = cleanStr(opts.note);
 
@@ -834,7 +836,7 @@ switch (status.toLowerCase()) {
     title = "Shipment out for delivery";
     subject = `Exodus Logistics: Out for delivery (${opts.shipmentId})`;
     intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>out for delivery</strong>.`;
-    detail = `Our delivery process is in progress and the shipment is on its final route toward <strong>${esc(destination)}</strong>.`;
+    detail = `Our delivery process is in progress and the shipment is on its final route toward <strong>${esc(fullDestination)}</strong>.`;
     buttonText = "Track Delivery";
     break;
 
@@ -842,7 +844,7 @@ switch (status.toLowerCase()) {
     title = "Shipment delivered";
     subject = `Exodus Logistics: Shipment delivered (${opts.shipmentId})`;
     intro = `This is to confirm that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully <strong>delivered</strong>.`;
-    detail = `Delivery has been completed at <strong>${esc(destination)}</strong>.`;
+    detail = `Delivery has been completed at <strong>${esc(fullDestination)}</strong>.`;
     buttonText = "View Shipment";
     break;
 
@@ -919,7 +921,8 @@ const defaultBodyHtml = `
     </p>
 
     <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
-      <strong>Destination:</strong> ${esc(destination)}
+      <strong>Destination:</strong><br />
+      ${esc(destination)}
     </p>
   </div>
 
@@ -933,7 +936,7 @@ const defaultBodyHtml = `
       : ""
   }
 
-  <p style="margin:0;font-size:15px;color:#6b7280;">
+  <p style="margin:0;font-size:15px;line-height:24px;color:#6b7280;">
     You can track the shipment or review the invoice using the links below.
   </p>
 
@@ -950,8 +953,15 @@ const vars = {
   trackingNumber: esc(opts.trackingNumber || "—"),
   invoiceNumber: esc(invoiceNumber),
   destination: esc(destination),
+  fullDestination: esc(fullDestination),
   origin: esc(origin),
-  note: esc(note),
+  note: note
+  ? `<div style="margin:0 0 16px 0;padding:12px 14px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
+       <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">
+         <strong>Additional note:</strong> ${esc(note)}
+       </p>
+     </div>`
+  : "",
   trackUrl: TRACK_URL,
   invoiceUrl: INVOICE_URL,
   status: esc(status),

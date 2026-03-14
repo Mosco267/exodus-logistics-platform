@@ -835,45 +835,53 @@ if (shouldSendTrackingStageEmail) {
   ).trim();
 
   const destination = joinNice([
-    (updated as any)?.receiverCity,
-    (updated as any)?.receiverState,
-    (updated as any)?.receiverCountry,
-  ]);
+  (updated as any)?.receiverCity,
+  (updated as any)?.receiverState,
+  (updated as any)?.receiverCountry,
+]);
 
-  const origin = joinNice([
-    (updated as any)?.senderCity,
-    (updated as any)?.senderState,
-    (updated as any)?.senderCountry,
-  ]);
+const fullDestination = joinNice([
+  (updated as any)?.receiverAddress,
+  (updated as any)?.receiverCity,
+  (updated as any)?.receiverState,
+  (updated as any)?.receiverPostalCode,
+  (updated as any)?.receiverCountry,
+]);
+
+const origin = joinNice([
+  (updated as any)?.senderCity,
+  (updated as any)?.senderState,
+  (updated as any)?.senderCountry,
+]);
 
   
 
   if (senderEmail) {
     await sendShipmentStatusEmail(senderEmail, {
-      name: senderName,
-      shipmentId,
-      statusLabel: trackingStageEmailLabel,
-      trackingNumber,
-      invoiceNumber: invoiceNumber || undefined,
-      destination,
-      origin,
-      note: trackingStageEmailNote,
-      
-    }).catch(() => null);
+  name: senderName,
+  shipmentId,
+  statusLabel: trackingStageEmailLabel,
+  trackingNumber,
+  invoiceNumber: invoiceNumber || undefined,
+  destination,
+  fullDestination,
+  origin,
+  note: trackingStageEmailNote,
+}).catch(() => null);
   }
 
   if (receiverEmail) {
     await sendShipmentStatusEmail(receiverEmail, {
-      name: receiverName,
-      shipmentId,
-      statusLabel: trackingStageEmailLabel,
-      trackingNumber,
-      invoiceNumber: invoiceNumber || undefined,
-      destination,
-      origin,
-      note: trackingStageEmailNote,
-      
-    }).catch(() => null);
+  name: receiverName,
+  shipmentId,
+  statusLabel: trackingStageEmailLabel,
+  trackingNumber,
+  invoiceNumber: invoiceNumber || undefined,
+  destination,
+  fullDestination,
+  origin,
+  note: trackingStageEmailNote,
+}).catch(() => null);
   }
 }
 
