@@ -1240,7 +1240,7 @@ export async function sendShipmentStatusEmail(
 
   const detailsCardHtml = `
 <div style="margin:22px auto; display:block;padding:14px 18px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;max-width:480px;width:100%;">
-  <table role="presentation" align="left" width="100%" cellspacing="0" cellpadding="0"
+  <table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0"
     style="width:100%;border-collapse:collapse;font-size:13px;line-height:20px;color:#111827;">
 
     <tr>
