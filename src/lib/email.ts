@@ -1286,7 +1286,7 @@ export async function sendShipmentStatusEmail(
 
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:50%;"
           >
             Invoice Number:
           </td>
