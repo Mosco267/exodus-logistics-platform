@@ -1238,43 +1238,41 @@ export async function sendShipmentStatusEmail(
     `
     : "";
 
-  const detailsCardHtml = `
-<div style="margin:22px auto; display:block;padding:14px 18px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;max-width:480px;width:100%;">
-  <table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0"
-    style="width:100%;border-collapse:collapse;font-size:13px;line-height:20px;color:#111827;">
+ const detailsCardHtml = `
+<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:520px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;">
+  <tr>
+    <td style="padding:14px 18px;border-radius:14px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;font-size:13px;line-height:20px;color:#111827;">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;font-weight:500;white-space:nowrap;width:44%;">
+            Shipment Number:
+          </td>
+          <td style="padding:8px 0;color:#1d4ed8;font-weight:700;text-align:right;white-space:nowrap;width:56%;">
+            ${esc(opts.shipmentId)}
+          </td>
+        </tr>
 
-    <tr>
-      <td style="padding:6px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
-        Shipment Number:
-      </td>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;font-weight:500;white-space:nowrap;width:44%;">
+            Tracking Number:
+          </td>
+          <td style="padding:8px 0;color:#1d4ed8;font-weight:700;text-align:right;white-space:nowrap;width:56%;">
+            ${esc(opts.trackingNumber || "—")}
+          </td>
+        </tr>
 
-      <td style="padding:6px 0;font-weight:700;color:#1d4ed8;text-align:right;white-space:nowrap;">
-        ${esc(opts.shipmentId)}
-      </td>
-    </tr>
-
-    <tr>
-      <td style="padding:6px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
-        Tracking Number:
-      </td>
-
-      <td style="padding:6px 0;font-weight:700;color:#1d4ed8;text-align:right;white-space:nowrap;">
-        ${esc(opts.trackingNumber || "—")}
-      </td>
-    </tr>
-
-    <tr>
-      <td style="padding:6px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
-        Invoice Number:
-      </td>
-
-      <td style="padding:6px 0;font-weight:700;color:#1d4ed8;text-align:right;white-space:nowrap;">
-        ${esc(invoiceNumber)}
-      </td>
-    </tr>
-
-  </table>
-</div>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;font-weight:500;white-space:nowrap;width:44%;">
+            Invoice Number:
+          </td>
+          <td style="padding:8px 0;color:#1d4ed8;font-weight:700;text-align:right;white-space:nowrap;width:56%;">
+            ${esc(invoiceNumber)}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 `;
 
   const destinationBlockHtml = `
@@ -1358,6 +1356,10 @@ export async function sendShipmentStatusEmail(
     ? fillVars(statusOverride.emailPreheader, vars)
     : `${status} – Shipment ${opts.shipmentId}`;
 
+    const finalBodyHtml = statusOverride?.emailBodyHtml
+  ? fillVars(statusOverride.emailBodyHtml, vars)
+  : defaultBodyHtml;
+
   const finalButtonText = statusOverride?.emailButtonText
     ? fillVars(statusOverride.emailButtonText, vars)
     : buttonText;
@@ -1376,17 +1378,17 @@ export async function sendShipmentStatusEmail(
       : buttonLink;
 
   const html = renderEmailTemplate({
-    subject: finalSubject,
-    title: finalTitle,
-    preheader: finalPreheader,
-    bodyHtml: defaultBodyHtml,
-    button: finalButtonHref
-      ? { text: finalButtonText || "Track Shipment", href: finalButtonHref }
-      : undefined,
-    appUrl: APP_URL,
-    supportEmail: SUPPORT_EMAIL,
-    sentTo: to,
-  });
+  subject: finalSubject,
+  title: finalTitle,
+  preheader: finalPreheader,
+  bodyHtml: finalBodyHtml,
+  button: finalButtonHref
+    ? { text: finalButtonText || "Track Shipment", href: finalButtonHref }
+    : undefined,
+  appUrl: APP_URL,
+  supportEmail: SUPPORT_EMAIL,
+  sentTo: to,
+});
 
   return sendEmail(to, finalSubject, html);
 }
