@@ -1239,101 +1239,37 @@ export async function sendShipmentStatusEmail(
     : "";
 
  const detailsCardHtml = `
-<table
-  role="presentation"
-  align="center"
-  width="100%"
-  cellspacing="0"
-  cellpadding="0"
-  style="
-    margin:22px auto 0 auto;
-    border-collapse:separate;
-    width:100%;
-    max-width:620px;
-    background:#f8fafc;
-    border:1px solid #e5e7eb;
-    border-radius:16px;
-  "
->
-<tr>
-<td style="padding:16px 22px;border-radius:16px;">
-
-<table
-  role="presentation"
-  width="100%"
-  cellspacing="0"
-  cellpadding="0"
-  style="border-collapse:collapse;width:100%;"
->
-
-<tr>
-<td style="
-padding:10px 0;
-font-size:14px;
-color:#6b7280;
-font-weight:700;
+<div style="
+  margin:22px auto 0 auto;
+  max-width:620px;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:16px 20px;
 ">
-Shipment Number
-</td>
 
-<td align="right" style="
-padding:10px 0;
-font-size:14px;
-color:#1d4ed8;
-font-weight:800;
-white-space:nowrap;
-">
+<p style="margin:8px 0;font-size:14px;color:#6b7280;font-weight:600;">
+Shipment Number:
+<span style="float:right;color:#2563eb;font-weight:800;">
 ${esc(opts.shipmentId)}
-</td>
-</tr>
+</span>
+</p>
 
-<tr>
-<td style="
-padding:10px 0;
-font-size:14px;
-color:#6b7280;
-font-weight:700;
-">
-Tracking Number
-</td>
-
-<td align="right" style="
-padding:10px 0;
-font-size:14px;
-color:#1d4ed8;
-font-weight:800;
-white-space:nowrap;
-">
+<p style="margin:8px 0;font-size:14px;color:#6b7280;font-weight:600;">
+Tracking Number:
+<span style="float:right;color:#2563eb;font-weight:800;">
 ${esc(opts.trackingNumber || "—")}
-</td>
-</tr>
+</span>
+</p>
 
-<tr>
-<td style="
-padding:10px 0;
-font-size:14px;
-color:#6b7280;
-font-weight:700;
-">
-Invoice Number
-</td>
-
-<td align="right" style="
-padding:10px 0;
-font-size:14px;
-color:#1d4ed8;
-font-weight:800;
-white-space:nowrap;
-">
+<p style="margin:8px 0;font-size:14px;color:#6b7280;font-weight:600;">
+Invoice Number:
+<span style="float:right;color:#2563eb;font-weight:800;">
 ${esc(invoiceNumber)}
-</td>
-</tr>
+</span>
+</p>
 
-</table>
-
-</td>
-</tr>
-</table>
+</div>
 `;
 
   const destinationBlockHtml = `
