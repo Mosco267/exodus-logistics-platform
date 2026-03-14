@@ -1239,39 +1239,69 @@ export async function sendShipmentStatusEmail(
     : "";
 
  const detailsCardHtml = `
-<div style="
-  margin:22px auto 0 auto;
-  max-width:620px;
-  background:#f8fafc;
-  border:1px solid #e5e7eb;
-  border-radius:16px;
-  padding:16px 20px;
-">
+<table
+  role="presentation"
+  align="center"
+  width="100%"
+  cellspacing="0"
+  cellpadding="0"
+  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
+>
+  <tr>
+    <td style="padding:14px 20px;border-radius:16px;">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="border-collapse:collapse;width:100%;table-layout:fixed;"
+      >
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Shipment Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+          >
+            ${esc(opts.shipmentId)}
+          </td>
+        </tr>
 
-<p style="margin:8px 0;font-size:14px;color:#6b7280;font-weight:600;">
-Shipment Number:
-<span style="float:right;color:#2563eb;font-weight:800;">
-${esc(opts.shipmentId)}
-</span>
-</p>
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Tracking Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+          >
+            ${esc(opts.trackingNumber || "—")}
+          </td>
+        </tr>
 
-<p style="margin:8px 0;font-size:14px;color:#6b7280;font-weight:600;">
-Tracking Number:
-<span style="float:right;color:#2563eb;font-weight:800;">
-${esc(opts.trackingNumber || "—")}
-</span>
-</p>
-
-<p style="margin:8px 0;font-size:14px;color:#6b7280;font-weight:600;">
-Invoice Number:
-<span style="float:right;color:#2563eb;font-weight:800;">
-${esc(invoiceNumber)}
-</span>
-</p>
-
-</div>
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Invoice Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+          >
+            ${esc(invoiceNumber)}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 `;
-
   const destinationBlockHtml = `
     <div style="margin:18px 0 0 0;">
       <p style="margin:0 0 6px 0;font-size:14px;line-height:20px;color:#6b7280;">
