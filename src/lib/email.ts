@@ -1258,7 +1258,7 @@ export async function sendShipmentStatusEmail(
       >
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:36%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
           >
             Shipment Number:
           </td>
@@ -1272,7 +1272,7 @@ export async function sendShipmentStatusEmail(
 
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:36%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
           >
             Tracking Number:
           </td>
@@ -1286,7 +1286,7 @@ export async function sendShipmentStatusEmail(
 
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:36%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
           >
             Invoice Number:
           </td>
