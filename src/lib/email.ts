@@ -1275,7 +1275,7 @@ export async function sendShipmentStatusEmail(
             line-height:18px;
             color:#6b7280;
             font-weight:700;
-            width:42%;
+            width:45%;
             white-space:nowrap;
           ">
             Shipment Number:
@@ -1286,7 +1286,7 @@ export async function sendShipmentStatusEmail(
             line-height:18px;
             color:#1d4ed8;
             font-weight:800;
-            width:58%;
+            width:64%;
             white-space:nowrap;
           ">
             ${esc(opts.shipmentId)}
@@ -1300,7 +1300,7 @@ export async function sendShipmentStatusEmail(
             line-height:18px;
             color:#6b7280;
             font-weight:700;
-            width:42%;
+            width:45%;
             white-space:nowrap;
           ">
             Tracking Number:
@@ -1311,7 +1311,7 @@ export async function sendShipmentStatusEmail(
             line-height:18px;
             color:#1d4ed8;
             font-weight:800;
-            width:58%;
+            width:64%;
             white-space:nowrap;
           ">
             ${esc(opts.trackingNumber || "—")}
@@ -1325,7 +1325,7 @@ export async function sendShipmentStatusEmail(
             line-height:18px;
             color:#6b7280;
             font-weight:700;
-            width:42%;
+            width:50%;
             white-space:nowrap;
           ">
             Invoice Number:
@@ -1336,7 +1336,7 @@ export async function sendShipmentStatusEmail(
             line-height:18px;
             color:#1d4ed8;
             font-weight:800;
-            width:58%;
+            width:55%;
             white-space:nowrap;
           ">
             ${esc(invoiceNumber)}
