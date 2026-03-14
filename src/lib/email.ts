@@ -625,6 +625,149 @@ function formatEstimatedDeliveryDateRange(
 }
 
 
+function renderToneBadge(
+  text: string,
+  tone: "blue" | "green" | "red" = "blue"
+) {
+  const color =
+    tone === "green"
+      ? { bg: "#dcfce7", text: "#166534" }
+      : tone === "red"
+      ? { bg: "#fee2e2", text: "#b91c1c" }
+      : { bg: "#dbeafe", text: "#1d4ed8" };
+
+  return `
+    <div style="margin:0 0 14px 0;">
+      <span style="
+        display:inline-block;
+        background:${color.bg};
+        color:${color.text};
+        font-size:12px;
+        font-weight:800;
+        letter-spacing:.3px;
+        padding:6px 12px;
+        border-radius:999px;
+        text-transform:uppercase;
+      ">
+        ${esc(text)}
+      </span>
+    </div>
+  `;
+}
+
+function renderShipmentDetailsCard(args: {
+  shipmentId: string;
+  trackingNumber?: string;
+  invoiceNumber?: string;
+}) {
+  return `
+<table
+  role="presentation"
+  align="center"
+  width="100%"
+  cellspacing="0"
+  cellpadding="0"
+  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
+>
+  <tr>
+    <td style="padding:14px 20px;border-radius:16px;">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="border-collapse:collapse;width:100%;table-layout:fixed;"
+      >
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Shipment Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+          >
+            ${esc(args.shipmentId)}
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Tracking Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+          >
+            ${esc(args.trackingNumber || "—")}
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Invoice Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
+          >
+            ${esc(args.invoiceNumber || "—")}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+`;
+}
+
+function renderSimpleInfoCard(rows: Array<{ label: string; value: string }>) {
+  const body = rows
+    .map(
+      (row) => `
+        <tr>
+          <td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">
+            ${esc(row.label)}:
+          </td>
+          <td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;">
+            ${esc(row.value)}
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+<table
+  role="presentation"
+  align="center"
+  width="100%"
+  cellspacing="0"
+  cellpadding="0"
+  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
+>
+  <tr>
+    <td style="padding:14px 20px;border-radius:16px;">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="border-collapse:collapse;width:100%;table-layout:fixed;"
+      >
+        ${body}
+      </table>
+    </td>
+  </tr>
+</table>
+`;
+}
+
 /** -------------------------
  * Shipment Created - Sender
  * ------------------------- */
@@ -669,8 +812,8 @@ export async function sendShipmentCreatedSenderEmail(
 
   const invoiceStatusText = paid ? "PAID" : "UNPAID";
   const paymentMessage = paid
-    ? "We will move your shipment to the next stage shortly and keep you updated."
-    : "Please complete payment so we can move your shipment to the next stage of processing.";
+    ? "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached."
+    : "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.";
 
   const templateOverride = await getEmailTemplate("shipment_created_sender");
 
@@ -679,54 +822,50 @@ export async function sendShipmentCreatedSenderEmail(
     : `Action required: Payment needed for shipment ${args.shipmentId}`;
 
   const defaultTitle = paid ? "Shipment created" : "Payment required";
-
   const defaultPreheader = paid
-    ? `Shipment ${args.shipmentId} created (Paid)`
-    : `Shipment ${args.shipmentId} created (Unpaid)`;
+    ? `Shipment ${args.shipmentId} has been created successfully.`
+    : `Payment is required before shipment ${args.shipmentId} can continue.`;
+
+  const badgeHtml = renderToneBadge(
+    paid ? "Shipment Created" : "Payment Required",
+    paid ? "green" : "red"
+  );
+
+  const detailsCardHtml = renderShipmentDetailsCard({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber,
+  });
 
   const defaultBodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to
-      <strong>${esc(receiverName)}</strong>.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      Your shipment <strong>${esc(args.shipmentId)}</strong> has been created successfully and is being prepared for delivery to <strong>${esc(receiverName)}</strong>.
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      We have generated the shipment record and invoice details, and our system is ready to move this shipment through the next processing stage as soon as all requirements are satisfied.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
       <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
       <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
       ${paymentMessage}
     </p>
 
-    <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
-      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-        <strong>Shipment Number:</strong>
-        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
-      </p>
+    ${detailsCardHtml}
 
-      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-        <strong>Tracking Number:</strong>
-        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
-      </p>
-
-      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-        <strong>Invoice Number:</strong>
-        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
-      </p>
-
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        Tip: Save these details for verification on our official website.
-      </p>
-    </div>
-
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      You can view shipment status or open your invoice using the links below.
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      You can review the invoice now or continue to the shipment page for tracking and future status updates.
     </p>
 
     <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
         View Invoice
       </a>
     </div>
@@ -833,59 +972,60 @@ export async function sendShipmentCreatedReceiverEmailV2(
 
   const invoiceStatusText = paid ? "PAID" : "UNPAID";
   const paymentMessage = paid
-    ? "Your shipment is being prepared for dispatch and will move to the next stage shortly."
-    : "Once payment is completed, the shipment will move to the next stage and you will receive updates.";
+    ? "The shipment has been prepared successfully and is expected to proceed through the next logistics stages without delay."
+    : "The shipment has been created, but movement to the next stage will begin once the required payment has been completed.";
 
   const templateOverride = await getEmailTemplate("shipment_created_receiver");
 
   const defaultSubject = paid
-    ? `Shipment on the way: ${args.shipmentId}`
+    ? `Shipment created for you: ${args.shipmentId}`
     : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
 
   const defaultTitle = "Shipment created";
-
   const defaultPreheader = paid
-    ? `Shipment ${args.shipmentId} created (Paid)`
-    : `Shipment ${args.shipmentId} created (Unpaid)`;
+    ? `A shipment has been created for you.`
+    : `A shipment has been created for you and is awaiting payment completion.`;
+
+  const badgeHtml = renderToneBadge(
+    paid ? "Shipment Created" : "Payment Pending",
+    paid ? "green" : "red"
+  );
+
+  const detailsCardHtml = renderShipmentDetailsCard({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber,
+  });
 
   const defaultBodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       A shipment has been created for you by <strong>${esc(senderName)}</strong>.
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      Our system has recorded the shipment successfully, and the shipment details are now available for invoice review and tracking updates.
+    </p>
+
+    <p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
       <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
       <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
       ${paymentMessage}
     </p>
 
-    <div style="margin:0 0 18px 0;padding:8px 0 0 0;background:#ffffff;">
-      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-        <strong>Shipment Number:</strong>
-        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
-      </p>
+    ${detailsCardHtml}
 
-      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-        <strong>Tracking Number:</strong>
-        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
-      </p>
-
-      <p style="margin:0 0 10px 0;font-size:15px;line-height:24px;color:#111827;">
-        <strong>Invoice Number:</strong>
-        <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
-      </p>
-    </div>
-
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      You can view shipment status or open your invoice using the links below.
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      You can view the invoice now or open the shipment page to monitor future progress updates.
     </p>
 
     <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
         View Invoice
       </a>
     </div>
@@ -953,21 +1093,33 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
 
   const name = (opts?.name || "Customer").trim();
   const safeTo = esc(to);
-
   const subject = "Exodus Logistics: Account access removed";
 
+  const badgeHtml = renderToneBadge("Account Banned", "red");
+  const infoCardHtml = renderSimpleInfoCard([
+    { label: "Account Email", value: to },
+    { label: "Access Status", value: "Removed" },
+  ]);
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      This email confirms that the Exodus Logistics account associated with
-      <strong>${safeTo}</strong> has been permanently banned due to a violation of our policies.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      This email confirms that the Exodus Logistics account associated with <strong>${safeTo}</strong> has been permanently banned due to a violation of our policies.
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      Access has been removed, and you will not be able to register another account using this email address.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      Access to the account has been removed immediately, and you will no longer be able to sign in or create another account using this email address unless a formal review is completed and approved.
+    </p>
+
+    ${infoCardHtml}
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      If you believe this action was made in error, please contact support to request a review.
     </p>
   `;
 
@@ -977,8 +1129,6 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
     preheader:
       "Your account access has been removed. Contact support if you believe this was a mistake.",
     bodyHtml,
-    calloutHtml:
-      "If you believe this was a mistake, you can request a review by contacting support.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -993,25 +1143,33 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
 
   const name = (opts?.name || "Customer").trim();
   const safeTo = esc(to);
-
   const subject = "Exodus Logistics: Update on your account";
 
+  const badgeHtml = renderToneBadge("Account Restored", "green");
+  const infoCardHtml = renderSimpleInfoCard([
+    { label: "Account Email", value: to },
+    { label: "Access Status", value: "Restored" },
+  ]);
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      This is to confirm that access to the Exodus Logistics account associated with
-      <strong>${safeTo}</strong> has been restored.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      This is to confirm that access to the Exodus Logistics account associated with <strong>${safeTo}</strong> has been restored successfully.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      We apologize for any inconvenience this may have caused.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      You may now sign in again and continue using your account normally. We apologize for any inconvenience this may have caused.
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      If you experience any issues signing in, please reply to this email or contact our support team.
+    ${infoCardHtml}
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      If you experience any sign-in difficulty or notice account activity you do not recognize, please contact support immediately.
     </p>
   `;
 
@@ -1020,7 +1178,6 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
     title: "Account access restored",
     preheader: "Your Exodus Logistics account access has been restored.",
     bodyHtml,
-    calloutHtml: "If you did not expect this change, contact support immediately.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -1038,21 +1195,33 @@ export async function sendDeletedByAdminEmail(
 
   const name = (opts?.name || "Customer").trim();
   const safeTo = esc(to);
-
   const subject = "Exodus Logistics: Account deleted";
 
+  const badgeHtml = renderToneBadge("Account Deleted", "red");
+  const infoCardHtml = renderSimpleInfoCard([
+    { label: "Account Email", value: to },
+    { label: "Account Status", value: "Deleted" },
+  ]);
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      This email confirms that the Exodus Logistics account associated with
-      <strong>${safeTo}</strong> has been deleted by an administrator.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      This email confirms that the Exodus Logistics account associated with <strong>${safeTo}</strong> has been deleted by an administrator.
     </p>
 
-    <p style="margin:0 0 18px 0;font-size:16px;line-height:24px;color:#111827;">
-      If you believe this action was taken in error, please contact our support team for assistance.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      As a result, access to the account and any related account functions have been removed. If this action was not expected, please contact our support team for review and clarification.
+    </p>
+
+    ${infoCardHtml}
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      Our support team will assist you if you believe this action was taken in error.
     </p>
   `;
 
@@ -1062,8 +1231,6 @@ export async function sendDeletedByAdminEmail(
     preheader:
       "Your account has been deleted. Contact support if you believe this was a mistake.",
     bodyHtml,
-    calloutHtml:
-      "If you believe this was a mistake, contact support and we will review it.",
     button: { text: "Contact support", href: SUPPORT_URL },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -1486,29 +1653,41 @@ export async function sendInvoiceUpdateEmail(
   const statusLabel = invoiceStatusLabel(status);
   const subject = `Exodus Logistics: Invoice ${invoiceStatusSubject(status)} (${opts.shipmentId})`;
 
+  const badgeHtml = renderToneBadge(
+    `Invoice ${statusLabel}`,
+    status === "paid" ? "green" : "red"
+  );
+
+  const infoCardHtml = renderSimpleInfoCard([
+    { label: "Shipment Number", value: opts.shipmentId },
+    { label: "Invoice Number", value: invoiceNumber },
+    { label: "Status", value: statusLabel },
+  ]);
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as
-      <strong>${statusLabel}</strong>.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       ${esc(invoiceStatusMessage(status))}
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Invoice Number:</strong> ${esc(invoiceNumber)}
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      Please review the invoice details below and take any required action as soon as possible to avoid interruption to shipment processing.
     </p>
 
-    <div style="margin-top:12px">
-      <a href="${invoiceLink}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
-        View Invoice
-      </a>
-    </div>
+    ${infoCardHtml}
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      You can open the invoice directly using the link below.
+    </p>
   `;
 
   const html = renderEmailTemplate({
@@ -1565,27 +1744,40 @@ export async function sendInvoiceStatusReceiverEmail(
   const statusLabel = invoiceStatusLabel(status);
   const subject = `Invoice ${invoiceStatusSubject(status)}: ${args.shipmentId}`;
 
+  const badgeHtml = renderToneBadge(
+    `Invoice ${statusLabel}`,
+    status === "paid" ? "green" : "red"
+  );
+
+  const infoCardHtml = renderSimpleInfoCard([
+    { label: "Shipment Number", value: args.shipmentId },
+    { label: "Invoice Number", value: invoiceNumber },
+    { label: "Status", value: statusLabel },
+  ]);
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(args.name || "Customer")},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      The invoice for shipment <strong>${esc(args.shipmentId)}</strong> (sent by <strong>${esc(
-    args.senderName
-  )}</strong>) is currently marked as <strong>${statusLabel}</strong>.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      The invoice for shipment <strong>${esc(args.shipmentId)}</strong>, sent by <strong>${esc(args.senderName)}</strong>, is currently marked as <strong>${statusLabel}</strong>.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       ${esc(invoiceStatusMessage(status))}
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:15px;color:#111827;">
-      <strong>Invoice Number:</strong> ${esc(invoiceNumber)}
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      Please review the invoice details below and keep this reference available for any required verification or payment follow-up.
     </p>
 
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      You can view the invoice using the button below.
+    ${infoCardHtml}
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      You can view the invoice directly using the button below.
     </p>
   `;
 
@@ -1634,45 +1826,44 @@ export async function sendShipmentEditedEmail(
   });
 
   const tableHtml = formatChangedFields(args.changes);
-
   const subject = `Exodus Logistics: Shipment details updated (${args.shipmentId})`;
 
+  const badgeHtml = renderToneBadge("Shipment Updated", "blue");
+
+  const detailsCardHtml = renderShipmentDetailsCard({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber,
+  });
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       ${esc(
         args.intro ||
-          "Some shipment details have been updated. Please review the latest information below."
+          "Some shipment details have been updated in our system. Please review the latest information below carefully."
       )}
     </p>
 
-    <div style="margin:0 0 14px 0;">
-  <p style="margin:0 0 8px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Shipment Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
-  </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      This update may affect delivery planning, shipment records, or invoice-related references. We recommend keeping a copy of the updated details for future tracking and verification.
+    </p>
 
-  ${
-    args.trackingNumber
-      ? `<p style="margin:0 0 8px 0;font-size:15px;line-height:24px;color:#111827;">
-           <strong>Tracking Number:</strong>
-           <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
-         </p>`
-      : ""
-  }
+    ${detailsCardHtml}
 
-  <p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Invoice Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(invoiceNumber)}</span>
-  </p>
-</div>
     ${tableHtml}
 
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      You can view the invoice or open the shipment page to review the latest status and details.
+    </p>
+
     <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">
+      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
         View Invoice
       </a>
     </div>
@@ -1784,40 +1975,34 @@ export async function sendShipmentDeletedEmail(
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = cleanStr(args.name) || "Customer";
-
   const subject = `Exodus Logistics: Shipment record removed (${args.shipmentId})`;
 
+  const badgeHtml = renderToneBadge("Shipment Removed", "red");
+  const detailsCardHtml = renderShipmentDetailsCard({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber: "",
+  });
+
   const bodyHtml = `
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       Please be informed that the shipment record for <strong>${esc(args.shipmentId)}</strong> has been removed from our tracking system.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      As a result, this shipment will no longer be available for tracking on our website.
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      As a result, this shipment will no longer be available for tracking on our website, and any further automated progress notifications for this shipment will stop.
     </p>
 
-    <div style="margin:0 0 14px 0;">
-  <p style="margin:0 0 8px 0;font-size:15px;line-height:24px;color:#111827;">
-    <strong>Shipment Number:</strong>
-    <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.shipmentId)}</span>
-  </p>
+    ${detailsCardHtml}
 
-  ${
-    args.trackingNumber
-      ? `<p style="margin:0;font-size:15px;line-height:24px;color:#111827;">
-           <strong>Tracking Number:</strong>
-           <span style="white-space:nowrap;word-break:keep-all;"> ${esc(args.trackingNumber)}</span>
-         </p>`
-      : ""
-  }
-</div>
-
-    <p style="margin:0;font-size:15px;color:#6b7280;">
-      If you believe this action was made in error or you need further clarification, please contact our support team.
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      If you believe this action was made in error or need more clarification, please contact our support team.
     </p>
   `;
 
@@ -1833,4 +2018,4 @@ export async function sendShipmentDeletedEmail(
   });
 
   return sendEmail(to, subject, html);
-} 
+}
