@@ -1239,32 +1239,36 @@ export async function sendShipmentStatusEmail(
     : "";
 
   const detailsCardHtml = `
-<div style="margin:22px 0;padding:18px 22px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;font-size:14px;line-height:22px;color:#111827;">
+<div style="margin:18px 0;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+    style="width:100%;border-collapse:collapse;font-size:13px;line-height:20px;color:#111827;">
 
     <tr>
-      <td style="padding:8px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
+      <td style="padding:5px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
         Shipment Number
       </td>
-      <td style="padding:8px 0;font-weight:700;color:#111827;text-align:right;white-space:nowrap;">
+
+      <td style="padding:5px 0;font-weight:700;color:#1d4ed8;text-align:right;white-space:nowrap;">
         ${esc(opts.shipmentId)}
       </td>
     </tr>
 
     <tr>
-      <td style="padding:8px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
+      <td style="padding:5px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
         Tracking Number
       </td>
-      <td style="padding:8px 0;font-weight:700;color:#111827;text-align:right;white-space:nowrap;">
+
+      <td style="padding:5px 0;font-weight:700;color:#1d4ed8;text-align:right;white-space:nowrap;">
         ${esc(opts.trackingNumber || "—")}
       </td>
     </tr>
 
     <tr>
-      <td style="padding:8px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
+      <td style="padding:5px 0;color:#6b7280;font-weight:500;white-space:nowrap;">
         Invoice Number
       </td>
-      <td style="padding:8px 0;font-weight:700;color:#111827;text-align:right;white-space:nowrap;">
+
+      <td style="padding:5px 0;font-weight:700;color:#1d4ed8;text-align:right;white-space:nowrap;">
         ${esc(invoiceNumber)}
       </td>
     </tr>
