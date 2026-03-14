@@ -1356,9 +1356,7 @@ export async function sendShipmentStatusEmail(
     ? fillVars(statusOverride.emailPreheader, vars)
     : `${status} – Shipment ${opts.shipmentId}`;
 
-    const finalBodyHtml = statusOverride?.emailBodyHtml
-  ? fillVars(statusOverride.emailBodyHtml, vars)
-  : defaultBodyHtml;
+   const finalBodyHtml = defaultBodyHtml;
 
   const finalButtonText = statusOverride?.emailButtonText
     ? fillVars(statusOverride.emailButtonText, vars)
