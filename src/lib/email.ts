@@ -46,6 +46,8 @@ type EmailTemplateConfig = {
   detailsCardType?: "shipment" | "account" | "invoice" | "changes" | "none";
 };
 
+
+
 function normalizeTone(v: any): EmailTone {
   const s = cleanStr(v).toLowerCase();
   if (s === "green") return "green";
@@ -59,13 +61,6 @@ function normalizeBool(v: any, fallback = true) {
   if (s === "true") return true;
   if (s === "false") return false;
   return fallback;
-}
-
-function truncateMiddle(value: string, max = 24) {
-  const s = cleanStr(value);
-  if (!s) return "—";
-  if (s.length <= max) return s;
-  return `${s.slice(0, max - 3)}...`;
 }
 
 function resolveUrlByType(
@@ -813,7 +808,7 @@ function renderSimpleInfoCard(rows: Array<{ label: string; value: string }>) {
             title="${esc(row.value)}"
             style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;"
           >
-            ${esc(truncateMiddle(row.value))}
+            ${esc(shortenEmail(row.value))}
           </td>
         </tr>
       `
@@ -846,6 +841,7 @@ function renderSimpleInfoCard(rows: Array<{ label: string; value: string }>) {
 `;
 }
 
+
 /** -------------------------
  * Shipment Created - Sender
  * ------------------------- */
@@ -866,12 +862,16 @@ export async function sendShipmentCreatedSenderEmail(
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
-  const name = (args.name || "Customer").trim();
-  const receiverName = (args.receiverName || "Receiver").trim();
+  const name = cleanStr(args.name) || "Customer";
+  const receiverName = cleanStr(args.receiverName) || "Receiver";
   const paid = Boolean(args.paid);
   const locale = args.locale || DEFAULT_LOCALE;
 
-  const trackingOrShip = args.trackingNumber || args.shipmentId;
+  const q = args.trackingNumber || args.shipmentId;
+
+  const trackUrl = buildTrackUrl(q, locale);
+  const invoiceUrl =
+    args.viewInvoiceUrl || buildInvoiceFullUrlByQ(q, locale);
 
   const invoiceNumber = makeInvoiceNumber({
     shipmentId: args.shipmentId,
@@ -879,16 +879,12 @@ export async function sendShipmentCreatedSenderEmail(
     invoiceNumber: args.invoiceNumber,
   });
 
-  const trackUrl = buildTrackUrl(trackingOrShip, locale);
-  const invoiceUrl =
-    args.viewInvoiceUrl || buildInvoiceFullUrlByQ(trackingOrShip, locale);
-
-  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(
+  const estimatedDeliveryDate = formatEstimatedDeliveryDateRange(
     args.estimatedDeliveryDate,
     args.shipmentScope
   );
 
-  const invoiceStatusText = paid ? "PAID" : "UNPAID";
+  const invoiceStatus = paid ? "PAID" : "UNPAID";
   const paymentMessage = paid
     ? "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached."
     : "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.";
@@ -904,16 +900,82 @@ export async function sendShipmentCreatedSenderEmail(
     ? `Shipment ${args.shipmentId} has been created successfully.`
     : `Payment is required before shipment ${args.shipmentId} can continue.`;
 
-  const badgeHtml = renderToneBadge(
-    paid ? "Shipment Created" : "Payment Required",
-    paid ? "green" : "red"
+  const finalBadgeTone = normalizeTone(
+    templateOverride?.badgeTone || (paid ? "green" : "red")
+  );
+  const finalBadgeText =
+    cleanStr(templateOverride?.badgeText) ||
+    (paid ? "Shipment Created" : "Payment Required");
+
+  const showButton = normalizeBool(templateOverride?.showButton, true);
+  const showLink = normalizeBool(templateOverride?.showLink, true);
+  const showDetailsCard = normalizeBool(templateOverride?.showDetailsCard, true);
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, {
+        shipmentId: esc(args.shipmentId),
+        trackingNumber: esc(args.trackingNumber),
+        invoiceNumber: esc(invoiceNumber),
+        name: esc(name),
+        receiverName: esc(receiverName),
+      })
+    : "View Shipment";
+
+  const finalButtonHref = resolveUrlByType(
+    templateOverride?.buttonUrlType || "track",
+    {
+      trackUrl,
+      invoiceUrl,
+      supportUrl: SUPPORT_URL,
+    }
   );
 
-  const detailsCardHtml = renderShipmentDetailsCard({
-    shipmentId: args.shipmentId,
-    trackingNumber: args.trackingNumber,
-    invoiceNumber,
-  });
+  const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
+  const linkHref = resolveUrlByType(
+    templateOverride?.linkUrlType || "invoice",
+    {
+      trackUrl,
+      invoiceUrl,
+      supportUrl: SUPPORT_URL,
+    }
+  );
+
+  let detailsCardHtml = "";
+  const detailsCardType = cleanStr(templateOverride?.detailsCardType || "shipment").toLowerCase();
+
+  if (showDetailsCard && detailsCardType !== "none") {
+    if (detailsCardType === "account") {
+      detailsCardHtml = renderSimpleInfoCard([
+        { label: "Account Email", value: shortenEmail(to) },
+        { label: "Access Status", value: paid ? "Paid" : "Pending" },
+      ]);
+    } else if (detailsCardType === "invoice") {
+      detailsCardHtml = renderSimpleInfoCard([
+        { label: "Shipment Number", value: args.shipmentId },
+        { label: "Invoice Number", value: invoiceNumber },
+        { label: "Status", value: invoiceStatus },
+      ]);
+    } else {
+      detailsCardHtml = renderShipmentDetailsCard({
+        shipmentId: args.shipmentId,
+        trackingNumber: args.trackingNumber,
+        invoiceNumber,
+      });
+    }
+  }
+
+  const badgeHtml = renderToneBadge(finalBadgeText, finalBadgeTone);
+
+  const invoiceLinkHtml =
+    showLink && linkHref
+      ? `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(linkText)}
+          </a>
+        </div>
+      `
+      : "";
 
   const defaultBodyHtml = `
     ${badgeHtml}
@@ -931,35 +993,37 @@ export async function sendShipmentCreatedSenderEmail(
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
-      <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
-      <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
-      ${paymentMessage}
+      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryDate)}<br/>
+      ${esc(paymentMessage)}
     </p>
 
     ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-  You can use the button below to open the shipment page for tracking updates. You can also use the invoice link below to review billing details.
-</p>
+      You can use the button below to open the shipment page for tracking updates. You can also use the invoice link below to review billing details.
+    </p>
 
-    <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-        View Invoice
-      </a>
-    </div>
+    ${invoiceLinkHtml}
   `;
 
   const vars = {
     name: esc(name),
     receiverName: esc(receiverName),
     shipmentId: esc(args.shipmentId),
-    trackingNumber: esc(args.trackingNumber),
+    trackingNumber: esc(args.trackingNumber || "—"),
     invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(invoiceStatusText),
-    estimatedDeliveryDate: esc(estimatedDeliveryText),
+    invoiceStatus: esc(invoiceStatus),
+    estimatedDeliveryDate: esc(estimatedDeliveryDate),
     paymentMessage: esc(paymentMessage),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    invoiceLink: invoiceLinkHtml,
     trackUrl,
     invoiceUrl,
+    supportUrl: SUPPORT_URL,
+    email: esc(to),
+    shortEmail: esc(shortenEmail(to)),
   };
 
   const finalSubject = templateOverride?.subject
@@ -975,71 +1039,22 @@ export async function sendShipmentCreatedSenderEmail(
     : defaultPreheader;
 
   const finalBodyHtml = templateOverride?.bodyHtml
-  ? fillVars(templateOverride.bodyHtml, {
-      ...vars,
-      badge: badgeHtml,
-      detailsCard: detailsCardHtml,
-      invoiceLink: `
-        <div style="margin-top:12px">
-          <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-            View Invoice
-          </a>
-        </div>
-      `,
-    })
-  : defaultBodyHtml;
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
 
-  const finalButtonText = templateOverride?.buttonText
-    ? fillVars(templateOverride.buttonText, vars)
-    : "View Shipment";
-
-  const finalButtonHref =
-    templateOverride?.buttonUrlType === "invoice"
-      ? invoiceUrl
-      : templateOverride?.buttonUrlType === "support"
-      ? SUPPORT_URL
-      : trackUrl;
-
-  const finalBadgeTone = normalizeTone(templateOverride?.badgeTone || (paid ? "green" : "red"));
-const finalBadgeText = cleanStr(templateOverride?.badgeText) || (paid ? "Shipment Created" : "Payment Required");
-
-const showButton = normalizeBool(templateOverride?.showButton, true);
-const showLink = normalizeBool(templateOverride?.showLink, true);
-const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
-const linkHref = resolveUrlByType(templateOverride?.linkUrlType || "invoice", {
-  trackUrl,
-  invoiceUrl,
-  supportUrl: SUPPORT_URL,
-});
-
-const rebuiltBodyHtml = templateOverride?.bodyHtml
-  ? fillVars(templateOverride.bodyHtml, {
-      ...vars,
-      badge: renderToneBadge(finalBadgeText, finalBadgeTone),
-      detailsCard: detailsCardHtml,
-      invoiceLink: showLink && linkHref
-        ? `<div style="margin-top:12px">
-             <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-               ${esc(linkText)}
-             </a>
-           </div>`
-        : "",
-    })
-  : defaultBodyHtml;
-
-const html = renderEmailTemplate({
-  subject: finalSubject,
-  title: finalTitle,
-  preheader: finalPreheader,
-  bodyHtml: rebuiltBodyHtml,
-  button:
-    showButton && finalButtonHref
-      ? { text: finalButtonText, href: finalButtonHref }
-      : undefined,
-  appUrl: APP_URL,
-  supportEmail: SUPPORT_EMAIL,
-  sentTo: to,
-});
+  const html = renderEmailTemplate({
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button:
+      showButton && finalButtonHref
+        ? { text: finalButtonText || "View Shipment", href: finalButtonHref }
+        : undefined,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
 
   return sendEmail(to, finalSubject, html);
 }
@@ -1064,12 +1079,16 @@ export async function sendShipmentCreatedReceiverEmailV2(
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
-  const name = (args.name || "Customer").trim();
-  const senderName = (args.senderName || "Sender").trim();
+  const name = cleanStr(args.name) || "Customer";
+  const senderName = cleanStr(args.senderName) || "Sender";
   const paid = Boolean(args.paid);
   const locale = args.locale || DEFAULT_LOCALE;
 
-  const trackingOrShip = args.trackingNumber || args.shipmentId;
+  const q = args.trackingNumber || args.shipmentId;
+
+  const trackUrl = buildTrackUrl(q, locale);
+  const invoiceUrl =
+    args.viewInvoiceUrl || buildInvoiceFullUrlByQ(q, locale);
 
   const invoiceNumber = makeInvoiceNumber({
     shipmentId: args.shipmentId,
@@ -1077,16 +1096,12 @@ export async function sendShipmentCreatedReceiverEmailV2(
     invoiceNumber: args.invoiceNumber,
   });
 
-  const trackUrl = buildTrackUrl(trackingOrShip, locale);
-  const invoiceUrl =
-    args.viewInvoiceUrl || buildInvoiceFullUrlByQ(trackingOrShip, locale);
-
-  const estimatedDeliveryText = formatEstimatedDeliveryDateRange(
+  const estimatedDeliveryDate = formatEstimatedDeliveryDateRange(
     args.estimatedDeliveryDate,
     args.shipmentScope
   );
 
-  const invoiceStatusText = paid ? "PAID" : "UNPAID";
+  const invoiceStatus = paid ? "PAID" : "UNPAID";
   const paymentMessage = paid
     ? "The shipment has been prepared successfully and is expected to proceed through the next logistics stages without delay."
     : "The shipment has been created, but movement to the next stage will begin once the required payment has been completed.";
@@ -1102,16 +1117,82 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ? `A shipment has been created for you.`
     : `A shipment has been created for you and is awaiting payment completion.`;
 
-  const badgeHtml = renderToneBadge(
-    paid ? "Shipment Created" : "Payment Pending",
-    paid ? "green" : "red"
+  const finalBadgeTone = normalizeTone(
+    templateOverride?.badgeTone || (paid ? "green" : "red")
+  );
+  const finalBadgeText =
+    cleanStr(templateOverride?.badgeText) ||
+    (paid ? "Shipment Created" : "Payment Pending");
+
+  const showButton = normalizeBool(templateOverride?.showButton, true);
+  const showLink = normalizeBool(templateOverride?.showLink, true);
+  const showDetailsCard = normalizeBool(templateOverride?.showDetailsCard, true);
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, {
+        shipmentId: esc(args.shipmentId),
+        trackingNumber: esc(args.trackingNumber),
+        invoiceNumber: esc(invoiceNumber),
+        name: esc(name),
+        senderName: esc(senderName),
+      })
+    : "View Shipment";
+
+  const finalButtonHref = resolveUrlByType(
+    templateOverride?.buttonUrlType || "track",
+    {
+      trackUrl,
+      invoiceUrl,
+      supportUrl: SUPPORT_URL,
+    }
   );
 
-  const detailsCardHtml = renderShipmentDetailsCard({
-    shipmentId: args.shipmentId,
-    trackingNumber: args.trackingNumber,
-    invoiceNumber,
-  });
+  const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
+  const linkHref = resolveUrlByType(
+    templateOverride?.linkUrlType || "invoice",
+    {
+      trackUrl,
+      invoiceUrl,
+      supportUrl: SUPPORT_URL,
+    }
+  );
+
+  let detailsCardHtml = "";
+  const detailsCardType = cleanStr(templateOverride?.detailsCardType || "shipment").toLowerCase();
+
+  if (showDetailsCard && detailsCardType !== "none") {
+    if (detailsCardType === "account") {
+      detailsCardHtml = renderSimpleInfoCard([
+        { label: "Account Email", value: shortenEmail(to) },
+        { label: "Access Status", value: paid ? "Paid" : "Pending" },
+      ]);
+    } else if (detailsCardType === "invoice") {
+      detailsCardHtml = renderSimpleInfoCard([
+        { label: "Shipment Number", value: args.shipmentId },
+        { label: "Invoice Number", value: invoiceNumber },
+        { label: "Status", value: invoiceStatus },
+      ]);
+    } else {
+      detailsCardHtml = renderShipmentDetailsCard({
+        shipmentId: args.shipmentId,
+        trackingNumber: args.trackingNumber,
+        invoiceNumber,
+      });
+    }
+  }
+
+  const badgeHtml = renderToneBadge(finalBadgeText, finalBadgeTone);
+
+  const invoiceLinkHtml =
+    showLink && linkHref
+      ? `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(linkText)}
+          </a>
+        </div>
+      `
+      : "";
 
   const defaultBodyHtml = `
     ${badgeHtml}
@@ -1129,35 +1210,37 @@ export async function sendShipmentCreatedReceiverEmailV2(
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
-      <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
-      <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryText)}<br/>
-      ${paymentMessage}
+      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryDate)}<br/>
+      ${esc(paymentMessage)}
     </p>
 
     ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-  You can use the button below to open the shipment page and monitor future progress updates. You can also use the invoice link below to review billing details.
-</p>
+      You can use the button below to open the shipment page and monitor future progress updates. You can also use the invoice link below to review billing details.
+    </p>
 
-    <div style="margin-top:12px">
-      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-        View Invoice
-      </a>
-    </div>
+    ${invoiceLinkHtml}
   `;
 
   const vars = {
     name: esc(name),
     senderName: esc(senderName),
     shipmentId: esc(args.shipmentId),
-    trackingNumber: esc(args.trackingNumber),
+    trackingNumber: esc(args.trackingNumber || "—"),
     invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(invoiceStatusText),
-    estimatedDeliveryDate: esc(estimatedDeliveryText),
+    invoiceStatus: esc(invoiceStatus),
+    estimatedDeliveryDate: esc(estimatedDeliveryDate),
     paymentMessage: esc(paymentMessage),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    invoiceLink: invoiceLinkHtml,
     trackUrl,
     invoiceUrl,
+    supportUrl: SUPPORT_URL,
+    email: esc(to),
+    shortEmail: esc(shortenEmail(to)),
   };
 
   const finalSubject = templateOverride?.subject
@@ -1173,71 +1256,22 @@ export async function sendShipmentCreatedReceiverEmailV2(
     : defaultPreheader;
 
   const finalBodyHtml = templateOverride?.bodyHtml
-  ? fillVars(templateOverride.bodyHtml, {
-      ...vars,
-      badge: badgeHtml,
-      detailsCard: detailsCardHtml,
-      invoiceLink: `
-        <div style="margin-top:12px">
-          <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-            View Invoice
-          </a>
-        </div>
-      `,
-    })
-  : defaultBodyHtml;
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
 
-  const finalButtonText = templateOverride?.buttonText
-    ? fillVars(templateOverride.buttonText, vars)
-    : "View Shipment";
-
-  const finalButtonHref =
-    templateOverride?.buttonUrlType === "invoice"
-      ? invoiceUrl
-      : templateOverride?.buttonUrlType === "support"
-      ? SUPPORT_URL
-      : trackUrl;
-
-  const finalBadgeTone = normalizeTone(templateOverride?.badgeTone || (paid ? "green" : "red"));
-const finalBadgeText = cleanStr(templateOverride?.badgeText) || (paid ? "Shipment Created" : "Payment Pending");
-
-const showButton = normalizeBool(templateOverride?.showButton, true);
-const showLink = normalizeBool(templateOverride?.showLink, true);
-const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
-const linkHref = resolveUrlByType(templateOverride?.linkUrlType || "invoice", {
-  trackUrl,
-  invoiceUrl,
-  supportUrl: SUPPORT_URL,
-});
-
-const rebuiltBodyHtml = templateOverride?.bodyHtml
-  ? fillVars(templateOverride.bodyHtml, {
-      ...vars,
-      badge: renderToneBadge(finalBadgeText, finalBadgeTone),
-      detailsCard: detailsCardHtml,
-      invoiceLink: showLink && linkHref
-        ? `<div style="margin-top:12px">
-             <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-               ${esc(linkText)}
-             </a>
-           </div>`
-        : "",
-    })
-  : defaultBodyHtml;
-
-const html = renderEmailTemplate({
-  subject: finalSubject,
-  title: finalTitle,
-  preheader: finalPreheader,
-  bodyHtml: rebuiltBodyHtml,
-  button:
-    showButton && finalButtonHref
-      ? { text: finalButtonText, href: finalButtonHref }
-      : undefined,
-  appUrl: APP_URL,
-  supportEmail: SUPPORT_EMAIL,
-  sentTo: to,
-});
+  const html = renderEmailTemplate({
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button:
+      showButton && finalButtonHref
+        ? { text: finalButtonText || "View Shipment", href: finalButtonHref }
+        : undefined,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
 
   return sendEmail(to, finalSubject, html);
 }
@@ -2418,7 +2452,7 @@ const rebuiltBodyHtml = templateOverride?.bodyHtml
   sentTo: to,
 });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
 
 /** -------------------------
