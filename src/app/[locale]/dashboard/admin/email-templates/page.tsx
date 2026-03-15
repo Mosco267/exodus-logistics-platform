@@ -13,7 +13,7 @@ type EmailTemplateDoc = {
   buttonText?: string;
   buttonUrlType?: string;
   badgeText?: string;
-  badgeTone?: "blue" | "green" | "red";
+  badgeTone?: "" | "blue" | "green" | "red";
   showButton?: boolean;
   showLink?: boolean;
   linkText?: string;
@@ -358,8 +358,8 @@ export default function AdminEmailTemplatesPage() {
     setButtonText(t.buttonText || "");
     setButtonUrlType(t.buttonUrlType || "track");
 
-    setBadgeText(t.badgeText || "");
-    setBadgeTone((t.badgeTone as "blue" | "green" | "red") || "blue");
+    setBadgeText("");
+    setBadgeTone("");
     setShowButton(typeof t.showButton === "boolean" ? t.showButton : true);
     setShowLink(typeof t.showLink === "boolean" ? t.showLink : true);
     setLinkText(t.linkText || "View Invoice");
@@ -491,8 +491,11 @@ export default function AdminEmailTemplatesPage() {
           invoiceNumber: "EXS-INV-2026-03-1234567",
         });
 
-  const previewBadgeHtml = badgeText
-  ? renderToneBadgeHtml(badgeText, (badgeTone || "blue") as "blue" | "green" | "red")
+ const previewBadgeHtml = badgeText
+  ? renderToneBadgeHtml(
+      badgeText,
+      ((badgeTone || "blue") as "blue" | "green" | "red")
+    )
   : "";
   const previewInvoiceLinkHtml =
     showLink && linkText
