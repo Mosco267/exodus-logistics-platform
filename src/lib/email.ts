@@ -1559,7 +1559,7 @@ const statusBadgeHtml = `
     ${noteHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can track the shipment or review the invoice using the links below.
+      You can track the shipment using the button below or review the invoice by clicking view invoice.
     </p>
 
     <div style="margin-top:12px">
