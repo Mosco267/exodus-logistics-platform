@@ -852,7 +852,8 @@ export async function sendShipmentCreatedSenderEmail(
     receiverName: string;
     shipmentId: string;
     trackingNumber: string;
-    paid: boolean;
+    paid?: boolean;
+    status?: InvoiceStatus | string;
     invoiceNumber?: string;
     estimatedDeliveryDate?: string | null;
     shipmentScope?: string | null;
@@ -884,9 +885,21 @@ export async function sendShipmentCreatedSenderEmail(
     args.shipmentScope
   );
 
-  const invoiceStatus = paid ? "PAID" : "UNPAID";
-  const paymentMessage = paid
+  const invoiceStatusNormalized = args.status
+  ? normalizeInvoiceStatus(args.status)
+  : args.paid
+  ? "paid"
+  : "unpaid";
+
+const invoiceStatus = invoiceStatusLabel(invoiceStatusNormalized);
+
+const paymentMessage =
+  invoiceStatusNormalized === "paid"
     ? "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached."
+    : invoiceStatusNormalized === "overdue"
+    ? "This invoice is currently overdue. Please complete payment as soon as possible to avoid delay in shipment processing and movement to the next logistics stage."
+    : invoiceStatusNormalized === "cancelled"
+    ? "This invoice has been cancelled. Shipment processing cannot continue under the current invoice status. Please contact support if you believe this was done in error."
     : "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.";
 
   const templateOverride = await getEmailTemplate("shipment_created_sender");
@@ -900,12 +913,24 @@ export async function sendShipmentCreatedSenderEmail(
     ? `Shipment ${args.shipmentId} has been created successfully.`
     : `Payment is required before shipment ${args.shipmentId} can continue.`;
 
-  const finalBadgeTone = normalizeTone(
-    templateOverride?.badgeTone || (paid ? "green" : "red")
-  );
-  const finalBadgeText =
-    cleanStr(templateOverride?.badgeText) ||
-    (paid ? "Shipment Created" : "Payment Required");
+  const dynamicSenderBadgeText =
+  invoiceStatusNormalized === "paid"
+    ? "SHIPMENT CREATED"
+    : invoiceStatusNormalized === "overdue"
+    ? "PAYMENT OVERDUE"
+    : invoiceStatusNormalized === "cancelled"
+    ? "INVOICE CANCELLED"
+    : "PAYMENT REQUIRED";
+
+const dynamicSenderBadgeTone =
+  invoiceStatusNormalized === "paid" ? "green" : "red";
+
+const finalBadgeTone = normalizeTone(
+  templateOverride?.badgeTone || dynamicSenderBadgeTone
+);
+
+const finalBadgeText =
+  cleanStr(templateOverride?.badgeText) || dynamicSenderBadgeText;
 
   const showButton = normalizeBool(templateOverride?.showButton, true);
   const showLink = normalizeBool(templateOverride?.showLink, true);
@@ -1069,7 +1094,8 @@ export async function sendShipmentCreatedReceiverEmailV2(
     senderName: string;
     shipmentId: string;
     trackingNumber: string;
-    paid: boolean;
+    paid?: boolean;
+    status?: InvoiceStatus | string;
     invoiceNumber?: string;
     estimatedDeliveryDate?: string | null;
     shipmentScope?: string | null;
@@ -1101,10 +1127,22 @@ export async function sendShipmentCreatedReceiverEmailV2(
     args.shipmentScope
   );
 
-  const invoiceStatus = paid ? "PAID" : "UNPAID";
-  const paymentMessage = paid
-    ? "The shipment has been prepared successfully and is expected to proceed through the next logistics stages without delay."
-    : "The shipment has been created, but movement to the next stage will begin once the required payment has been completed.";
+  const invoiceStatus = args.status
+  ? normalizeInvoiceStatus(args.status)
+  : args.paid
+  ? "paid"
+  : "unpaid";
+
+const invoiceStatusText = invoiceStatusLabel(invoiceStatus);
+
+const paymentMessage =
+  invoiceStatus === "paid"
+    ? "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached."
+    : invoiceStatus === "overdue"
+    ? "This invoice is currently overdue. Please complete payment as soon as possible to avoid delay in shipment processing and movement to the next logistics stage."
+    : invoiceStatus === "cancelled"
+    ? "This invoice has been cancelled. Shipment processing cannot continue under the current invoice status. Please contact support if you believe this was done in error."
+    : "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.";
 
   const templateOverride = await getEmailTemplate("shipment_created_receiver");
 
@@ -1117,12 +1155,24 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ? `A shipment has been created for you.`
     : `A shipment has been created for you and is awaiting payment completion.`;
 
-  const finalBadgeTone = normalizeTone(
-    templateOverride?.badgeTone || (paid ? "green" : "red")
-  );
-  const finalBadgeText =
-    cleanStr(templateOverride?.badgeText) ||
-    (paid ? "Shipment Created" : "Payment Pending");
+  const dynamicReceiverBadgeText =
+  invoiceStatus === "paid"
+    ? "SHIPMENT CREATED"
+    : invoiceStatus === "overdue"
+    ? "PAYMENT OVERDUE"
+    : invoiceStatus === "cancelled"
+    ? "INVOICE CANCELLED"
+    : "PAYMENT PENDING";
+
+const dynamicReceiverBadgeTone =
+  invoiceStatus === "paid" ? "green" : "red";
+
+const finalBadgeTone = normalizeTone(
+  templateOverride?.badgeTone || dynamicReceiverBadgeTone
+);
+
+const finalBadgeText =
+  cleanStr(templateOverride?.badgeText) || dynamicReceiverBadgeText;
 
   const showButton = normalizeBool(templateOverride?.showButton, true);
   const showLink = normalizeBool(templateOverride?.showLink, true);
