@@ -22,6 +22,285 @@ type EmailTemplateDoc = {
   detailsCardType?: "shipment" | "account" | "invoice" | "changes" | "none";
 };
 
+function esc(s: string) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderToneBadgeHtml(
+  text: string,
+  tone: "blue" | "green" | "red" = "blue"
+) {
+  const color =
+    tone === "green"
+      ? { bg: "#dcfce7", text: "#166534" }
+      : tone === "red"
+      ? { bg: "#fee2e2", text: "#b91c1c" }
+      : { bg: "#dbeafe", text: "#1d4ed8" };
+
+  return `
+    <div style="margin:0 0 14px 0;">
+      <span style="
+        display:inline-block;
+        background:${color.bg};
+        color:${color.text};
+        font-size:12px;
+        font-weight:800;
+        letter-spacing:.3px;
+        padding:6px 12px;
+        border-radius:999px;
+        text-transform:uppercase;
+      ">
+        ${esc(text)}
+      </span>
+    </div>
+  `;
+}
+
+function renderShipmentDetailsCardHtml(args: {
+  shipmentId: string;
+  trackingNumber?: string;
+  invoiceNumber?: string;
+}) {
+  return `
+<table
+  role="presentation"
+  align="center"
+  width="100%"
+  cellspacing="0"
+  cellpadding="0"
+  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
+>
+  <tr>
+    <td style="padding:14px 20px;border-radius:16px;">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="border-collapse:collapse;width:100%;table-layout:fixed;"
+      >
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Shipment Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
+          >
+            ${esc(args.shipmentId)}
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Tracking Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
+          >
+            ${esc(args.trackingNumber || "—")}
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+          >
+            Invoice Number:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:55%;"
+          >
+            ${esc(args.invoiceNumber || "—")}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+`;
+}
+
+function renderSimpleInfoCardHtml(rows: Array<{ label: string; value: string }>) {
+  const body = rows
+    .map(
+      (row) => `
+        <tr>
+          <td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">
+            ${esc(row.label)}:
+          </td>
+          <td
+            align="right"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;"
+          >
+            ${esc(row.value)}
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+<table
+  role="presentation"
+  align="center"
+  width="100%"
+  cellspacing="0"
+  cellpadding="0"
+  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
+>
+  <tr>
+    <td style="padding:14px 20px;border-radius:16px;">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="border-collapse:collapse;width:100%;table-layout:fixed;"
+      >
+        ${body}
+      </table>
+    </td>
+  </tr>
+</table>
+`;
+}
+
+function buildPreviewEmailHtml(args: {
+  subject: string;
+  title: string;
+  preheader?: string;
+  bodyHtml: string;
+  button?: { text: string; href: string };
+}) {
+  const year = new Date().getFullYear();
+  const appUrl = "https://www.goexoduslogistics.com";
+  const logoUrl = `${appUrl}/logo.png`;
+  const outerPad = 24;
+  const innerPad = 20;
+
+  const buttonHtml = args.button
+    ? `<div style="padding:18px 0 6px 0;">
+         <a href="${args.button.href}"
+           style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;
+           padding:12px 18px;border-radius:10px;font-size:15px;font-weight:800;">
+           ${esc(args.button.text)}
+         </a>
+       </div>`
+    : "";
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${esc(args.subject)}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      ${esc(args.preheader || "You have a new message from Exodus Logistics.")}
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f3f4f6;">
+      <tr>
+        <td style="background:#0b3aa4;height:6px;line-height:6px;font-size:0;">&nbsp;</td>
+      </tr>
+
+      <tr>
+        <td align="center" style="padding:28px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;">
+            <tr>
+              <td style="padding:0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                  style="background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
+
+                  <tr>
+                    <td style="padding:${outerPad}px ${outerPad}px 14px ${outerPad}px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td align="left" style="vertical-align:middle;">
+                            <img
+                              src="${logoUrl}"
+                              alt="Exodus Logistics"
+                              width="140"
+                              height="38"
+                              style="display:block;width:140px;height:38px;border:0;outline:none;text-decoration:none;"
+                            />
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:0 ${outerPad}px;">
+                      <div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:${innerPad}px ${outerPad}px;">
+                      <h1 style="margin:0 0 12px 0;font-size:24px;line-height:30px;font-weight:800;color:#0f172a;">
+                        ${esc(args.title)}
+                      </h1>
+
+                      ${args.bodyHtml}
+
+                      ${buttonHtml}
+
+                      <p style="margin:14px 0 0 0;font-size:16px;line-height:24px;color:#111827;">
+                        Regards,<br />
+                        <strong>Exodus Logistics Support</strong>
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:0 ${outerPad}px;">
+                      <div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:14px ${outerPad}px ${outerPad}px ${outerPad}px;">
+                      <p style="margin:0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
+                        Support: <a href="mailto:support@goexoduslogistics.com" style="color:#2563eb;text-decoration:none;">support@goexoduslogistics.com</a>
+                      </p>
+                      <p style="margin:6px 0 0 0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
+                        ©️ ${year} Exodus Logistics. All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:10px 10px 0 10px;font-size:11px;line-height:16px;color:#9ca3af;text-align:center;">
+                This message was sent to gabrielmoses888@gmail.com.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 export default function AdminEmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplateDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,62 +450,63 @@ export default function AdminEmailTemplatesPage() {
     }
   };
 
-  const previewBadgeClass =
-    badgeTone === "green"
-      ? "bg-green-100 text-green-700"
-      : badgeTone === "red"
-      ? "bg-red-100 text-red-700"
-      : "bg-blue-100 text-blue-700";
-
-  const previewDetailsCard = () => {
-    if (!showDetailsCard || detailsCardType === "none") return null;
-
-    const rows =
-      detailsCardType === "account"
-        ? [
-            { label: "Account Email", value: "gabrielmoses888@gmai..." },
-            { label: "Access Status", value: "Restored" },
-          ]
-        : detailsCardType === "invoice"
-        ? [
-            { label: "Shipment Number", value: "EXS-2026-001245" },
-            { label: "Invoice Number", value: "EXS-INV-2026-03-1234567" },
-            { label: "Status", value: "PAID" },
-          ]
-        : detailsCardType === "changes"
-        ? [
-            { label: "Field", value: "Destination Address" },
-            { label: "Previous", value: "Old value" },
-            { label: "Updated", value: "New value" },
-          ]
-        : [
-            { label: "Shipment Number", value: "EXS-2026-001245" },
-            { label: "Tracking Number", value: "TRK9283718273" },
-            { label: "Invoice Number", value: "EXS-INV-2026-03-1234567" },
-          ];
-
-    return (
-      <div className="mt-5 rounded-2xl border border-gray-200 bg-slate-50 p-4">
-        <div className="space-y-3">
-          {rows.map((row, idx) => (
-            <div key={idx} className="flex items-center justify-between gap-4">
-              <span className="text-xs font-semibold text-gray-500">{row.label}:</span>
-              <span className="text-xs font-extrabold text-blue-700 truncate">{row.value}</span>
-            </div>
-          ))}
+  const previewDetailsCardHtml =
+    !showDetailsCard || detailsCardType === "none"
+      ? ""
+      : detailsCardType === "account"
+      ? renderSimpleInfoCardHtml([
+          { label: "Account Email", value: "gabrielmoses888@gmai..." },
+          { label: "Access Status", value: "Restored" },
+        ])
+      : detailsCardType === "invoice"
+      ? renderSimpleInfoCardHtml([
+          { label: "Shipment Number", value: "EXS-2026-001245" },
+          { label: "Invoice Number", value: "EXS-INV-2026-03-1234567" },
+          { label: "Status", value: "PAID" },
+        ])
+      : detailsCardType === "changes"
+      ? `
+        <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
+            <thead>
+              <tr style="background:#f9fafb;">
+                <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
+                <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
+                <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;">Destination</td>
+                <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;">Old address</td>
+                <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;">New address</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-    );
-  };
+      `
+      : renderShipmentDetailsCardHtml({
+          shipmentId: "EXS-2026-001245",
+          trackingNumber: "TRK9283718273",
+          invoiceNumber: "EXS-INV-2026-03-1234567",
+        });
 
-  const previewHtml = bodyHtml
-    .replace(/{{badge}}/g, "")
-    .replace(/{{detailsCard}}/g, "")
-    .replace(/{{invoiceLink}}/g, showLink ? `<p><a href="#">${linkText || "View Invoice"}</a></p>` : "")
-    .replace(/{{changesTable}}/g, "<p><strong>Changes table will appear here.</strong></p>")
-    .replace(/{{name}}/g, "Gabriel")
+  const previewBadgeHtml = badgeText ? renderToneBadgeHtml(badgeText, badgeTone) : "";
+  const previewInvoiceLinkHtml =
+    showLink && linkText
+      ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(
+          linkText
+        )}</a></div>`
+      : "";
+
+  const previewBodyHtml = (bodyHtml || "<p>No content yet.</p>")
+    .replace(/{{badge}}/g, previewBadgeHtml)
+    .replace(/{{detailsCard}}/g, previewDetailsCardHtml)
+    .replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
+    .replace(/{{changesTable}}/g, previewDetailsCardHtml)
+    .replace(/{{name}}/g, "Gabriel Moses")
     .replace(/{{receiverName}}/g, "John Doe")
-    .replace(/{{senderName}}/g, "Gabriel")
+    .replace(/{{senderName}}/g, "Gabriel Moses")
     .replace(/{{shipmentId}}/g, "EXS-2026-001245")
     .replace(/{{trackingNumber}}/g, "TRK9283718273")
     .replace(/{{invoiceNumber}}/g, "EXS-INV-2026-03-1234567")
@@ -240,6 +520,14 @@ export default function AdminEmailTemplatesPage() {
     .replace(/{{supportUrl}}/g, "#")
     .replace(/{{trackUrl}}/g, "#")
     .replace(/{{invoiceUrl}}/g, "#");
+
+  const previewEmailHtml = buildPreviewEmailHtml({
+    subject: subject || "Template Preview",
+    title: title || "Template Title",
+    preheader,
+    bodyHtml: previewBodyHtml,
+    button: showButton && buttonText ? { text: buttonText, href: "#" } : undefined,
+  });
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -470,48 +758,19 @@ export default function AdminEmailTemplatesPage() {
             </div>
 
             {showPreview && (
-              <div className="mt-6 rounded-3xl border border-gray-200 bg-gray-50 p-6">
+              <div className="mt-6 rounded-3xl border border-gray-200 bg-gray-50 p-4">
                 <h3 className="text-lg font-extrabold text-gray-900">Preview</h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  This is a live preview of your current template before saving.
+                  This preview now renders like the actual sent email wrapper.
                 </p>
 
-                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                  {badgeText && (
-                    <div className="mb-4">
-                      <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${previewBadgeClass}`}
-                      >
-                        {badgeText}
-                      </span>
-                    </div>
-                  )}
-
-                  <h4 className="text-2xl font-extrabold text-gray-900">{title || "Template Title"}</h4>
-
-                  {preheader && <p className="mt-2 text-sm text-gray-500">{preheader}</p>}
-
-                  {previewDetailsCard()}
-
-                  <div className="mt-5 prose prose-sm max-w-none">
-                    <div dangerouslySetInnerHTML={{ __html: previewHtml || "<p>No content yet.</p>" }} />
-                  </div>
-
-                  {showButton && buttonText && (
-                    <div className="mt-6">
-                      <button className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white">
-                        {buttonText}
-                      </button>
-                    </div>
-                  )}
-
-                  {showLink && linkText && (
-                    <div className="mt-4">
-                      <span className="text-sm font-semibold text-blue-700 underline">
-                        {linkText}
-                      </span>
-                    </div>
-                  )}
+                <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                  <iframe
+                    title="email-preview"
+                    srcDoc={previewEmailHtml}
+                    className="w-full"
+                    style={{ height: "1100px", border: "0" }}
+                  />
                 </div>
               </div>
             )}
@@ -545,7 +804,9 @@ export default function AdminEmailTemplatesPage() {
                 <p className="font-extrabold text-gray-900">{t.label}</p>
                 <p className="mt-1 text-xs text-gray-500">key: {t.key}</p>
                 <p className="mt-1 text-xs text-gray-500">category: {t.category}</p>
-                <p className="mt-1 text-xs text-gray-500">badge: {t.badgeText || "—"} / {t.badgeTone || "blue"}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  badge: {t.badgeText || "—"} / {t.badgeTone || "blue"}
+                </p>
                 <p className="mt-3 text-sm text-gray-700 line-clamp-2">{t.subject}</p>
               </button>
             ))}
