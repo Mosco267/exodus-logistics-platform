@@ -12,6 +12,8 @@ const DEFAULT_TEMPLATES = [
     title: "Shipment created",
     preheader: "Shipment {{shipmentId}} has been created successfully.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
 
 <p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is being prepared for delivery to <strong>{{receiverName}}</strong>.</p>
@@ -20,18 +22,22 @@ const DEFAULT_TEMPLATES = [
 <strong>Estimated delivery date:</strong> {{estimatedDeliveryDate}}<br/>
 {{paymentMessage}}</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span></p>
+{{detailsCard}}
 
-<p>You can view the invoice from the link below.</p>
+<p>You can use the button below to open the shipment page for tracking updates. You can also use the invoice link below to review billing details.</p>
 
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
+{{invoiceLink}}
 `.trim(),
     buttonText: "View Shipment",
     buttonUrlType: "track",
+    badgeText: "Shipment Created",
+    badgeTone: "green",
+    showButton: true,
+    showLink: true,
+    linkText: "View Invoice",
+    linkUrlType: "invoice",
+    showDetailsCard: true,
+    detailsCardType: "shipment",
   },
 
   {
@@ -42,6 +48,8 @@ const DEFAULT_TEMPLATES = [
     title: "Shipment created",
     preheader: "A shipment has been created for you.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
 
 <p>A shipment has been created for you by <strong>{{senderName}}</strong>.</p>
@@ -50,16 +58,22 @@ const DEFAULT_TEMPLATES = [
 <strong>Estimated delivery date:</strong> {{estimatedDeliveryDate}}<br/>
 {{paymentMessage}}</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span></p>
+{{detailsCard}}
 
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
+<p>You can use the button below to open the shipment page and monitor future progress updates. You can also use the invoice link below to review billing details.</p>
+
+{{invoiceLink}}
 `.trim(),
     buttonText: "View Shipment",
     buttonUrlType: "track",
+    badgeText: "Shipment Created",
+    badgeTone: "green",
+    showButton: true,
+    showLink: true,
+    linkText: "View Invoice",
+    linkUrlType: "invoice",
+    showDetailsCard: true,
+    detailsCardType: "shipment",
   },
 
   {
@@ -70,21 +84,31 @@ const DEFAULT_TEMPLATES = [
     title: "Shipment details updated",
     preheader: "Shipment {{shipmentId}} details have been updated.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
 <p>{{intro}}</p>
 
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span></p>
+<p>This update may affect delivery planning, shipment records, or invoice-related references. We recommend keeping a copy of the updated details for future tracking and verification.</p>
+
+{{detailsCard}}
 
 {{changesTable}}
 
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
+<p>You can use the button below to open the shipment page and review the latest details. You can also use the invoice link below if billing verification is needed.</p>
+
+{{invoiceLink}}
 `.trim(),
     buttonText: "View Shipment",
     buttonUrlType: "track",
+    badgeText: "Shipment Updated",
+    badgeTone: "blue",
+    showButton: true,
+    showLink: true,
+    linkText: "View Invoice",
+    linkUrlType: "invoice",
+    showDetailsCard: true,
+    detailsCardType: "shipment",
   },
 
   {
@@ -95,13 +119,28 @@ const DEFAULT_TEMPLATES = [
     title: "Invoice update",
     preheader: "Invoice status has changed.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
+
 <p>The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <strong>{{invoiceStatus}}</strong>.</p>
+
 <p>{{invoiceMessage}}</p>
-<p><strong>Invoice Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{invoiceNumber}}</span></p>
+
+<p>Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.</p>
+
+{{detailsCard}}
 `.trim(),
     buttonText: "View Invoice",
     buttonUrlType: "invoice",
+    badgeText: "Invoice Update",
+    badgeTone: "blue",
+    showButton: true,
+    showLink: false,
+    linkText: "View Invoice",
+    linkUrlType: "invoice",
+    showDetailsCard: true,
+    detailsCardType: "invoice",
   },
 
   {
@@ -112,15 +151,28 @@ const DEFAULT_TEMPLATES = [
     title: "Shipment removed",
     preheader: "Shipment {{shipmentId}} has been removed from tracking.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
+
 <p>Please be informed that the shipment record for <strong>{{shipmentId}}</strong> has been removed from our tracking system.</p>
-<p>As a result, this shipment will no longer be available for tracking on our website.</p>
-<p><strong>Shipment Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{shipmentId}}</span><br/>
-<strong>Tracking Number:</strong> <span style="white-space:nowrap;word-break:keep-all;">{{trackingNumber}}</span></p>
-<p>If you believe this action was made in error or you need further clarification, please contact our support team.</p>
+
+<p>As a result, this shipment will no longer be available for tracking on our website, and any further automated progress notifications for this shipment will stop.</p>
+
+{{detailsCard}}
+
+<p>If you believe this action was made in error or need more clarification, please contact our support team.</p>
 `.trim(),
     buttonText: "Contact support",
     buttonUrlType: "support",
+    badgeText: "Shipment Removed",
+    badgeTone: "red",
+    showButton: true,
+    showLink: false,
+    linkText: "",
+    linkUrlType: "support",
+    showDetailsCard: true,
+    detailsCardType: "shipment",
   },
 
   {
@@ -131,12 +183,28 @@ const DEFAULT_TEMPLATES = [
     title: "Account deleted",
     preheader: "Your account has been deleted.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
+
 <p>This email confirms that the Exodus Logistics account associated with <strong>{{email}}</strong> has been deleted by an administrator.</p>
-<p>If you believe this action was taken in error, please contact our support team for assistance.</p>
+
+<p>As a result, access to the account and any related account functions have been removed. If this action was not expected, please contact our support team for review and clarification.</p>
+
+{{detailsCard}}
+
+<p>Our support team will assist you if you believe this action was taken in error.</p>
 `.trim(),
     buttonText: "Contact support",
     buttonUrlType: "support",
+    badgeText: "Account Deleted",
+    badgeTone: "red",
+    showButton: true,
+    showLink: false,
+    linkText: "",
+    linkUrlType: "support",
+    showDetailsCard: true,
+    detailsCardType: "account",
   },
 
   {
@@ -147,12 +215,28 @@ const DEFAULT_TEMPLATES = [
     title: "Account access removed",
     preheader: "Your account access has been removed.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
+
 <p>This email confirms that the Exodus Logistics account associated with <strong>{{email}}</strong> has been permanently banned due to a violation of our policies.</p>
-<p>Access has been removed, and you will not be able to register another account using this email address.</p>
+
+<p>Access to the account has been removed immediately, and you will no longer be able to sign in or create another account using this email address unless a formal review is completed and approved.</p>
+
+{{detailsCard}}
+
+<p>If you believe this action was made in error, please contact support to request a review.</p>
 `.trim(),
     buttonText: "Contact support",
     buttonUrlType: "support",
+    badgeText: "Account Banned",
+    badgeTone: "red",
+    showButton: true,
+    showLink: false,
+    linkText: "",
+    linkUrlType: "support",
+    showDetailsCard: true,
+    detailsCardType: "account",
   },
 
   {
@@ -163,13 +247,28 @@ const DEFAULT_TEMPLATES = [
     title: "Account access restored",
     preheader: "Your account access has been restored.",
     bodyHtml: `
+{{badge}}
+
 <p>Hello {{name}},</p>
-<p>This is to confirm that access to the Exodus Logistics account associated with <strong>{{email}}</strong> has been restored.</p>
-<p>We apologize for any inconvenience this may have caused.</p>
-<p>If you experience any issues signing in, please reply to this email or contact our support team.</p>
+
+<p>This is to confirm that access to the Exodus Logistics account associated with <strong>{{email}}</strong> has been restored successfully.</p>
+
+<p>You may now sign in again and continue using your account normally. We apologize for any inconvenience this may have caused.</p>
+
+{{detailsCard}}
+
+<p>If you experience any sign-in difficulty or notice account activity you do not recognize, please contact support immediately.</p>
 `.trim(),
     buttonText: "Contact support",
     buttonUrlType: "support",
+    badgeText: "Account Restored",
+    badgeTone: "green",
+    showButton: true,
+    showLink: false,
+    linkText: "",
+    linkUrlType: "support",
+    showDetailsCard: true,
+    detailsCardType: "account",
   },
 ];
 
@@ -222,6 +321,14 @@ export async function GET() {
 <p>{{note}}</p>`,
       buttonText: String(s.emailButtonText || "Track Shipment").trim(),
       buttonUrlType: String(s.emailButtonUrlType || "track").trim(),
+      badgeText: String(s.badgeText || s.label || "Shipment Update").trim(),
+      badgeTone: String(s.badgeTone || "blue").trim(),
+      showButton: typeof s.showButton === "boolean" ? s.showButton : true,
+      showLink: typeof s.showLink === "boolean" ? s.showLink : true,
+      linkText: String(s.linkText || "View Invoice").trim(),
+      linkUrlType: String(s.linkUrlType || "invoice").trim(),
+      showDetailsCard: typeof s.showDetailsCard === "boolean" ? s.showDetailsCard : true,
+      detailsCardType: String(s.detailsCardType || "shipment").trim(),
       isCustom: true,
       updatedAt: now,
     }));
@@ -239,6 +346,14 @@ export async function GET() {
             bodyHtml: t.bodyHtml,
             buttonText: t.buttonText,
             buttonUrlType: t.buttonUrlType,
+            badgeText: t.badgeText,
+            badgeTone: t.badgeTone,
+            showButton: t.showButton,
+            showLink: t.showLink,
+            linkText: t.linkText,
+            linkUrlType: t.linkUrlType,
+            showDetailsCard: t.showDetailsCard,
+            detailsCardType: t.detailsCardType,
             isCustom: true,
             updatedAt: now,
           },
@@ -250,7 +365,6 @@ export async function GET() {
       );
     }
 
-    // remove old/legacy timeline-style labels that are not using "Timeline: ..."
     await col.deleteMany({
       category: "timeline",
       label: { $not: /^Timeline:\s/i },
@@ -288,6 +402,14 @@ export async function POST(req: Request) {
       bodyHtml: String(body?.bodyHtml || "").trim(),
       buttonText: String(body?.buttonText || "").trim(),
       buttonUrlType: String(body?.buttonUrlType || "track").trim(),
+      badgeText: String(body?.badgeText || "").trim(),
+      badgeTone: String(body?.badgeTone || "blue").trim(),
+      showButton: typeof body?.showButton === "boolean" ? body.showButton : true,
+      showLink: typeof body?.showLink === "boolean" ? body.showLink : true,
+      linkText: String(body?.linkText || "").trim(),
+      linkUrlType: String(body?.linkUrlType || "invoice").trim(),
+      showDetailsCard: typeof body?.showDetailsCard === "boolean" ? body.showDetailsCard : true,
+      detailsCardType: String(body?.detailsCardType || "shipment").trim(),
       isCustom: true,
       updatedAt: new Date(),
     };
@@ -308,6 +430,14 @@ export async function POST(req: Request) {
             emailBodyHtml: doc.bodyHtml,
             emailButtonText: doc.buttonText,
             emailButtonUrlType: doc.buttonUrlType,
+            badgeText: doc.badgeText,
+            badgeTone: doc.badgeTone,
+            showButton: doc.showButton,
+            showLink: doc.showLink,
+            linkText: doc.linkText,
+            linkUrlType: doc.linkUrlType,
+            showDetailsCard: doc.showDetailsCard,
+            detailsCardType: doc.detailsCardType,
             updatedAt: new Date(),
           },
         }
@@ -318,7 +448,9 @@ export async function POST(req: Request) {
         {
           $set: {
             ...doc,
-            label: `Timeline: ${String(body?.label || "").replace(/^Timeline:\s*/i, "").trim()}` || doc.label,
+            label:
+              `Timeline: ${String(body?.label || "").replace(/^Timeline:\s*/i, "").trim()}` ||
+              doc.label,
             category: "timeline",
           },
           $setOnInsert: { createdAt: new Date() },
