@@ -624,6 +624,25 @@ function formatEstimatedDeliveryDateRange(
   return `${startText} - ${endText}`;
 }
 
+function shortenEmail(email: string, max = 22) {
+  const value = cleanStr(email);
+  if (!value) return "—";
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 3)}...`;
+}
+
+function getInvoiceStatusExtraMessage(status: InvoiceStatus) {
+  if (status === "paid") {
+    return "Payment has been confirmed in our system and the shipment can now continue to the next logistics stage without interruption.";
+  }
+  if (status === "overdue") {
+    return "This invoice is now overdue. Immediate payment is recommended to avoid continued delay, processing hold, or additional administrative follow-up.";
+  }
+  if (status === "cancelled") {
+    return "This invoice has been cancelled in our system. If you were not expecting this update, please contact support for clarification before taking further action.";
+  }
+  return "This invoice remains unpaid at the moment. Please complete payment as soon as possible so shipment processing can continue normally.";
+}
 
 function renderToneBadge(
   text: string,
@@ -734,9 +753,9 @@ function renderSimpleInfoCard(rows: Array<{ label: string; value: string }>) {
           <td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">
             ${esc(row.label)}:
           </td>
-          <td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;">
-            ${esc(row.value)}
-          </td>
+          <td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;">
+  ${esc(row.value)}
+</td>
         </tr>
       `
     )
@@ -861,8 +880,8 @@ export async function sendShipmentCreatedSenderEmail(
     ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can review the invoice now or continue to the shipment page for tracking and future status updates.
-    </p>
+  You can use the button below to open the shipment page for tracking updates. You can also use the invoice link below to review billing details.
+</p>
 
     <div style="margin-top:12px">
       <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
@@ -896,9 +915,7 @@ export async function sendShipmentCreatedSenderEmail(
     ? fillVars(templateOverride.preheader, vars)
     : defaultPreheader;
 
-  const finalBodyHtml = templateOverride?.bodyHtml
-    ? fillVars(templateOverride.bodyHtml, vars)
-    : defaultBodyHtml;
+  const finalBodyHtml = defaultBodyHtml;
 
   const finalButtonText = templateOverride?.buttonText
     ? fillVars(templateOverride.buttonText, vars)
@@ -1021,8 +1038,8 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can view the invoice now or open the shipment page to monitor future progress updates.
-    </p>
+  You can use the button below to open the shipment page and monitor future progress updates. You can also use the invoice link below to review billing details.
+</p>
 
     <div style="margin-top:12px">
       <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
@@ -1056,9 +1073,7 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ? fillVars(templateOverride.preheader, vars)
     : defaultPreheader;
 
-  const finalBodyHtml = templateOverride?.bodyHtml
-    ? fillVars(templateOverride.bodyHtml, vars)
-    : defaultBodyHtml;
+  const finalBodyHtml = defaultBodyHtml;
 
   const finalButtonText = templateOverride?.buttonText
     ? fillVars(templateOverride.buttonText, vars)
@@ -1097,9 +1112,9 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
 
   const badgeHtml = renderToneBadge("Account Banned", "red");
   const infoCardHtml = renderSimpleInfoCard([
-    { label: "Account Email", value: to },
-    { label: "Access Status", value: "Removed" },
-  ]);
+  { label: "Account Email", value: shortenEmail(to) },
+  { label: "Access Status", value: "Removed" },
+]);
 
   const bodyHtml = `
     ${badgeHtml}
@@ -1147,9 +1162,9 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
 
   const badgeHtml = renderToneBadge("Account Restored", "green");
   const infoCardHtml = renderSimpleInfoCard([
-    { label: "Account Email", value: to },
-    { label: "Access Status", value: "Restored" },
-  ]);
+  { label: "Account Email", value: shortenEmail(to) },
+  { label: "Access Status", value: "Restored" },
+]);
 
   const bodyHtml = `
     ${badgeHtml}
@@ -1199,9 +1214,9 @@ export async function sendDeletedByAdminEmail(
 
   const badgeHtml = renderToneBadge("Account Deleted", "red");
   const infoCardHtml = renderSimpleInfoCard([
-    { label: "Account Email", value: to },
-    { label: "Account Status", value: "Deleted" },
-  ]);
+  { label: "Account Email", value: shortenEmail(to) },
+  { label: "Access Status", value: "Deleted" },
+]);
 
   const bodyHtml = `
     ${badgeHtml}
@@ -1654,9 +1669,13 @@ export async function sendInvoiceUpdateEmail(
   const subject = `Exodus Logistics: Invoice ${invoiceStatusSubject(status)} (${opts.shipmentId})`;
 
   const badgeHtml = renderToneBadge(
-    `Invoice ${statusLabel}`,
-    status === "paid" ? "green" : "red"
-  );
+  `Invoice ${statusLabel}`,
+  status === "paid"
+    ? "green"
+    : status === "unpaid"
+    ? "blue"
+    : "red"
+);
 
   const infoCardHtml = renderSimpleInfoCard([
     { label: "Shipment Number", value: opts.shipmentId },
@@ -1675,18 +1694,18 @@ export async function sendInvoiceUpdateEmail(
       The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${esc(invoiceStatusMessage(status))}
-    </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+  ${esc(getInvoiceStatusExtraMessage(status))}
+</p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      Please review the invoice details below and take any required action as soon as possible to avoid interruption to shipment processing.
-    </p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+  Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.
+</p>
 
     ${infoCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can open the invoice directly using the link below.
+      You can open the invoice directly using the button below.
     </p>
   `;
 
@@ -1745,9 +1764,13 @@ export async function sendInvoiceStatusReceiverEmail(
   const subject = `Invoice ${invoiceStatusSubject(status)}: ${args.shipmentId}`;
 
   const badgeHtml = renderToneBadge(
-    `Invoice ${statusLabel}`,
-    status === "paid" ? "green" : "red"
-  );
+  `Invoice ${statusLabel}`,
+  status === "paid"
+    ? "green"
+    : status === "unpaid"
+    ? "blue"
+    : "red"
+);
 
   const infoCardHtml = renderSimpleInfoCard([
     { label: "Shipment Number", value: args.shipmentId },
@@ -1766,9 +1789,9 @@ export async function sendInvoiceStatusReceiverEmail(
       The invoice for shipment <strong>${esc(args.shipmentId)}</strong>, sent by <strong>${esc(args.senderName)}</strong>, is currently marked as <strong>${statusLabel}</strong>.
     </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${esc(invoiceStatusMessage(status))}
-    </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+  ${esc(getInvoiceStatusExtraMessage(status))}
+</p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       Please review the invoice details below and keep this reference available for any required verification or payment follow-up.
@@ -1859,8 +1882,8 @@ export async function sendShipmentEditedEmail(
     ${tableHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can view the invoice or open the shipment page to review the latest status and details.
-    </p>
+  You can use the button below to open the shipment page and review the latest details. You can also use the invoice link below if billing verification is needed.
+</p>
 
     <div style="margin-top:12px">
       <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
@@ -1969,6 +1992,7 @@ export async function sendShipmentDeletedEmail(
     name?: string;
     shipmentId: string;
     trackingNumber?: string;
+    invoiceNumber?: string;
     locale?: string;
   }
 ) {
@@ -1976,13 +2000,19 @@ export async function sendShipmentDeletedEmail(
 
   const name = cleanStr(args.name) || "Customer";
   const subject = `Exodus Logistics: Shipment record removed (${args.shipmentId})`;
+  
+  const invoiceNumber = makeInvoiceNumber({
+  shipmentId: args.shipmentId,
+  trackingNumber: args.trackingNumber,
+  invoiceNumber: args.invoiceNumber,
+});
 
   const badgeHtml = renderToneBadge("Shipment Removed", "red");
   const detailsCardHtml = renderShipmentDetailsCard({
-    shipmentId: args.shipmentId,
-    trackingNumber: args.trackingNumber,
-    invoiceNumber: "",
-  });
+  shipmentId: args.shipmentId,
+  trackingNumber: args.trackingNumber,
+  invoiceNumber,
+});
 
   const bodyHtml = `
     ${badgeHtml}
