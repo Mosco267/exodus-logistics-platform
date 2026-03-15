@@ -316,7 +316,7 @@ export default function AdminEmailTemplatesPage() {
   const [buttonUrlType, setButtonUrlType] = useState("track");
 
   const [badgeText, setBadgeText] = useState("");
-  const [badgeTone, setBadgeTone] = useState<"blue" | "green" | "red">("blue");
+  const [badgeTone, setBadgeTone] = useState<"" | "blue" | "green" | "red">("");
   const [showButton, setShowButton] = useState(true);
   const [showLink, setShowLink] = useState(true);
   const [linkText, setLinkText] = useState("View Invoice");
@@ -491,7 +491,9 @@ export default function AdminEmailTemplatesPage() {
           invoiceNumber: "EXS-INV-2026-03-1234567",
         });
 
-  const previewBadgeHtml = badgeText ? renderToneBadgeHtml(badgeText, badgeTone) : "";
+  const previewBadgeHtml = badgeText
+  ? renderToneBadgeHtml(badgeText, (badgeTone || "blue") as "blue" | "green" | "red")
+  : "";
   const previewInvoiceLinkHtml =
     showLink && linkText
       ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(
@@ -630,14 +632,15 @@ export default function AdminEmailTemplatesPage() {
               <div>
                 <label className="text-xs font-semibold text-gray-600">Badge Color</label>
                 <select
-                  value={badgeTone}
-                  onChange={(e) => setBadgeTone(e.target.value as "blue" | "green" | "red")}
-                  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white"
-                >
-                  <option value="blue">blue</option>
-                  <option value="green">green</option>
-                  <option value="red">red</option>
-                </select>
+  value={badgeTone || ""}
+  onChange={(e) => setBadgeTone(e.target.value as "" | "blue" | "green" | "red")}
+  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white"
+>
+  <option value="">Auto (Use system default)</option>
+  <option value="blue">Blue</option>
+  <option value="green">Green</option>
+  <option value="red">Red</option>
+</select>
               </div>
             </div>
 

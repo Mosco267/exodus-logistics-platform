@@ -14,17 +14,29 @@ const DEFAULT_TEMPLATES = [
     bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is being prepared for delivery to <strong>{{receiverName}}</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is being prepared for delivery to <strong>{{receiverName}}</strong>.
+</p>
 
-<p><strong>Invoice status:</strong> {{invoiceStatus}}<br/>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+We have generated the shipment record and invoice details, and our system is ready to move this shipment through the next processing stage as soon as all requirements are satisfied.
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
+<strong>Invoice status:</strong> <strong>{{invoiceStatus}}</strong><br/>
 <strong>Estimated delivery date:</strong> {{estimatedDeliveryDate}}<br/>
-{{paymentMessage}}</p>
+{{paymentMessage}}
+</p>
 
 {{detailsCard}}
 
-<p>You can use the button below to open the shipment page for tracking updates. You can also use the invoice link below to review billing details.</p>
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+You can use the button below to open the shipment page for tracking updates. You can also use the invoice link below to review billing details.
+</p>
 
 {{invoiceLink}}
 `.trim(),
@@ -50,17 +62,29 @@ const DEFAULT_TEMPLATES = [
     bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>A shipment has been created for you by <strong>{{senderName}}</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+A shipment has been created for you by <strong>{{senderName}}</strong>.
+</p>
 
-<p><strong>Invoice status:</strong> {{invoiceStatus}}<br/>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+Our system has recorded the shipment successfully, and the shipment details are now available for invoice review and tracking updates.
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
+<strong>Invoice status:</strong> <strong>{{invoiceStatus}}</strong><br/>
 <strong>Estimated delivery date:</strong> {{estimatedDeliveryDate}}<br/>
-{{paymentMessage}}</p>
+{{paymentMessage}}
+</p>
 
 {{detailsCard}}
 
-<p>You can use the button below to open the shipment page and monitor future progress updates. You can also use the invoice link below to review billing details.</p>
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+You can use the button below to open the shipment page and monitor future progress updates. You can also use the invoice link below to review billing details.
+</p>
 
 {{invoiceLink}}
 `.trim(),
