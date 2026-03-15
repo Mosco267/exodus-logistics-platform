@@ -24,6 +24,61 @@ const SUPPORT_URL =
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
+type EmailTone = "blue" | "green" | "red";
+
+type EmailTemplateConfig = {
+  key: string;
+  label?: string;
+  category?: string;
+  subject?: string;
+  title?: string;
+  preheader?: string;
+  bodyHtml?: string;
+  buttonText?: string;
+  buttonUrlType?: string;
+  badgeText?: string;
+  badgeTone?: EmailTone;
+  showButton?: boolean;
+  showLink?: boolean;
+  linkText?: string;
+  linkUrlType?: string;
+  showDetailsCard?: boolean;
+  detailsCardType?: "shipment" | "account" | "invoice" | "changes" | "none";
+};
+
+function normalizeTone(v: any): EmailTone {
+  const s = cleanStr(v).toLowerCase();
+  if (s === "green") return "green";
+  if (s === "red") return "red";
+  return "blue";
+}
+
+function normalizeBool(v: any, fallback = true) {
+  if (typeof v === "boolean") return v;
+  const s = cleanStr(v).toLowerCase();
+  if (s === "true") return true;
+  if (s === "false") return false;
+  return fallback;
+}
+
+function truncateMiddle(value: string, max = 24) {
+  const s = cleanStr(value);
+  if (!s) return "—";
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 3)}...`;
+}
+
+function resolveUrlByType(
+  type: string,
+  urls: { trackUrl: string; invoiceUrl: string; supportUrl: string }
+) {
+  const t = cleanStr(type).toLowerCase();
+  if (t === "invoice") return urls.invoiceUrl;
+  if (t === "support") return urls.supportUrl;
+  if (t === "none") return "";
+  return urls.trackUrl;
+}
+
 /** -------------------------
  * Helpers
  * ------------------------- */
@@ -209,7 +264,7 @@ function fillVars(template: string, vars: Record<string, any>) {
   return out;
 }
 
-async function getEmailTemplate(key: string) {
+async function getEmailTemplate(key: string): Promise<EmailTemplateConfig | null> {
   try {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
@@ -753,9 +808,13 @@ function renderSimpleInfoCard(rows: Array<{ label: string; value: string }>) {
           <td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">
             ${esc(row.label)}:
           </td>
-          <td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;">
-  ${esc(row.value)}
-</td>
+          <td
+            align="right"
+            title="${esc(row.value)}"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;"
+          >
+            ${esc(truncateMiddle(row.value))}
+          </td>
         </tr>
       `
     )
@@ -915,7 +974,20 @@ export async function sendShipmentCreatedSenderEmail(
     ? fillVars(templateOverride.preheader, vars)
     : defaultPreheader;
 
-  const finalBodyHtml = defaultBodyHtml;
+  const finalBodyHtml = templateOverride?.bodyHtml
+  ? fillVars(templateOverride.bodyHtml, {
+      ...vars,
+      badge: badgeHtml,
+      detailsCard: detailsCardHtml,
+      invoiceLink: `
+        <div style="margin-top:12px">
+          <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            View Invoice
+          </a>
+        </div>
+      `,
+    })
+  : defaultBodyHtml;
 
   const finalButtonText = templateOverride?.buttonText
     ? fillVars(templateOverride.buttonText, vars)
@@ -928,19 +1000,46 @@ export async function sendShipmentCreatedSenderEmail(
       ? SUPPORT_URL
       : trackUrl;
 
-  const html = renderEmailTemplate({
-    subject: finalSubject,
-    title: finalTitle,
-    preheader: finalPreheader,
-    bodyHtml: finalBodyHtml,
-    button:
-      templateOverride?.buttonUrlType === "none"
-        ? undefined
-        : { text: finalButtonText, href: finalButtonHref },
-    appUrl: APP_URL,
-    supportEmail: SUPPORT_EMAIL,
-    sentTo: to,
-  });
+  const finalBadgeTone = normalizeTone(templateOverride?.badgeTone || (paid ? "green" : "red"));
+const finalBadgeText = cleanStr(templateOverride?.badgeText) || (paid ? "Shipment Created" : "Payment Required");
+
+const showButton = normalizeBool(templateOverride?.showButton, true);
+const showLink = normalizeBool(templateOverride?.showLink, true);
+const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
+const linkHref = resolveUrlByType(templateOverride?.linkUrlType || "invoice", {
+  trackUrl,
+  invoiceUrl,
+  supportUrl: SUPPORT_URL,
+});
+
+const rebuiltBodyHtml = templateOverride?.bodyHtml
+  ? fillVars(templateOverride.bodyHtml, {
+      ...vars,
+      badge: renderToneBadge(finalBadgeText, finalBadgeTone),
+      detailsCard: detailsCardHtml,
+      invoiceLink: showLink && linkHref
+        ? `<div style="margin-top:12px">
+             <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+               ${esc(linkText)}
+             </a>
+           </div>`
+        : "",
+    })
+  : defaultBodyHtml;
+
+const html = renderEmailTemplate({
+  subject: finalSubject,
+  title: finalTitle,
+  preheader: finalPreheader,
+  bodyHtml: rebuiltBodyHtml,
+  button:
+    showButton && finalButtonHref
+      ? { text: finalButtonText, href: finalButtonHref }
+      : undefined,
+  appUrl: APP_URL,
+  supportEmail: SUPPORT_EMAIL,
+  sentTo: to,
+});
 
   return sendEmail(to, finalSubject, html);
 }
@@ -1073,7 +1172,20 @@ export async function sendShipmentCreatedReceiverEmailV2(
     ? fillVars(templateOverride.preheader, vars)
     : defaultPreheader;
 
-  const finalBodyHtml = defaultBodyHtml;
+  const finalBodyHtml = templateOverride?.bodyHtml
+  ? fillVars(templateOverride.bodyHtml, {
+      ...vars,
+      badge: badgeHtml,
+      detailsCard: detailsCardHtml,
+      invoiceLink: `
+        <div style="margin-top:12px">
+          <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            View Invoice
+          </a>
+        </div>
+      `,
+    })
+  : defaultBodyHtml;
 
   const finalButtonText = templateOverride?.buttonText
     ? fillVars(templateOverride.buttonText, vars)
@@ -1086,19 +1198,46 @@ export async function sendShipmentCreatedReceiverEmailV2(
       ? SUPPORT_URL
       : trackUrl;
 
-  const html = renderEmailTemplate({
-    subject: finalSubject,
-    title: finalTitle,
-    preheader: finalPreheader,
-    bodyHtml: finalBodyHtml,
-    button:
-      templateOverride?.buttonUrlType === "none"
-        ? undefined
-        : { text: finalButtonText, href: finalButtonHref },
-    appUrl: APP_URL,
-    supportEmail: SUPPORT_EMAIL,
-    sentTo: to,
-  });
+  const finalBadgeTone = normalizeTone(templateOverride?.badgeTone || (paid ? "green" : "red"));
+const finalBadgeText = cleanStr(templateOverride?.badgeText) || (paid ? "Shipment Created" : "Payment Pending");
+
+const showButton = normalizeBool(templateOverride?.showButton, true);
+const showLink = normalizeBool(templateOverride?.showLink, true);
+const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
+const linkHref = resolveUrlByType(templateOverride?.linkUrlType || "invoice", {
+  trackUrl,
+  invoiceUrl,
+  supportUrl: SUPPORT_URL,
+});
+
+const rebuiltBodyHtml = templateOverride?.bodyHtml
+  ? fillVars(templateOverride.bodyHtml, {
+      ...vars,
+      badge: renderToneBadge(finalBadgeText, finalBadgeTone),
+      detailsCard: detailsCardHtml,
+      invoiceLink: showLink && linkHref
+        ? `<div style="margin-top:12px">
+             <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+               ${esc(linkText)}
+             </a>
+           </div>`
+        : "",
+    })
+  : defaultBodyHtml;
+
+const html = renderEmailTemplate({
+  subject: finalSubject,
+  title: finalTitle,
+  preheader: finalPreheader,
+  bodyHtml: rebuiltBodyHtml,
+  button:
+    showButton && finalButtonHref
+      ? { text: finalButtonText, href: finalButtonHref }
+      : undefined,
+  appUrl: APP_URL,
+  supportEmail: SUPPORT_EMAIL,
+  sentTo: to,
+});
 
   return sendEmail(to, finalSubject, html);
 }
@@ -1110,13 +1249,45 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
   const safeTo = esc(to);
   const subject = "Exodus Logistics: Account access removed";
 
-  const badgeHtml = renderToneBadge("Account Banned", "red");
-  const infoCardHtml = renderSimpleInfoCard([
-  { label: "Account Email", value: shortenEmail(to) },
-  { label: "Access Status", value: "Removed" },
-]);
+  const templateOverride = await getEmailTemplate("user_banned");
 
-  const bodyHtml = `
+  const badgeHtml = renderToneBadge(
+    templateOverride?.badgeText || "Account Banned",
+    (templateOverride?.badgeTone as "blue" | "green" | "red") || "red"
+  );
+
+  const detailsCardHtml =
+    templateOverride?.showDetailsCard === false
+      ? ""
+      : renderSimpleInfoCard([
+          { label: "Account Email", value: shortenEmail(to) },
+          { label: "Access Status", value: "Removed" },
+        ]);
+
+  const linkHref =
+    String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "track"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/track`
+      : String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "invoice"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/invoice`
+      : SUPPORT_URL;
+
+  const linkHtml =
+    templateOverride?.showLink === false
+      ? ""
+      : `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(templateOverride?.linkText || "Contact Support")}
+          </a>
+        </div>
+      `;
+
+  const defaultSubject = subject;
+  const defaultTitle = "Account access removed";
+  const defaultPreheader =
+    "Your account access has been removed. Contact support if you believe this was a mistake.";
+
+  const defaultBodyHtml = `
     ${badgeHtml}
 
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
@@ -1131,27 +1302,77 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
       Access to the account has been removed immediately, and you will no longer be able to sign in or create another account using this email address unless a formal review is completed and approved.
     </p>
 
-    ${infoCardHtml}
+    ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
       If you believe this action was made in error, please contact support to request a review.
     </p>
+
+    ${linkHtml}
   `;
 
+  const vars = {
+    name: esc(name),
+    email: safeTo,
+    shortEmail: esc(shortenEmail(to)),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    supportUrl: SUPPORT_URL,
+    trackUrl: `${APP_URL}/${DEFAULT_LOCALE}/track`,
+    invoiceUrl: `${APP_URL}/${DEFAULT_LOCALE}/invoice`,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "Contact support";
+
+  const buttonType = String(templateOverride?.buttonUrlType || "support")
+    .trim()
+    .toLowerCase();
+
+  const finalButtonHref =
+    templateOverride?.showButton === false
+      ? ""
+      : buttonType === "track"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/track`
+      : buttonType === "invoice"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/invoice`
+      : buttonType === "none"
+      ? ""
+      : SUPPORT_URL;
+
   const html = renderEmailTemplate({
-    subject,
-    title: "Account access removed",
-    preheader:
-      "Your account access has been removed. Contact support if you believe this was a mistake.",
-    bodyHtml,
-    button: { text: "Contact support", href: SUPPORT_URL },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button: finalButtonHref
+      ? { text: finalButtonText || "Contact support", href: finalButtonHref }
+      : undefined,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
+
 
 export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -1160,13 +1381,44 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
   const safeTo = esc(to);
   const subject = "Exodus Logistics: Update on your account";
 
-  const badgeHtml = renderToneBadge("Account Restored", "green");
-  const infoCardHtml = renderSimpleInfoCard([
-  { label: "Account Email", value: shortenEmail(to) },
-  { label: "Access Status", value: "Restored" },
-]);
+  const templateOverride = await getEmailTemplate("user_restored");
 
-  const bodyHtml = `
+  const badgeHtml = renderToneBadge(
+    templateOverride?.badgeText || "Account Restored",
+    (templateOverride?.badgeTone as "blue" | "green" | "red") || "green"
+  );
+
+  const detailsCardHtml =
+    templateOverride?.showDetailsCard === false
+      ? ""
+      : renderSimpleInfoCard([
+          { label: "Account Email", value: shortenEmail(to) },
+          { label: "Access Status", value: "Restored" },
+        ]);
+
+  const linkHref =
+    String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "track"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/track`
+      : String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "invoice"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/invoice`
+      : SUPPORT_URL;
+
+  const linkHtml =
+    templateOverride?.showLink === false
+      ? ""
+      : `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(templateOverride?.linkText || "Contact Support")}
+          </a>
+        </div>
+      `;
+
+  const defaultSubject = subject;
+  const defaultTitle = "Account access restored";
+  const defaultPreheader = "Your Exodus Logistics account access has been restored.";
+
+  const defaultBodyHtml = `
     ${badgeHtml}
 
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
@@ -1181,25 +1433,75 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
       You may now sign in again and continue using your account normally. We apologize for any inconvenience this may have caused.
     </p>
 
-    ${infoCardHtml}
+    ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
       If you experience any sign-in difficulty or notice account activity you do not recognize, please contact support immediately.
     </p>
+
+    ${linkHtml}
   `;
 
+  const vars = {
+    name: esc(name),
+    email: safeTo,
+    shortEmail: esc(shortenEmail(to)),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    supportUrl: SUPPORT_URL,
+    trackUrl: `${APP_URL}/${DEFAULT_LOCALE}/track`,
+    invoiceUrl: `${APP_URL}/${DEFAULT_LOCALE}/invoice`,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "Contact support";
+
+  const buttonType = String(templateOverride?.buttonUrlType || "support")
+    .trim()
+    .toLowerCase();
+
+  const finalButtonHref =
+    templateOverride?.showButton === false
+      ? ""
+      : buttonType === "track"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/track`
+      : buttonType === "invoice"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/invoice`
+      : buttonType === "none"
+      ? ""
+      : SUPPORT_URL;
+
   const html = renderEmailTemplate({
-    subject,
-    title: "Account access restored",
-    preheader: "Your Exodus Logistics account access has been restored.",
-    bodyHtml,
-    button: { text: "Contact support", href: SUPPORT_URL },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button: finalButtonHref
+      ? { text: finalButtonText || "Contact support", href: finalButtonHref }
+      : undefined,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
 
 export async function sendDeletedByAdminEmail(
@@ -1212,13 +1514,45 @@ export async function sendDeletedByAdminEmail(
   const safeTo = esc(to);
   const subject = "Exodus Logistics: Account deleted";
 
-  const badgeHtml = renderToneBadge("Account Deleted", "red");
-  const infoCardHtml = renderSimpleInfoCard([
-  { label: "Account Email", value: shortenEmail(to) },
-  { label: "Access Status", value: "Deleted" },
-]);
+  const templateOverride = await getEmailTemplate("user_deleted");
 
-  const bodyHtml = `
+  const badgeHtml = renderToneBadge(
+    templateOverride?.badgeText || "Account Deleted",
+    (templateOverride?.badgeTone as "blue" | "green" | "red") || "red"
+  );
+
+  const detailsCardHtml =
+    templateOverride?.showDetailsCard === false
+      ? ""
+      : renderSimpleInfoCard([
+          { label: "Account Email", value: shortenEmail(to) },
+          { label: "Access Status", value: "Deleted" },
+        ]);
+
+  const linkHref =
+    String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "track"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/track`
+      : String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "invoice"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/invoice`
+      : SUPPORT_URL;
+
+  const linkHtml =
+    templateOverride?.showLink === false
+      ? ""
+      : `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(templateOverride?.linkText || "Contact Support")}
+          </a>
+        </div>
+      `;
+
+  const defaultSubject = subject;
+  const defaultTitle = "Account deleted";
+  const defaultPreheader =
+    "Your account has been deleted. Contact support if you believe this was a mistake.";
+
+  const defaultBodyHtml = `
     ${badgeHtml}
 
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
@@ -1233,26 +1567,75 @@ export async function sendDeletedByAdminEmail(
       As a result, access to the account and any related account functions have been removed. If this action was not expected, please contact our support team for review and clarification.
     </p>
 
-    ${infoCardHtml}
+    ${detailsCardHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
       Our support team will assist you if you believe this action was taken in error.
     </p>
+
+    ${linkHtml}
   `;
 
+  const vars = {
+    name: esc(name),
+    email: safeTo,
+    shortEmail: esc(shortenEmail(to)),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    supportUrl: SUPPORT_URL,
+    trackUrl: `${APP_URL}/${DEFAULT_LOCALE}/track`,
+    invoiceUrl: `${APP_URL}/${DEFAULT_LOCALE}/invoice`,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "Contact support";
+
+  const buttonType = String(templateOverride?.buttonUrlType || "support")
+    .trim()
+    .toLowerCase();
+
+  const finalButtonHref =
+    templateOverride?.showButton === false
+      ? ""
+      : buttonType === "track"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/track`
+      : buttonType === "invoice"
+      ? `${APP_URL}/${DEFAULT_LOCALE}/invoice`
+      : buttonType === "none"
+      ? ""
+      : SUPPORT_URL;
+
   const html = renderEmailTemplate({
-    subject,
-    title: "Account deleted",
-    preheader:
-      "Your account has been deleted. Contact support if you believe this was a mistake.",
-    bodyHtml,
-    button: { text: "Contact support", href: SUPPORT_URL },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button: finalButtonHref
+      ? { text: finalButtonText || "Contact support", href: finalButtonHref }
+      : undefined,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
 
 function formatEmailDate(iso?: string | null) {
@@ -1668,22 +2051,50 @@ export async function sendInvoiceUpdateEmail(
   const statusLabel = invoiceStatusLabel(status);
   const subject = `Exodus Logistics: Invoice ${invoiceStatusSubject(status)} (${opts.shipmentId})`;
 
+  const templateOverride = await getEmailTemplate("invoice_status_update");
+
+  const fallbackTone: "blue" | "green" | "red" =
+    status === "paid" ? "green" : status === "unpaid" ? "blue" : "red";
+
   const badgeHtml = renderToneBadge(
-  `Invoice ${statusLabel}`,
-  status === "paid"
-    ? "green"
-    : status === "unpaid"
-    ? "blue"
-    : "red"
-);
+    templateOverride?.badgeText || `Invoice ${statusLabel}`,
+    (templateOverride?.badgeTone as "blue" | "green" | "red") || fallbackTone
+  );
 
-  const infoCardHtml = renderSimpleInfoCard([
-    { label: "Shipment Number", value: opts.shipmentId },
-    { label: "Invoice Number", value: invoiceNumber },
-    { label: "Status", value: statusLabel },
-  ]);
+  const detailsCardHtml =
+    templateOverride?.showDetailsCard === false
+      ? ""
+      : renderSimpleInfoCard([
+          { label: "Shipment Number", value: opts.shipmentId },
+          { label: "Invoice Number", value: invoiceNumber },
+          { label: "Status", value: statusLabel },
+        ]);
 
-  const bodyHtml = `
+  const trackUrl = buildTrackUrl(q, locale);
+
+  const linkHref =
+    String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "track"
+      ? trackUrl
+      : String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "support"
+      ? SUPPORT_URL
+      : invoiceLink;
+
+  const linkHtml =
+    templateOverride?.showLink === false
+      ? ""
+      : `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(templateOverride?.linkText || "View Invoice")}
+          </a>
+        </div>
+      `;
+
+  const defaultSubject = subject;
+  const defaultTitle = `Invoice ${invoiceStatusSubject(status)}`;
+  const defaultPreheader = `Invoice for ${opts.shipmentId} is now ${statusLabel}.`;
+
+  const defaultBodyHtml = `
     ${badgeHtml}
 
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
@@ -1695,32 +2106,81 @@ export async function sendInvoiceUpdateEmail(
     </p>
 
     <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-  ${esc(getInvoiceStatusExtraMessage(status))}
-</p>
-
-<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-  Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.
-</p>
-
-    ${infoCardHtml}
-
-    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can open the invoice directly using the button below.
+      ${esc(getInvoiceStatusExtraMessage(status))}
     </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+      Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.
+    </p>
+
+    ${detailsCardHtml}
+
+    ${linkHtml}
   `;
 
+  const vars = {
+    name: esc(name),
+    shipmentId: esc(opts.shipmentId),
+    trackingNumber: esc(opts.trackingNumber || "—"),
+    invoiceNumber: esc(invoiceNumber),
+    invoiceStatus: esc(statusLabel),
+    invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    supportUrl: SUPPORT_URL,
+    trackUrl,
+    invoiceUrl: invoiceLink,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "View Invoice";
+
+  const buttonType = String(templateOverride?.buttonUrlType || "invoice")
+    .trim()
+    .toLowerCase();
+
+  const finalButtonHref =
+    templateOverride?.showButton === false
+      ? ""
+      : buttonType === "track"
+      ? trackUrl
+      : buttonType === "support"
+      ? SUPPORT_URL
+      : buttonType === "none"
+      ? ""
+      : invoiceLink;
+
   const html = renderEmailTemplate({
-    subject,
-    title: `Invoice ${invoiceStatusSubject(status)}`,
-    preheader: `Invoice for ${opts.shipmentId} is now ${statusLabel}.`,
-    bodyHtml,
-    button: { text: "View Invoice", href: invoiceLink },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button: finalButtonHref
+      ? { text: finalButtonText || "View Invoice", href: finalButtonHref }
+      : undefined,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
 
 /** -------------------------
@@ -1892,16 +2352,71 @@ export async function sendShipmentEditedEmail(
     </div>
   `;
 
+  const templateOverride = await getEmailTemplate("shipment_edited");
+
+const vars = {
+  name: esc(name),
+  shipmentId: esc(args.shipmentId),
+  trackingNumber: esc(args.trackingNumber || "—"),
+  invoiceNumber: esc(invoiceNumber),
+  intro: esc(
+    args.intro ||
+      "Some shipment details have been updated in our system. Please review the latest information below carefully."
+  ),
+  invoiceUrl,
+  trackUrl,
+  changesTable: tableHtml,
+};
+
+const finalSubject = templateOverride?.subject
+  ? fillVars(templateOverride.subject, vars)
+  : subject;
+
+const finalTitle = templateOverride?.title
+  ? fillVars(templateOverride.title, vars)
+  : "Shipment details updated";
+
+const finalPreheader = templateOverride?.preheader
+  ? fillVars(templateOverride.preheader, vars)
+  : `Shipment ${args.shipmentId} details have been updated.`;
+
+const finalBadgeTone = normalizeTone(templateOverride?.badgeTone || "blue");
+const finalBadgeText = cleanStr(templateOverride?.badgeText) || "Shipment Updated";
+
+const showButton = normalizeBool(templateOverride?.showButton, true);
+const showLink = normalizeBool(templateOverride?.showLink, true);
+const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
+const linkHref = resolveUrlByType(templateOverride?.linkUrlType || "invoice", {
+  trackUrl,
+  invoiceUrl,
+  supportUrl: SUPPORT_URL,
+});
+
+const rebuiltBodyHtml = templateOverride?.bodyHtml
+  ? fillVars(templateOverride.bodyHtml, {
+      ...vars,
+      badge: renderToneBadge(finalBadgeText, finalBadgeTone),
+      detailsCard: detailsCardHtml,
+      invoiceLink: showLink && linkHref
+        ? `<div style="margin-top:12px">
+             <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+               ${esc(linkText)}
+             </a>
+           </div>`
+        : "",
+    })
+  : bodyHtml;
+
   const html = renderEmailTemplate({
-    subject,
-    title: "Shipment details updated",
-    preheader: `Shipment ${args.shipmentId} details have been updated.`,
-    bodyHtml,
-    button: { text: "View Shipment", href: trackUrl },
-    appUrl: APP_URL,
-    supportEmail: SUPPORT_EMAIL,
-    sentTo: to,
-  });
+  subject: finalSubject,
+  title: finalTitle,
+  preheader: finalPreheader,
+  bodyHtml: rebuiltBodyHtml,
+  button: showButton ? { text: "View Shipment", href: trackUrl } : undefined,
+  appUrl: APP_URL,
+  supportEmail: SUPPORT_EMAIL,
+  sentTo: to,
+});
 
   return sendEmail(to, subject, html);
 }
@@ -1999,22 +2514,57 @@ export async function sendShipmentDeletedEmail(
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
   const name = cleanStr(args.name) || "Customer";
+  const locale = args.locale || DEFAULT_LOCALE;
   const subject = `Exodus Logistics: Shipment record removed (${args.shipmentId})`;
-  
+
   const invoiceNumber = makeInvoiceNumber({
-  shipmentId: args.shipmentId,
-  trackingNumber: args.trackingNumber,
-  invoiceNumber: args.invoiceNumber,
-});
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber: args.invoiceNumber,
+  });
 
-  const badgeHtml = renderToneBadge("Shipment Removed", "red");
-  const detailsCardHtml = renderShipmentDetailsCard({
-  shipmentId: args.shipmentId,
-  trackingNumber: args.trackingNumber,
-  invoiceNumber,
-});
+  const templateOverride = await getEmailTemplate("shipment_deleted");
 
-  const bodyHtml = `
+  const badgeHtml = renderToneBadge(
+    templateOverride?.badgeText || "Shipment Removed",
+    (templateOverride?.badgeTone as "blue" | "green" | "red") || "red"
+  );
+
+  const detailsCardHtml =
+    templateOverride?.showDetailsCard === false
+      ? ""
+      : renderShipmentDetailsCard({
+          shipmentId: args.shipmentId,
+          trackingNumber: args.trackingNumber,
+          invoiceNumber,
+        });
+
+  const trackUrl = buildTrackUrl(args.trackingNumber || args.shipmentId, locale);
+  const invoiceUrl = buildInvoiceFullUrlByQ(args.trackingNumber || args.shipmentId, locale);
+
+  const linkHref =
+    String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "track"
+      ? trackUrl
+      : String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "invoice"
+      ? invoiceUrl
+      : SUPPORT_URL;
+
+  const linkHtml =
+    templateOverride?.showLink === false
+      ? ""
+      : `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(templateOverride?.linkText || "Contact Support")}
+          </a>
+        </div>
+      `;
+
+  const defaultSubject = subject;
+  const defaultTitle = "Shipment removed";
+  const defaultPreheader = `Shipment ${args.shipmentId} has been removed from tracking.`;
+
+  const defaultBodyHtml = `
     ${badgeHtml}
 
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
@@ -2034,18 +2584,69 @@ export async function sendShipmentDeletedEmail(
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
       If you believe this action was made in error or need more clarification, please contact our support team.
     </p>
+
+    ${linkHtml}
   `;
 
+  const vars = {
+    name: esc(name),
+    shipmentId: esc(args.shipmentId),
+    trackingNumber: esc(args.trackingNumber || "—"),
+    invoiceNumber: esc(invoiceNumber),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    supportUrl: SUPPORT_URL,
+    trackUrl,
+    invoiceUrl,
+  };
+
+  const finalSubject = templateOverride?.subject
+    ? fillVars(templateOverride.subject, vars)
+    : defaultSubject;
+
+  const finalTitle = templateOverride?.title
+    ? fillVars(templateOverride.title, vars)
+    : defaultTitle;
+
+  const finalPreheader = templateOverride?.preheader
+    ? fillVars(templateOverride.preheader, vars)
+    : defaultPreheader;
+
+  const finalBodyHtml = templateOverride?.bodyHtml
+    ? fillVars(templateOverride.bodyHtml, vars)
+    : defaultBodyHtml;
+
+  const finalButtonText = templateOverride?.buttonText
+    ? fillVars(templateOverride.buttonText, vars)
+    : "Contact support";
+
+  const buttonType = String(templateOverride?.buttonUrlType || "support")
+    .trim()
+    .toLowerCase();
+
+  const finalButtonHref =
+    templateOverride?.showButton === false
+      ? ""
+      : buttonType === "track"
+      ? trackUrl
+      : buttonType === "invoice"
+      ? invoiceUrl
+      : buttonType === "none"
+      ? ""
+      : SUPPORT_URL;
+
   const html = renderEmailTemplate({
-    subject,
-    title: "Shipment removed",
-    preheader: `Shipment ${args.shipmentId} has been removed from tracking.`,
-    bodyHtml,
-    button: { text: "Contact support", href: SUPPORT_URL },
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button: finalButtonHref
+      ? { text: finalButtonText || "Contact support", href: finalButtonHref }
+      : undefined,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
   });
 
-  return sendEmail(to, subject, html);
+  return sendEmail(to, finalSubject, html);
 }
