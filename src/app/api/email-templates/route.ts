@@ -101,199 +101,258 @@ You can use the button below to open the shipment page and monitor future progre
   },
 
   {
-    key: "shipment_edited",
-    label: "Shipment Edited Email",
-    category: "shipment",
-    subject: "Shipment details updated ({{shipmentId}})",
-    title: "Shipment details updated",
-    preheader: "Shipment {{shipmentId}} details have been updated.",
-    bodyHtml: `
+  key: "shipment_edited",
+  label: "Shipment Edited Email",
+  category: "shipment",
+  subject: "Shipment details updated ({{shipmentId}})",
+  title: "Shipment details updated",
+  preheader: "Shipment {{shipmentId}} details have been updated.",
+  bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
-<p>{{intro}}</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>This update may affect delivery planning, shipment records, or invoice-related references. We recommend keeping a copy of the updated details for future tracking and verification.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{intro}}
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+This update may affect delivery planning, shipment records, or invoice-related references. We recommend keeping a copy of the updated details for future tracking and verification.
+</p>
 
 {{detailsCard}}
 
 {{changesTable}}
 
-<p>You can use the button below to open the shipment page and review the latest details. You can also use the invoice link below if billing verification is needed.</p>
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+You can use the button below to open the shipment page and review the latest details. You can also use the invoice link below if billing verification is needed.
+</p>
 
 {{invoiceLink}}
 `.trim(),
-    buttonText: "View Shipment",
-    buttonUrlType: "track",
-    badgeText: "Shipment Updated",
-    badgeTone: "blue",
-    showButton: true,
-    showLink: true,
-    linkText: "View Invoice",
-    linkUrlType: "invoice",
-    showDetailsCard: true,
-    detailsCardType: "shipment",
-  },
+  buttonText: "View Shipment",
+  buttonUrlType: "track",
+  badgeText: "Shipment Updated",
+  badgeTone: "blue",
+  showButton: true,
+  showLink: true,
+  linkText: "View Invoice",
+  linkUrlType: "invoice",
+  showDetailsCard: true,
+  detailsCardType: "shipment",
+},
 
   {
-    key: "invoice_status_update",
-    label: "Invoice Status Update Email",
-    category: "invoice",
-    subject: "Invoice {{invoiceStatus}} ({{shipmentId}})",
-    title: "Invoice update",
-    preheader: "Invoice status has changed.",
-    bodyHtml: `
+  key: "invoice_status_update",
+  label: "Invoice Status Update Email",
+  category: "invoice",
+  subject: "Invoice {{invoiceStatus}} ({{shipmentId}})",
+  title: "Invoice update",
+  preheader: "Invoice status has changed.",
+  bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <strong>{{invoiceStatus}}</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <strong>{{invoiceStatus}}</strong>.
+</p>
 
-<p>{{invoiceMessage}}</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+{{invoiceMessage}}
+</p>
 
-<p>Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.</p>
-
-{{detailsCard}}
-`.trim(),
-    buttonText: "View Invoice",
-    buttonUrlType: "invoice",
-    badgeText: "Invoice Update",
-    badgeTone: "blue",
-    showButton: true,
-    showLink: false,
-    linkText: "View Invoice",
-    linkUrlType: "invoice",
-    showDetailsCard: true,
-    detailsCardType: "invoice",
-  },
-
-  {
-    key: "shipment_deleted",
-    label: "Deleted Shipment Email",
-    category: "shipment",
-    subject: "Shipment record removed ({{shipmentId}})",
-    title: "Shipment removed",
-    preheader: "Shipment {{shipmentId}} has been removed from tracking.",
-    bodyHtml: `
-{{badge}}
-
-<p>Hello {{name}},</p>
-
-<p>Please be informed that the shipment record for <strong>{{shipmentId}}</strong> has been removed from our tracking system.</p>
-
-<p>As a result, this shipment will no longer be available for tracking on our website, and any further automated progress notifications for this shipment will stop.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.
+</p>
 
 {{detailsCard}}
 
-<p>If you believe this action was made in error or need more clarification, please contact our support team.</p>
+{{invoiceLink}}
 `.trim(),
-    buttonText: "Contact support",
-    buttonUrlType: "support",
-    badgeText: "Shipment Removed",
-    badgeTone: "red",
-    showButton: true,
-    showLink: false,
-    linkText: "",
-    linkUrlType: "support",
-    showDetailsCard: true,
-    detailsCardType: "shipment",
-  },
+  buttonText: "View Invoice",
+  buttonUrlType: "invoice",
+  badgeText: "Invoice Update",
+  badgeTone: "blue",
+  showButton: true,
+  showLink: false,
+  linkText: "View Invoice",
+  linkUrlType: "invoice",
+  showDetailsCard: true,
+  detailsCardType: "invoice",
+},
 
   {
-    key: "user_deleted",
-    label: "Deleted User Email",
-    category: "account",
-    subject: "Exodus Logistics: Account deleted",
-    title: "Account deleted",
-    preheader: "Your account has been deleted.",
-    bodyHtml: `
+  key: "shipment_deleted",
+  label: "Deleted Shipment Email",
+  category: "shipment",
+  subject: "Shipment record removed ({{shipmentId}})",
+  title: "Shipment removed",
+  preheader: "Shipment {{shipmentId}} has been removed from tracking.",
+  bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>This email confirms that the Exodus Logistics account associated with <strong>{{email}}</strong> has been deleted by an administrator.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+Please be informed that the shipment record for <strong>{{shipmentId}}</strong> has been removed from our tracking system.
+</p>
 
-<p>As a result, access to the account and any related account functions have been removed. If this action was not expected, please contact our support team for review and clarification.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+As a result, this shipment will no longer be available for tracking on our website, and any further automated progress notifications for this shipment will stop.
+</p>
 
 {{detailsCard}}
 
-<p>Our support team will assist you if you believe this action was taken in error.</p>
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+If you believe this action was made in error or need more clarification, please contact our support team.
+</p>
+
+{{invoiceLink}}
 `.trim(),
-    buttonText: "Contact support",
-    buttonUrlType: "support",
-    badgeText: "Account Deleted",
-    badgeTone: "red",
-    showButton: true,
-    showLink: false,
-    linkText: "",
-    linkUrlType: "support",
-    showDetailsCard: true,
-    detailsCardType: "account",
-  },
+  buttonText: "Contact support",
+  buttonUrlType: "support",
+  badgeText: "Shipment Removed",
+  badgeTone: "red",
+  showButton: true,
+  showLink: false,
+  linkText: "",
+  linkUrlType: "support",
+  showDetailsCard: true,
+  detailsCardType: "shipment",
+},
 
   {
-    key: "user_banned",
-    label: "Banned User Email",
-    category: "account",
-    subject: "Exodus Logistics: Account access removed",
-    title: "Account access removed",
-    preheader: "Your account access has been removed.",
-    bodyHtml: `
+  key: "user_deleted",
+  label: "Deleted User Email",
+  category: "account",
+  subject: "Exodus Logistics: Account deleted",
+  title: "Account deleted",
+  preheader: "Your account has been deleted.",
+  bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>This email confirms that the Exodus Logistics account associated with <strong>{{email}}</strong> has been permanently banned due to a violation of our policies.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+This email confirms that the Exodus Logistics account associated with <strong>{{email}}</strong> has been deleted by an administrator.
+</p>
 
-<p>Access to the account has been removed immediately, and you will no longer be able to sign in or create another account using this email address unless a formal review is completed and approved.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+As a result, access to the account and any related account functions have been removed. If this action was not expected, please contact our support team for review and clarification.
+</p>
 
 {{detailsCard}}
 
-<p>If you believe this action was made in error, please contact support to request a review.</p>
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+Our support team will assist you if you believe this action was taken in error.
+</p>
+
+{{invoiceLink}}
 `.trim(),
-    buttonText: "Contact support",
-    buttonUrlType: "support",
-    badgeText: "Account Banned",
-    badgeTone: "red",
-    showButton: true,
-    showLink: false,
-    linkText: "",
-    linkUrlType: "support",
-    showDetailsCard: true,
-    detailsCardType: "account",
-  },
+  buttonText: "Contact support",
+  buttonUrlType: "support",
+  badgeText: "Account Deleted",
+  badgeTone: "red",
+  showButton: true,
+  showLink: false,
+  linkText: "",
+  linkUrlType: "support",
+  showDetailsCard: true,
+  detailsCardType: "account",
+},
 
   {
-    key: "user_restored",
-    label: "Restored User Email",
-    category: "account",
-    subject: "Exodus Logistics: Update on your account",
-    title: "Account access restored",
-    preheader: "Your account access has been restored.",
-    bodyHtml: `
+  key: "user_banned",
+  label: "Banned User Email",
+  category: "account",
+  subject: "Exodus Logistics: Account access removed",
+  title: "Account access removed",
+  preheader: "Your account access has been removed.",
+  bodyHtml: `
 {{badge}}
 
-<p>Hello {{name}},</p>
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
 
-<p>This is to confirm that access to the Exodus Logistics account associated with <strong>{{email}}</strong> has been restored successfully.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+This email confirms that the Exodus Logistics account associated with <strong>{{email}}</strong> has been permanently banned due to a violation of our policies.
+</p>
 
-<p>You may now sign in again and continue using your account normally. We apologize for any inconvenience this may have caused.</p>
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+Access to the account has been removed immediately, and you will no longer be able to sign in or create another account using this email address unless a formal review is completed and approved.
+</p>
 
 {{detailsCard}}
 
-<p>If you experience any sign-in difficulty or notice account activity you do not recognize, please contact support immediately.</p>
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+If you believe this action was made in error, please contact support to request a review.
+</p>
+
+{{invoiceLink}}
 `.trim(),
-    buttonText: "Contact support",
-    buttonUrlType: "support",
-    badgeText: "Account Restored",
-    badgeTone: "green",
-    showButton: true,
-    showLink: false,
-    linkText: "",
-    linkUrlType: "support",
-    showDetailsCard: true,
-    detailsCardType: "account",
-  },
+  buttonText: "Contact support",
+  buttonUrlType: "support",
+  badgeText: "Account Banned",
+  badgeTone: "red",
+  showButton: true,
+  showLink: false,
+  linkText: "",
+  linkUrlType: "support",
+  showDetailsCard: true,
+  detailsCardType: "account",
+},
+
+  {
+  key: "user_restored",
+  label: "Restored User Email",
+  category: "account",
+  subject: "Exodus Logistics: Update on your account",
+  title: "Account access restored",
+  preheader: "Your account access has been restored.",
+  bodyHtml: `
+{{badge}}
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+This is to confirm that access to the Exodus Logistics account associated with <strong>{{email}}</strong> has been restored successfully.
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+You may now sign in again and continue using your account normally. We apologize for any inconvenience this may have caused.
+</p>
+
+{{detailsCard}}
+
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+If you experience any sign-in difficulty or notice account activity you do not recognize, please contact support immediately.
+</p>
+
+{{invoiceLink}}
+`.trim(),
+  buttonText: "Contact support",
+  buttonUrlType: "support",
+  badgeText: "Account Restored",
+  badgeTone: "green",
+  showButton: true,
+  showLink: false,
+  linkText: "",
+  linkUrlType: "support",
+  showDetailsCard: true,
+  detailsCardType: "account",
+},
 ];
 
 export async function GET() {
