@@ -494,9 +494,69 @@ export default function AdminEmailTemplatesPage() {
           invoiceNumber: "[Invoice Number]",
         });
 
- const previewBadgeHtml = renderToneBadgeHtml(
-  useCustomBadgeText && badgeText.trim() ? badgeText.trim() : "AUTO BADGE",
-  ((badgeTone || "blue") as "blue" | "green" | "red")
+ const getAutoPreviewBadge = () => {
+  const lowerKey = editingKey.toLowerCase();
+
+  if (useCustomBadgeText && badgeText.trim()) {
+    return {
+      text: badgeText.trim(),
+      tone: (badgeTone || "blue") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "invoice_status_update") {
+    return {
+      text: "INVOICE PAID",
+      tone: (badgeTone || "green") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "shipment_edited") {
+    return {
+      text: "SHIPMENT UPDATED",
+      tone: (badgeTone || "blue") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "shipment_deleted") {
+    return {
+      text: "SHIPMENT REMOVED",
+      tone: (badgeTone || "red") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "user_banned") {
+    return {
+      text: "ACCOUNT BANNED",
+      tone: (badgeTone || "red") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "user_deleted") {
+    return {
+      text: "ACCOUNT DELETED",
+      tone: (badgeTone || "red") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "user_restored") {
+    return {
+      text: "ACCOUNT RESTORED",
+      tone: (badgeTone || "green") as "blue" | "green" | "red",
+    };
+  }
+
+  return {
+    text: "AUTO BADGE",
+    tone: (badgeTone || "blue") as "blue" | "green" | "red",
+  };
+};
+
+const previewBadge = getAutoPreviewBadge();
+
+const previewBadgeHtml = renderToneBadgeHtml(
+  previewBadge.text,
+  previewBadge.tone
 );
   const previewInvoiceLinkHtml =
     showLink && linkText
@@ -505,27 +565,72 @@ export default function AdminEmailTemplatesPage() {
         )}</a></div>`
       : "";
 
+      const previewChangesTableHtml = `
+  <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
+          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
+          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;vertical-align:top;">
+            Delivery Address
+          </td>
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;">
+            12 Old Street, Dallas, TX
+          </td>
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;">
+            45 New Avenue, Houston, TX
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 14px;font-size:14px;color:#111827;font-weight:700;vertical-align:top;">
+            Receiver Phone
+          </td>
+          <td style="padding:12px 14px;font-size:14px;color:#6b7280;vertical-align:top;">
+            +1 555 0101
+          </td>
+          <td style="padding:12px 14px;font-size:14px;color:#111827;vertical-align:top;">
+            +1 555 0188
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
   const previewBodyHtml = (bodyHtml || "<p>No content yet.</p>")
-    .replace(/{{badge}}/g, previewBadgeHtml)
-    .replace(/{{detailsCard}}/g, previewDetailsCardHtml)
-    .replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
-    .replace(/{{changesTable}}/g, previewDetailsCardHtml)
-    .replace(/{{name}}/g, "<span style='color:#0f172a;font-weight:700;'>[Customer Name]</span>")
-    .replace(/{{receiverName}}/g, "<span style='color:#0f172a;font-weight:700;'>[Receiver Name]</span>")
-    .replace(/{{senderName}}/g, "<span style='color:#0f172a;font-weight:700;'>[Sender Name]</span>")
-    .replace(/{{shipmentId}}/g, "<span style='color:#0f172a;font-weight:700;'>[Shipment ID]</span>")
-    .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
-    .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
-    .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
-    .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
-    .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
-    .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
-    .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
-    .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
-    .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
-    .replace(/{{supportUrl}}/g, "#")
-    .replace(/{{trackUrl}}/g, "#")
-    .replace(/{{invoiceUrl}}/g, "#");
+  .replace(/{{badge}}/g, previewBadgeHtml)
+  .replace(/{{detailsCard}}/g, previewDetailsCardHtml)
+  .replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
+  .replace(/{{changesTable}}/g, previewChangesTableHtml)
+  .replace(/{{name}}/g, "<span style='color:#0f172a;font-weight:700;'>[Customer Name]</span>")
+  .replace(/{{receiverName}}/g, "<span style='color:#0f172a;font-weight:700;'>[Receiver Name]</span>")
+  .replace(/{{senderName}}/g, "<span style='color:#0f172a;font-weight:700;'>[Sender Name]</span>")
+  .replace(/{{shipmentId}}/g, "<span style='color:#0f172a;font-weight:700;'>[Shipment ID]</span>")
+  .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
+  .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
+  .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
+  .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
+  .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
+  .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
+  .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
+  .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
+  .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
+  .replace(/{{supportUrl}}/g, "#")
+  .replace(/{{trackUrl}}/g, "#")
+  .replace(/{{invoiceUrl}}/g, "#")
+  .replace(/{{status}}/g, "<span style='color:#0f172a;font-weight:700;'>[Shipment Status]</span>")
+  .replace(/{{destination}}/g, "<span style='color:#0f172a;font-weight:700;'>[Destination]</span>")
+  .replace(/{{fullDestination}}/g, "<span style='color:#0f172a;font-weight:700;'>[Full Destination]</span>")
+  .replace(/{{origin}}/g, "<span style='color:#0f172a;font-weight:700;'>[Origin]</span>")
+  .replace(/{{note}}/g, "<span style='color:#0f172a;'>[Additional Note]</span>");
+
+    
 
   const previewEmailHtml = buildPreviewEmailHtml({
     subject: subject || "Template Preview",
