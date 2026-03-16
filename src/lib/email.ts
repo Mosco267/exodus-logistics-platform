@@ -2216,47 +2216,58 @@ export async function sendInvoiceUpdateEmail(
         </div>
       `;
 
+  const statusFollowUpMessage =
+  status === "paid"
+    ? "Payment has been received and confirmed successfully. No further payment action is required at this time, and shipment processing may continue normally without interruption."
+    : status === "overdue"
+    ? "This invoice is now overdue and requires immediate attention. To avoid continued processing delay or additional administrative follow-up, payment should be completed as soon as possible."
+    : status === "cancelled"
+    ? "This invoice has been cancelled in our system. No payment should be made against this invoice unless our support team has specifically instructed otherwise. Please contact support if clarification is needed."
+    : "Please review the invoice details below and complete the required payment so there is no unnecessary interruption to shipment processing.";    
+
   const defaultSubject = subject;
   const defaultTitle = `Invoice ${invoiceStatusSubject(status)}`;
   const defaultPreheader = `Invoice for ${opts.shipmentId} is now ${statusLabel}.`;
 
   const defaultBodyHtml = `
-    ${badgeHtml}
+  ${badgeHtml}
 
-    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-      Hello ${esc(name)},
-    </p>
+  <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+    Hello ${esc(name)},
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      ${esc(getInvoiceStatusExtraMessage(status))}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${esc(getInvoiceStatusExtraMessage(status))}
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-      Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${esc(statusFollowUpMessage)}
+  </p>
 
-    ${detailsCardHtml}
+  ${detailsCardHtml}
 
-    ${linkHtml}
-  `;
+  ${linkHtml}
+`;
 
   const vars = {
-    name: esc(name),
-    shipmentId: esc(opts.shipmentId),
-    trackingNumber: esc(opts.trackingNumber || "—"),
-    invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(statusLabel),
-    invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
-    badge: badgeHtml,
-    detailsCard: detailsCardHtml,
-    supportUrl: SUPPORT_URL,
-    trackUrl,
-    invoiceUrl: invoiceLink,
-  };
+  name: esc(name),
+  shipmentId: esc(opts.shipmentId),
+  trackingNumber: esc(opts.trackingNumber || "—"),
+  invoiceNumber: esc(invoiceNumber),
+  invoiceStatus: esc(statusLabel),
+  invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
+  followUpMessage: esc(statusFollowUpMessage),
+  badge: badgeHtml,
+  detailsCard: detailsCardHtml,
+  invoiceLink: linkHtml,
+  supportUrl: SUPPORT_URL,
+  trackUrl,
+  invoiceUrl: invoiceLink,
+};
 
   const finalSubject = templateOverride?.subject
     ? fillVars(templateOverride.subject, vars)

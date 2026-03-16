@@ -162,12 +162,12 @@ Hello {{name}},
 The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <strong>{{invoiceStatus}}</strong>.
 </p>
 
-<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
 {{invoiceMessage}}
 </p>
 
-<p style="margin:0 0 14px 0;font-size:16px;line-height:24px;color:#111827;">
-Please review the invoice details below and take any required action promptly so there is no unnecessary interruption to shipment processing.
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{followUpMessage}}
 </p>
 
 {{detailsCard}}

@@ -546,6 +546,13 @@ export default function AdminEmailTemplatesPage() {
     };
   }
 
+  if (lowerKey === "shipment_created_sender" || lowerKey === "shipment_created_receiver") {
+    return {
+      text: "SHIPMENT CREATED",
+      tone: (badgeTone || "green") as "blue" | "green" | "red",
+    };
+  }
+
   return {
     text: "AUTO BADGE",
     tone: (badgeTone || "blue") as "blue" | "green" | "red",
@@ -616,8 +623,9 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
   .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
   .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
-  .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
-  .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
+  .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>Payment has been confirmed in our system and recorded successfully.</span>")
+.replace(/{{followUpMessage}}/g, "<span style='color:#0f172a;'>No further payment action is required at this time, and shipment processing may continue normally without interruption.</span>")
+.replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
   .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
   .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
   .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
