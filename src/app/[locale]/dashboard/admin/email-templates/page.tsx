@@ -316,6 +316,7 @@ export default function AdminEmailTemplatesPage() {
   const [buttonUrlType, setButtonUrlType] = useState("track");
 
   const [badgeText, setBadgeText] = useState("");
+  const [useCustomBadgeText, setUseCustomBadgeText] = useState(false);
   const [badgeTone, setBadgeTone] = useState<"" | "blue" | "green" | "red">("");
   const [showButton, setShowButton] = useState(true);
   const [showLink, setShowLink] = useState(true);
@@ -359,6 +360,7 @@ export default function AdminEmailTemplatesPage() {
     setButtonUrlType(t.buttonUrlType || "track");
 
     setBadgeText(t.badgeText || "");
+    setUseCustomBadgeText(Boolean(String(t.badgeText || "").trim()));
     setBadgeTone((t.badgeTone as "" | "blue" | "green" | "red") || "");
     setShowButton(typeof t.showButton === "boolean" ? t.showButton : true);
     setShowLink(typeof t.showLink === "boolean" ? t.showLink : true);
@@ -387,6 +389,7 @@ export default function AdminEmailTemplatesPage() {
     setButtonUrlType("track");
 
     setBadgeText("");
+    setUseCustomBadgeText(false);
     setBadgeTone("");
     setShowButton(true);
     setShowLink(true);
@@ -423,7 +426,7 @@ export default function AdminEmailTemplatesPage() {
           bodyHtml,
           buttonText,
           buttonUrlType,
-          badgeText,
+          badgeText: useCustomBadgeText ? badgeText : "",
           badgeTone,
           showButton,
           showLink,
@@ -491,12 +494,10 @@ export default function AdminEmailTemplatesPage() {
           invoiceNumber: "[Invoice Number]",
         });
 
- const previewBadgeHtml = badgeText
-  ? renderToneBadgeHtml(
-      badgeText,
-      ((badgeTone || "blue") as "blue" | "green" | "red")
-    )
-  : "";
+ const previewBadgeHtml = renderToneBadgeHtml(
+  useCustomBadgeText && badgeText.trim() ? badgeText.trim() : "AUTO BADGE",
+  ((badgeTone || "blue") as "blue" | "green" | "red")
+);
   const previewInvoiceLinkHtml =
     showLink && linkText
       ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(
@@ -624,13 +625,30 @@ export default function AdminEmailTemplatesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-gray-600">Badge Text</label>
-                <input
-                  value={badgeText}
-                  onChange={(e) => setBadgeText(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm"
-                />
-              </div>
+  <label className="text-xs font-semibold text-gray-600">Badge Text</label>
+
+  <select
+    value={useCustomBadgeText ? "custom" : "auto"}
+    onChange={(e) => {
+      const mode = e.target.value;
+      setUseCustomBadgeText(mode === "custom");
+      if (mode === "auto") setBadgeText("");
+    }}
+    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white"
+  >
+    <option value="auto">Auto (Use system default)</option>
+    <option value="custom">Custom</option>
+  </select>
+
+  {useCustomBadgeText && (
+    <input
+      value={badgeText}
+      onChange={(e) => setBadgeText(e.target.value)}
+      placeholder="Enter custom badge text"
+      className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm"
+    />
+  )}
+</div>
 
               <div>
                 <label className="text-xs font-semibold text-gray-600">Badge Color</label>
