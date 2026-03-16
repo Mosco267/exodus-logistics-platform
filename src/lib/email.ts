@@ -904,13 +904,31 @@ const paymentMessage =
 
   const templateOverride = await getEmailTemplate("shipment_created_sender");
 
-  const defaultSubject = paid
+ const defaultSubject =
+  invoiceStatusNormalized === "paid"
     ? `Shipment created: ${args.shipmentId}`
+    : invoiceStatusNormalized === "overdue"
+    ? `Invoice overdue for shipment ${args.shipmentId}`
+    : invoiceStatusNormalized === "cancelled"
+    ? `Invoice cancelled for shipment ${args.shipmentId}`
     : `Action required: Payment needed for shipment ${args.shipmentId}`;
 
-  const defaultTitle = paid ? "Shipment created" : "Payment required";
-  const defaultPreheader = paid
+const defaultTitle =
+  invoiceStatusNormalized === "paid"
+    ? "Shipment created"
+    : invoiceStatusNormalized === "overdue"
+    ? "Payment overdue"
+    : invoiceStatusNormalized === "cancelled"
+    ? "Invoice cancelled"
+    : "Payment required";
+
+const defaultPreheader =
+  invoiceStatusNormalized === "paid"
     ? `Shipment ${args.shipmentId} has been created successfully.`
+    : invoiceStatusNormalized === "overdue"
+    ? `Invoice for shipment ${args.shipmentId} is overdue.`
+    : invoiceStatusNormalized === "cancelled"
+    ? `Invoice for shipment ${args.shipmentId} has been cancelled.`
     : `Payment is required before shipment ${args.shipmentId} can continue.`;
 
   const dynamicSenderBadgeText =
@@ -972,7 +990,7 @@ const finalBadgeText =
     if (detailsCardType === "account") {
       detailsCardHtml = renderSimpleInfoCard([
         { label: "Account Email", value: shortenEmail(to) },
-        { label: "Access Status", value: paid ? "Paid" : "Pending" },
+        { label: "Access Status", value: invoiceStatus },
       ]);
     } else if (detailsCardType === "invoice") {
       detailsCardHtml = renderSimpleInfoCard([
@@ -1146,13 +1164,31 @@ const paymentMessage =
 
   const templateOverride = await getEmailTemplate("shipment_created_receiver");
 
-  const defaultSubject = paid
+  const defaultSubject =
+  invoiceStatus === "paid"
     ? `Shipment created for you: ${args.shipmentId}`
+    : invoiceStatus === "overdue"
+    ? `Shipment created for you: ${args.shipmentId} (Payment overdue)`
+    : invoiceStatus === "cancelled"
+    ? `Shipment created for you: ${args.shipmentId} (Invoice cancelled)`
     : `Shipment created for you: ${args.shipmentId} (Payment pending)`;
 
-  const defaultTitle = "Shipment created";
-  const defaultPreheader = paid
+const defaultTitle =
+  invoiceStatus === "paid"
+    ? "Shipment created"
+    : invoiceStatus === "overdue"
+    ? "Payment overdue"
+    : invoiceStatus === "cancelled"
+    ? "Invoice cancelled"
+    : "Shipment created";
+
+const defaultPreheader =
+  invoiceStatus === "paid"
     ? `A shipment has been created for you.`
+    : invoiceStatus === "overdue"
+    ? `A shipment has been created for you and the invoice is overdue.`
+    : invoiceStatus === "cancelled"
+    ? `A shipment has been created for you but the invoice has been cancelled.`
     : `A shipment has been created for you and is awaiting payment completion.`;
 
   const dynamicReceiverBadgeText =
@@ -1214,13 +1250,13 @@ const finalBadgeText =
     if (detailsCardType === "account") {
       detailsCardHtml = renderSimpleInfoCard([
         { label: "Account Email", value: shortenEmail(to) },
-        { label: "Access Status", value: paid ? "Paid" : "Pending" },
+        { label: "Access Status", value: invoiceStatusText },
       ]);
     } else if (detailsCardType === "invoice") {
       detailsCardHtml = renderSimpleInfoCard([
         { label: "Shipment Number", value: args.shipmentId },
         { label: "Invoice Number", value: invoiceNumber },
-        { label: "Status", value: invoiceStatus },
+        { label: "Status", value: invoiceStatusText },
       ]);
     } else {
       detailsCardHtml = renderShipmentDetailsCard({
@@ -1260,7 +1296,7 @@ const finalBadgeText =
     </p>
 
     <p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;">
-      <strong>Invoice status:</strong> <strong>${invoiceStatus}</strong><br/>
+      <strong>Invoice status:</strong> <strong>${invoiceStatusText}</strong><br/>
       <strong>Estimated delivery date:</strong> ${esc(estimatedDeliveryDate)}<br/>
       ${esc(paymentMessage)}
     </p>
@@ -1280,7 +1316,7 @@ const finalBadgeText =
     shipmentId: esc(args.shipmentId),
     trackingNumber: esc(args.trackingNumber || "—"),
     invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(invoiceStatus),
+    invoiceStatus: esc(invoiceStatusText),
     estimatedDeliveryDate: esc(estimatedDeliveryDate),
     paymentMessage: esc(paymentMessage),
     badge: badgeHtml,
