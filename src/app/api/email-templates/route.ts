@@ -427,7 +427,7 @@ export async function POST(req: Request) {
       buttonText: String(body?.buttonText || "").trim(),
       buttonUrlType: String(body?.buttonUrlType || "track").trim(),
       badgeText: String(body?.badgeText || "").trim(),
-      badgeTone: String(body?.badgeTone || "blue").trim(),
+      badgeTone: String(body?.badgeTone ?? "").trim(),
       showButton: typeof body?.showButton === "boolean" ? body.showButton : true,
       showLink: typeof body?.showLink === "boolean" ? body.showLink : true,
       linkText: String(body?.linkText || "").trim(),

@@ -358,8 +358,8 @@ export default function AdminEmailTemplatesPage() {
     setButtonText(t.buttonText || "");
     setButtonUrlType(t.buttonUrlType || "track");
 
-    setBadgeText("");
-    setBadgeTone("");
+    setBadgeText(t.badgeText || "");
+    setBadgeTone((t.badgeTone as "" | "blue" | "green" | "red") || "");
     setShowButton(typeof t.showButton === "boolean" ? t.showButton : true);
     setShowLink(typeof t.showLink === "boolean" ? t.showLink : true);
     setLinkText(t.linkText || "View Invoice");
@@ -387,7 +387,7 @@ export default function AdminEmailTemplatesPage() {
     setButtonUrlType("track");
 
     setBadgeText("");
-    setBadgeTone("blue");
+    setBadgeTone("");
     setShowButton(true);
     setShowLink(true);
     setLinkText("View Invoice");
@@ -455,14 +455,14 @@ export default function AdminEmailTemplatesPage() {
       ? ""
       : detailsCardType === "account"
       ? renderSimpleInfoCardHtml([
-          { label: "Account Email", value: "gabrielmoses888@gmai..." },
-          { label: "Access Status", value: "Restored" },
+          { label: "Account Email", value: "[Account Email]" },
+          { label: "Access Status", value: "[Access Status]" },
         ])
       : detailsCardType === "invoice"
       ? renderSimpleInfoCardHtml([
-          { label: "Shipment Number", value: "EXS-2026-001245" },
-          { label: "Invoice Number", value: "EXS-INV-2026-03-1234567" },
-          { label: "Status", value: "PAID" },
+          { label: "Shipment Number", value: "[Shipment Number]" },
+          { label: "Invoice Number", value: "[Invoice Number]" },
+          { label: "Status", value: "[Status]" },
         ])
       : detailsCardType === "changes"
       ? `
@@ -486,9 +486,9 @@ export default function AdminEmailTemplatesPage() {
         </div>
       `
       : renderShipmentDetailsCardHtml({
-          shipmentId: "EXS-2026-001245",
-          trackingNumber: "TRK9283718273",
-          invoiceNumber: "EXS-INV-2026-03-1234567",
+          shipmentId: "[Shipment ID]",
+          trackingNumber: "[Tracking Number]",
+          invoiceNumber: "[Invoice Number]",
         });
 
  const previewBadgeHtml = badgeText
@@ -509,19 +509,19 @@ export default function AdminEmailTemplatesPage() {
     .replace(/{{detailsCard}}/g, previewDetailsCardHtml)
     .replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
     .replace(/{{changesTable}}/g, previewDetailsCardHtml)
-    .replace(/{{name}}/g, "Gabriel Moses")
-    .replace(/{{receiverName}}/g, "John Doe")
-    .replace(/{{senderName}}/g, "Gabriel Moses")
-    .replace(/{{shipmentId}}/g, "EXS-2026-001245")
-    .replace(/{{trackingNumber}}/g, "TRK9283718273")
-    .replace(/{{invoiceNumber}}/g, "EXS-INV-2026-03-1234567")
-    .replace(/{{invoiceStatus}}/g, "PAID")
-    .replace(/{{estimatedDeliveryDate}}/g, "Mar 16 - Mar 19, 2026")
-    .replace(/{{paymentMessage}}/g, "Payment has been confirmed successfully.")
-    .replace(/{{invoiceMessage}}/g, "Payment has been confirmed in our system and processing can continue.")
-    .replace(/{{intro}}/g, "Some shipment details have been updated in our system.")
-    .replace(/{{email}}/g, "gabrielmoses888@gmail.com")
-    .replace(/{{shortEmail}}/g, "gabrielmoses888@gmai...")
+    .replace(/{{name}}/g, "<span style='color:#0f172a;font-weight:700;'>[Customer Name]</span>")
+    .replace(/{{receiverName}}/g, "<span style='color:#0f172a;font-weight:700;'>[Receiver Name]</span>")
+    .replace(/{{senderName}}/g, "<span style='color:#0f172a;font-weight:700;'>[Sender Name]</span>")
+    .replace(/{{shipmentId}}/g, "<span style='color:#0f172a;font-weight:700;'>[Shipment ID]</span>")
+    .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
+    .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
+    .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
+    .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
+    .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
+    .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
+    .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
+    .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
+    .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
     .replace(/{{supportUrl}}/g, "#")
     .replace(/{{trackUrl}}/g, "#")
     .replace(/{{invoiceUrl}}/g, "#");
@@ -811,7 +811,7 @@ export default function AdminEmailTemplatesPage() {
                 <p className="mt-1 text-xs text-gray-500">key: {t.key}</p>
                 <p className="mt-1 text-xs text-gray-500">category: {t.category}</p>
                 <p className="mt-1 text-xs text-gray-500">
-                  badge: {t.badgeText || "—"} / {t.badgeTone || "blue"}
+                  badge: {t.badgeText || "—"} / {t.badgeTone || "auto"}
                 </p>
                 <p className="mt-3 text-sm text-gray-700 line-clamp-2">{t.subject}</p>
               </button>
