@@ -940,12 +940,15 @@ const defaultPreheader =
     ? "INVOICE CANCELLED"
     : "PAYMENT REQUIRED";
 
-const dynamicSenderBadgeTone =
+const dynamicSenderBadgeTone: EmailTone =
   invoiceStatusNormalized === "paid" ? "green" : "red";
 
-const finalBadgeTone = normalizeTone(
-  templateOverride?.badgeTone || dynamicSenderBadgeTone
-);
+const savedSenderBadgeTone = cleanStr(templateOverride?.badgeTone);
+
+const finalBadgeTone: EmailTone =
+  savedSenderBadgeTone === ""
+    ? dynamicSenderBadgeTone
+    : normalizeTone(savedSenderBadgeTone || dynamicSenderBadgeTone);
 
 const finalBadgeText =
   cleanStr(templateOverride?.badgeText) || dynamicSenderBadgeText;
@@ -1200,12 +1203,15 @@ const defaultPreheader =
     ? "INVOICE CANCELLED"
     : "PAYMENT PENDING";
 
-const dynamicReceiverBadgeTone =
+const dynamicReceiverBadgeTone: EmailTone =
   invoiceStatus === "paid" ? "green" : "red";
 
-const finalBadgeTone = normalizeTone(
-  templateOverride?.badgeTone || dynamicReceiverBadgeTone
-);
+const savedReceiverBadgeTone = cleanStr(templateOverride?.badgeTone);
+
+const finalBadgeTone: EmailTone =
+  savedReceiverBadgeTone === ""
+    ? dynamicReceiverBadgeTone
+    : normalizeTone(savedReceiverBadgeTone || dynamicReceiverBadgeTone);
 
 const finalBadgeText =
   cleanStr(templateOverride?.badgeText) || dynamicReceiverBadgeText;
