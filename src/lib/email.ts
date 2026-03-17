@@ -247,7 +247,7 @@ function buildInvoiceFullUrlByQ(q: string, locale = DEFAULT_LOCALE) {
   return `${APP_URL}/${locale}/invoice/full?q=${encodeURIComponent(qq)}`;
 }
 
-function normalizeTemplateKey(v: string) {
+function normalizeTemplateKey(v?: string) {
   return String(v || "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 }
 
@@ -275,7 +275,26 @@ async function getEmailTemplate(key: string): Promise<EmailTemplateConfig | null
   }
 }
 
-async function getStatusEmailConfig(statusLabel: string) {
+type StatusEmailConfig = {
+  key?: string;
+  label?: string;
+  emailSubject?: string;
+  emailTitle?: string;
+  emailPreheader?: string;
+  emailBodyHtml?: string;
+  emailButtonText?: string;
+  emailButtonUrlType?: string;
+  badgeText?: string;
+  badgeTone?: "" | "blue" | "green" | "red";
+  showButton?: boolean;
+  showLink?: boolean;
+  linkText?: string;
+  linkUrlType?: string;
+  showDetailsCard?: boolean;
+  detailsCardType?: "shipment" | "account" | "invoice" | "changes" | "none";
+};
+
+async function getStatusEmailConfig(statusLabel: string): Promise<StatusEmailConfig | null> {
   try {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
@@ -288,12 +307,12 @@ async function getStatusEmailConfig(statusLabel: string) {
       .project({ _id: 0 })
       .toArray();
 
-    const dbStatus =
+    const dbStatus: StatusEmailConfig | null =
       all.find((s: any) => normalizeTemplateKey(s?.key || "") === normalized) ||
       all.find((s: any) => normalizeTemplateKey(s?.label || "") === normalized) ||
       null;
 
-    const defaultStatuses = [
+    const defaultStatuses: StatusEmailConfig[] = [
       {
         key: "created",
         label: "Created",
@@ -1932,7 +1951,7 @@ export async function sendShipmentStatusEmail(
       ? fullDestination
       : destination;
 
-  const noteHtml = note
+  const noteBlockHtml = note
     ? `
       <div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
         <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">
@@ -1942,70 +1961,54 @@ export async function sendShipmentStatusEmail(
     `
     : "";
 
- const detailsCardHtml = `
-<table
-  role="presentation"
-  align="center"
-  width="100%"
-  cellspacing="0"
-  cellpadding="0"
-  style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"
->
-  <tr>
-    <td style="padding:14px 20px;border-radius:16px;">
-      <table
-        role="presentation"
-        width="100%"
-        cellspacing="0"
-        cellpadding="0"
-        style="border-collapse:collapse;width:100%;table-layout:fixed;"
-      >
-        <tr>
-          <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
-          >
-            Shipment Number:
-          </td>
-          <td
-            align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
-          >
-            ${esc(opts.shipmentId)}
-          </td>
-        </tr>
+  const dynamicBadgeTone: EmailTone =
+    normalizedStatus === "delivered"
+      ? "green"
+      : normalizedStatus === "cancelled" ||
+        normalizedStatus === "canceled" ||
+        normalizedStatus === "invalidaddress" ||
+        normalizedStatus === "paymentissue" ||
+        normalizedStatus === "unclaimed"
+      ? "red"
+      : "blue";
 
-        <tr>
-          <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
-          >
-            Tracking Number:
-          </td>
-          <td
-            align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
-          >
-            ${esc(opts.trackingNumber || "—")}
-          </td>
-        </tr>
+  const dynamicBadgeText =
+    cleanStr(statusOverride?.badgeText) || cleanStr(status) || "Shipment Update";
 
-        <tr>
-          <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
-          >
-            Invoice Number:
-          </td>
-          <td
-            align="right"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;width:64%;"
-          >
-            ${esc(invoiceNumber)}
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
-`;
+  const savedBadgeTone = cleanStr(statusOverride?.badgeTone);
+  const finalBadgeTone: EmailTone =
+    savedBadgeTone === "" ? dynamicBadgeTone : normalizeTone(savedBadgeTone);
+
+  const badgeHtml = renderToneBadge(dynamicBadgeText, finalBadgeTone);
+
+  const showButton = normalizeBool(statusOverride?.showButton, true);
+  const showLink = normalizeBool(statusOverride?.showLink, true);
+  const showDetailsCard = normalizeBool(statusOverride?.showDetailsCard, true);
+
+  let detailsCardHtml = "";
+  const detailsCardType = cleanStr(statusOverride?.detailsCardType || "shipment").toLowerCase();
+
+  if (showDetailsCard && detailsCardType !== "none") {
+    if (detailsCardType === "invoice") {
+      detailsCardHtml = renderSimpleInfoCard([
+        { label: "Shipment Number", value: opts.shipmentId },
+        { label: "Invoice Number", value: invoiceNumber },
+        { label: "Status", value: status },
+      ]);
+    } else if (detailsCardType === "account") {
+      detailsCardHtml = renderSimpleInfoCard([
+        { label: "Account Email", value: shortenEmail(to) },
+        { label: "Access Status", value: status },
+      ]);
+    } else {
+      detailsCardHtml = renderShipmentDetailsCard({
+        shipmentId: opts.shipmentId,
+        trackingNumber: opts.trackingNumber,
+        invoiceNumber,
+      });
+    }
+  }
+
   const destinationBlockHtml = `
     <div style="margin:18px 0 0 0;">
       <p style="margin:0 0 6px 0;font-size:14px;line-height:20px;color:#6b7280;">
@@ -2017,46 +2020,29 @@ export async function sendShipmentStatusEmail(
     </div>
   `;
 
-  const badgeTone =
-  normalizedStatus === "delivered"
-    ? {
-        bg: "#dcfce7",
-        text: "#166534",
-      }
-    : normalizedStatus === "cancelled" ||
-      normalizedStatus === "canceled" ||
-      normalizedStatus === "invalidaddress" ||
-      normalizedStatus === "paymentissue" ||
-      normalizedStatus === "unclaimed"
-    ? {
-        bg: "#fee2e2",
-        text: "#b91c1c",
-      }
-    : {
-        bg: "#dbeafe",
-        text: "#1d4ed8",
-      };
+  const linkText = cleanStr(statusOverride?.linkText) || "View Invoice";
+  const linkHref = resolveUrlByType(
+    statusOverride?.linkUrlType || "invoice",
+    {
+      trackUrl: TRACK_URL,
+      invoiceUrl: INVOICE_URL,
+      supportUrl: SUPPORT_URL,
+    }
+  );
 
-const statusBadgeHtml = `
-  <div style="margin:0 0 14px 0;">
-    <span style="
-      display:inline-block;
-      background:${badgeTone.bg};
-      color:${badgeTone.text};
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.3px;
-      padding:6px 12px;
-      border-radius:999px;
-      text-transform:uppercase;
-    ">
-      ${esc(status)}
-    </span>
-  </div>
-`;
+  const invoiceLinkHtml =
+    showLink && linkHref
+      ? `
+        <div style="margin-top:12px">
+          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+            ${esc(linkText)}
+          </a>
+        </div>
+      `
+      : "";
 
   const defaultBodyHtml = `
-    ${statusBadgeHtml}
+    ${badgeHtml}
 
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello ${esc(name)},
@@ -2070,7 +2056,7 @@ const statusBadgeHtml = `
       ${detail}
     </p>
 
-    <p style="margin:0 0 6px 0;font-size:16px;line-height:26px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
       ${extra}
     </p>
 
@@ -2078,17 +2064,13 @@ const statusBadgeHtml = `
 
     ${destinationBlockHtml}
 
-    ${noteHtml}
+    ${noteBlockHtml}
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can track the shipment using the button below or review the invoice by clicking view invoice.
+      You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.
     </p>
 
-    <div style="margin-top:12px">
-      <a href="${INVOICE_URL}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-        View Invoice
-      </a>
-    </div>
+    ${invoiceLinkHtml}
   `;
 
   const vars = {
@@ -2099,10 +2081,19 @@ const statusBadgeHtml = `
     destination: esc(destination),
     fullDestination: esc(fullDestination),
     origin: esc(origin),
-    note: noteHtml,
+    status: esc(status),
+    intro,
+    detail,
+    extra,
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    destinationBlock: destinationBlockHtml,
+    note: noteBlockHtml,
+    noteBlock: noteBlockHtml,
+    invoiceLink: invoiceLinkHtml,
     trackUrl: TRACK_URL,
     invoiceUrl: INVOICE_URL,
-    status: esc(status),
+    supportUrl: SUPPORT_URL,
   };
 
   const finalSubject = statusOverride?.emailSubject
@@ -2117,31 +2108,30 @@ const statusBadgeHtml = `
     ? fillVars(statusOverride.emailPreheader, vars)
     : `${status} – Shipment ${opts.shipmentId}`;
 
-   const finalBodyHtml = defaultBodyHtml;
+  const finalBodyHtml = statusOverride?.emailBodyHtml
+    ? fillVars(statusOverride.emailBodyHtml, vars)
+    : defaultBodyHtml;
 
   const finalButtonText = statusOverride?.emailButtonText
     ? fillVars(statusOverride.emailButtonText, vars)
     : buttonText;
 
-  const statusButtonType = String(statusOverride?.emailButtonUrlType || "")
-    .trim()
-    .toLowerCase();
-
-  const finalButtonHref =
-    statusButtonType === "invoice"
-      ? INVOICE_URL
-      : statusButtonType === "support"
-      ? SUPPORT_URL
-      : statusButtonType === "none"
-      ? ""
-      : buttonLink;
+  const finalButtonHref = resolveUrlByType(
+    statusOverride?.emailButtonUrlType || "track",
+    {
+      trackUrl: TRACK_URL,
+      invoiceUrl: INVOICE_URL,
+      supportUrl: SUPPORT_URL,
+    }
+  );
 
   const html = renderEmailTemplate({
   subject: finalSubject,
   title: finalTitle,
   preheader: finalPreheader,
   bodyHtml: finalBodyHtml,
-  button: finalButtonHref
+  button:
+  showButton && finalButtonHref
     ? { text: finalButtonText || "Track Shipment", href: finalButtonHref }
     : undefined,
   appUrl: APP_URL,

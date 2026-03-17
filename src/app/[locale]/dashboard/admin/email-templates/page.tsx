@@ -624,6 +624,13 @@ const previewDetailsCardHtml =
     };
   }
 
+  if (lowerKey.startsWith("timeline:")) {
+    return {
+      text: useCustomBadgeText && badgeText.trim() ? badgeText.trim() : "[Shipment Status]",
+      tone: (badgeTone || "blue") as "blue" | "green" | "red",
+    };
+  }
+
   return {
     text: "AUTO BADGE",
     tone: (badgeTone || "blue") as "blue" | "green" | "red",
@@ -658,10 +665,13 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
   .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
   .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
-.replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
-.replace(/{{followUpMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
-.replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
+  .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
+  .replace(/{{followUpMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
+  .replace(/{{actionMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
+  .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
   .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
+  .replace(/{{detail}}/g, "<span style='color:#0f172a;'>[Detail message]</span>")
+  .replace(/{{extra}}/g, "<span style='color:#0f172a;'>[Extra message]</span>")
   .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
   .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
   .replace(/{{supportUrl}}/g, "#")
@@ -671,8 +681,23 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(/{{destination}}/g, "<span style='color:#0f172a;font-weight:700;'>[Destination]</span>")
   .replace(/{{fullDestination}}/g, "<span style='color:#0f172a;font-weight:700;'>[Full Destination]</span>")
   .replace(/{{origin}}/g, "<span style='color:#0f172a;font-weight:700;'>[Origin]</span>")
+  .replace(
+    /{{destinationBlock}}/g,
+    `<div style="margin:18px 0 0 0;">
+      <p style="margin:0 0 6px 0;font-size:14px;line-height:20px;color:#6b7280;">Destination</p>
+      <p style="margin:0;font-size:15px;line-height:24px;font-weight:700;color:#111827;">[Destination]</p>
+    </div>`
+  )
+  .replace(
+    /{{noteBlock}}/g,
+    `<div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
+      <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">
+        <strong>Additional note:</strong> [Additional Note]
+      </p>
+    </div>`
+  )
   .replace(/{{note}}/g, "<span style='color:#0f172a;'>[Additional Note]</span>");
-
+  
     
 
   const previewEmailHtml = buildPreviewEmailHtml({

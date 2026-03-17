@@ -395,13 +395,38 @@ export async function GET() {
       preheader:
         String(s.emailPreheader || `Shipment ${String(s.label || "update").trim()} update`).trim(),
       bodyHtml:
-        String(s.emailBodyHtml || "").trim() ||
-        `<p>Hello {{name}},</p>
-<p>Your shipment <strong>{{shipmentId}}</strong> has been updated to <strong>{{status}}</strong>.</p>
-<p><strong>Tracking Number:</strong> <span style="white-space:nowrap;">{{trackingNumber}}</span><br/>
-<strong>Invoice Number:</strong> <span style="white-space:nowrap;">{{invoiceNumber}}</span><br/>
-<strong>Destination:</strong> {{destination}}</p>
-<p>{{note}}</p>`,
+  String(s.emailBodyHtml || "").trim() ||
+  `
+{{badge}}
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{intro}}
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{detail}}
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{extra}}
+</p>
+
+{{detailsCard}}
+
+{{destinationBlock}}
+
+{{note}}
+
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.
+</p>
+
+{{invoiceLink}}
+`.trim(),
       buttonText: String(s.emailButtonText || "Track Shipment").trim(),
       buttonUrlType: String(s.emailButtonUrlType || "track").trim(),
       badgeText: String(s.badgeText || s.label || "Shipment Update").trim(),
