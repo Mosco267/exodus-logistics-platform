@@ -1827,8 +1827,8 @@ export async function sendShipmentStatusEmail(
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
-  const name = (opts.name || "Customer").trim();
-  const status = String(opts.statusLabel || "").trim();
+  const name = cleanStr(opts.name) || "Customer";
+  const status = cleanStr(opts.statusLabel) || "Shipment Update";
   const locale = opts.locale || DEFAULT_LOCALE;
 
   const q = opts.trackingNumber || opts.shipmentId;
@@ -1942,9 +1942,7 @@ export async function sendShipmentStatusEmail(
   }
 
   const destinationLabel =
-    normalizedStatus === "outfordelivery"
-      ? "Delivery Address"
-      : "Destination";
+    normalizedStatus === "outfordelivery" ? "Delivery Address" : "Destination";
 
   const destinationValue =
     normalizedStatus === "outfordelivery" || normalizedStatus === "delivered"
@@ -1972,21 +1970,23 @@ export async function sendShipmentStatusEmail(
       ? "red"
       : "blue";
 
-  const dynamicBadgeText =
-    cleanStr(statusOverride?.badgeText) || cleanStr(status) || "Shipment Update";
+  const dynamicBadgeText = cleanStr(status) || "Shipment Update";
 
-  const savedBadgeTone = cleanStr(statusOverride?.badgeTone);
+  const savedBadgeText = cleanStr((statusOverride as any)?.badgeText);
+  const savedBadgeTone = cleanStr((statusOverride as any)?.badgeTone);
+
+  const finalBadgeText = savedBadgeText || dynamicBadgeText;
   const finalBadgeTone: EmailTone =
     savedBadgeTone === "" ? dynamicBadgeTone : normalizeTone(savedBadgeTone);
 
-  const badgeHtml = renderToneBadge(dynamicBadgeText, finalBadgeTone);
+  const badgeHtml = renderToneBadge(finalBadgeText, finalBadgeTone);
 
-  const showButton = normalizeBool(statusOverride?.showButton, true);
-  const showLink = normalizeBool(statusOverride?.showLink, true);
-  const showDetailsCard = normalizeBool(statusOverride?.showDetailsCard, true);
+  const showButton = normalizeBool((statusOverride as any)?.showButton, true);
+  const showLink = normalizeBool((statusOverride as any)?.showLink, true);
+  const showDetailsCard = normalizeBool((statusOverride as any)?.showDetailsCard, true);
 
   let detailsCardHtml = "";
-  const detailsCardType = cleanStr(statusOverride?.detailsCardType || "shipment").toLowerCase();
+  const detailsCardType = cleanStr((statusOverride as any)?.detailsCardType || "shipment").toLowerCase();
 
   if (showDetailsCard && detailsCardType !== "none") {
     if (detailsCardType === "invoice") {
@@ -2020,9 +2020,9 @@ export async function sendShipmentStatusEmail(
     </div>
   `;
 
-  const linkText = cleanStr(statusOverride?.linkText) || "View Invoice";
+  const linkText = cleanStr((statusOverride as any)?.linkText) || "View Invoice";
   const linkHref = resolveUrlByType(
-    statusOverride?.linkUrlType || "invoice",
+    (statusOverride as any)?.linkUrlType || "invoice",
     {
       trackUrl: TRACK_URL,
       invoiceUrl: INVOICE_URL,
@@ -2096,25 +2096,30 @@ export async function sendShipmentStatusEmail(
     supportUrl: SUPPORT_URL,
   };
 
-  const finalSubject = statusOverride?.emailSubject
-    ? fillVars(statusOverride.emailSubject, vars)
-    : subject;
+  const finalSubject =
+    statusOverride?.emailSubject
+      ? fillVars(statusOverride.emailSubject, vars)
+      : subject;
 
-  const finalTitle = statusOverride?.emailTitle
-    ? fillVars(statusOverride.emailTitle, vars)
-    : title;
+  const finalTitle =
+    statusOverride?.emailTitle
+      ? fillVars(statusOverride.emailTitle, vars)
+      : title;
 
-  const finalPreheader = statusOverride?.emailPreheader
-    ? fillVars(statusOverride.emailPreheader, vars)
-    : `${status} – Shipment ${opts.shipmentId}`;
+  const finalPreheader =
+    statusOverride?.emailPreheader
+      ? fillVars(statusOverride.emailPreheader, vars)
+      : `${status} – Shipment ${opts.shipmentId}`;
 
-  const finalBodyHtml = statusOverride?.emailBodyHtml
-    ? fillVars(statusOverride.emailBodyHtml, vars)
-    : defaultBodyHtml;
+  const finalBodyHtml =
+    statusOverride?.emailBodyHtml
+      ? fillVars(statusOverride.emailBodyHtml, vars)
+      : defaultBodyHtml;
 
-  const finalButtonText = statusOverride?.emailButtonText
-    ? fillVars(statusOverride.emailButtonText, vars)
-    : buttonText;
+  const finalButtonText =
+    statusOverride?.emailButtonText
+      ? fillVars(statusOverride.emailButtonText, vars)
+      : buttonText;
 
   const finalButtonHref = resolveUrlByType(
     statusOverride?.emailButtonUrlType || "track",
@@ -2126,18 +2131,18 @@ export async function sendShipmentStatusEmail(
   );
 
   const html = renderEmailTemplate({
-  subject: finalSubject,
-  title: finalTitle,
-  preheader: finalPreheader,
-  bodyHtml: finalBodyHtml,
-  button:
-  showButton && finalButtonHref
-    ? { text: finalButtonText || "Track Shipment", href: finalButtonHref }
-    : undefined,
-  appUrl: APP_URL,
-  supportEmail: SUPPORT_EMAIL,
-  sentTo: to,
-});
+    subject: finalSubject,
+    title: finalTitle,
+    preheader: finalPreheader,
+    bodyHtml: finalBodyHtml,
+    button:
+      showButton && finalButtonHref
+        ? { text: finalButtonText || "Track Shipment", href: finalButtonHref }
+        : undefined,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
 
   return sendEmail(to, finalSubject, html);
 }

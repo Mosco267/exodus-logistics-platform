@@ -669,9 +669,24 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(/{{followUpMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
   .replace(/{{actionMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
   .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
-  .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
-  .replace(/{{detail}}/g, "<span style='color:#0f172a;'>[Detail message]</span>")
-  .replace(/{{extra}}/g, "<span style='color:#0f172a;'>[Extra message]</span>")
+  .replace(
+  /{{intro}}/g,
+  editingKey.startsWith("timeline:")
+    ? "<span style='color:#111827;'>Your shipment <strong>[Shipment ID]</strong> is currently being updated in our logistics network.</span>"
+    : "<span style='color:#0f172a;'>[Intro message]</span>"
+)
+.replace(
+  /{{detail}}/g,
+  editingKey.startsWith("timeline:")
+    ? "<span style='color:#111827;'>This stage confirms that the shipment is progressing normally and the latest status has been recorded successfully in our system.</span>"
+    : "<span style='color:#0f172a;'>[Detail message]</span>"
+)
+.replace(
+  /{{extra}}/g,
+  editingKey.startsWith("timeline:")
+    ? "<span style='color:#111827;'>You will continue to receive further notifications as the shipment moves through the next delivery checkpoints.</span>"
+    : "<span style='color:#0f172a;'>[Extra message]</span>"
+)
   .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
   .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
   .replace(/{{supportUrl}}/g, "#")
