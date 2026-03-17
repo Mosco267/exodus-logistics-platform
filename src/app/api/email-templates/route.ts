@@ -167,7 +167,7 @@ The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <stron
 </p>
 
 <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-{{followUpMessage}}
+{{actionMessage}}
 </p>
 
 {{detailsCard}}

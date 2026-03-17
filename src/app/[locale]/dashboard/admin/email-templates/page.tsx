@@ -305,6 +305,10 @@ export default function AdminEmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplateDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [previewInvoiceStatus, setPreviewInvoiceStatus] = useState<
+  "paid" | "unpaid" | "overdue" | "cancelled"
+>("paid");
+
   const [editingKey, setEditingKey] = useState("");
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("");
@@ -453,46 +457,106 @@ export default function AdminEmailTemplatesPage() {
     }
   };
 
-  const previewDetailsCardHtml =
-    !showDetailsCard || detailsCardType === "none"
-      ? ""
-      : detailsCardType === "account"
-      ? renderSimpleInfoCardHtml([
-          { label: "Account Email", value: "[Account Email]" },
-          { label: "Access Status", value: "[Access Status]" },
-        ])
-      : detailsCardType === "invoice"
-      ? renderSimpleInfoCardHtml([
-          { label: "Shipment Number", value: "[Shipment Number]" },
-          { label: "Invoice Number", value: "[Invoice Number]" },
-          { label: "Status", value: "[Status]" },
-        ])
-      : detailsCardType === "changes"
-      ? `
-        <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
-            <thead>
-              <tr style="background:#f9fafb;">
-                <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
-                <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
-                <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;">Destination</td>
-                <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;">Old address</td>
-                <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;">New address</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      `
-      : renderShipmentDetailsCardHtml({
-          shipmentId: "[Shipment ID]",
-          trackingNumber: "[Tracking Number]",
-          invoiceNumber: "[Invoice Number]",
-        });
+  const previewInvoiceMeta =
+  previewInvoiceStatus === "paid"
+    ? {
+        badgeText: "INVOICE PAID",
+        badgeTone: "green" as const,
+        invoiceStatus: "PAID",
+        invoiceMessage:
+          "Payment has been confirmed in our system and recorded successfully.",
+        followUpMessage:
+          "No further payment action is required at this time. A copy of this invoice should be kept for reference while shipment processing continues normally.",
+      }
+    : previewInvoiceStatus === "overdue"
+    ? {
+        badgeText: "INVOICE OVERDUE",
+        badgeTone: "red" as const,
+        invoiceStatus: "OVERDUE",
+        invoiceMessage:
+          "This invoice is now overdue and requires urgent attention.",
+        followUpMessage:
+          "To avoid continued processing delay, hold, or additional administrative follow-up, payment should be completed as soon as possible.",
+      }
+    : previewInvoiceStatus === "cancelled"
+    ? {
+        badgeText: "INVOICE CANCELLED",
+        badgeTone: "red" as const,
+        invoiceStatus: "CANCELLED",
+        invoiceMessage:
+          "This invoice has been cancelled in our system.",
+        followUpMessage:
+          "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If this update was not expected, please contact support for clarification.",
+      }
+    : {
+        badgeText: "INVOICE UNPAID",
+        badgeTone: "blue" as const,
+        invoiceStatus: "UNPAID",
+        invoiceMessage:
+          "Payment is still pending for this invoice.",
+        followUpMessage:
+          "Please review the invoice details and complete payment promptly so shipment processing can continue without unnecessary interruption.",
+      };
+
+  const previewChangesTableHtml = `
+  <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
+          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
+          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;vertical-align:top;">
+            Delivery Address
+          </td>
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;">
+            12 Old Street, Dallas, TX
+          </td>
+          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;">
+            45 New Avenue, Houston, TX
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 14px;font-size:14px;color:#111827;font-weight:700;vertical-align:top;">
+            Receiver Phone
+          </td>
+          <td style="padding:12px 14px;font-size:14px;color:#6b7280;vertical-align:top;">
+            +1 555 0101
+          </td>
+          <td style="padding:12px 14px;font-size:14px;color:#111827;vertical-align:top;">
+            +1 555 0188
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
+const previewDetailsCardHtml =
+  !showDetailsCard || detailsCardType === "none"
+    ? ""
+    : detailsCardType === "account"
+    ? renderSimpleInfoCardHtml([
+        { label: "Account Email", value: "[Account Email]" },
+        { label: "Access Status", value: "[Access Status]" },
+      ])
+    : detailsCardType === "invoice"
+    ? renderSimpleInfoCardHtml([
+        { label: "Shipment Number", value: "[Shipment Number]" },
+        { label: "Invoice Number", value: "[Invoice Number]" },
+        { label: "Status", value: previewInvoiceMeta.invoiceStatus },
+      ])
+    : detailsCardType === "changes"
+    ? previewChangesTableHtml
+    : renderShipmentDetailsCardHtml({
+        shipmentId: "[Shipment ID]",
+        trackingNumber: "[Tracking Number]",
+        invoiceNumber: "[Invoice Number]",
+      });
 
  const getAutoPreviewBadge = () => {
   const lowerKey = editingKey.toLowerCase();
@@ -506,8 +570,8 @@ export default function AdminEmailTemplatesPage() {
 
   if (lowerKey === "invoice_status_update") {
     return {
-      text: "INVOICE PAID",
-      tone: (badgeTone || "green") as "blue" | "green" | "red",
+      text: previewInvoiceMeta.badgeText,
+      tone: (badgeTone || previewInvoiceMeta.badgeTone) as "blue" | "green" | "red",
     };
   }
 
@@ -546,7 +610,14 @@ export default function AdminEmailTemplatesPage() {
     };
   }
 
-  if (lowerKey === "shipment_created_sender" || lowerKey === "shipment_created_receiver") {
+  if (lowerKey === "shipment_created_sender") {
+    return {
+      text: "SHIPMENT CREATED",
+      tone: (badgeTone || "green") as "blue" | "green" | "red",
+    };
+  }
+
+  if (lowerKey === "shipment_created_receiver") {
     return {
       text: "SHIPMENT CREATED",
       tone: (badgeTone || "green") as "blue" | "green" | "red",
@@ -572,43 +643,7 @@ const previewBadgeHtml = renderToneBadgeHtml(
         )}</a></div>`
       : "";
 
-      const previewChangesTableHtml = `
-  <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
-      <thead>
-        <tr style="background:#f9fafb;">
-          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
-          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
-          <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;vertical-align:top;">
-            Delivery Address
-          </td>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;">
-            12 Old Street, Dallas, TX
-          </td>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;">
-            45 New Avenue, Houston, TX
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:12px 14px;font-size:14px;color:#111827;font-weight:700;vertical-align:top;">
-            Receiver Phone
-          </td>
-          <td style="padding:12px 14px;font-size:14px;color:#6b7280;vertical-align:top;">
-            +1 555 0101
-          </td>
-          <td style="padding:12px 14px;font-size:14px;color:#111827;vertical-align:top;">
-            +1 555 0188
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-`;
+      
 
   const previewBodyHtml = (bodyHtml || "<p>No content yet.</p>")
   .replace(/{{badge}}/g, previewBadgeHtml)
@@ -621,10 +656,10 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(/{{shipmentId}}/g, "<span style='color:#0f172a;font-weight:700;'>[Shipment ID]</span>")
   .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
   .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
-  .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
   .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
-  .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>Payment has been confirmed in our system and recorded successfully.</span>")
-.replace(/{{followUpMessage}}/g, "<span style='color:#0f172a;'>No further payment action is required at this time, and shipment processing may continue normally without interruption.</span>")
+  .replace(/{{invoiceStatus}}/g, `<span style='color:#0f172a;font-weight:700;'>${previewInvoiceMeta.invoiceStatus}</span>`)
+.replace(/{{invoiceMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`)
+.replace(/{{followUpMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`)
 .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
   .replace(/{{intro}}/g, "<span style='color:#0f172a;'>[Intro message]</span>")
   .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
@@ -832,6 +867,26 @@ const previewBadgeHtml = renderToneBadgeHtml(
                   <option value="none">none</option>
                 </select>
               </div>
+
+              {editingKey === "invoice_status_update" && (
+  <div>
+    <label className="text-xs font-semibold text-gray-600">Preview Invoice Status</label>
+    <select
+      value={previewInvoiceStatus}
+      onChange={(e) =>
+        setPreviewInvoiceStatus(
+          e.target.value as "paid" | "unpaid" | "overdue" | "cancelled"
+        )
+      }
+      className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white"
+    >
+      <option value="paid">paid</option>
+      <option value="unpaid">unpaid</option>
+      <option value="overdue">overdue</option>
+      <option value="cancelled">cancelled</option>
+    </select>
+  </div>
+)}
 
               <div>
                 <label className="text-xs font-semibold text-gray-600">Details Card Type</label>

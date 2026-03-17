@@ -683,15 +683,28 @@ function shortenEmail(email: string, max = 22) {
 
 function getInvoiceStatusExtraMessage(status: InvoiceStatus) {
   if (status === "paid") {
-    return "Payment has been confirmed in our system and the shipment can now continue to the next logistics stage without interruption.";
+    return "Payment for this invoice has been confirmed successfully in our system.";
   }
   if (status === "overdue") {
-    return "This invoice is now overdue. Immediate payment is recommended to avoid continued delay, processing hold, or additional administrative follow-up.";
+    return "This invoice is now overdue and requires prompt attention.";
   }
   if (status === "cancelled") {
-    return "This invoice has been cancelled in our system. If you were not expecting this update, please contact support for clarification before taking further action.";
+    return "This invoice has been cancelled in our system.";
   }
-  return "This invoice remains unpaid at the moment. Please complete payment as soon as possible so shipment processing can continue normally.";
+  return "This invoice is currently unpaid and payment is still required.";
+}
+
+function getInvoiceStatusActionMessage(status: InvoiceStatus) {
+  if (status === "paid") {
+    return "No further payment action is required at this time. Shipment processing may continue normally, and you may keep this invoice for your billing records and future reference.";
+  }
+  if (status === "overdue") {
+    return "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.";
+  }
+  if (status === "cancelled") {
+    return "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If you were not expecting this update or need clarification on the next step, please contact support before taking further action.";
+  }
+  return "Please review the invoice details carefully and complete payment as soon as possible so shipment processing can continue without unnecessary interruption.";
 }
 
 function renderToneBadge(
@@ -2156,11 +2169,12 @@ export async function sendInvoiceUpdateEmail(
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
-  const name = (opts.name || "Customer").trim();
+  const name = cleanStr(opts.name) || "Customer";
   const locale = opts.locale || DEFAULT_LOCALE;
 
   const q = opts.trackingNumber || opts.shipmentId;
   const invoiceLink = buildInvoiceFullUrlByQ(q, locale);
+  const trackUrl = buildTrackUrl(q, locale);
 
   const invoiceNumber = makeInvoiceNumber({
     shipmentId: opts.shipmentId,
@@ -2175,20 +2189,27 @@ export async function sendInvoiceUpdateEmail(
     : "unpaid";
 
   const statusLabel = invoiceStatusLabel(status);
-  const subject = `Exodus Logistics: Invoice ${invoiceStatusSubject(status)} (${opts.shipmentId})`;
 
   const templateOverride = await getEmailTemplate("invoice_status_update");
 
-  const fallbackTone: "blue" | "green" | "red" =
+  const fallbackTone: EmailTone =
     status === "paid" ? "green" : status === "unpaid" ? "blue" : "red";
 
-  const badgeHtml = renderToneBadge(
-    templateOverride?.badgeText || `Invoice ${statusLabel}`,
-    (templateOverride?.badgeTone as "blue" | "green" | "red") || fallbackTone
-  );
+  const savedBadgeTone = cleanStr(templateOverride?.badgeTone);
+  const finalBadgeTone: EmailTone =
+    savedBadgeTone === "" ? fallbackTone : normalizeTone(savedBadgeTone);
+
+  const finalBadgeText =
+    cleanStr(templateOverride?.badgeText) || `INVOICE ${statusLabel}`;
+
+  const badgeHtml = renderToneBadge(finalBadgeText, finalBadgeTone);
+
+  const showDetailsCard = normalizeBool(templateOverride?.showDetailsCard, true);
+  const showButton = normalizeBool(templateOverride?.showButton, true);
+  const showLink = normalizeBool(templateOverride?.showLink, false);
 
   const detailsCardHtml =
-    templateOverride?.showDetailsCard === false
+    !showDetailsCard
       ? ""
       : renderSimpleInfoCard([
           { label: "Shipment Number", value: opts.shipmentId },
@@ -2196,78 +2217,70 @@ export async function sendInvoiceUpdateEmail(
           { label: "Status", value: statusLabel },
         ]);
 
-  const trackUrl = buildTrackUrl(q, locale);
+  const linkText = cleanStr(templateOverride?.linkText) || "View Invoice";
+  const linkHref = resolveUrlByType(
+    templateOverride?.linkUrlType || "invoice",
+    {
+      trackUrl,
+      invoiceUrl: invoiceLink,
+      supportUrl: SUPPORT_URL,
+    }
+  );
 
-  const linkHref =
-    String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "track"
-      ? trackUrl
-      : String(templateOverride?.linkUrlType || "").trim().toLowerCase() === "support"
-      ? SUPPORT_URL
-      : invoiceLink;
-
-  const linkHtml =
-    templateOverride?.showLink === false
-      ? ""
-      : `
+  const invoiceLinkHtml =
+    showLink && linkHref
+      ? `
         <div style="margin-top:12px">
           <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-            ${esc(templateOverride?.linkText || "View Invoice")}
+            ${esc(linkText)}
           </a>
         </div>
-      `;
+      `
+      : "";
 
-  const statusFollowUpMessage =
-  status === "paid"
-    ? "Payment has been received and confirmed successfully. No further payment action is required at this time, and shipment processing may continue normally without interruption."
-    : status === "overdue"
-    ? "This invoice is now overdue and requires immediate attention. To avoid continued processing delay or additional administrative follow-up, payment should be completed as soon as possible."
-    : status === "cancelled"
-    ? "This invoice has been cancelled in our system. No payment should be made against this invoice unless our support team has specifically instructed otherwise. Please contact support if clarification is needed."
-    : "Please review the invoice details below and complete the required payment so there is no unnecessary interruption to shipment processing.";    
-
-  const defaultSubject = subject;
-  const defaultTitle = `Invoice ${invoiceStatusSubject(status)}`;
+  const defaultSubject = `Exodus Logistics: Invoice ${invoiceStatusSubject(status)} (${opts.shipmentId})`;
+  const defaultTitle = "Invoice update";
   const defaultPreheader = `Invoice for ${opts.shipmentId} is now ${statusLabel}.`;
 
   const defaultBodyHtml = `
-  ${badgeHtml}
+    ${badgeHtml}
 
-  <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-    Hello ${esc(name)},
-  </p>
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
 
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-    The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
-  </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
+    </p>
 
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-    ${esc(getInvoiceStatusExtraMessage(status))}
-  </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      ${esc(getInvoiceStatusExtraMessage(status))}
+    </p>
 
-  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-    ${esc(statusFollowUpMessage)}
-  </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      ${esc(getInvoiceStatusActionMessage(status))}
+    </p>
 
-  ${detailsCardHtml}
+    ${detailsCardHtml}
 
-  ${linkHtml}
-`;
+    ${invoiceLinkHtml}
+  `;
 
   const vars = {
-  name: esc(name),
-  shipmentId: esc(opts.shipmentId),
-  trackingNumber: esc(opts.trackingNumber || "—"),
-  invoiceNumber: esc(invoiceNumber),
-  invoiceStatus: esc(statusLabel),
-  invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
-  followUpMessage: esc(statusFollowUpMessage),
-  badge: badgeHtml,
-  detailsCard: detailsCardHtml,
-  invoiceLink: linkHtml,
-  supportUrl: SUPPORT_URL,
-  trackUrl,
-  invoiceUrl: invoiceLink,
-};
+    name: esc(name),
+    shipmentId: esc(opts.shipmentId),
+    trackingNumber: esc(opts.trackingNumber || "—"),
+    invoiceNumber: esc(invoiceNumber),
+    invoiceStatus: esc(statusLabel),
+    invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
+    actionMessage: esc(getInvoiceStatusActionMessage(status)),
+    badge: badgeHtml,
+    detailsCard: detailsCardHtml,
+    invoiceLink: invoiceLinkHtml,
+    supportUrl: SUPPORT_URL,
+    trackUrl,
+    invoiceUrl: invoiceLink,
+  };
 
   const finalSubject = templateOverride?.subject
     ? fillVars(templateOverride.subject, vars)
@@ -2289,12 +2302,10 @@ export async function sendInvoiceUpdateEmail(
     ? fillVars(templateOverride.buttonText, vars)
     : "View Invoice";
 
-  const buttonType = String(templateOverride?.buttonUrlType || "invoice")
-    .trim()
-    .toLowerCase();
+  const buttonType = cleanStr(templateOverride?.buttonUrlType || "invoice").toLowerCase();
 
   const finalButtonHref =
-    templateOverride?.showButton === false
+    !showButton
       ? ""
       : buttonType === "track"
       ? trackUrl
