@@ -1659,6 +1659,12 @@ export async function sendShipmentStatusEmail(
   const note = cleanStr(opts.note);
 
   const normalizedStatus = normalizeTemplateKey(status);
+  const isSupportOnlyStatus =
+  normalizedStatus === "cancelled" ||
+  normalizedStatus === "canceled" ||
+  normalizedStatus === "unclaimed" ||
+  normalizedStatus === "invalidaddress" ||
+  normalizedStatus === "paymentissue";
   const statusOverride = await getStatusEmailConfig(status);
 
   let subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
@@ -1794,7 +1800,9 @@ export async function sendShipmentStatusEmail(
   const badgeHtml = renderToneBadge(finalBadgeText, finalBadgeTone);
 
   const showButton = normalizeBool((statusOverride as any)?.showButton, true);
-  const showLink = normalizeBool((statusOverride as any)?.showLink, true);
+  const showLink =
+  !isSupportOnlyStatus &&
+  normalizeBool((statusOverride as any)?.showLink, true);
   const showDetailsCard = normalizeBool((statusOverride as any)?.showDetailsCard, true);
 
   let detailsCardHtml = "";
@@ -1843,47 +1851,56 @@ export async function sendShipmentStatusEmail(
   );
 
   const invoiceLinkHtml =
-    showLink && linkHref
-      ? `
-        <div style="margin-top:12px">
-          <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
-            ${esc(linkText)}
-          </a>
-        </div>
-      `
-      : "";
+  !isSupportOnlyStatus && showLink && linkHref
+    ? `
+      <div style="margin-top:12px">
+        <a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+          ${esc(linkText)}
+        </a>
+      </div>
+    `
+    : "";
 
-  const defaultBodyHtml = `
-    ${badgeHtml}
+  const closingMessage =
+  normalizedStatus === "cancelled" ||
+  normalizedStatus === "canceled" ||
+  normalizedStatus === "unclaimed" ||
+  normalizedStatus === "invalidaddress" ||
+  normalizedStatus === "paymentissue"
+    ? "If you believe this update was made in error or need further clarification, please use the button below to contact our support team. Our team will review the shipment details and assist you with the next appropriate step."
+    : "You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.";
 
-    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-      Hello ${esc(name)},
-    </p>
+const defaultBodyHtml = `
+  ${badgeHtml}
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${intro}
-    </p>
+  <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+    Hello ${esc(name)},
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${detail}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${intro}
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${extra}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${detail}
+  </p>
 
-    ${detailsCardHtml}
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${extra}
+  </p>
 
-    ${destinationBlockHtml}
+  ${detailsCardHtml}
 
-    ${noteBlockHtml}
+  ${destinationBlockHtml}
 
-    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-      You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.
-    </p>
+  ${noteBlockHtml}
 
-    ${invoiceLinkHtml}
-  `;
+  <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+    ${closingMessage}
+  </p>
+
+  ${invoiceLinkHtml}
+`;
 
   const vars = {
     name: esc(name),
