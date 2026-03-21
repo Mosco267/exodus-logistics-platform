@@ -1867,7 +1867,7 @@ export async function sendShipmentStatusEmail(
   normalizedStatus === "unclaimed" ||
   normalizedStatus === "invalidaddress" ||
   normalizedStatus === "paymentissue"
-    ? "If you believe this update was made in error or need further clarification, please use the button below to contact our support team. Our team will review the shipment details and assist you with the next appropriate step."
+    ? "Please contact our support team for assistance regarding this issue and the next steps to take."
     : "You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.";
 
 const defaultBodyHtml = `

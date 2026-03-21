@@ -879,6 +879,12 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
   ? getTimelinePreviewContent(editingKey)
   : null;
 
+  const isTimelineSupportOnly =
+  editingKey === "timeline:cancelled" ||
+  editingKey === "timeline:unclaimed" ||
+  editingKey === "timeline:invalidaddress" ||
+  editingKey === "timeline:paymentissue";
+
       
 
   const previewBodyHtml = (bodyHtml || "<p>No content yet.</p>")
