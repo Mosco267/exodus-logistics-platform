@@ -952,7 +952,16 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
       </p>
     </div>`
   )
-  .replace(/{{note}}/g, "<span style='color:#0f172a;'>[Additional Note]</span>");
+  .replace(
+  /{{note}}/g,
+  editingKey.startsWith("timeline:")
+    ? `<div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
+         <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">
+           <strong>Additional note:</strong> [Additional Note]
+         </p>
+       </div>`
+    : "<span style='color:#0f172a;'>[Additional Note]</span>"
+);
   
     
 

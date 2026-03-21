@@ -391,7 +391,30 @@ export async function GET() {
       label: `Timeline: ${String(s.label || "Timeline Stage").trim()}`,
       category: "timeline",
       subject: String(s.emailSubject || `Shipment update: {{shipmentId}}`).trim(),
-      title: String(s.emailTitle || s.label || "Shipment update").trim(),
+      title: String(
+  s.emailTitle ||
+    (String(s.key || "").toLowerCase() === "cancelled" || String(s.key || "").toLowerCase() === "canceled"
+      ? "Shipment cancelled"
+      : String(s.key || "").toLowerCase() === "delivered"
+      ? "Shipment delivered"
+      : String(s.key || "").toLowerCase() === "outfordelivery"
+      ? "Shipment out for delivery"
+      : String(s.key || "").toLowerCase() === "customclearance"
+      ? "Shipment under customs clearance"
+      : String(s.key || "").toLowerCase() === "unclaimed"
+      ? "Shipment marked unclaimed"
+      : String(s.key || "").toLowerCase() === "invalidaddress"
+      ? "Address issue on shipment"
+      : String(s.key || "").toLowerCase() === "warehouse"
+      ? "Shipment received at warehouse"
+      : String(s.key || "").toLowerCase() === "pickup" || String(s.key || "").toLowerCase() === "pickedup"
+      ? "Shipment picked up"
+      : String(s.key || "").toLowerCase() === "intransit"
+      ? "Shipment in transit"
+      : String(s.key || "").toLowerCase() === "created"
+      ? "Shipment created"
+      : String(s.label || "Shipment update"))
+).trim(),
       preheader:
         String(s.emailPreheader || `Shipment ${String(s.label || "update").trim()} update`).trim(),
       bodyHtml:
@@ -400,37 +423,81 @@ export async function GET() {
 {{badge}}
 
 <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-Hello {{name}},
+  Hello {{name}},
 </p>
 
 <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-{{intro}}
+  {{intro}}
 </p>
 
 <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-{{detail}}
+  {{detail}}
 </p>
 
 <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-{{extra}}
+  {{extra}}
 </p>
 
 {{detailsCard}}
 
 {{destinationBlock}}
 
-{{note}}
+{{noteBlock}}
 
 <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
-You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.
+  You can use the button below to open the shipment page for the latest tracking updates. You can also use the invoice link below to review billing information when needed.
 </p>
 
 {{invoiceLink}}
 `.trim(),
-      buttonText: String(s.emailButtonText || "Track Shipment").trim(),
-      buttonUrlType: String(s.emailButtonUrlType || "track").trim(),
-      badgeText: String(s.badgeText || s.label || "Shipment Update").trim(),
-      badgeTone: String(s.badgeTone ?? "").trim(),
+
+buttonText: String(
+  s.emailButtonText ||
+    (String(s.key || "").toLowerCase() === "cancelled" || String(s.key || "").toLowerCase() === "canceled"
+      ? "Contact Support"
+      : String(s.key || "").toLowerCase() === "unclaimed"
+      ? "Contact Support"
+      : String(s.key || "").toLowerCase() === "invalidaddress"
+      ? "Contact Support"
+      : String(s.key || "").toLowerCase() === "outfordelivery"
+      ? "Track Delivery"
+      : String(s.key || "").toLowerCase() === "delivered"
+      ? "View Shipment"
+      : String(s.key || "").toLowerCase() === "created"
+      ? "View Shipment"
+      : "Track Shipment")
+).trim(),
+
+buttonUrlType: String(
+  s.emailButtonUrlType ||
+    (String(s.key || "").toLowerCase() === "cancelled" || String(s.key || "").toLowerCase() === "canceled"
+      ? "support"
+      : String(s.key || "").toLowerCase() === "unclaimed"
+      ? "support"
+      : String(s.key || "").toLowerCase() === "invalidaddress"
+      ? "support"
+      : "track")
+).trim(),
+
+badgeText: String(
+  s.badgeText ||
+    (String(s.label || "").trim() || "Shipment Update")
+).trim(),
+
+badgeTone: String(
+  s.badgeTone ??
+    ((String(s.key || "").toLowerCase() === "delivered")
+      ? "green"
+      : (
+          String(s.key || "").toLowerCase() === "cancelled" ||
+          String(s.key || "").toLowerCase() === "canceled" ||
+          String(s.key || "").toLowerCase() === "unclaimed" ||
+          String(s.key || "").toLowerCase() === "invalidaddress" ||
+          String(s.key || "").toLowerCase() === "paymentissue"
+        )
+      ? "red"
+      : "blue")
+).trim(),
       showButton: typeof s.showButton === "boolean" ? s.showButton : true,
       showLink: typeof s.showLink === "boolean" ? s.showLink : true,
       linkText: String(s.linkText || "View Invoice").trim(),
