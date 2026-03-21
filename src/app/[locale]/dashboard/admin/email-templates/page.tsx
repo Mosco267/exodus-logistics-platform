@@ -558,6 +558,98 @@ const previewDetailsCardHtml =
         invoiceNumber: "[Invoice Number]",
       });
 
+      const getTimelinePreviewMeta = (key: string) => {
+  const normalized = key.replace(/^timeline:/, "").toLowerCase();
+
+  if (normalized === "delivered") {
+    return {
+      badgeText: "DELIVERED",
+      badgeTone: "green" as const,
+      buttonText: "View Shipment",
+    };
+  }
+
+  if (
+    normalized === "cancelled" ||
+    normalized === "canceled" ||
+    normalized === "unclaimed" ||
+    normalized === "invalidaddress" ||
+    normalized === "paymentissue"
+  ) {
+    return {
+      badgeText:
+        normalized === "cancelled" || normalized === "canceled"
+          ? "CANCELLED"
+          : normalized === "unclaimed"
+          ? "UNCLAIMED"
+          : normalized === "invalidaddress"
+          ? "INVALID ADDRESS"
+          : "PAYMENT ISSUE",
+      badgeTone: "red" as const,
+      buttonText:
+        normalized === "cancelled" || normalized === "unclaimed"
+          ? "Contact Support"
+          : normalized === "invalidaddress"
+          ? "Contact Support"
+          : "Track Shipment",
+    };
+  }
+
+  if (normalized === "outfordelivery") {
+    return {
+      badgeText: "OUT FOR DELIVERY",
+      badgeTone: "blue" as const,
+      buttonText: "Track Delivery",
+    };
+  }
+
+  if (normalized === "created") {
+    return {
+      badgeText: "CREATED",
+      badgeTone: "blue" as const,
+      buttonText: "View Shipment",
+    };
+  }
+
+  if (normalized === "pickup" || normalized === "pickedup") {
+    return {
+      badgeText: "PICKED UP",
+      badgeTone: "blue" as const,
+      buttonText: "Track Shipment",
+    };
+  }
+
+  if (normalized === "warehouse") {
+    return {
+      badgeText: "WAREHOUSE",
+      badgeTone: "blue" as const,
+      buttonText: "Track Shipment",
+    };
+  }
+
+  if (normalized === "intransit") {
+    return {
+      badgeText: "IN TRANSIT",
+      badgeTone: "blue" as const,
+      buttonText: "Track Shipment",
+    };
+  }
+
+  if (normalized === "customclearance") {
+    return {
+      badgeText: "CUSTOM CLEARANCE",
+      badgeTone: "blue" as const,
+      buttonText: "Track Shipment",
+    };
+  }
+
+  return {
+    badgeText: "[Shipment Status]",
+    badgeTone: "blue" as const,
+    buttonText: "Track Shipment",
+  };
+};
+
  const getAutoPreviewBadge = () => {
   const lowerKey = editingKey.toLowerCase();
 
@@ -569,11 +661,11 @@ const previewDetailsCardHtml =
   }
 
   if (lowerKey === "invoice_status_update") {
-  return {
-    text: useCustomBadgeText && badgeText.trim() ? badgeText.trim() : "[Invoice Status]",
-    tone: (badgeTone || "blue") as "blue" | "green" | "red",
-  };
-}
+    return {
+      text: "[Invoice Status]",
+      tone: (badgeTone || "blue") as "blue" | "green" | "red",
+    };
+  }
 
   if (lowerKey === "shipment_edited") {
     return {
@@ -610,14 +702,7 @@ const previewDetailsCardHtml =
     };
   }
 
-  if (lowerKey === "shipment_created_sender") {
-    return {
-      text: "SHIPMENT CREATED",
-      tone: (badgeTone || "green") as "blue" | "green" | "red",
-    };
-  }
-
-  if (lowerKey === "shipment_created_receiver") {
+  if (lowerKey === "shipment_created_sender" || lowerKey === "shipment_created_receiver") {
     return {
       text: "SHIPMENT CREATED",
       tone: (badgeTone || "green") as "blue" | "green" | "red",
@@ -625,9 +710,10 @@ const previewDetailsCardHtml =
   }
 
   if (lowerKey.startsWith("timeline:")) {
+    const timelineMeta = getTimelinePreviewMeta(lowerKey);
     return {
-      text: useCustomBadgeText && badgeText.trim() ? badgeText.trim() : "[Shipment Status]",
-      tone: (badgeTone || "blue") as "blue" | "green" | "red",
+      text: timelineMeta.badgeText,
+      tone: (badgeTone || timelineMeta.badgeTone) as "blue" | "green" | "red",
     };
   }
 
@@ -643,6 +729,11 @@ const previewBadgeHtml = renderToneBadgeHtml(
   previewBadge.text,
   previewBadge.tone
 );
+
+const previewButtonMeta = editingKey.startsWith("timeline:")
+  ? getTimelinePreviewMeta(editingKey)
+  : null;
+
   const previewInvoiceLinkHtml =
     showLink && linkText
       ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(
@@ -866,12 +957,23 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
     
 
   const previewEmailHtml = buildPreviewEmailHtml({
-    subject: subject || "Template Preview",
-    title: title || "Template Title",
-    preheader,
-    bodyHtml: previewBodyHtml,
-    button: showButton && buttonText ? { text: buttonText, href: "#" } : undefined,
-  });
+  subject: subject || "Template Preview",
+  title: title || "Template Title",
+  preheader,
+  bodyHtml: previewBodyHtml,
+  button:
+    showButton &&
+    (editingKey.startsWith("timeline:")
+      ? (buttonText || previewButtonMeta?.buttonText)
+      : buttonText)
+      ? {
+          text: editingKey.startsWith("timeline:")
+            ? (buttonText || previewButtonMeta?.buttonText || "Track Shipment")
+            : buttonText,
+          href: "#",
+        }
+      : undefined,
+});
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
