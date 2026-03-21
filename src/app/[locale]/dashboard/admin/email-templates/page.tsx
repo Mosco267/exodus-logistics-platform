@@ -650,6 +650,144 @@ const previewBadgeHtml = renderToneBadgeHtml(
         )}</a></div>`
       : "";
 
+      const getTimelinePreviewContent = (key: string) => {
+  const normalized = key.replace(/^timeline:/, "").toLowerCase();
+
+  if (normalized === "pickup") {
+    return {
+      intro:
+        "We are pleased to inform you that your shipment <strong>[Shipment ID]</strong> has been successfully picked up and entered into our logistics network.",
+      detail:
+        "The shipment is now being processed for movement from <strong>[Origin]</strong> toward <strong>[Destination]</strong>.",
+      extra:
+        "Our team will continue processing the shipment and you will receive another update once it reaches the next checkpoint.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "warehouse") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> has been received at our warehouse facility.",
+      detail:
+        "It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>[Destination]</strong>.",
+      extra:
+        "You will be notified again as soon as the shipment leaves the warehouse and proceeds to transit.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "intransit") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> is now <strong>in transit</strong>.",
+      detail:
+        "It is currently moving through our logistics network from <strong>[Origin]</strong> toward <strong>[Destination]</strong>.",
+      extra:
+        "Our system will continue to provide updates as the shipment progresses through the next checkpoints.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "outfordelivery") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> is now <strong>out for delivery</strong>.",
+      detail:
+        "Our delivery process is in progress and the shipment is on its final route to the delivery address below.",
+      extra:
+        "Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.",
+      destinationLabel: "Delivery Address",
+    };
+  }
+
+  if (normalized === "delivered") {
+    return {
+      intro:
+        "This is to confirm that your shipment <strong>[Shipment ID]</strong> has been successfully <strong>delivered</strong>.",
+      detail:
+        "Delivery has been completed at <strong>[Full Destination]</strong>.",
+      extra:
+        "If you have any concern regarding the delivery or need clarification, please contact our support team with your shipment details.",
+      destinationLabel: "Delivery Address",
+    };
+  }
+
+  if (normalized === "customclearance") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> is currently undergoing <strong>customs clearance</strong>.",
+      detail:
+        "This is a routine compliance stage before the shipment proceeds toward <strong>[Destination]</strong>.",
+      extra:
+        "If any additional verification is required, our team will contact you promptly and provide further guidance.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "unclaimed") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> is currently marked as <strong>unclaimed</strong>.",
+      detail:
+        "The shipment is being held pending the next required action from the recipient or support team.",
+      extra:
+        "Please contact our support team as soon as possible for assistance regarding pickup, redelivery, or further instructions.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "invalidaddress") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> is currently on hold due to an <strong>address issue</strong>.",
+      detail:
+        "We were unable to proceed normally because the destination address requires confirmation or correction.",
+      extra:
+        "Please contact support to verify the correct delivery details so shipment processing can continue without further delay.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "paymentissue") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> has been updated to <strong>Payment Issue</strong>.",
+      detail:
+        "There is currently an issue affecting payment confirmation or processing for this shipment.",
+      extra:
+        "Please review the invoice and complete any required payment so shipment processing can resume normally.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  if (normalized === "cancelled") {
+    return {
+      intro:
+        "Your shipment <strong>[Shipment ID]</strong> has been marked as <strong>cancelled</strong>.",
+      detail:
+        "This shipment is no longer progressing through our logistics network.",
+      extra:
+        "If you believe this update was made in error or require clarification, please contact our support team for assistance.",
+      destinationLabel: "Destination",
+    };
+  }
+
+  return {
+    intro:
+      "Your shipment <strong>[Shipment ID]</strong> has been successfully created in our system.",
+    detail:
+      "It is now being processed and prepared for the next logistics stage toward <strong>[Destination]</strong>.",
+    extra:
+      "You will receive additional notifications as soon as the shipment moves through the next checkpoints.",
+    destinationLabel: "Destination",
+  };
+};
+
+const timelinePreviewContent = editingKey.startsWith("timeline:")
+  ? getTimelinePreviewContent(editingKey)
+  : null;
+
       
 
   const previewBodyHtml = (bodyHtml || "<p>No content yet.</p>")
@@ -672,19 +810,19 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(
   /{{intro}}/g,
   editingKey.startsWith("timeline:")
-    ? "<span style='color:#111827;'>Your shipment <strong>[Shipment ID]</strong> is currently being updated in our logistics network.</span>"
+    ? `<span style='color:#111827;'>${timelinePreviewContent?.intro || ""}</span>`
     : "<span style='color:#0f172a;'>[Intro message]</span>"
 )
 .replace(
   /{{detail}}/g,
   editingKey.startsWith("timeline:")
-    ? "<span style='color:#111827;'>This stage confirms that the shipment is progressing normally and the latest status has been recorded successfully in our system.</span>"
+    ? `<span style='color:#111827;'>${timelinePreviewContent?.detail || ""}</span>`
     : "<span style='color:#0f172a;'>[Detail message]</span>"
 )
 .replace(
   /{{extra}}/g,
   editingKey.startsWith("timeline:")
-    ? "<span style='color:#111827;'>You will continue to receive further notifications as the shipment moves through the next delivery checkpoints.</span>"
+    ? `<span style='color:#111827;'>${timelinePreviewContent?.extra || ""}</span>`
     : "<span style='color:#0f172a;'>[Extra message]</span>"
 )
   .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
@@ -697,12 +835,24 @@ const previewBadgeHtml = renderToneBadgeHtml(
   .replace(/{{fullDestination}}/g, "<span style='color:#0f172a;font-weight:700;'>[Full Destination]</span>")
   .replace(/{{origin}}/g, "<span style='color:#0f172a;font-weight:700;'>[Origin]</span>")
   .replace(
-    /{{destinationBlock}}/g,
-    `<div style="margin:18px 0 0 0;">
-      <p style="margin:0 0 6px 0;font-size:14px;line-height:20px;color:#6b7280;">Destination</p>
-      <p style="margin:0;font-size:15px;line-height:24px;font-weight:700;color:#111827;">[Destination]</p>
-    </div>`
-  )
+  /{{destinationBlock}}/g,
+  `<div style="margin:18px 0 0 0;">
+    <p style="margin:0 0 6px 0;font-size:14px;line-height:20px;color:#6b7280;">
+      ${
+        editingKey.startsWith("timeline:")
+          ? timelinePreviewContent?.destinationLabel || "Destination"
+          : "Destination"
+      }
+    </p>
+    <p style="margin:0;font-size:15px;line-height:24px;font-weight:700;color:#111827;">
+      ${
+        editingKey === "timeline:outfordelivery" || editingKey === "timeline:delivered"
+          ? "[Full Destination]"
+          : "[Destination]"
+      }
+    </p>
+  </div>`
+)
   .replace(
     /{{noteBlock}}/g,
     `<div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">

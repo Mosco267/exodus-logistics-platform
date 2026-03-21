@@ -313,308 +313,106 @@ async function getStatusEmailConfig(statusLabel: string): Promise<StatusEmailCon
       null;
 
     const defaultStatuses: StatusEmailConfig[] = [
-      {
-        key: "created",
-        label: "Created",
-        emailSubject: "Shipment created: {{shipmentId}}",
-        emailTitle: "Shipment created",
-        emailPreheader: "Shipment {{shipmentId}} has been created successfully.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> has been created successfully and is now being processed by our logistics team.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-  <p style="margin:0;"><strong>Destination:</strong><br/>{{destination}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "View Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "pickup",
-        label: "Picked Up",
-        emailSubject: "Shipment picked up: {{shipmentId}}",
-        emailTitle: "Shipment picked up",
-        emailPreheader: "Your shipment has been picked up successfully.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>We are pleased to inform you that your shipment <strong>{{shipmentId}}</strong> has been successfully picked up and entered into our logistics network.</p>
-
-<p>The shipment is now being processed for movement from <strong>{{origin}}</strong> toward <strong>{{destination}}</strong>.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "Track Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "warehouse",
-        label: "Warehouse",
-        emailSubject: "Shipment received at warehouse: {{shipmentId}}",
-        emailTitle: "Shipment received at warehouse",
-        emailPreheader: "Your shipment is now at our warehouse facility.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> has been received at our warehouse facility.</p>
-
-<p>It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>{{destination}}</strong>.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "Track Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "intransit",
-        label: "In Transit",
-        emailSubject: "Shipment in transit: {{shipmentId}}",
-        emailTitle: "Shipment in transit",
-        emailPreheader: "Your shipment is currently in transit.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> is now <strong>in transit</strong>.</p>
-
-<p>It is currently moving toward <strong>{{destination}}</strong> from <strong>{{origin}}</strong>.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-  <p style="margin:0;"><strong>Destination:</strong><br/>{{destination}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "Track Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "outfordelivery",
-        label: "Out for Delivery",
-        emailSubject: "Out for delivery: {{shipmentId}}",
-        emailTitle: "Shipment out for delivery",
-        emailPreheader: "Your shipment is now on its final delivery route.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> is now <strong>out for delivery</strong>.</p>
-
-<p>Our delivery process is in progress and the shipment is on its final route to the delivery address below.</p>
-
-<p><strong>Delivery Address:</strong><br/>{{fullDestination}}</p>
-
-<p>Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "Track Delivery",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "customclearance",
-        label: "Custom Clearance",
-        emailSubject: "Customs clearance update: {{shipmentId}}",
-        emailTitle: "Shipment under customs clearance",
-        emailPreheader: "Your shipment is undergoing customs clearance.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> is currently undergoing <strong>customs clearance</strong>.</p>
-
-<p>This is a routine compliance stage before the shipment proceeds toward <strong>{{destination}}</strong>.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-  <p style="margin:0;"><strong>Destination:</strong><br/>{{destination}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "Track Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "delivered",
-        label: "Delivered",
-        emailSubject: "Shipment delivered: {{shipmentId}}",
-        emailTitle: "Shipment delivered",
-        emailPreheader: "Your shipment has been delivered successfully.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>This is to confirm that your shipment <strong>{{shipmentId}}</strong> has been successfully <strong>delivered</strong>.</p>
-
-<p>Delivery has been completed at <strong>{{fullDestination}}</strong>.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-  <p style="margin:0;"><strong>Destination:</strong><br/>{{destination}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "View Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "unclaimed",
-        label: "Unclaimed",
-        emailSubject: "Shipment marked unclaimed: {{shipmentId}}",
-        emailTitle: "Shipment marked unclaimed",
-        emailPreheader: "Your shipment is currently marked as unclaimed.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> is currently marked as <strong>unclaimed</strong>.</p>
-
-<p>Please contact our support team as soon as possible for assistance regarding the next required action.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-        `.trim(),
-        emailButtonText: "Contact support",
-        emailButtonUrlType: "support",
-      },
-      {
-        key: "invalidaddress",
-        label: "Invalid Address",
-        emailSubject: "Address issue detected: {{shipmentId}}",
-        emailTitle: "Address issue on shipment",
-        emailPreheader: "Please review your shipment delivery address.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> is currently on hold due to an <strong>address issue</strong>.</p>
-
-<p>Please confirm or correct the delivery address so processing can continue without delay.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-        `.trim(),
-        emailButtonText: "Track Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "paymentissue",
-        label: "Payment Issue",
-        emailSubject: "Payment issue: {{shipmentId}}",
-        emailTitle: "Payment issue on shipment",
-        emailPreheader: "There is a payment issue affecting your shipment.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> is currently affected by a <strong>payment issue</strong>.</p>
-
-<p>Please complete or resolve payment so shipment processing can continue to the next stage.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-
-<div style="margin-top:12px;">
-  <a href="{{invoiceUrl}}" style="color:#2563eb;text-decoration:underline;font-weight:600;">View Invoice</a>
-</div>
-        `.trim(),
-        emailButtonText: "Track Shipment",
-        emailButtonUrlType: "track",
-      },
-      {
-        key: "cancelled",
-        label: "Cancelled",
-        emailSubject: "Shipment cancelled: {{shipmentId}}",
-        emailTitle: "Shipment cancelled",
-        emailPreheader: "Your shipment has been cancelled.",
-        emailBodyHtml: `
-<p>Hello {{name}},</p>
-
-<p>Your shipment <strong>{{shipmentId}}</strong> has been marked as <strong>cancelled</strong>.</p>
-
-<p>If you believe this was done in error, please contact our support team for clarification.</p>
-
-<div style="margin:18px 0;">
-  <p style="margin:0 0 12px 0;"><strong>Shipment Number:</strong><br/>{{shipmentId}}</p>
-  <p style="margin:0 0 12px 0;"><strong>Tracking Number:</strong><br/>{{trackingNumber}}</p>
-  <p style="margin:0;"><strong>Invoice Number:</strong><br/>{{invoiceNumber}}</p>
-</div>
-
-{{note}}
-        `.trim(),
-        emailButtonText: "Contact Support",
-        emailButtonUrlType: "support",
-      },
-    ];
+  {
+    key: "created",
+    label: "Created",
+    emailSubject: "Shipment created: {{shipmentId}}",
+    emailTitle: "Shipment created",
+    emailPreheader: "Shipment {{shipmentId}} has been created successfully.",
+    emailButtonText: "View Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "pickup",
+    label: "Picked Up",
+    emailSubject: "Shipment picked up: {{shipmentId}}",
+    emailTitle: "Shipment picked up",
+    emailPreheader: "Your shipment has been picked up successfully.",
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "warehouse",
+    label: "Warehouse",
+    emailSubject: "Shipment received at warehouse: {{shipmentId}}",
+    emailTitle: "Shipment received at warehouse",
+    emailPreheader: "Your shipment is now at our warehouse facility.",
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "intransit",
+    label: "In Transit",
+    emailSubject: "Shipment in transit: {{shipmentId}}",
+    emailTitle: "Shipment in transit",
+    emailPreheader: "Your shipment is currently in transit.",
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "outfordelivery",
+    label: "Out for Delivery",
+    emailSubject: "Out for delivery: {{shipmentId}}",
+    emailTitle: "Shipment out for delivery",
+    emailPreheader: "Your shipment is now on its final delivery route.",
+    emailButtonText: "Track Delivery",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "customclearance",
+    label: "Custom Clearance",
+    emailSubject: "Customs clearance update: {{shipmentId}}",
+    emailTitle: "Shipment under customs clearance",
+    emailPreheader: "Your shipment is undergoing customs clearance.",
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "delivered",
+    label: "Delivered",
+    emailSubject: "Shipment delivered: {{shipmentId}}",
+    emailTitle: "Shipment delivered",
+    emailPreheader: "Your shipment has been delivered successfully.",
+    emailButtonText: "View Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "unclaimed",
+    label: "Unclaimed",
+    emailSubject: "Shipment marked unclaimed: {{shipmentId}}",
+    emailTitle: "Shipment marked unclaimed",
+    emailPreheader: "Your shipment is currently marked as unclaimed.",
+    emailButtonText: "Contact support",
+    emailButtonUrlType: "support",
+  },
+  {
+    key: "invalidaddress",
+    label: "Invalid Address",
+    emailSubject: "Address issue detected: {{shipmentId}}",
+    emailTitle: "Address issue on shipment",
+    emailPreheader: "Please review your shipment delivery address.",
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "paymentissue",
+    label: "Payment Issue",
+    emailSubject: "Payment issue: {{shipmentId}}",
+    emailTitle: "Payment issue on shipment",
+    emailPreheader: "There is a payment issue affecting your shipment.",
+    emailButtonText: "Track Shipment",
+    emailButtonUrlType: "track",
+  },
+  {
+    key: "cancelled",
+    label: "Cancelled",
+    emailSubject: "Shipment cancelled: {{shipmentId}}",
+    emailTitle: "Shipment cancelled",
+    emailPreheader: "Your shipment has been cancelled.",
+    emailButtonText: "Contact Support",
+    emailButtonUrlType: "support",
+  },
+];
 
     const defaultStatus =
       defaultStatuses.find((s) => normalizeTemplateKey(s.key) === normalized) ||
@@ -626,15 +424,29 @@ async function getStatusEmailConfig(statusLabel: string): Promise<StatusEmailCon
     if (!dbStatus) return defaultStatus;
 
     return {
-      ...defaultStatus,
-      ...dbStatus,
-      emailSubject: cleanStr(dbStatus.emailSubject) || defaultStatus.emailSubject,
-      emailTitle: cleanStr(dbStatus.emailTitle) || defaultStatus.emailTitle,
-      emailPreheader: cleanStr(dbStatus.emailPreheader) || defaultStatus.emailPreheader,
-      emailBodyHtml: cleanStr(dbStatus.emailBodyHtml) || defaultStatus.emailBodyHtml,
-      emailButtonText: cleanStr(dbStatus.emailButtonText) || defaultStatus.emailButtonText,
-      emailButtonUrlType: cleanStr(dbStatus.emailButtonUrlType) || defaultStatus.emailButtonUrlType,
-    };
+  ...defaultStatus,
+  ...dbStatus,
+  emailSubject: cleanStr(dbStatus?.emailSubject) || defaultStatus.emailSubject,
+  emailTitle: cleanStr(dbStatus?.emailTitle) || defaultStatus.emailTitle,
+  emailPreheader: cleanStr(dbStatus?.emailPreheader) || defaultStatus.emailPreheader,
+  emailBodyHtml: cleanStr(dbStatus?.emailBodyHtml || ""),
+  emailButtonText: cleanStr(dbStatus?.emailButtonText) || defaultStatus.emailButtonText,
+  emailButtonUrlType:
+    cleanStr(dbStatus?.emailButtonUrlType) || defaultStatus.emailButtonUrlType,
+  badgeText: cleanStr(dbStatus?.badgeText || ""),
+  badgeTone: cleanStr(dbStatus?.badgeTone || "") as "" | "blue" | "green" | "red",
+  showButton:
+    typeof dbStatus?.showButton === "boolean" ? dbStatus.showButton : undefined,
+  showLink:
+    typeof dbStatus?.showLink === "boolean" ? dbStatus.showLink : undefined,
+  linkText: cleanStr(dbStatus?.linkText || ""),
+  linkUrlType: cleanStr(dbStatus?.linkUrlType || ""),
+  showDetailsCard:
+    typeof dbStatus?.showDetailsCard === "boolean"
+      ? dbStatus.showDetailsCard
+      : undefined,
+  detailsCardType: dbStatus?.detailsCardType,
+};
   } catch {
     return null;
   }
