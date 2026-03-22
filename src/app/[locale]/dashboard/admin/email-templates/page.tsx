@@ -718,13 +718,19 @@ const previewDetailsCardHtml =
   if (previewInvoiceStatus === "auto") {
     return {
       text: "SHIPMENT CREATED",
-      tone: (badgeTone || "green") as "blue" | "green" | "red",
+      tone: "green" as "blue" | "green" | "red",
     };
   }
-  return {
-    text: previewInvoiceMeta.badgeText,
-    tone: (badgeTone || previewInvoiceMeta.badgeTone) as "blue" | "green" | "red",
-  };
+  if (previewInvoiceStatus === "paid") {
+    return { text: "SHIPMENT CREATED", tone: "green" as const };
+  }
+  if (previewInvoiceStatus === "overdue") {
+    return { text: "PAYMENT OVERDUE", tone: "red" as const };
+  }
+  if (previewInvoiceStatus === "cancelled") {
+    return { text: "INVOICE CANCELLED", tone: "red" as const };
+  }
+  return { text: "PAYMENT PENDING", tone: "blue" as const };
 }
 
   if (lowerKey.startsWith("timeline:")) {
@@ -939,8 +945,8 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
 )
 .replace(/{{paymentMessage}}/g,
   previewInvoiceStatus === "auto"
-    ? "<span style='color:#0f172a;'>[Payment message will appear here]</span>"
-    : `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`
+    ? `<span style='color:#0f172a;'>[Payment message will appear here]</span><br/><span style='color:#0f172a;'>[Follow-up action message will appear here]</span>`
+    : `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span><br/><br/><span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`
 )
   .replace(
   /{{intro}}/g,
