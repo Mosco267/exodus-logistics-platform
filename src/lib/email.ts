@@ -1983,6 +1983,8 @@ export async function sendInvoiceUpdateEmail(
   to: string,
   opts: {
     name?: string;
+    senderName?: string;
+    receiverName?: string;
     shipmentId: string;
     status?: InvoiceStatus | string;
     paid?: boolean;
@@ -2067,28 +2069,36 @@ export async function sendInvoiceUpdateEmail(
   const defaultPreheader = `Invoice for ${opts.shipmentId} is now ${statusLabel}.`;
 
   const defaultBodyHtml = `
-    ${badgeHtml}
+  ${badgeHtml}
 
-    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-      Hello ${esc(name)},
-    </p>
+  <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+    Hello ${esc(name)},
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      The invoice for shipment <strong>${esc(opts.shipmentId)}</strong> is now marked as <strong>${statusLabel}</strong>.
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+  The invoice for shipment <strong>${esc(opts.shipmentId)}</strong>${
+    opts.senderName ? `, sent by <strong>${esc(opts.senderName)}</strong>,` : ""
+  }${
+    opts.receiverName ? ` addressed to <strong>${esc(opts.receiverName)}</strong>,` : ""
+  } is now marked as <strong>${statusLabel}</strong>.
+</p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${esc(getInvoiceStatusExtraMessage(status))}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${esc(getInvoiceStatusExtraMessage(status))}
+  </p>
 
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      ${esc(getInvoiceStatusActionMessage(status))}
-    </p>
+  <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    ${esc(getInvoiceStatusActionMessage(status))}
+  </p>
 
-    ${detailsCardHtml}
+  ${detailsCardHtml}
 
-    ${invoiceLinkHtml}
-  `;
+  <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+    You can view the invoice directly using the button below.
+  </p>
+
+  ${invoiceLinkHtml}
+`;
 
   const vars = {
     name: esc(name),

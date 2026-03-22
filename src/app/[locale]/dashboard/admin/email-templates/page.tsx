@@ -482,39 +482,31 @@ export default function AdminEmailTemplatesPage() {
         badgeText: "INVOICE PAID",
         badgeTone: "green" as const,
         invoiceStatus: "PAID",
-        invoiceMessage:
-          "Payment has been confirmed in our system and recorded successfully.",
-        followUpMessage:
-          "No further payment action is required at this time. A copy of this invoice should be kept for reference while shipment processing continues normally.",
+        invoiceMessage: "Payment for this invoice has been confirmed successfully in our system.",
+        followUpMessage: "No further payment action is required at this time. A copy of this invoice should be kept for reference while shipment processing continues normally.",
       }
     : previewInvoiceStatus === "overdue"
     ? {
         badgeText: "INVOICE OVERDUE",
         badgeTone: "red" as const,
         invoiceStatus: "OVERDUE",
-        invoiceMessage:
-          "This invoice is now overdue and requires urgent attention.",
-        followUpMessage:
-          "To avoid continued processing delay, hold, or additional administrative follow-up, payment should be completed as soon as possible.",
+        invoiceMessage: "This invoice is now overdue and requires prompt attention.",
+        followUpMessage: "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.",
       }
     : previewInvoiceStatus === "cancelled"
     ? {
         badgeText: "INVOICE CANCELLED",
         badgeTone: "red" as const,
         invoiceStatus: "CANCELLED",
-        invoiceMessage:
-          "This invoice has been cancelled in our system.",
-        followUpMessage:
-          "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If this update was not expected, please contact support for clarification.",
+        invoiceMessage: "This invoice has been cancelled in our system.",
+        followUpMessage: "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If this update was not expected, please contact support for clarification.",
       }
     : {
         badgeText: "INVOICE UNPAID",
         badgeTone: "blue" as const,
         invoiceStatus: "UNPAID",
-        invoiceMessage:
-          "Payment is still pending for this invoice.",
-        followUpMessage:
-          "Please review the invoice details and complete payment promptly so shipment processing can continue without unnecessary interruption.",
+        invoiceMessage: "This invoice is currently unpaid and payment is still required.",
+        followUpMessage: "Please review the invoice details carefully and complete payment as soon as possible so shipment processing can continue without unnecessary interruption.",
       };
 
   const previewChangesTableHtml = `
