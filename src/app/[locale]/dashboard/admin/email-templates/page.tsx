@@ -353,35 +353,42 @@ export default function AdminEmailTemplatesPage() {
   }, []);
 
   const startEdit = (t: EmailTemplateDoc) => {
-    setEditingKey(t.key);
-    setLabel(t.label || "");
-    setCategory(t.category || "");
-    setSubject(t.subject || "");
-    setTitle(t.title || "");
-    setPreheader(t.preheader || "");
-    setBodyHtml(t.bodyHtml || "");
-    setButtonText(t.buttonText || "");
-    setButtonUrlType(t.buttonUrlType || "track");
+  setEditingKey(t.key);
+  setLabel(t.label || "");
+  setCategory(t.category || "");
+  setSubject(t.subject || "");
+  setTitle(t.title || "");
+  setPreheader(t.preheader || "");
+  setBodyHtml(t.bodyHtml || "");
+  setButtonText(t.buttonText || "");
+  setButtonUrlType(t.buttonUrlType || "track");
 
-    setBadgeText(t.badgeText || "");
-    setUseCustomBadgeText(Boolean(String(t.badgeText || "").trim()));
-    setBadgeTone((t.badgeTone as "" | "blue" | "green" | "red") || "");
-    setShowButton(typeof t.showButton === "boolean" ? t.showButton : true);
-    setShowLink(typeof t.showLink === "boolean" ? t.showLink : true);
-    setLinkText(t.linkText || "View Invoice");
-    setLinkUrlType(t.linkUrlType || "invoice");
-    setShowDetailsCard(typeof t.showDetailsCard === "boolean" ? t.showDetailsCard : true);
-    setDetailsCardType(
-      (t.detailsCardType as "shipment" | "account" | "invoice" | "changes" | "none") ||
-        "shipment"
-    );
+  setBadgeText(t.badgeText || "");
 
-    setPreviewInvoiceStatus("auto");
+  // For shipment_created templates, never treat saved badgeText as custom
+  // because the badge is driven by invoice status in preview
+  const isShipmentCreated =
+    t.key === "shipment_created_sender" || t.key === "shipment_created_receiver";
+  setUseCustomBadgeText(
+    isShipmentCreated ? false : Boolean(String(t.badgeText || "").trim())
+  );
 
-    setMsg("");
-    setShowPreview(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  setBadgeTone((t.badgeTone as "" | "blue" | "green" | "red") || "");
+  setShowButton(typeof t.showButton === "boolean" ? t.showButton : true);
+  setShowLink(typeof t.showLink === "boolean" ? t.showLink : true);
+  setLinkText(t.linkText || "View Invoice");
+  setLinkUrlType(t.linkUrlType || "invoice");
+  setShowDetailsCard(typeof t.showDetailsCard === "boolean" ? t.showDetailsCard : true);
+  setDetailsCardType(
+    (t.detailsCardType as "shipment" | "account" | "invoice" | "changes" | "none") ||
+      "shipment"
+  );
+
+  setPreviewInvoiceStatus("auto");
+  setMsg("");
+  setShowPreview(false);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
   const resetForm = () => {
     setEditingKey("");
