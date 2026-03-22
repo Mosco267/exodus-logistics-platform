@@ -2103,20 +2103,27 @@ export async function sendInvoiceUpdateEmail(
 `;
 
   const vars = {
-    name: esc(name),
-    shipmentId: esc(opts.shipmentId),
-    trackingNumber: esc(opts.trackingNumber || "—"),
-    invoiceNumber: esc(invoiceNumber),
-    invoiceStatus: esc(statusLabel),
-    invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
-    actionMessage: esc(getInvoiceStatusActionMessage(status)),
-    badge: badgeHtml,
-    detailsCard: detailsCardHtml,
-    invoiceLink: invoiceLinkHtml,
-    supportUrl: SUPPORT_URL,
-    trackUrl,
-    invoiceUrl: invoiceLink,
-  };
+  name: esc(name),
+  shipmentId: esc(opts.shipmentId),
+  trackingNumber: esc(opts.trackingNumber || "—"),
+  invoiceNumber: esc(invoiceNumber),
+  invoiceStatus: esc(statusLabel),
+  invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
+  actionMessage: esc(getInvoiceStatusActionMessage(status)),
+  badge: badgeHtml,
+  detailsCard: detailsCardHtml,
+  invoiceLink: invoiceLinkHtml,
+  supportUrl: SUPPORT_URL,
+  trackUrl,
+  invoiceUrl: invoiceLink,
+  // ADD THESE:
+  otherPartyLine: opts.recipientRole === "receiver" && opts.otherPartyName
+    ? `, sent by <strong>${esc(opts.otherPartyName)}</strong>,`
+    : opts.recipientRole === "sender" && opts.otherPartyName
+    ? `, sent to <strong>${esc(opts.otherPartyName)}</strong>,`
+    : ",",
+  closingText: `<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">You can view the invoice directly using the button below.</p>`,
+};
 
   const finalSubject = templateOverride?.subject
     ? fillVars(templateOverride.subject, vars)
