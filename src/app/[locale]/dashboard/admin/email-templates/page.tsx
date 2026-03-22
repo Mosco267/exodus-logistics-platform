@@ -306,8 +306,8 @@ export default function AdminEmailTemplatesPage() {
   const [loading, setLoading] = useState(true);
 
   const [previewInvoiceStatus, setPreviewInvoiceStatus] = useState<
-  "paid" | "unpaid" | "overdue" | "cancelled"
->("paid");
+  "auto" | "paid" | "unpaid" | "overdue" | "cancelled"
+>("auto");
 
   const [editingKey, setEditingKey] = useState("");
   const [label, setLabel] = useState("");
@@ -376,6 +376,8 @@ export default function AdminEmailTemplatesPage() {
         "shipment"
     );
 
+    setPreviewInvoiceStatus("auto");
+
     setMsg("");
     setShowPreview(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -401,6 +403,8 @@ export default function AdminEmailTemplatesPage() {
     setLinkUrlType("invoice");
     setShowDetailsCard(true);
     setDetailsCardType("shipment");
+
+    setPreviewInvoiceStatus("auto");
 
     setMsg("");
     setShowPreview(false);
@@ -458,7 +462,23 @@ export default function AdminEmailTemplatesPage() {
   };
 
   const previewInvoiceMeta =
-  previewInvoiceStatus === "paid"
+  previewInvoiceStatus === "auto"
+    ? {
+        badgeText: editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
+          ? "SHIPMENT CREATED"
+          : "INVOICE UNPAID",
+        badgeTone: editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
+          ? "green" as const
+          : "blue" as const,
+        invoiceStatus: editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
+          ? "PAID"
+          : "UNPAID",
+        invoiceMessage:
+          "Payment has been confirmed in our system and recorded successfully.",
+        followUpMessage:
+          "No further payment action is required at this time.",
+      }
+    : previewInvoiceStatus === "paid"
     ? {
         badgeText: "INVOICE PAID",
         badgeTone: "green" as const,
@@ -1175,18 +1195,21 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
                 </select>
               </div>
 
-              {editingKey === "invoice_status_update" && (
+              {(editingKey === "invoice_status_update" ||
+  editingKey === "shipment_created_sender" ||
+  editingKey === "shipment_created_receiver") && (
   <div>
     <label className="text-xs font-semibold text-gray-600">Preview Invoice Status</label>
     <select
       value={previewInvoiceStatus}
       onChange={(e) =>
         setPreviewInvoiceStatus(
-          e.target.value as "paid" | "unpaid" | "overdue" | "cancelled"
+          e.target.value as "auto" | "paid" | "unpaid" | "overdue" | "cancelled"
         )
       }
       className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white"
     >
+      <option value="auto">auto (default)</option>
       <option value="paid">paid</option>
       <option value="unpaid">unpaid</option>
       <option value="overdue">overdue</option>
