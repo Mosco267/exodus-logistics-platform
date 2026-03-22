@@ -662,31 +662,25 @@ const previewDetailsCardHtml =
   };
 };
 
- const getAutoPreviewBadge = () => {
+const getAutoPreviewBadge = () => {
   const lowerKey = editingKey.toLowerCase();
 
-  const isShipmentCreated =
+  // Shipment created templates — driven by previewInvoiceStatus, ignore saved badge
+  if (
     lowerKey === "shipment_created_sender" ||
-    lowerKey === "shipment_created_receiver";
-
-  // For shipment created templates, ALWAYS drive badge from previewInvoiceStatus
-  if (isShipmentCreated) {
-    if (previewInvoiceStatus === "auto") {
-      return { text: "SHIPMENT CREATED", tone: "green" as const };
-    }
-    if (previewInvoiceStatus === "paid") {
-      return { text: "SHIPMENT CREATED", tone: "green" as const };
-    }
-    if (previewInvoiceStatus === "overdue") {
+    lowerKey === "shipment_created_receiver"
+  ) {
+    if (previewInvoiceStatus === "overdue")
       return { text: "PAYMENT OVERDUE", tone: "red" as const };
-    }
-    if (previewInvoiceStatus === "cancelled") {
+    if (previewInvoiceStatus === "cancelled")
       return { text: "INVOICE CANCELLED", tone: "red" as const };
-    }
-    return { text: "PAYMENT PENDING", tone: "blue" as const };
+    if (previewInvoiceStatus === "unpaid")
+      return { text: "PAYMENT PENDING", tone: "blue" as const };
+    // auto or paid
+    return { text: "SHIPMENT CREATED", tone: "green" as const };
   }
 
-  // For all other templates, custom badge overrides first
+  // All other templates — custom badge works normally
   if (useCustomBadgeText && badgeText.trim()) {
     return {
       text: badgeText.trim(),
@@ -695,31 +689,31 @@ const previewDetailsCardHtml =
   }
 
   if (lowerKey === "invoice_status_update") {
-    return {
-      text: previewInvoiceMeta.badgeText,
-      tone: (badgeTone || previewInvoiceMeta.badgeTone) as "blue" | "green" | "red",
-    };
+    if (previewInvoiceStatus === "paid")
+      return { text: "INVOICE PAID", tone: (badgeTone || "green") as "blue" | "green" | "red" };
+    if (previewInvoiceStatus === "overdue")
+      return { text: "INVOICE OVERDUE", tone: (badgeTone || "red") as "blue" | "green" | "red" };
+    if (previewInvoiceStatus === "cancelled")
+      return { text: "INVOICE CANCELLED", tone: (badgeTone || "red") as "blue" | "green" | "red" };
+    if (previewInvoiceStatus === "unpaid")
+      return { text: "INVOICE UNPAID", tone: (badgeTone || "blue") as "blue" | "green" | "red" };
+    return { text: "[Invoice Status]", tone: (badgeTone || "blue") as "blue" | "green" | "red" };
   }
 
-  if (lowerKey === "shipment_edited") {
+  if (lowerKey === "shipment_edited")
     return { text: "SHIPMENT UPDATED", tone: (badgeTone || "blue") as "blue" | "green" | "red" };
-  }
 
-  if (lowerKey === "shipment_deleted") {
+  if (lowerKey === "shipment_deleted")
     return { text: "SHIPMENT REMOVED", tone: (badgeTone || "red") as "blue" | "green" | "red" };
-  }
 
-  if (lowerKey === "user_banned") {
+  if (lowerKey === "user_banned")
     return { text: "ACCOUNT BANNED", tone: (badgeTone || "red") as "blue" | "green" | "red" };
-  }
 
-  if (lowerKey === "user_deleted") {
+  if (lowerKey === "user_deleted")
     return { text: "ACCOUNT DELETED", tone: (badgeTone || "red") as "blue" | "green" | "red" };
-  }
 
-  if (lowerKey === "user_restored") {
+  if (lowerKey === "user_restored")
     return { text: "ACCOUNT RESTORED", tone: (badgeTone || "green") as "blue" | "green" | "red" };
-  }
 
   if (lowerKey.startsWith("timeline:")) {
     const timelineMeta = getTimelinePreviewMeta(lowerKey);
