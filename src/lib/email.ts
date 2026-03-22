@@ -1290,6 +1290,7 @@ export async function sendBanEmail(to: string, opts?: { name?: string }) {
     supportUrl: SUPPORT_URL,
     trackUrl: `${APP_URL}/${DEFAULT_LOCALE}/track`,
     invoiceUrl: `${APP_URL}/${DEFAULT_LOCALE}/invoice`,
+    invoiceLink: "",
   };
 
   const finalSubject = templateOverride?.subject
@@ -1421,6 +1422,7 @@ export async function sendRestoreEmail(to: string, opts?: { name?: string }) {
     supportUrl: SUPPORT_URL,
     trackUrl: `${APP_URL}/${DEFAULT_LOCALE}/track`,
     invoiceUrl: `${APP_URL}/${DEFAULT_LOCALE}/invoice`,
+    invoiceLink: "",
   };
 
   const finalSubject = templateOverride?.subject
@@ -1555,6 +1557,7 @@ export async function sendDeletedByAdminEmail(
     supportUrl: SUPPORT_URL,
     trackUrl: `${APP_URL}/${DEFAULT_LOCALE}/track`,
     invoiceUrl: `${APP_URL}/${DEFAULT_LOCALE}/invoice`,
+    invoiceLink: "",
   };
 
   const finalSubject = templateOverride?.subject
@@ -2589,6 +2592,7 @@ export async function sendShipmentDeletedEmail(
     supportUrl: SUPPORT_URL,
     trackUrl,
     invoiceUrl,
+    invoiceLink: "",
   };
 
   const finalSubject = templateOverride?.subject
