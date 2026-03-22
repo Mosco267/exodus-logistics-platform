@@ -901,6 +901,10 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
       
 
   const previewBodyHtml = (bodyHtml || "<p>No content yet.</p>")
+  .replace(/{{closingText}}/g, "<p style='margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;'>You can view the invoice directly using the button below.</p>")
+  
+  .replace(/{{otherPartyLine}}/g, "<span style='color:#0f172a;'>, sent by/to <strong>[Other Party Name]</strong>,</span>")
+  
   .replace(/{{badge}}/g, previewBadgeHtml)
   .replace(/{{detailsCard}}/g, previewDetailsCardHtml)
   .replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
@@ -1000,10 +1004,7 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
          </p>
        </div>`
     : "<span style='color:#0f172a;'>[Additional Note]</span>"
-)
-  .replace(/{{closingText}}/g, "<p style='margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;'>You can view the invoice directly using the button below.</p>")
-  
-  .replace(/{{otherPartyLine}}/g, "<span style='color:#0f172a;'>, sent by/to <strong>[Other Party Name]</strong>,</span>");
+);
   
     
 
