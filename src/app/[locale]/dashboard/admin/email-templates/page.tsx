@@ -464,19 +464,11 @@ export default function AdminEmailTemplatesPage() {
   const previewInvoiceMeta =
   previewInvoiceStatus === "auto"
     ? {
-        badgeText: editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
-          ? "SHIPMENT CREATED"
-          : "INVOICE UNPAID",
-        badgeTone: editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
-          ? "green" as const
-          : "blue" as const,
-        invoiceStatus: editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
-          ? "PAID"
-          : "UNPAID",
-        invoiceMessage:
-          "Payment has been confirmed in our system and recorded successfully.",
-        followUpMessage:
-          "No further payment action is required at this time.",
+        badgeText: "AUTO BADGE",
+        badgeTone: "blue" as const,
+        invoiceStatus: "[Invoice Status]",
+        invoiceMessage: "[Invoice status message will appear here]",
+        followUpMessage: "[Follow-up action message will appear here]",
       }
     : previewInvoiceStatus === "paid"
     ? {
@@ -723,11 +715,17 @@ const previewDetailsCardHtml =
   }
 
   if (lowerKey === "shipment_created_sender" || lowerKey === "shipment_created_receiver") {
+  if (previewInvoiceStatus === "auto") {
     return {
       text: "SHIPMENT CREATED",
       tone: (badgeTone || "green") as "blue" | "green" | "red",
     };
   }
+  return {
+    text: previewInvoiceMeta.badgeText,
+    tone: (badgeTone || previewInvoiceMeta.badgeTone) as "blue" | "green" | "red",
+  };
+}
 
   if (lowerKey.startsWith("timeline:")) {
     const timelineMeta = getTimelinePreviewMeta(lowerKey);
@@ -919,11 +917,31 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
   .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
   .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
   .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
-  .replace(/{{invoiceStatus}}/g, `<span style='color:#0f172a;font-weight:700;'>${previewInvoiceMeta.invoiceStatus}</span>`)
-.replace(/{{invoiceMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`)
-.replace(/{{followUpMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`)
-.replace(/{{actionMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`)
-.replace(/{{paymentMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`)
+  .replace(/{{invoiceStatus}}/g,
+  previewInvoiceStatus === "auto"
+    ? "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>"
+    : `<span style='color:#0f172a;font-weight:700;'>${previewInvoiceMeta.invoiceStatus}</span>`
+)
+.replace(/{{invoiceMessage}}/g,
+  previewInvoiceStatus === "auto"
+    ? "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>"
+    : `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`
+)
+.replace(/{{followUpMessage}}/g,
+  previewInvoiceStatus === "auto"
+    ? "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>"
+    : `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`
+)
+.replace(/{{actionMessage}}/g,
+  previewInvoiceStatus === "auto"
+    ? "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>"
+    : `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`
+)
+.replace(/{{paymentMessage}}/g,
+  previewInvoiceStatus === "auto"
+    ? "<span style='color:#0f172a;'>[Payment message will appear here]</span>"
+    : `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`
+)
   .replace(
   /{{intro}}/g,
   editingKey.startsWith("timeline:")
