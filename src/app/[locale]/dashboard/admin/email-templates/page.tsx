@@ -673,19 +673,27 @@ const getAutoPreviewBadge = () => {
   const lowerKey = editingKey.toLowerCase();
 
   // Shipment created templates — driven by previewInvoiceStatus, ignore saved badge
-  if (
-    lowerKey === "shipment_created_sender" ||
-    lowerKey === "shipment_created_receiver"
-  ) {
-    if (previewInvoiceStatus === "overdue")
-      return { text: "PAYMENT OVERDUE", tone: "red" as const };
-    if (previewInvoiceStatus === "cancelled")
-      return { text: "INVOICE CANCELLED", tone: "red" as const };
-    if (previewInvoiceStatus === "unpaid")
-      return { text: "PAYMENT PENDING", tone: "blue" as const };
-    // auto or paid
-    return { text: "SHIPMENT CREATED", tone: "green" as const };
+ if (
+  lowerKey === "shipment_created_sender" ||
+  lowerKey === "shipment_created_receiver"
+) {
+  // Custom badge always wins if explicitly set
+  if (useCustomBadgeText && badgeText.trim()) {
+    return {
+      text: badgeText.trim(),
+      tone: (badgeTone || "blue") as "blue" | "green" | "red",
+    };
   }
+  // Otherwise drive from invoice status
+  if (previewInvoiceStatus === "overdue")
+    return { text: "PAYMENT OVERDUE", tone: "red" as const };
+  if (previewInvoiceStatus === "cancelled")
+    return { text: "INVOICE CANCELLED", tone: "red" as const };
+  if (previewInvoiceStatus === "unpaid")
+    return { text: "PAYMENT PENDING", tone: "blue" as const };
+  // auto or paid
+  return { text: "SHIPMENT CREATED", tone: "green" as const };
+}
 
   // All other templates — custom badge works normally
   if (useCustomBadgeText && badgeText.trim()) {
