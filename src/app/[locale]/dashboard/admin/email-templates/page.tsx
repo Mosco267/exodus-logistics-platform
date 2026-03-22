@@ -661,11 +661,11 @@ const previewDetailsCardHtml =
   }
 
   if (lowerKey === "invoice_status_update") {
-    return {
-      text: "[Invoice Status]",
-      tone: (badgeTone || "blue") as "blue" | "green" | "red",
-    };
-  }
+  return {
+    text: previewInvoiceMeta.badgeText,
+    tone: (badgeTone || previewInvoiceMeta.badgeTone) as "blue" | "green" | "red",
+  };
+}
 
   if (lowerKey === "shipment_edited") {
     return {
@@ -899,11 +899,11 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
   .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
   .replace(/{{invoiceNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Number]</span>")
   .replace(/{{estimatedDeliveryDate}}/g, "<span style='color:#0f172a;font-weight:700;'>[Estimated Delivery Date]</span>")
-  .replace(/{{invoiceStatus}}/g, "<span style='color:#0f172a;font-weight:700;'>[Invoice Status]</span>")
-  .replace(/{{invoiceMessage}}/g, "<span style='color:#0f172a;'>[Invoice status message will appear here]</span>")
-  .replace(/{{followUpMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
-  .replace(/{{actionMessage}}/g, "<span style='color:#0f172a;'>[Follow-up action message will appear here]</span>")
-  .replace(/{{paymentMessage}}/g, "<span style='color:#0f172a;'>[Payment message will appear here]</span>")
+  .replace(/{{invoiceStatus}}/g, `<span style='color:#0f172a;font-weight:700;'>${previewInvoiceMeta.invoiceStatus}</span>`)
+.replace(/{{invoiceMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`)
+.replace(/{{followUpMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`)
+.replace(/{{actionMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`)
+.replace(/{{paymentMessage}}/g, `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span>`)
   .replace(
   /{{intro}}/g,
   editingKey.startsWith("timeline:")
