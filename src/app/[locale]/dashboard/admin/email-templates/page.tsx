@@ -665,12 +665,16 @@ const previewDetailsCardHtml =
  const getAutoPreviewBadge = () => {
   const lowerKey = editingKey.toLowerCase();
 
-  if (useCustomBadgeText && badgeText.trim()) {
-    return {
-      text: badgeText.trim(),
-      tone: (badgeTone || "blue") as "blue" | "green" | "red",
-    };
-  }
+  const isShipmentCreated =
+  lowerKey === "shipment_created_sender" ||
+  lowerKey === "shipment_created_receiver";
+
+if (useCustomBadgeText && badgeText.trim() && !isShipmentCreated) {
+  return {
+    text: badgeText.trim(),
+    tone: (badgeTone || "blue") as "blue" | "green" | "red",
+  };
+}
 
   if (lowerKey === "invoice_status_update") {
   return {
