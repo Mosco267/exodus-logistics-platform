@@ -5,7 +5,6 @@ import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING, type PricingProfiles 
 import {
   sendShipmentStatusEmail,
   sendInvoiceUpdateEmail,
-  sendInvoiceStatusReceiverEmail,
   sendShipmentDeletedEmail,
   sendShipmentEditedEmail
 } from "@/lib/email";
@@ -981,31 +980,24 @@ const origin = joinNice([
     ).trim();
 
     if (senderEmail) {
-      await sendInvoiceUpdateEmail(senderEmail, {
-        name: senderName,
-        shipmentId,
-        status: nextStatus,
-        trackingNumber,
-        invoiceNumber: nextInvoice.invoiceNumber || undefined,
-      }).catch(() => null);
-    }
+  await sendInvoiceUpdateEmail(senderEmail, {
+    name: senderName,
+    shipmentId,
+    status: nextStatus,
+    trackingNumber,
+    invoiceNumber: nextInvoice.invoiceNumber || undefined,
+  }).catch(() => null);
+}
 
-    if (receiverEmail) {
-      const base =
-        (process.env.APP_URL ||
-          process.env.NEXT_PUBLIC_APP_URL ||
-          "https://www.goexoduslogistics.com").replace(/\/$/, "");
-
-      await sendInvoiceStatusReceiverEmail(receiverEmail, {
-        name: receiverName,
-        senderName: senderName || "Sender",
-        shipmentId,
-        trackingNumber,
-        status: nextStatus,
-        invoiceNumber: nextInvoice.invoiceNumber || undefined,
-        viewInvoiceUrl: `${base}/en/invoice/full?q=${encodeURIComponent(trackingNumber)}`,
-      }).catch(() => null);
-    }
+if (receiverEmail) {
+  await sendInvoiceUpdateEmail(receiverEmail, {
+    name: receiverName,
+    shipmentId,
+    status: nextStatus,
+    trackingNumber,
+    invoiceNumber: nextInvoice.invoiceNumber || undefined,
+  }).catch(() => null);
+}
   }
 }
 
@@ -1040,21 +1032,7 @@ const origin = joinNice([
       if ((uDoc as any)?.name) userName = String((uDoc as any).name || "Customer");
     }
 
-  if (body?.invoice !== undefined && userEmail) {
-  const prevInvoice = ((existing as any)?.invoice || {}) as any;
-  const nextInvoice = (($set.invoice || (existing as any)?.invoice || {}) as any);
-
-  if (String(prevInvoice.status || "unpaid").toLowerCase() !== String(nextInvoice.status || "unpaid").toLowerCase()) {
-    await sendInvoiceUpdateEmail(userEmail, {
-      name: userName,
-      shipmentId,
-      status: String(nextInvoice.status || "unpaid").toLowerCase(),
-      invoiceNumber: nextInvoice.invoiceNumber || undefined,
-      trackingNumber:
-        String((updated as any)?.trackingNumber || (existing as any)?.trackingNumber || "").trim() || undefined,
-    }).catch(() => null);
-  }
-}
+  
 
     
 
