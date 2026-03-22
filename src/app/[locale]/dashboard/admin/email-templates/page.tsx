@@ -483,7 +483,7 @@ export default function AdminEmailTemplatesPage() {
         badgeTone: "green" as const,
         invoiceStatus: "PAID",
         invoiceMessage: "Payment for this invoice has been confirmed successfully in our system.",
-        followUpMessage: "No further payment action is required at this time. A copy of this invoice should be kept for reference while shipment processing continues normally.",
+followUpMessage: "No further payment action is required at this time. Shipment processing may continue normally, and you may keep this invoice for your billing records and future reference.",
       }
     : previewInvoiceStatus === "overdue"
     ? {
@@ -491,7 +491,7 @@ export default function AdminEmailTemplatesPage() {
         badgeTone: "red" as const,
         invoiceStatus: "OVERDUE",
         invoiceMessage: "This invoice is now overdue and requires prompt attention.",
-        followUpMessage: "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.",
+followUpMessage: "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.",
       }
     : previewInvoiceStatus === "cancelled"
     ? {

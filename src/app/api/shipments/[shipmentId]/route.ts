@@ -982,7 +982,8 @@ const origin = joinNice([
     if (senderEmail) {
   await sendInvoiceUpdateEmail(senderEmail, {
     name: senderName,
-    receiverName: receiverName,
+    otherPartyName: receiverName,
+    recipientRole: "sender",
     shipmentId,
     status: nextStatus,
     trackingNumber,
@@ -993,7 +994,8 @@ const origin = joinNice([
 if (receiverEmail) {
   await sendInvoiceUpdateEmail(receiverEmail, {
     name: receiverName,
-    senderName: senderName,
+    otherPartyName: senderName,
+    recipientRole: "receiver",
     shipmentId,
     status: nextStatus,
     trackingNumber,

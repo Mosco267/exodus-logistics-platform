@@ -1982,16 +1982,16 @@ const defaultBodyHtml = `
 export async function sendInvoiceUpdateEmail(
   to: string,
   opts: {
-    name?: string;
-    senderName?: string;
-    receiverName?: string;
-    shipmentId: string;
-    status?: InvoiceStatus | string;
-    paid?: boolean;
-    trackingNumber?: string;
-    invoiceNumber?: string;
-    locale?: string;
-  }
+  name?: string;
+  otherPartyName?: string;
+  recipientRole?: "sender" | "receiver";
+  shipmentId: string;
+  status?: InvoiceStatus | string;
+  paid?: boolean;
+  trackingNumber?: string;
+  invoiceNumber?: string;
+  locale?: string;
+}
 ) {
   if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
@@ -2077,10 +2077,12 @@ export async function sendInvoiceUpdateEmail(
 
   <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
   The invoice for shipment <strong>${esc(opts.shipmentId)}</strong>${
-    opts.senderName ? `, sent by <strong>${esc(opts.senderName)}</strong>,` : ""
-  }${
-    opts.receiverName ? ` addressed to <strong>${esc(opts.receiverName)}</strong>,` : ""
-  } is now marked as <strong>${statusLabel}</strong>.
+    opts.recipientRole === "receiver" && opts.otherPartyName
+      ? `, sent by <strong>${esc(opts.otherPartyName)}</strong>,`
+      : opts.recipientRole === "sender" && opts.otherPartyName
+      ? `, sent to <strong>${esc(opts.otherPartyName)}</strong>,`
+      : ","
+  } is currently marked as <strong>${statusLabel}</strong>.
 </p>
 
   <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
