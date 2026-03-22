@@ -159,7 +159,7 @@ Hello {{name}},
 </p>
 
 <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <strong>{{invoiceStatus}}</strong>.
+The invoice for shipment <strong>{{shipmentId}}</strong>{{otherPartyLine}} is currently marked as <strong>{{invoiceStatus}}</strong>.
 </p>
 
 <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
@@ -171,6 +171,8 @@ The invoice for shipment <strong>{{shipmentId}}</strong> is now marked as <stron
 </p>
 
 {{detailsCard}}
+
+{{closingText}}
 
 {{invoiceLink}}
 `.trim(),
