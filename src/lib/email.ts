@@ -1785,11 +1785,13 @@ export async function sendShipmentStatusEmail(
   detail = `It is now being processed and prepared for the next logistics stage toward <strong>${esc(destination)}</strong>.`;
   extra = `You will receive additional notifications as soon as the shipment moves through the next checkpoints.`;
 } else {
-  title = "Shipment update";
-  subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
-  intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>${esc(status)}</strong>.`;
-  detail = `You may review the latest shipment progress and invoice information using the links below.`;
-  extra = `We will continue to keep you informed as new updates become available.`;
+  title = statusOverride?.emailTitle || "Shipment update";
+  subject = statusOverride?.emailSubject
+    ? fillVars(statusOverride.emailSubject, { shipmentId: opts.shipmentId })
+    : `Exodus Logistics: Shipment update (${opts.shipmentId})`;
+  intro = placeholderContent.default_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>${esc(status)}</strong>.`;
+  detail = placeholderContent.default_detail || `You may review the latest shipment progress and invoice information using the links below.`;
+  extra = placeholderContent.default_extra || `We will continue to keep you informed as new updates become available.`;
 }
 
   const destinationLabel =
