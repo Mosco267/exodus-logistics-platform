@@ -161,26 +161,41 @@ function formatChangedFields(
   changes: Array<{ label: string; oldValue?: any; newValue?: any }>
 ) {
   const rows = changes
-    .filter((c) => cleanStr(c.newValue))
-    .map((c) => {
-      const oldVal = cleanStr(c.oldValue) || "null";
-      const newVal = cleanStr(c.newValue) || "null";
+  .filter((c) => cleanStr(c.newValue))
+  .map((c) => {
+    const oldVal = cleanStr(c.oldValue) || "null";
+    const newVal = cleanStr(c.newValue) || "null";
 
-      return `
-  <tr>
-    <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;font-weight:700;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;vertical-align:top;width:30%;line-height:18px;">
-      ${esc(c.label)}
-    </td>
-    <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;line-height:18px;width:35%;">
-      ${esc(oldVal)}
-    </td>
-    <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;line-height:18px;width:35%;">
-      ${esc(newVal)}
-    </td>
-  </tr>
-`;
-    })
-    .join("");
+    const labelLower = c.label.toLowerCase();
+    const isNumeric =
+      labelLower.includes("phone") ||
+      labelLower.includes("postal") ||
+      labelLower.includes("code") ||
+      labelLower.includes("number");
+
+    const valueStyle = isNumeric
+      ? `padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;vertical-align:top;word-break:break-all;line-height:18px;width:35%;`
+      : `padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;line-height:18px;width:35%;`;
+
+    const updatedStyle = isNumeric
+      ? `padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;vertical-align:top;word-break:break-all;line-height:18px;width:35%;`
+      : `padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;line-height:18px;width:35%;`;
+
+    return `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;font-weight:700;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;vertical-align:top;width:30%;line-height:18px;">
+          ${esc(c.label)}
+        </td>
+        <td style="${valueStyle}">
+          ${esc(oldVal)}
+        </td>
+        <td style="${updatedStyle}">
+          ${esc(newVal)}
+        </td>
+      </tr>
+    `;
+  })
+  .join("");
 
   if (!rows) return "";
 
