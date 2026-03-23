@@ -528,14 +528,14 @@ export default function AdminStatusesPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button onClick={submit} disabled={!canSubmit || saving} className="px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 text-sm">
+          <button onClick={submit} disabled={!canSubmit || saving} className="px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 text-sm cursor-pointer">
             {saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Create Timeline Stage"}
           </button>
-          <button onClick={() => setShowPreview((v) => !v)} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 text-sm">
+          <button onClick={() => setShowPreview((v) => !v)} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 text-sm cursor-pointer">
             {showPreview ? "Hide Preview" : "Preview"}
           </button>
           {mode === "edit" && (
-            <button onClick={resetForm} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">Cancel</button>
+            <button onClick={resetForm} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm cursor-pointer">Cancel</button>
           )}
           {msg && <span className="text-sm font-semibold text-gray-700">{msg}</span>}
         </div>
@@ -574,8 +574,8 @@ export default function AdminStatusesPage() {
                 <p className="mt-1 text-xs text-gray-500">color: {s.color} · icon: {s.icon || "package"}</p>
                 {s.emailSubject && <p className="mt-1 text-xs text-gray-500 line-clamp-1">subject: {s.emailSubject}</p>}
                 <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => startEdit(s)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">Edit</button>
-                  <button onClick={() => setDeleteTarget(s)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition">Delete</button>
+                  <button onClick={() => startEdit(s)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition cursor-pointer">Edit</button>
+                  <button onClick={() => setDeleteTarget(s)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
                 </div>
               </div>
             ))}
@@ -596,7 +596,7 @@ export default function AdminStatusesPage() {
               This will also remove <code className="bg-gray-100 px-1 py-0.5 rounded">timeline:{deleteTarget.key}</code> from Email Templates. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">No, Keep It</button>
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition text-sm cursor-pointer">No, Keep It</button>
               <button onClick={confirmDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 transition text-sm">{deleting ? "Deleting..." : "Yes, Delete"}</button>
             </div>
           </div>
