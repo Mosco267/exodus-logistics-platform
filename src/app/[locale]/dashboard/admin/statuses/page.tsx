@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+
+
 
 type StatusDoc = {
   key: string;
@@ -193,7 +195,7 @@ export default function AdminStatusesPage() {
     setShowDetailsCard(typeof s.showDetailsCard === "boolean" ? s.showDetailsCard : true);
     setDetailsCardType((s.detailsCardType as "shipment" | "account" | "invoice" | "changes" | "none") || "shipment");
     setMsg(""); setShowPreview(false);
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
   const canSubmit = useMemo(() => {
@@ -248,6 +250,8 @@ export default function AdminStatusesPage() {
     } catch { setMsg("Network error. Please try again."); }
     finally { setDeleting(false); setDeleteTarget(null); }
   };
+
+  
 
   // Preview logic
   const previewKey = mode === "edit" ? `timeline:${editingKey}` : `timeline:${normalizeKey(keyInput || label)}`;
@@ -339,11 +343,15 @@ export default function AdminStatusesPage() {
     button: showButton && emailButtonText ? { text: emailButtonText, href: "#" } : undefined,
   });
 
+  const formRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
 
+      
       {/* Form */}
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md">
+      
+      <div ref={formRef} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">Shipment Timeline Manager</h1>

@@ -3,6 +3,24 @@ import { renderEmailTemplate } from "@/lib/emailTemplate";
 import clientPromise from "@/lib/mongodb";
 
 
+async function getUserAccessStatus(email: string): Promise<string> {
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+    const userDoc = await db.collection("users").findOne(
+      { email: email.toLowerCase().trim() },
+      { projection: { _id: 0, status: 1, banned: 1 } }
+    ) as any;
+    if (!userDoc) return "—";
+    if (userDoc.banned) return "Removed";
+    if (userDoc.status === "active") return "Active";
+    return String(userDoc.status || "—");
+  } catch {
+    return "—";
+  }
+}
+
+
 async function getPlaceholderContent(): Promise<Record<string, string>> {
   try {
     const client = await clientPromise;
@@ -1851,11 +1869,12 @@ export async function sendShipmentStatusEmail(
         { label: "Status", value: status },
       ]);
     } else if (detailsCardType === "account") {
-      detailsCardHtml = renderSimpleInfoCard([
-        { label: "Account Email", value: shortenEmail(to) },
-        { label: "Access Status", value: status },
-      ]);
-    } else {
+  const accessStatus = await getUserAccessStatus(to);
+  detailsCardHtml = renderSimpleInfoCard([
+    { label: "Account Email", value: shortenEmail(to) },
+    { label: "Access Status", value: accessStatus },
+  ]);
+} else {
       detailsCardHtml = renderShipmentDetailsCard({
         shipmentId: opts.shipmentId,
         trackingNumber: opts.trackingNumber,
