@@ -117,6 +117,12 @@ export default function AdminShell({ children }: Props) {
       icon: <Mail className="w-5 h-5" />,
     },
     {
+  href: `/${locale}/dashboard/admin/placeholder-content`,
+  label: "Placeholder Content",
+  icon: <Tags className="w-5 h-5" />,
+},
+
+    {
       href: `/${locale}/dashboard/admin/pricing`,
       label: "Pricing",
       icon: <Percent className="w-5 h-5" />,
