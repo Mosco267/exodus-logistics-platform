@@ -77,11 +77,12 @@ function normalizeBool(v: any, fallback = true) {
 
 function resolveUrlByType(
   type: string,
-  urls: { trackUrl: string; invoiceUrl: string; supportUrl: string }
+  urls: { trackUrl: string; invoiceUrl: string; supportUrl: string; signinUrl?: string }
 ) {
   const t = cleanStr(type).toLowerCase();
   if (t === "invoice") return urls.invoiceUrl;
   if (t === "support") return urls.supportUrl;
+  if (t === "signin") return urls.signinUrl || `${APP_URL}/${DEFAULT_LOCALE}/sign-in`;
   if (t === "none") return "";
   return urls.trackUrl;
 }

@@ -241,7 +241,7 @@ export default function AdminEmailTemplatesPage() {
     setPreviewInvoiceStatus("auto");
     setMsg("");
     setShowPreview(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
   };
 
   const resetForm = () => {
@@ -538,7 +538,11 @@ export default function AdminEmailTemplatesPage() {
               <div>
                 <label className="text-xs font-semibold text-gray-600">Button URL Type</label>
                 <select value={buttonUrlType} onChange={(e) => setButtonUrlType(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
-                  <option value="track">track</option><option value="invoice">invoice</option><option value="support">support</option><option value="none">none</option>
+                  <option value="track">track</option>
+<option value="invoice">invoice</option>
+<option value="support">support</option>
+<option value="signin">sign-in</option>
+<option value="none">none</option>
                 </select>
               </div>
             </div>
@@ -581,7 +585,11 @@ export default function AdminEmailTemplatesPage() {
               <div>
                 <label className="text-xs font-semibold text-gray-600">Link URL Type</label>
                 <select value={linkUrlType} onChange={(e) => setLinkUrlType(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
-                  <option value="track">track</option><option value="invoice">invoice</option><option value="support">support</option><option value="none">none</option>
+                  <option value="track">track</option>
+<option value="invoice">invoice</option>
+<option value="support">support</option>
+<option value="signin">sign-in</option>
+<option value="none">none</option>
                 </select>
               </div>
               {(editingKey === "invoice_status_update" || editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver") && (
@@ -679,7 +687,9 @@ export default function AdminEmailTemplatesPage() {
                 <p className="mt-1 text-xs text-gray-500">badge: {t.badgeText || "—"} / {t.badgeTone || "auto"}</p>
                 <p className="mt-3 text-sm text-gray-700 line-clamp-2">{t.subject}</p>
                 <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => startEdit(t)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">Edit</button>
+  <button onClick={() => startEdit(t)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">Edit</button>
+  <button onClick={() => deleteTemplate(t.key)} disabled={deletingKey === t.key} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition disabled:opacity-50">{deletingKey === t.key ? "..." : "Delete"}</button>
+
                   <span className="text-xs text-gray-400 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100">Auto</span>
                 </div>
               </div>

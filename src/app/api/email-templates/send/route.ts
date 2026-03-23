@@ -94,7 +94,8 @@ export async function POST(req: Request) {
     const bodyHtml = fillVars(template.bodyHtml || "", vars);
 
     const buttonType = String(template.buttonUrlType || "track").toLowerCase();
-    const buttonHref = buttonType === "invoice" ? invoiceUrl : buttonType === "support" ? supportUrl : buttonType === "none" ? "" : trackUrl;
+    const signinUrl = `${APP_URL}/en/sign-in`;
+const buttonHref = buttonType === "invoice" ? invoiceUrl : buttonType === "support" ? supportUrl : buttonType === "signin" ? signinUrl : buttonType === "none" ? "" : trackUrl;
     const buttonText = fillVars(template.buttonText || "View Shipment", vars);
 
     const html = renderEmailTemplate({
