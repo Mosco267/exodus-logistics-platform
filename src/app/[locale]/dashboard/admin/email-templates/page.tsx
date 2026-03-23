@@ -309,6 +309,8 @@ export default function AdminEmailTemplatesPage() {
   "auto" | "paid" | "unpaid" | "overdue" | "cancelled"
 >("auto");
 
+const [placeholderContent, setPlaceholderContent] = useState<Record<string, string>>({});
+
   const [editingKey, setEditingKey] = useState("");
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("");
@@ -349,8 +351,19 @@ export default function AdminEmailTemplatesPage() {
   };
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+  fetchTemplates();
+  fetchPlaceholderContent();
+}, []);
+
+const fetchPlaceholderContent = async () => {
+  try {
+    const res = await fetch("/api/placeholder-content", { cache: "no-store" });
+    const data = await res.json();
+    setPlaceholderContent(data?.content || {});
+  } catch {
+    setPlaceholderContent({});
+  }
+};
 
   const startEdit = (t: EmailTemplateDoc) => {
   setEditingKey(t.key);
@@ -482,31 +495,31 @@ export default function AdminEmailTemplatesPage() {
         badgeText: "INVOICE PAID",
         badgeTone: "green" as const,
         invoiceStatus: "PAID",
-        invoiceMessage: "Payment for this invoice has been confirmed successfully in our system.",
-followUpMessage: "No further payment action is required at this time. Shipment processing may continue normally, and you may keep this invoice for your billing records and future reference.",
+        invoiceMessage: placeholderContent.invoiceMessage_paid || "Payment for this invoice has been confirmed successfully in our system.",
+        followUpMessage: placeholderContent.actionMessage_paid || "No further payment action is required at this time. Shipment processing may continue normally, and you may keep this invoice for your billing records and future reference.",
       }
     : previewInvoiceStatus === "overdue"
     ? {
         badgeText: "INVOICE OVERDUE",
         badgeTone: "red" as const,
         invoiceStatus: "OVERDUE",
-        invoiceMessage: "This invoice is now overdue and requires prompt attention.",
-followUpMessage: "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.",
+        invoiceMessage: placeholderContent.invoiceMessage_overdue || "This invoice is now overdue and requires prompt attention.",
+        followUpMessage: placeholderContent.actionMessage_overdue || "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.",
       }
     : previewInvoiceStatus === "cancelled"
     ? {
         badgeText: "INVOICE CANCELLED",
         badgeTone: "red" as const,
         invoiceStatus: "CANCELLED",
-        invoiceMessage: "This invoice has been cancelled in our system.",
-        followUpMessage: "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If this update was not expected, please contact support for clarification.",
+        invoiceMessage: placeholderContent.invoiceMessage_cancelled || "This invoice has been cancelled in our system.",
+        followUpMessage: placeholderContent.actionMessage_cancelled || "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If this update was not expected, please contact support for clarification.",
       }
     : {
         badgeText: "INVOICE UNPAID",
         badgeTone: "blue" as const,
         invoiceStatus: "UNPAID",
-        invoiceMessage: "This invoice is currently unpaid and payment is still required.",
-        followUpMessage: "Please review the invoice details carefully and complete payment as soon as possible so shipment processing can continue without unnecessary interruption.",
+        invoiceMessage: placeholderContent.invoiceMessage_unpaid || "This invoice is currently unpaid and payment is still required.",
+        followUpMessage: placeholderContent.actionMessage_unpaid || "Please review the invoice details carefully and complete payment as soon as possible so shipment processing can continue without unnecessary interruption.",
       };
 
   const previewChangesTableHtml = `
@@ -754,142 +767,112 @@ const previewButtonMeta = editingKey.startsWith("timeline:")
         )}</a></div>`
       : "";
 
-      const getTimelinePreviewContent = (key: string) => {
+      const getTimelinePreviewContent = (key: string, placeholderContent: Record<string, string> = {}) => {
   const normalized = key.replace(/^timeline:/, "").toLowerCase();
 
   if (normalized === "pickup") {
     return {
-      intro:
-        "We are pleased to inform you that your shipment <strong>[Shipment ID]</strong> has been successfully picked up and entered into our logistics network.",
+      intro: 
+        placeholderContent.timeline_pickup_intro || "We are pleased to inform you that your shipment <strong>[Shipment ID]</strong> has been successfully picked up and entered into our logistics network.",
       detail:
-        "The shipment is now being processed for movement from <strong>[Origin]</strong> toward <strong>[Destination]</strong>.",
+        placeholderContent.timeline_pickup_detail || "The shipment is now being processed for movement from <strong>[Origin]</strong> toward <strong>[Destination]</strong>.",
       extra:
-        "Our team will continue processing the shipment and you will receive another update once it reaches the next checkpoint.",
+        placeholderContent.timeline_pickup_extra || "Our team will continue processing the shipment and you will receive another update once it reaches the next checkpoint.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "warehouse") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> has been received at our warehouse facility.",
-      detail:
-        "It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>[Destination]</strong>.",
-      extra:
-        "You will be notified again as soon as the shipment leaves the warehouse and proceeds to transit.",
+      intro: placeholderContent.timeline_warehouse_intro || "Your shipment <strong>[Shipment ID]</strong> has been received at our warehouse facility.",
+      detail: placeholderContent.timeline_warehouse_detail || "It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>[Destination]</strong>.",
+      extra: placeholderContent.timeline_warehouse_extra || "You will be notified again as soon as the shipment leaves the warehouse and proceeds to transit.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "intransit") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> is now <strong>in transit</strong>.",
-      detail:
-        "It is currently moving through our logistics network from <strong>[Origin]</strong> toward <strong>[Destination]</strong>.",
-      extra:
-        "Our system will continue to provide updates as the shipment progresses through the next checkpoints.",
+      intro: placeholderContent.timeline_intransit_intro || "Your shipment <strong>[Shipment ID]</strong> is now <strong>in transit</strong>.",
+      detail: placeholderContent.timeline_intransit_detail || "It is currently moving through our logistics network from <strong>[Origin]</strong> toward <strong>[Destination]</strong>.",
+      extra: placeholderContent.timeline_intransit_extra || "Our system will continue to provide updates as the shipment progresses through the next checkpoints.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "outfordelivery") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> is now <strong>out for delivery</strong>.",
-      detail:
-        "Our delivery process is in progress and the shipment is on its final route to the delivery address below.",
-      extra:
-        "Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.",
+      intro: placeholderContent.timeline_outfordelivery_intro || "Your shipment <strong>[Shipment ID]</strong> is now <strong>out for delivery</strong>.",
+      detail: placeholderContent.timeline_outfordelivery_detail || "Our delivery process is in progress and the shipment is on its final route to the delivery address below.",
+      extra: placeholderContent.timeline_outfordelivery_extra || "Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.",
       destinationLabel: "Delivery Address",
     };
   }
 
   if (normalized === "delivered") {
     return {
-      intro:
-        "This is to confirm that your shipment <strong>[Shipment ID]</strong> has been successfully <strong>delivered</strong>.",
-      detail:
-        "Delivery has been completed at <strong>[Full Destination]</strong>.",
-      extra:
-        "If you have any concern regarding the delivery or need clarification, please contact our support team with your shipment details.",
+      intro: placeholderContent.timeline_delivered_intro || "This is to confirm that your shipment <strong>[Shipment ID]</strong> has been successfully <strong>delivered</strong>.",
+      detail: placeholderContent.timeline_delivered_detail || "Delivery has been completed at <strong>[Full Destination]</strong>.",
+      extra: placeholderContent.timeline_delivered_extra || "If you have any concern regarding the delivery or need clarification, please contact our support team with your shipment details.",
       destinationLabel: "Delivery Address",
     };
   }
 
   if (normalized === "customclearance") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> is currently undergoing <strong>customs clearance</strong>.",
-      detail:
-        "This is a routine compliance stage before the shipment proceeds toward <strong>[Destination]</strong>.",
-      extra:
-        "If any additional verification is required, our team will contact you promptly and provide further guidance.",
+      intro: placeholderContent.timeline_customclearance_intro || "Your shipment <strong>[Shipment ID]</strong> is currently undergoing <strong>customs clearance</strong>.",
+      detail: placeholderContent.timeline_customclearance_detail || "This is a routine compliance stage before the shipment proceeds toward <strong>[Destination]</strong>.",
+      extra: placeholderContent.timeline_customclearance_extra || "If any additional verification is required, our team will contact you promptly and provide further guidance.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "unclaimed") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> is currently marked as <strong>unclaimed</strong>.",
-      detail:
-        "The shipment is being held pending the next required action from the recipient or support team.",
-      extra:
-        "Please contact our support team as soon as possible for assistance regarding pickup, redelivery, or further instructions.",
+      intro: placeholderContent.timeline_unclaimed_intro || "Your shipment <strong>[Shipment ID]</strong> is currently marked as <strong>unclaimed</strong>.",
+      detail: placeholderContent.timeline_unclaimed_detail || "The shipment is being held pending the next required action from the recipient or support team.",
+      extra: placeholderContent.timeline_unclaimed_extra || "Please contact our support team as soon as possible for assistance regarding pickup, redelivery, or further instructions.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "invalidaddress") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> is currently on hold due to an <strong>address issue</strong>.",
-      detail:
-        "We were unable to proceed normally because the destination address requires confirmation or correction.",
-      extra:
-        "Please contact support to verify the correct delivery details so shipment processing can continue without further delay.",
+      intro: placeholderContent.timeline_invalidaddress_intro || "Your shipment <strong>[Shipment ID]</strong> is currently on hold due to an <strong>address issue</strong>.",
+      detail: placeholderContent.timeline_invalidaddress_detail || "We were unable to proceed normally because the destination address requires confirmation or correction.",
+      extra: placeholderContent.timeline_invalidaddress_extra || "Please contact support to verify the correct delivery details so shipment processing can continue without further delay.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "paymentissue") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> has been updated to <strong>Payment Issue</strong>.",
-      detail:
-        "There is currently an issue affecting payment confirmation or processing for this shipment.",
-      extra:
-        "Please review the invoice and complete any required payment so shipment processing can resume normally.",
+      intro: placeholderContent.timeline_paymentissue_intro || "Your shipment <strong>[Shipment ID]</strong> has been updated to <strong>Payment Issue</strong>.",
+      detail: placeholderContent.timeline_paymentissue_detail || "There is currently an issue affecting payment confirmation or processing for this shipment.",
+      extra: placeholderContent.timeline_paymentissue_extra || "Please review the invoice and complete any required payment so shipment processing can resume normally.",
       destinationLabel: "Destination",
     };
   }
 
   if (normalized === "cancelled") {
     return {
-      intro:
-        "Your shipment <strong>[Shipment ID]</strong> has been marked as <strong>cancelled</strong>.",
-      detail:
-        "This shipment is no longer progressing through our logistics network.",
-      extra:
-        "If you believe this update was made in error or require clarification, please contact our support team for assistance.",
+      intro: placeholderContent.timeline_cancelled_intro || "Your shipment <strong>[Shipment ID]</strong> has been marked as <strong>cancelled</strong>.",
+      detail: placeholderContent.timeline_cancelled_detail || "This shipment is no longer progressing through our logistics network.",
+      extra: placeholderContent.timeline_cancelled_extra || "If you believe this update was made in error or require clarification, please contact our support team for assistance.",
       destinationLabel: "Destination",
     };
   }
 
   return {
-    intro:
-      "Your shipment <strong>[Shipment ID]</strong> has been successfully created in our system.",
-    detail:
-      "It is now being processed and prepared for the next logistics stage toward <strong>[Destination]</strong>.",
-    extra:
-      "You will receive additional notifications as soon as the shipment moves through the next checkpoints.",
+    intro: "Your shipment <strong>[Shipment ID]</strong> has been successfully created in our system.",
+    detail: "It is now being processed and prepared for the next logistics stage toward <strong>[Destination]</strong>.",
+    extra: "You will receive additional notifications as soon as the shipment moves through the next checkpoints.",
     destinationLabel: "Destination",
   };
 };
 
 const timelinePreviewContent = editingKey.startsWith("timeline:")
-  ? getTimelinePreviewContent(editingKey)
+  ? getTimelinePreviewContent(editingKey, placeholderContent)
   : null;
 
   const isTimelineSupportOnly =
@@ -939,6 +922,18 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
 .replace(/{{paymentMessage}}/g,
   previewInvoiceStatus === "auto"
     ? `<span style='color:#0f172a;'>[Payment message will appear here]</span><br/><span style='color:#0f172a;'>[Follow-up action message will appear here]</span>`
+    : editingKey === "shipment_created_sender" || editingKey === "shipment_created_receiver"
+    ? (() => {
+        const pm =
+          previewInvoiceStatus === "paid"
+            ? (placeholderContent.paymentMessage_paid || previewInvoiceMeta.invoiceMessage)
+            : previewInvoiceStatus === "overdue"
+            ? (placeholderContent.paymentMessage_overdue || previewInvoiceMeta.invoiceMessage)
+            : previewInvoiceStatus === "cancelled"
+            ? (placeholderContent.paymentMessage_cancelled || previewInvoiceMeta.invoiceMessage)
+            : (placeholderContent.paymentMessage_unpaid || previewInvoiceMeta.invoiceMessage);
+        return `<span style='color:#0f172a;'>${pm}</span>`;
+      })()
     : `<span style='color:#0f172a;'>${previewInvoiceMeta.invoiceMessage}</span><br/><br/><span style='color:#0f172a;'>${previewInvoiceMeta.followUpMessage}</span>`
 )
   .replace(
