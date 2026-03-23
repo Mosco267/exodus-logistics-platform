@@ -168,13 +168,13 @@ function formatChangedFields(
 
       return `
         <tr>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;font-weight:700;word-break:normal;overflow-wrap:anywhere;vertical-align:top;width:26%;">
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;font-weight:700;word-break:break-word;overflow-wrap:anywhere;vertical-align:top;width:26%;line-height:20px;">
             ${esc(c.label)}
           </td>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:top;word-break:break-word;line-height:22px;width:37%;">
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;line-height:20px;width:37%;">
             ${esc(oldVal)}
           </td>
-          <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;word-break:break-word;line-height:22px;width:37%;">
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;line-height:20px;width:37%;">
             ${esc(newVal)}
           </td>
         </tr>
@@ -186,12 +186,12 @@ function formatChangedFields(
 
   return `
     <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;width:100%;">
         <thead>
           <tr style="background:#f9fafb;">
-            <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th>
-            <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th>
-            <th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th>
+            <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:26%;font-weight:700;">Field</th>
+            <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:37%;font-weight:700;">Previous</th>
+            <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:37%;font-weight:700;">Updated</th>
           </tr>
         </thead>
         <tbody>

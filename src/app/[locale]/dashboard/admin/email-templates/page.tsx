@@ -945,6 +945,8 @@ const timelinePreviewContent = editingKey.startsWith("timeline:")
   /{{intro}}/g,
   editingKey.startsWith("timeline:")
     ? `<span style='color:#111827;'>${timelinePreviewContent?.intro || ""}</span>`
+    : editingKey === "shipment_edited"
+    ? "<span style='color:#111827;'>Please be informed that certain shipment details have been updated in our system. Kindly review the latest shipment and invoice information using the tracking or invoice page for the most current details.</span>"
     : "<span style='color:#0f172a;'>[Intro message]</span>"
 )
 .replace(
