@@ -17,6 +17,20 @@ type PlaceholderGroup = {
 
 const GROUPS: PlaceholderGroup[] = [
   {
+    id: "defaults",
+    label: "Default Placeholder Values",
+    color: "gray",
+    items: [
+      { key: "default_closingText", label: "{{closingText}} default", description: "Used when {{closingText}} appears in any custom/new template you create. Does not affect timeline, invoice or other specific templates." },
+      { key: "default_invoiceMessage", label: "{{invoiceMessage}} default", description: "Used when {{invoiceMessage}} appears in a custom template outside of a specific invoice status context." },
+      { key: "default_actionMessage", label: "{{actionMessage}} default", description: "Used when {{actionMessage}} appears in a custom template outside of a specific invoice status context." },
+      { key: "default_paymentMessage", label: "{{paymentMessage}} default", description: "Used when {{paymentMessage}} appears in a custom template outside of shipment created emails." },
+      { key: "default_intro", label: "{{intro}} default", description: "Used when {{intro}} appears in a custom template that is not a specific timeline stage." },
+      { key: "default_detail", label: "{{detail}} default", description: "Used when {{detail}} appears in a custom template that is not a specific timeline stage." },
+      { key: "default_extra", label: "{{extra}} default", description: "Used when {{extra}} appears in a custom template that is not a specific timeline stage." },
+    ],
+  },
+  {
     id: "invoiceMessage",
     label: "Invoice Message",
     color: "blue",
@@ -163,6 +177,7 @@ const GROUPS: PlaceholderGroup[] = [
 ];
 
 const colorMap: Record<string, { border: string; header: string; dot: string }> = {
+  gray: { border: "border-gray-200", header: "bg-gray-100", dot: "bg-gray-500" },
   blue: { border: "border-blue-100", header: "bg-blue-50", dot: "bg-blue-500" },
   purple: { border: "border-purple-100", header: "bg-purple-50", dot: "bg-purple-500" },
   green: { border: "border-green-100", header: "bg-green-50", dot: "bg-green-500" },
@@ -179,6 +194,15 @@ const statusBadge: Record<string, string> = {
 };
 
 const DEFAULT_CONTENT: Record<string, string> = {
+  // Defaults
+  default_closingText: "You can use the button below to take the next action on this shipment.",
+  default_invoiceMessage: "There has been an update to the invoice for this shipment.",
+  default_actionMessage: "Please review the invoice details and take any necessary action.",
+  default_paymentMessage: "Please complete any required payment so shipment processing can continue.",
+  default_intro: "There has been an update to your shipment.",
+  default_detail: "Please review the latest shipment information using the links below.",
+  default_extra: "You will continue to receive updates as your shipment progresses.",
+  // Invoice messages
   invoiceMessage_paid: "Payment for this invoice has been confirmed successfully in our system.",
   invoiceMessage_unpaid: "This invoice is currently unpaid and payment is still required.",
   invoiceMessage_overdue: "This invoice is now overdue and requires prompt attention.",
@@ -296,7 +320,7 @@ export default function PlaceholderContentPage() {
   const [edited, setEdited] = useState<ContentMap>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set([GROUPS[0].id]));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["defaults"]));
   const [globalMsg, setGlobalMsg] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [templateCopied, setTemplateCopied] = useState(false);
@@ -528,6 +552,9 @@ Hello {{name}},
                       <p className="font-extrabold text-gray-900 text-sm">{group.label}</p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {group.items.length} placeholder{group.items.length !== 1 ? "s" : ""}
+                        {group.id === "defaults" && (
+                          <span className="ml-2 text-gray-400">— fallback values for custom templates</span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -543,6 +570,14 @@ Hello {{name}},
 
                 {isExpanded && (
                   <div className="divide-y divide-gray-100">
+                    {group.id === "defaults" && (
+                      <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
+                        <p className="text-xs text-gray-500">
+                          These are fallback values used when a placeholder appears in a custom template you create yourself.
+                          Editing these will NOT affect timeline emails, invoice emails, or any template that already has its own specific placeholder content above.
+                        </p>
+                      </div>
+                    )}
                     {group.items.map((item) => {
                       const changed = hasChanges(item.key);
                       return (

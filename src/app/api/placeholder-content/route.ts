@@ -4,6 +4,14 @@ import clientPromise from "@/lib/mongodb";
 const COLLECTION = "placeholder_content";
 
 export const DEFAULT_PLACEHOLDER_CONTENT: Record<string, string> = {
+  default_closingText: "You can use the button below to take the next action on this shipment.",
+default_invoiceMessage: "There has been an update to the invoice for this shipment.",
+default_actionMessage: "Please review the invoice details and take any necessary action.",
+default_paymentMessage: "Please complete any required payment so shipment processing can continue.",
+default_intro: "There has been an update to your shipment.",
+default_detail: "Please review the latest shipment information using the links below.",
+default_extra: "You will continue to receive updates as your shipment progresses.",
+
   invoiceMessage_paid: "Payment for this invoice has been confirmed successfully in our system.",
   invoiceMessage_unpaid: "This invoice is currently unpaid and payment is still required.",
   invoiceMessage_overdue: "This invoice is now overdue and requires prompt attention.",
