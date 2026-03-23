@@ -615,7 +615,7 @@ function renderShipmentDetailsCard(args: {
       >
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;"
           >
             Shipment Number:
           </td>
@@ -629,7 +629,7 @@ function renderShipmentDetailsCard(args: {
 
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;"
           >
             Tracking Number:
           </td>
@@ -643,7 +643,7 @@ function renderShipmentDetailsCard(args: {
 
         <tr>
           <td
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;"
           >
             Invoice Number:
           </td>
@@ -666,13 +666,13 @@ function renderSimpleInfoCard(rows: Array<{ label: string; value: string }>) {
     .map(
       (row) => `
         <tr>
-          <td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">
+          <td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;">
             ${esc(row.label)}:
           </td>
           <td
             align="right"
             title="${esc(row.value)}"
-            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;"
+            style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:60%;"
           >
             ${esc(shortenEmail(row.value))}
           </td>
