@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
 
 type EmailTemplateDoc = {
   key: string;
@@ -180,6 +181,8 @@ export default function AdminEmailTemplatesPage() {
   // Delete
   const [deletingKey, setDeletingKey] = useState("");
 
+  const editFormRef = React.useRef<HTMLDivElement>(null);
+
   // Send flow
   const [sendingTemplate, setSendingTemplate] = useState<EmailTemplateDoc | null>(null);
   const [sendStep, setSendStep] = useState<"shipments" | "recipients" | "sending" | "done">("shipments");
@@ -241,7 +244,7 @@ export default function AdminEmailTemplatesPage() {
     setPreviewInvoiceStatus("auto");
     setMsg("");
     setShowPreview(false);
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+    setTimeout(() => editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
   const resetForm = () => {
@@ -286,8 +289,11 @@ export default function AdminEmailTemplatesPage() {
       const data = await res.json();
       if (!res.ok) { setCreateError(data?.error || "Failed to create template."); return; }
       await fetchTemplates();
-      startEdit({ key: safeKey, label: newLabel.trim(), category: newCategory.trim() || "custom", subject: `${newLabel.trim()} - {{shipmentId}}`, title: newLabel.trim(), preheader: "", bodyHtml: defaultBody, buttonText: "View Shipment", buttonUrlType: "track", badgeText: "", badgeTone: "", showButton: true, showLink: false, linkText: "", linkUrlType: "track", showDetailsCard: true, detailsCardType: "shipment" });
-      setShowCreateModal(false); setNewLabel(""); setNewKey(""); setNewCategory("");
+setShowCreateModal(false);
+setNewLabel(""); setNewKey(""); setNewCategory("");
+setTimeout(() => {
+  startEdit({ key: safeKey, label: newLabel.trim(), category: newCategory.trim() || "custom", subject: `${newLabel.trim()} - {{shipmentId}}`, title: newLabel.trim(), preheader: "", bodyHtml: defaultBody, buttonText: "View Shipment", buttonUrlType: "track", badgeText: "", badgeTone: "", showButton: true, showLink: false, linkText: "", linkUrlType: "track", showDetailsCard: true, detailsCardType: "shipment" });
+}, 100);
     } catch { setCreateError("Network error. Please try again."); }
     finally { setCreating(false); }
   };
@@ -511,7 +517,7 @@ export default function AdminEmailTemplatesPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Edit form */}
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md">
+      <div ref={editFormRef} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">Email Templates</h1>

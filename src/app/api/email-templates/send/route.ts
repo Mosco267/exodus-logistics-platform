@@ -55,6 +55,32 @@ export async function POST(req: Request) {
     const invoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(trackingNumber || shipmentId)}`;
     const supportUrl = `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`;
 
+    // Build badge HTML
+const badgeTextVal = String(template.badgeText || "").trim();
+const badgeToneVal = String(template.badgeTone || "blue").toLowerCase();
+const badgeColor = badgeToneVal === "green"
+  ? { bg: "#dcfce7", text: "#166534" }
+  : badgeToneVal === "red"
+  ? { bg: "#fee2e2", text: "#b91c1c" }
+  : { bg: "#dbeafe", text: "#1d4ed8" };
+const badgeHtml = badgeTextVal
+  ? `<div style="margin:0 0 14px 0;"><span style="display:inline-block;background:${badgeColor.bg};color:${badgeColor.text};font-size:12px;font-weight:800;letter-spacing:.3px;padding:6px 12px;border-radius:999px;text-transform:uppercase;">${badgeTextVal}</span></div>`
+  : "";
+
+// Build invoice link HTML
+const linkType = String(template.linkUrlType || "invoice").toLowerCase();
+const linkHref = linkType === "track" ? trackUrl : linkType === "support" ? supportUrl : linkType === "signin" ? `${APP_URL}/en/sign-in` : linkType === "none" ? "" : invoiceUrl;
+const linkTextVal = String(template.linkText || "").trim();
+const invoiceLinkHtml = template.showLink !== false && linkHref && linkTextVal
+  ? `<div style="margin-top:12px"><a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">${linkTextVal}</a></div>`
+  : "";
+
+// Build details card HTML
+const detailsCardType = String(template.detailsCardType || "shipment").toLowerCase();
+const detailsCardHtml = template.showDetailsCard !== false && detailsCardType !== "none"
+  ? `<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"><tr><td style="padding:14px 20px;border-radius:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;table-layout:fixed;"><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Shipment Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(shipmentId)}</td></tr><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Tracking Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(trackingNumber || "—")}</td></tr></table></td></tr></table>`
+  : "";
+
     const vars: Record<string, string> = {
       name: esc(name),
       shipmentId: esc(shipmentId),
@@ -70,9 +96,9 @@ export async function POST(req: Request) {
       invoiceMessage: pc.default_invoiceMessage || "There has been an update to the invoice for this shipment.",
       actionMessage: pc.default_actionMessage || "Please review the invoice details and take any necessary action.",
       paymentMessage: pc.default_paymentMessage || "Please complete any required payment so shipment processing can continue.",
-      badge: "",
-      detailsCard: "",
-      invoiceLink: "",
+      badge: badgeHtml,
+      detailsCard: detailsCardHtml,
+      invoiceLink: invoiceLinkHtml,
       changesTable: "",
       destinationBlock: "",
       noteBlock: "",
