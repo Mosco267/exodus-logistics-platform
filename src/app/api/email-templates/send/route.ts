@@ -18,11 +18,11 @@ function renderDetailsCard(args: {
   trackingNumber: string;
   invoiceNumber: string;
 }) {
-  return `<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"><tr><td style="padding:14px 20px;border-radius:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;table-layout:fixed;"><tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;">Shipment Number:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;word-break:break-all;width:60%;">${esc(args.shipmentId)}</td></tr><tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;">Tracking Number:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;word-break:break-all;width:60%;">${esc(args.trackingNumber || "—")}</td></tr><tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;">Invoice Number:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;word-break:break-all;width:60%;">${esc(args.invoiceNumber)}</td></tr></table></td></tr></table>`;
+  return `<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"><tr><td style="padding:14px 20px;border-radius:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;table-layout:fixed;"><tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">Shipment Number:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;">${esc(args.shipmentId)}</td></tr><tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">Tracking Number:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;">${esc(args.trackingNumber || "—")}</td></tr><tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">Invoice Number:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;">${esc(args.invoiceNumber)}</td></tr></table></td></tr></table>`;
 }
 
 function renderInfoCard(rows: Array<{ label: string; value: string }>) {
-  const body = rows.map((row) => `<tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:40%;">${esc(row.label)}:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;word-break:break-all;width:60%;">${esc(row.value)}</td></tr>`).join("");
+  const body = rows.map((row) => `<tr><td style="padding:8px 0;font-size:12px;line-height:18px;color:#6b7280;font-weight:600;white-space:nowrap;width:45%;">${esc(row.label)}:</td><td align="right" style="padding:8px 0;font-size:12px;line-height:18px;color:#1d4ed8;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:55%;">${esc(row.value)}</td></tr>`).join("");
   return `<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"><tr><td style="padding:14px 20px;border-radius:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;table-layout:fixed;">${body}</table></td></tr></table>`;
 }
 
@@ -61,11 +61,11 @@ export async function POST(req: Request) {
     }
 
     // Fetch actual shipment to get invoice number
-const shipmentDoc = await db.collection("shipments").findOne(
-  { $or: [{ shipmentId: shipmentId }, { trackingNumber: trackingNumber }] },
-  { projection: { _id: 0, invoice: 1 } }
-) as any;
-const invoiceNumber = String(shipmentDoc?.invoice?.invoiceNumber || "").trim() || "—";
+    const shipmentDoc = await db.collection("shipments").findOne(
+      { $or: [{ shipmentId: shipmentId }, { trackingNumber: trackingNumber }] },
+      { projection: { _id: 0, invoice: 1 } }
+    ) as any;
+    const invoiceNumber = String(shipmentDoc?.invoice?.invoiceNumber || "").trim() || "—";
 
     // Fetch placeholder content
     const pcDoc = await db.collection("placeholder_content").findOne({ _id: "main" as any });
@@ -74,49 +74,54 @@ const invoiceNumber = String(shipmentDoc?.invoice?.invoiceNumber || "").trim() |
     const trackUrl = `${APP_URL}/en/track/${encodeURIComponent(trackingNumber || shipmentId)}`;
     const invoiceUrl = `${APP_URL}/en/invoice/full?q=${encodeURIComponent(trackingNumber || shipmentId)}`;
     const supportUrl = `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`;
+    const signinUrl = `${APP_URL}/en/sign-in`;
 
     // Build badge HTML
-const badgeTextVal = String(template.badgeText || "").trim();
-const badgeToneVal = String(template.badgeTone || "blue").toLowerCase();
-const badgeColor = badgeToneVal === "green"
-  ? { bg: "#dcfce7", text: "#166534" }
-  : badgeToneVal === "red"
-  ? { bg: "#fee2e2", text: "#b91c1c" }
-  : { bg: "#dbeafe", text: "#1d4ed8" };
-const badgeHtml = badgeTextVal
-  ? `<div style="margin:0 0 14px 0;"><span style="display:inline-block;background:${badgeColor.bg};color:${badgeColor.text};font-size:12px;font-weight:800;letter-spacing:.3px;padding:6px 12px;border-radius:999px;text-transform:uppercase;">${badgeTextVal}</span></div>`
-  : "";
+    const badgeTextVal = String(template.badgeText || "").trim();
+    const badgeToneVal = String(template.badgeTone || "blue").toLowerCase();
+    const badgeColor = badgeToneVal === "green"
+      ? { bg: "#dcfce7", text: "#166534" }
+      : badgeToneVal === "red"
+      ? { bg: "#fee2e2", text: "#b91c1c" }
+      : { bg: "#dbeafe", text: "#1d4ed8" };
+    const badgeHtml = badgeTextVal
+      ? `<div style="margin:0 0 14px 0;"><span style="display:inline-block;background:${badgeColor.bg};color:${badgeColor.text};font-size:12px;font-weight:800;letter-spacing:.3px;padding:6px 12px;border-radius:999px;text-transform:uppercase;">${badgeTextVal}</span></div>`
+      : "";
 
-// Build invoice link HTML
-const linkType = String(template.linkUrlType || "invoice").toLowerCase();
-const linkHref = linkType === "track" ? trackUrl : linkType === "support" ? supportUrl : linkType === "signin" ? `${APP_URL}/en/sign-in` : linkType === "none" ? "" : invoiceUrl;
-const linkTextVal = String(template.linkText || "").trim();
-const invoiceLinkHtml = template.showLink !== false && linkHref && linkTextVal
-  ? `<div style="margin-top:12px"><a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">${linkTextVal}</a></div>`
-  : "";
+    // Build invoice link HTML
+    const linkType = String(template.linkUrlType || "invoice").toLowerCase();
+    const linkHref = linkType === "track" ? trackUrl
+      : linkType === "support" ? supportUrl
+      : linkType === "signin" ? signinUrl
+      : linkType === "none" ? ""
+      : invoiceUrl;
+    const linkTextVal = String(template.linkText || "").trim();
+    const invoiceLinkHtml = template.showLink !== false && linkHref && linkTextVal
+      ? `<div style="margin-top:12px"><a href="${linkHref}" style="color:#2563eb;text-decoration:underline;font-weight:700;">${linkTextVal}</a></div>`
+      : "";
 
-// Build details card HTML
-const detailsCardType = String(template.detailsCardType || "shipment").toLowerCase();
-let detailsCardHtml = "";
-if (template.showDetailsCard !== false && detailsCardType !== "none") {
-  if (detailsCardType === "invoice") {
-    detailsCardHtml = renderInfoCard([
-      { label: "Shipment Number", value: shipmentId },
-      { label: "Invoice Number", value: invoiceNumber },
-      { label: "Status", value: String(shipmentDoc?.invoice?.status || "—").toUpperCase() },
-    ]);
-  } else if (detailsCardType === "account") {
-    detailsCardHtml = renderInfoCard([
-      { label: "Account Email", value: to },
-    ]);
-  } else {
-    detailsCardHtml = renderDetailsCard({
-      shipmentId,
-      trackingNumber: trackingNumber || "—",
-      invoiceNumber,
-    });
-  }
-}
+    // Build details card HTML
+    const detailsCardType = String(template.detailsCardType || "shipment").toLowerCase();
+    let detailsCardHtml = "";
+    if (template.showDetailsCard !== false && detailsCardType !== "none") {
+      if (detailsCardType === "invoice") {
+        detailsCardHtml = renderInfoCard([
+          { label: "Shipment Number", value: shipmentId },
+          { label: "Invoice Number", value: invoiceNumber },
+          { label: "Status", value: String(shipmentDoc?.invoice?.status || "—").toUpperCase() },
+        ]);
+      } else if (detailsCardType === "account") {
+        detailsCardHtml = renderInfoCard([
+          { label: "Account Email", value: to },
+        ]);
+      } else {
+        detailsCardHtml = renderDetailsCard({
+          shipmentId,
+          trackingNumber: trackingNumber || "—",
+          invoiceNumber,
+        });
+      }
+    }
 
     const vars: Record<string, string> = {
       name: esc(name),
@@ -127,6 +132,7 @@ if (template.showDetailsCard !== false && detailsCardType !== "none") {
       trackUrl,
       invoiceUrl,
       supportUrl,
+      signinUrl,
       closingText: pc.default_closingText || "You can use the button below to take the next action on this shipment.",
       intro: pc.default_intro || "There has been an update to your shipment.",
       detail: pc.default_detail || "Please review the latest shipment information using the links below.",
@@ -152,14 +158,17 @@ if (template.showDetailsCard !== false && detailsCardType !== "none") {
       origin: "",
     };
 
-    const subject = fillVars(template.subject || `Message from Exodus Logistics`, vars);
+    const subject = fillVars(template.subject || "Message from Exodus Logistics", vars);
     const title = fillVars(template.title || "Message", vars);
     const preheader = fillVars(template.preheader || "", vars);
     const bodyHtml = fillVars(template.bodyHtml || "", vars);
 
     const buttonType = String(template.buttonUrlType || "track").toLowerCase();
-    const signinUrl = `${APP_URL}/en/sign-in`;
-const buttonHref = buttonType === "invoice" ? invoiceUrl : buttonType === "support" ? supportUrl : buttonType === "signin" ? signinUrl : buttonType === "none" ? "" : trackUrl;
+    const buttonHref = buttonType === "invoice" ? invoiceUrl
+      : buttonType === "support" ? supportUrl
+      : buttonType === "signin" ? signinUrl
+      : buttonType === "none" ? ""
+      : trackUrl;
     const buttonText = fillVars(template.buttonText || "View Shipment", vars);
 
     const html = renderEmailTemplate({
