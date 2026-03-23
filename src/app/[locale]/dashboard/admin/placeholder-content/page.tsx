@@ -227,6 +227,70 @@ const DEFAULT_CONTENT: Record<string, string> = {
   timeline_paymentissue_extra: "Please review the invoice and complete any required payment so shipment processing can resume normally.",
 };
 
+const TIMELINE_TEMPLATE = `{{badge}}
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{intro}}
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{detail}}
+</p>
+
+<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+{{extra}}
+</p>
+
+{{detailsCard}}
+
+{{destinationBlock}}
+
+{{noteBlock}}
+
+<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+{{closingText}}
+</p>
+
+{{invoiceLink}}`;
+
+const ALL_PLACEHOLDERS = [
+  { key: "{{name}}", desc: "Recipient name (Customer Name)" },
+  { key: "{{receiverName}}", desc: "Receiver full name" },
+  { key: "{{senderName}}", desc: "Sender full name" },
+  { key: "{{email}}", desc: "Recipient full email address" },
+  { key: "{{shortEmail}}", desc: "Shortened email address" },
+  { key: "{{shipmentId}}", desc: "Shipment ID e.g. EXS-260322-441985" },
+  { key: "{{trackingNumber}}", desc: "Tracking number e.g. EX26US0451759B" },
+  { key: "{{invoiceNumber}}", desc: "Invoice number e.g. EXS-INV-2026-03-209" },
+  { key: "{{estimatedDeliveryDate}}", desc: "Delivery date range e.g. Mar 20 - Mar 23, 2026" },
+  { key: "{{status}}", desc: "Shipment status label e.g. In Transit" },
+  { key: "{{destination}}", desc: "City/State/Country of destination" },
+  { key: "{{fullDestination}}", desc: "Full address of destination" },
+  { key: "{{origin}}", desc: "City/State/Country of origin" },
+  { key: "{{invoiceStatus}}", desc: "Invoice status word e.g. PAID, OVERDUE" },
+  { key: "{{invoiceMessage}}", desc: "Short invoice status description (editable above)" },
+  { key: "{{actionMessage}}", desc: "Follow-up action paragraph (editable above)" },
+  { key: "{{paymentMessage}}", desc: "Payment status paragraph for shipment created emails (editable above)" },
+  { key: "{{invoiceLink}}", desc: "View Invoice link shown below the body" },
+  { key: "{{intro}}", desc: "Opening paragraph for timeline emails (editable above)" },
+  { key: "{{detail}}", desc: "Middle detail paragraph for timeline emails (editable above)" },
+  { key: "{{extra}}", desc: "Closing note paragraph for timeline emails (editable above)" },
+  { key: "{{destinationBlock}}", desc: "Formatted destination label and address block" },
+  { key: "{{noteBlock}}", desc: "Additional note block if a note was added to the timeline event" },
+  { key: "{{badge}}", desc: "Colored status badge at the top of the email" },
+  { key: "{{detailsCard}}", desc: "Shipment/invoice info card table" },
+  { key: "{{changesTable}}", desc: "Field/Previous/Updated table for shipment edited emails" },
+  { key: "{{closingText}}", desc: "Paragraph above the action button (editable above)" },
+  { key: "{{otherPartyLine}}", desc: "Sent by/to [Name] line used in invoice emails" },
+  { key: "{{trackUrl}}", desc: "Direct link to tracking page" },
+  { key: "{{invoiceUrl}}", desc: "Direct link to invoice page" },
+  { key: "{{supportUrl}}", desc: "Link to support/contact" },
+];
+
 export default function PlaceholderContentPage() {
   const [content, setContent] = useState<ContentMap>({});
   const [edited, setEdited] = useState<ContentMap>({});
@@ -234,6 +298,8 @@ export default function PlaceholderContentPage() {
   const [saving, setSaving] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set([GROUPS[0].id]));
   const [globalMsg, setGlobalMsg] = useState("");
+  const [copiedKey, setCopiedKey] = useState("");
+  const [templateCopied, setTemplateCopied] = useState(false);
 
   const fetchContent = async () => {
     setLoading(true);
@@ -299,6 +365,20 @@ export default function PlaceholderContentPage() {
     });
   };
 
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(""), 1500);
+    });
+  };
+
+  const copyTemplate = () => {
+    navigator.clipboard.writeText(TIMELINE_TEMPLATE).then(() => {
+      setTemplateCopied(true);
+      setTimeout(() => setTemplateCopied(false), 1500);
+    });
+  };
+
   const totalChanges = Object.keys(edited).filter((k) => hasChanges(k)).length;
 
   return (
@@ -331,6 +411,7 @@ export default function PlaceholderContentPage() {
           <p className="mt-3 text-sm font-semibold text-gray-700">{globalMsg}</p>
         )}
 
+        {/* How it works */}
         <div className="mt-5 p-4 rounded-2xl bg-gray-50 border border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">How it works</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
@@ -355,6 +436,69 @@ export default function PlaceholderContentPage() {
               <span>Three paragraphs in each timeline/tracking email</span>
             </div>
           </div>
+        </div>
+
+        {/* All placeholders reference */}
+        <div className="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">All Available Placeholders</p>
+          <p className="text-xs text-gray-400 mb-3">Click any placeholder to copy it.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {ALL_PLACEHOLDERS.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => copyToClipboard(item.key, item.key)}
+                className="flex items-start gap-2 text-left p-2 rounded-xl hover:bg-white border border-transparent hover:border-gray-200 transition group"
+              >
+                <code className={`text-xs font-bold px-2 py-0.5 rounded-lg shrink-0 transition ${
+                  copiedKey === item.key
+                    ? "bg-green-100 text-green-700"
+                    : "bg-blue-50 text-blue-600 group-hover:bg-blue-100"
+                }`}>
+                  {copiedKey === item.key ? "Copied!" : item.key}
+                </code>
+                <span className="text-xs text-gray-500 mt-0.5">{item.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Timeline template */}
+        <div className="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Standard Timeline Body Template</p>
+            <button
+              onClick={copyTemplate}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${
+                templateCopied
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-900 text-white hover:bg-gray-700"
+              }`}
+            >
+              {templateCopied ? "Copied!" : "Copy Template"}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mb-3">Use this as a starting point when writing a custom timeline email body.</p>
+          <pre className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-xl overflow-x-auto leading-relaxed whitespace-pre">
+{`{{badge}}
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+Hello {{name}},
+</p>
+
+<p style="margin:0 0 14px 0;...">{{intro}}</p>
+<p style="margin:0 0 14px 0;...">{{detail}}</p>
+<p style="margin:0 0 14px 0;...">{{extra}}</p>
+
+{{detailsCard}}
+{{destinationBlock}}
+{{noteBlock}}
+
+<p style="margin:20px 0 0 0;font-size:15px;...">
+  {{closingText}}
+</p>
+
+{{invoiceLink}}`}
+          </pre>
         </div>
       </div>
 
