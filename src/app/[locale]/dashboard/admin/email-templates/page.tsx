@@ -180,6 +180,8 @@ export default function AdminEmailTemplatesPage() {
 
   // Delete
   const [deletingKey, setDeletingKey] = useState("");
+  const [deleteModalTarget, setDeleteModalTarget] = useState<string>("");
+  const [deleteModalLabel, setDeleteModalLabel] = useState<string>("");
 
   const editFormRef = React.useRef<HTMLDivElement>(null);
 
@@ -298,15 +300,15 @@ setTimeout(() => {
     finally { setCreating(false); }
   };
 
-  const deleteTemplate = async (key: string) => {
-    if (!confirm(`Delete template "${key}"? This cannot be undone.`)) return;
-    setDeletingKey(key);
-    try {
-      const res = await fetch("/api/email-templates", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
-      if (res.ok) { if (editingKey === key) resetForm(); await fetchTemplates(); }
-    } catch {}
-    finally { setDeletingKey(""); }
-  };
+  const deleteTemplate = async () => {
+  if (!deleteModalTarget) return;
+  setDeletingKey(deleteModalTarget);
+  try {
+    const res = await fetch("/api/email-templates", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: deleteModalTarget }) });
+    if (res.ok) { if (editingKey === deleteModalTarget) resetForm(); await fetchTemplates(); }
+  } catch {}
+  finally { setDeletingKey(""); setDeleteModalTarget(""); setDeleteModalLabel(""); }
+};
 
   const openSendFlow = async (t: EmailTemplateDoc) => {
     setSendingTemplate(t);
@@ -663,7 +665,7 @@ setTimeout(() => {
                 <div className="mt-3 flex items-center gap-2">
                   <button onClick={() => startEdit(t)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">Edit</button>
                   <button onClick={() => openSendFlow(t)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition">Send</button>
-                  <button onClick={() => deleteTemplate(t.key)} disabled={deletingKey === t.key} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition disabled:opacity-50">{deletingKey === t.key ? "..." : "Delete"}</button>
+                  <button onClick={() => { setDeleteModalTarget(t.key); setDeleteModalLabel(t.label); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition">Delete</button>
                 </div>
               </div>
             ))}
@@ -694,7 +696,7 @@ setTimeout(() => {
                 <p className="mt-3 text-sm text-gray-700 line-clamp-2">{t.subject}</p>
                 <div className="mt-3 flex items-center gap-2">
   <button onClick={() => startEdit(t)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">Edit</button>
-  <button onClick={() => deleteTemplate(t.key)} disabled={deletingKey === t.key} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition disabled:opacity-50">{deletingKey === t.key ? "..." : "Delete"}</button>
+  <button onClick={() => { setDeleteModalTarget(t.key); setDeleteModalLabel(t.label); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition">Delete</button>
 
                   <span className="text-xs text-gray-400 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100">Auto</span>
                 </div>
@@ -831,7 +833,7 @@ setTimeout(() => {
               </div>
             )}
 
-            {/* Step: Done */}
+           {/* Step: Done */}
             {sendStep === "done" && (
               <div className="px-6 py-10 flex flex-col items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-2xl font-bold text-green-600">✓</div>
@@ -843,6 +845,39 @@ setTimeout(() => {
                 <button onClick={closeSendFlow} className="mt-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-sm">Done</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {deleteModalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mx-auto mb-4">
+              <span className="text-2xl">🗑️</span>
+            </div>
+            <h3 className="text-lg font-extrabold text-gray-900 text-center mb-1">Delete Email Template</h3>
+            <p className="text-sm text-gray-500 text-center mb-2">
+              Are you sure you want to delete <strong>{deleteModalLabel}</strong>?
+            </p>
+            <p className="text-xs text-gray-400 text-center mb-6">
+              This template will be permanently removed and cannot be recovered.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDeleteModalTarget(""); setDeleteModalLabel(""); }}
+                disabled={deletingKey === deleteModalTarget}
+                className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm"
+              >
+                No, Keep It
+              </button>
+              <button
+                onClick={deleteTemplate}
+                disabled={deletingKey === deleteModalTarget}
+                className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 transition text-sm"
+              >
+                {deletingKey === deleteModalTarget ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}
