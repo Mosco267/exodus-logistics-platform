@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 
-
-
 type StatusDoc = {
   key: string;
   label: string;
@@ -57,18 +55,9 @@ Hello {{name}},
 
 {{invoiceLink}}`;
 
-const COLOR_OPTIONS = [
-  "blue", "cyan", "green", "orange", "red", "purple",
-  "pink", "slate", "amber", "indigo", "gray",
-];
-
-const ICON_OPTIONS = [
-  "package", "truck", "warehouse", "plane", "shield",
-  "home", "clock", "check", "route", "file", "alert",
-];
-
-const normalizeKey = (v: string) =>
-  (v ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
+const COLOR_OPTIONS = ["blue","cyan","green","orange","red","purple","pink","slate","amber","indigo","gray"];
+const ICON_OPTIONS = ["package","truck","warehouse","plane","shield","home","clock","check","route","file","alert"];
+const normalizeKey = (v: string) => (v ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 
 function esc(s: string) {
   return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -92,11 +81,18 @@ function buildPreviewEmailHtml(args: { subject: string; title: string; preheader
   const year = new Date().getFullYear();
   const appUrl = "https://www.goexoduslogistics.com";
   const logoUrl = `${appUrl}/logo.png`;
-  const outerPad = 24;
-  const innerPad = 20;
+  const outerPad = 24; const innerPad = 20;
   const buttonHtml = args.button ? `<div style="padding:18px 0 6px 0;"><a href="${args.button.href}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-size:15px;font-weight:800;">${esc(args.button.text)}</a></div>` : "";
   return `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${esc(args.subject)}</title></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;"><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${esc(args.preheader || "You have a new message from Exodus Logistics.")}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f3f4f6;"><tr><td style="background:#0b3aa4;height:6px;line-height:6px;font-size:0;">&nbsp;</td></tr><tr><td align="center" style="padding:28px 16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;"><tr><td style="padding:0;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;"><tr><td style="padding:${outerPad}px ${outerPad}px 14px ${outerPad}px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="left" style="vertical-align:middle;"><img src="${logoUrl}" alt="Exodus Logistics" width="140" height="38" style="display:block;width:140px;height:38px;border:0;outline:none;text-decoration:none;" /></td></tr></table></td></tr><tr><td style="padding:0 ${outerPad}px;"><div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div></td></tr><tr><td style="padding:${innerPad}px ${outerPad}px;"><h1 style="margin:0 0 12px 0;font-size:24px;line-height:30px;font-weight:800;color:#0f172a;">${esc(args.title)}</h1>${args.bodyHtml}${buttonHtml}<p style="margin:14px 0 0 0;font-size:16px;line-height:24px;color:#111827;">Regards,<br /><strong>Exodus Logistics Support</strong></p></td></tr><tr><td style="padding:0 ${outerPad}px;"><div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div></td></tr><tr><td style="padding:14px ${outerPad}px ${outerPad}px ${outerPad}px;"><p style="margin:0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">Support: <a href="mailto:support@goexoduslogistics.com" style="color:#2563eb;text-decoration:none;">support@goexoduslogistics.com</a></p><p style="margin:6px 0 0 0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">©️ ${year} Exodus Logistics. All rights reserved.</p></td></tr></table></td></tr></table></td></tr></table></body></html>`;
 }
+
+// Shared button class helpers
+const btnWhite = "cursor-pointer px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-blue-600 hover:text-white hover:border-blue-600 transition text-sm";
+const btnBlue = "cursor-pointer px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-sm disabled:opacity-60";
+const btnModalKeep = "cursor-pointer flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-blue-600 hover:text-white hover:border-blue-600 transition text-sm";
+const btnModalDelete = "cursor-pointer flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 transition text-sm";
+const btnEdit = "cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition";
+const btnDelete = "cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition";
 
 export default function AdminStatusesPage() {
   const [statuses, setStatuses] = useState<StatusDoc[]>([]);
@@ -105,15 +101,12 @@ export default function AdminStatusesPage() {
   const [editingKey, setEditingKey] = useState("");
   const [placeholderContent, setPlaceholderContent] = useState<Record<string, string>>({});
 
-  // Stage fields
   const [label, setLabel] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [color, setColor] = useState("blue");
   const [icon, setIcon] = useState("package");
   const [defaultUpdate, setDefaultUpdate] = useState("");
   const [nextStep, setNextStep] = useState("");
-
-  // Email fields
   const [emailSubject, setEmailSubject] = useState("");
   const [emailTitle, setEmailTitle] = useState("");
   const [emailPreheader, setEmailPreheader] = useState("");
@@ -136,6 +129,8 @@ export default function AdminStatusesPage() {
   const [deleteTarget, setDeleteTarget] = useState<StatusDoc | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const formRef = useRef<HTMLDivElement>(null);
+
   const fetchStatuses = async () => {
     setLoading(true);
     try {
@@ -156,7 +151,6 @@ export default function AdminStatusesPage() {
 
   useEffect(() => { fetchStatuses(); fetchPlaceholderContent(); }, []);
 
-  // Auto-fill subject/title/preheader when label changes in create mode
   useEffect(() => {
     if (mode !== "create" || !label.trim()) return;
     setEmailSubject(`Shipment update: {{shipmentId}}`);
@@ -190,19 +184,14 @@ export default function AdminStatusesPage() {
     setBadgeTone((s.badgeTone as "" | "blue" | "green" | "red") || "");
     setShowButton(typeof s.showButton === "boolean" ? s.showButton : true);
     setShowLink(typeof s.showLink === "boolean" ? s.showLink : true);
-    setLinkText(s.linkText || "View Invoice");
-    setLinkUrlType(s.linkUrlType || "invoice");
+    setLinkText(s.linkText || "View Invoice"); setLinkUrlType(s.linkUrlType || "invoice");
     setShowDetailsCard(typeof s.showDetailsCard === "boolean" ? s.showDetailsCard : true);
     setDetailsCardType((s.detailsCardType as "shipment" | "account" | "invoice" | "changes" | "none") || "shipment");
     setMsg(""); setShowPreview(false);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
-  const canSubmit = useMemo(() => {
-    if (!label.trim()) return false;
-    if (mode === "create") return true;
-    return Boolean(editingKey);
-  }, [label, mode, editingKey]);
+  const canSubmit = useMemo(() => { if (!label.trim()) return false; if (mode === "create") return true; return Boolean(editingKey); }, [label, mode, editingKey]);
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -210,20 +199,8 @@ export default function AdminStatusesPage() {
     try {
       const keyToUse = mode === "edit" ? editingKey : normalizeKey(keyInput || label);
       const res = await fetch("/api/statuses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: keyToUse, label: label.trim(), color, icon,
-          defaultUpdate: defaultUpdate.trim(), nextStep: nextStep.trim(),
-          emailSubject: emailSubject.trim(), emailTitle: emailTitle.trim(),
-          emailPreheader: emailPreheader.trim(), emailBodyHtml: emailBodyHtml.trim(),
-          emailButtonText: emailButtonText.trim(), emailButtonUrlType: emailButtonUrlType.trim(),
-          badgeText: useCustomBadgeText ? badgeText.trim() : "",
-          badgeTone,
-          showButton, showLink,
-          linkText: linkText.trim(), linkUrlType,
-          showDetailsCard, detailsCardType,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: keyToUse, label: label.trim(), color, icon, defaultUpdate: defaultUpdate.trim(), nextStep: nextStep.trim(), emailSubject: emailSubject.trim(), emailTitle: emailTitle.trim(), emailPreheader: emailPreheader.trim(), emailBodyHtml: emailBodyHtml.trim(), emailButtonText: emailButtonText.trim(), emailButtonUrlType: emailButtonUrlType.trim(), badgeText: useCustomBadgeText ? badgeText.trim() : "", badgeTone, showButton, showLink, linkText: linkText.trim(), linkUrlType, showDetailsCard, detailsCardType }),
       });
       const data = await res.json();
       if (!res.ok) { setMsg(data?.error || "Failed to save."); return; }
@@ -239,11 +216,7 @@ export default function AdminStatusesPage() {
     setDeleting(true);
     try {
       await fetch(`/api/statuses?key=${encodeURIComponent(deleteTarget.key)}`, { method: "DELETE" });
-      await fetch("/api/email-templates", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: `timeline:${deleteTarget.key}` }),
-      });
+      await fetch("/api/email-templates", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: `timeline:${deleteTarget.key}` }) });
       if (mode === "edit" && editingKey === deleteTarget.key) resetForm();
       setMsg("Timeline stage deleted.");
       await fetchStatuses();
@@ -251,17 +224,11 @@ export default function AdminStatusesPage() {
     finally { setDeleting(false); setDeleteTarget(null); }
   };
 
-  
-
-  // Preview logic
   const previewKey = mode === "edit" ? `timeline:${editingKey}` : `timeline:${normalizeKey(keyInput || label)}`;
 
   const getTimelinePreviewMeta = () => {
     const n = previewKey.replace(/^timeline:/, "").toLowerCase();
-    // Custom badge always wins if set
-    if (useCustomBadgeText && badgeText.trim()) {
-      return { badgeText: badgeText.trim(), badgeTone: (badgeTone || "blue") as "blue" | "green" | "red" };
-    }
+    if (useCustomBadgeText && badgeText.trim()) return { badgeText: badgeText.trim(), badgeTone: (badgeTone || "blue") as "blue" | "green" | "red" };
     const toneOverride = badgeTone as "blue" | "green" | "red" | "";
     if (n === "delivered") return { badgeText: "DELIVERED", badgeTone: (toneOverride || "green") as "blue" | "green" | "red" };
     if (n === "cancelled" || n === "canceled") return { badgeText: "CANCELLED", badgeTone: (toneOverride || "red") as "blue" | "green" | "red" };
@@ -274,7 +241,6 @@ export default function AdminStatusesPage() {
     if (n === "intransit") return { badgeText: "IN TRANSIT", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
     if (n === "customclearance") return { badgeText: "CUSTOM CLEARANCE", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
     if (n === "created") return { badgeText: "CREATED", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
-    // Custom stage
     const autoTone: "blue" | "green" | "red" = color === "green" ? "green" : color === "red" ? "red" : "blue";
     return { badgeText: label.trim().toUpperCase() || "SHIPMENT UPDATE", badgeTone: (toneOverride || autoTone) as "blue" | "green" | "red" };
   };
@@ -304,15 +270,11 @@ export default function AdminStatusesPage() {
     : detailsCardType === "changes" ? `<div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><thead><tr style="background:#f9fafb;"><th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th><th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th><th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th></tr></thead><tbody><tr><td style="padding:12px 14px;font-size:13px;color:#111827;font-weight:700;">Field Name</td><td style="padding:12px 14px;font-size:13px;color:#6b7280;">Old value</td><td style="padding:12px 14px;font-size:13px;color:#111827;">New value</td></tr></tbody></table></div>`
     : renderShipmentDetailsCardHtml({ shipmentId: "[Shipment ID]", trackingNumber: "[Tracking Number]", invoiceNumber: "[Invoice Number]" });
 
-  const previewInvoiceLinkHtml = showLink && linkText
-    ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(linkText)}</a></div>`
-    : "";
+  const previewInvoiceLinkHtml = showLink && linkText ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(linkText)}</a></div>` : "";
 
   const previewBodyHtml = (emailBodyHtml || "<p>No content yet.</p>")
     .replace(/{{closingText}}/g, `<p style='margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;'>${placeholderContent.closingText_tracking || "You can use the button below to open the shipment page for the latest tracking updates."}</p>`)
-    .replace(/{{badge}}/g, previewBadgeHtml)
-    .replace(/{{detailsCard}}/g, previewDetailsCardHtml)
-    .replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
+    .replace(/{{badge}}/g, previewBadgeHtml).replace(/{{detailsCard}}/g, previewDetailsCardHtml).replace(/{{invoiceLink}}/g, previewInvoiceLinkHtml)
     .replace(/{{name}}/g, "<span style='color:#0f172a;font-weight:700;'>[Customer Name]</span>")
     .replace(/{{shipmentId}}/g, "<span style='color:#0f172a;font-weight:700;'>[Shipment ID]</span>")
     .replace(/{{trackingNumber}}/g, "<span style='color:#0f172a;font-weight:700;'>[Tracking Number]</span>")
@@ -343,25 +305,15 @@ export default function AdminStatusesPage() {
     button: showButton && emailButtonText ? { text: emailButtonText, href: "#" } : undefined,
   });
 
-  const formRef = useRef<HTMLDivElement>(null);
-
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-
-      
-      {/* Form */}
-      
       <div ref={formRef} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">Shipment Timeline Manager</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Create timeline stages and define the automatic email sent when the stage is used. Changes sync to Email Templates automatically.
-            </p>
+            <p className="mt-1 text-sm text-gray-600">Create timeline stages and define the automatic email sent when the stage is used. Changes sync to Email Templates automatically.</p>
           </div>
-          {mode === "edit" && (
-            <button onClick={resetForm} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">Clear</button>
-          )}
+          {mode === "edit" && <button onClick={resetForm} className={btnWhite}>Clear</button>}
         </div>
 
         {mode === "create" && (
@@ -371,8 +323,6 @@ export default function AdminStatusesPage() {
         )}
 
         <div className="mt-6 grid grid-cols-1 gap-4">
-
-          {/* Label + Key */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">Stage Label</label>
@@ -383,8 +333,6 @@ export default function AdminStatusesPage() {
               <input value={mode === "edit" ? editingKey : keyInput} onChange={(e) => setKeyInput(e.target.value)} disabled={mode === "edit"} placeholder="e.g. intransit" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm disabled:opacity-60 disabled:bg-gray-50" />
             </div>
           </div>
-
-          {/* Color + Icon */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">Color</label>
@@ -399,7 +347,6 @@ export default function AdminStatusesPage() {
               </select>
             </div>
           </div>
-
           <div>
             <label className="text-xs font-semibold text-gray-600">Default Update Text</label>
             <textarea value={defaultUpdate} onChange={(e) => setDefaultUpdate(e.target.value)} rows={2} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
@@ -409,13 +356,11 @@ export default function AdminStatusesPage() {
             <textarea value={nextStep} onChange={(e) => setNextStep(e.target.value)} rows={2} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
           </div>
 
-          {/* Email section divider */}
           <div className="mt-2 border-t border-gray-100 pt-6">
             <h2 className="text-base font-extrabold text-gray-900">Automatic Email</h2>
             <p className="mt-1 text-sm text-gray-500">This email is sent automatically when this stage is applied to a shipment. It also appears in Email Templates under Automated Templates.</p>
           </div>
 
-          {/* Subject / Title / Preheader */}
           <div>
             <label className="text-xs font-semibold text-gray-600">Email Subject</label>
             <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="e.g. Shipment update: {{shipmentId}}" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
@@ -429,7 +374,6 @@ export default function AdminStatusesPage() {
             <input value={emailPreheader} onChange={(e) => setEmailPreheader(e.target.value)} placeholder="e.g. Your shipment is now in transit." className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
           </div>
 
-          {/* Badge Text + Badge Color */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">Badge Text</label>
@@ -437,34 +381,22 @@ export default function AdminStatusesPage() {
                 <option value="auto">Auto (Use system default)</option>
                 <option value="custom">Custom</option>
               </select>
-              {useCustomBadgeText && (
-                <input value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="Enter custom badge text" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
-              )}
+              {useCustomBadgeText && <input value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="Enter custom badge text" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />}
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-600">Badge Color</label>
               <select value={badgeTone || ""} onChange={(e) => setBadgeTone(e.target.value as "" | "blue" | "green" | "red")} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
                 <option value="">Auto (Use system default)</option>
-                <option value="blue">Blue</option>
-                <option value="green">Green</option>
-                <option value="red">Red</option>
+                <option value="blue">Blue</option><option value="green">Green</option><option value="red">Red</option>
               </select>
             </div>
           </div>
 
-          {/* Show Button + Show Link checkboxes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
-              <input type="checkbox" checked={showButton} onChange={(e) => setShowButton(e.target.checked)} />
-              Show Button
-            </label>
-            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
-              <input type="checkbox" checked={showLink} onChange={(e) => setShowLink(e.target.checked)} />
-              Show Link
-            </label>
+            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={showButton} onChange={(e) => setShowButton(e.target.checked)} />Show Button</label>
+            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={showLink} onChange={(e) => setShowLink(e.target.checked)} />Show Link</label>
           </div>
 
-          {/* Button Text + Button URL Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">Button Text</label>
@@ -473,16 +405,11 @@ export default function AdminStatusesPage() {
             <div>
               <label className="text-xs font-semibold text-gray-600">Button URL Type</label>
               <select value={emailButtonUrlType} onChange={(e) => setEmailButtonUrlType(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
-                <option value="track">track</option>
-                <option value="invoice">invoice</option>
-                <option value="support">support</option>
-                <option value="signin">sign-in</option>
-                <option value="none">none</option>
+                <option value="track">track</option><option value="invoice">invoice</option><option value="support">support</option><option value="signin">sign-in</option><option value="none">none</option>
               </select>
             </div>
           </div>
 
-          {/* Link Text + Link URL Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">Link Text</label>
@@ -491,52 +418,31 @@ export default function AdminStatusesPage() {
             <div>
               <label className="text-xs font-semibold text-gray-600">Link URL Type</label>
               <select value={linkUrlType} onChange={(e) => setLinkUrlType(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
-                <option value="track">track</option>
-                <option value="invoice">invoice</option>
-                <option value="support">support</option>
-                <option value="signin">sign-in</option>
-                <option value="none">none</option>
+                <option value="track">track</option><option value="invoice">invoice</option><option value="support">support</option><option value="signin">sign-in</option><option value="none">none</option>
               </select>
             </div>
           </div>
 
-          {/* Show Details Card + Details Card Type */}
-          <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
-            <input type="checkbox" checked={showDetailsCard} onChange={(e) => setShowDetailsCard(e.target.checked)} />
-            Show Details Card
-          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={showDetailsCard} onChange={(e) => setShowDetailsCard(e.target.checked)} />Show Details Card</label>
 
           <div>
             <label className="text-xs font-semibold text-gray-600">Details Card Type</label>
             <select value={detailsCardType} onChange={(e) => setDetailsCardType(e.target.value as "shipment" | "account" | "invoice" | "changes" | "none")} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
-              <option value="shipment">shipment</option>
-              <option value="account">account</option>
-              <option value="invoice">invoice</option>
-              <option value="changes">changes</option>
-              <option value="none">none</option>
+              <option value="shipment">shipment</option><option value="account">account</option><option value="invoice">invoice</option><option value="changes">changes</option><option value="none">none</option>
             </select>
           </div>
 
-          {/* Body HTML */}
           <div>
             <label className="text-xs font-semibold text-gray-600">Email Body HTML</label>
             <textarea value={emailBodyHtml} onChange={(e) => setEmailBodyHtml(e.target.value)} rows={18} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-mono" />
-            <p className="mt-2 text-xs text-gray-500">
-              Placeholders: {"{{badge}}"}, {"{{name}}"}, {"{{intro}}"}, {"{{detail}}"}, {"{{extra}}"}, {"{{detailsCard}}"}, {"{{destinationBlock}}"}, {"{{noteBlock}}"}, {"{{closingText}}"}, {"{{invoiceLink}}"}, {"{{shipmentId}}"}, {"{{trackingNumber}}"}
-            </p>
+            <p className="mt-2 text-xs text-gray-500">Placeholders: {"{{badge}}"}, {"{{name}}"}, {"{{intro}}"}, {"{{detail}}"}, {"{{extra}}"}, {"{{detailsCard}}"}, {"{{destinationBlock}}"}, {"{{noteBlock}}"}, {"{{closingText}}"}, {"{{invoiceLink}}"}, {"{{shipmentId}}"}, {"{{trackingNumber}}"}</p>
           </div>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button onClick={submit} disabled={!canSubmit || saving} className="px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 text-sm cursor-pointer">
-            {saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Create Timeline Stage"}
-          </button>
-          <button onClick={() => setShowPreview((v) => !v)} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 text-sm cursor-pointer">
-            {showPreview ? "Hide Preview" : "Preview"}
-          </button>
-          {mode === "edit" && (
-            <button onClick={resetForm} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm cursor-pointer">Cancel</button>
-          )}
+          <button onClick={submit} disabled={!canSubmit || saving} className={btnBlue}>{saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Create Timeline Stage"}</button>
+          <button onClick={() => setShowPreview((v) => !v)} className={btnWhite.replace("px-4 py-2", "px-5 py-3")}>{showPreview ? "Hide Preview" : "Preview"}</button>
+          {mode === "edit" && <button onClick={resetForm} className={btnWhite.replace("px-4 py-2", "px-5 py-3")}>Cancel</button>}
           {msg && <span className="text-sm font-semibold text-gray-700">{msg}</span>}
         </div>
 
@@ -558,14 +464,11 @@ export default function AdminStatusesPage() {
             <h2 className="text-lg font-extrabold text-gray-900">Existing Timeline Stages</h2>
             <p className="text-xs text-gray-500 mt-0.5">Click Edit to modify a stage. Changes sync to Email Templates automatically.</p>
           </div>
-          <button onClick={fetchStatuses} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">Refresh</button>
+          <button onClick={fetchStatuses} className={btnWhite}>Refresh</button>
         </div>
-
-        {loading ? (
-          <p className="mt-4 text-sm text-gray-600">Loading...</p>
-        ) : statuses.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-600">No timeline stages yet.</p>
-        ) : (
+        {loading ? <p className="mt-4 text-sm text-gray-600">Loading...</p>
+        : statuses.length === 0 ? <p className="mt-4 text-sm text-gray-600">No timeline stages yet.</p>
+        : (
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             {statuses.map((s) => (
               <div key={s.key} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:border-blue-200 transition">
@@ -574,8 +477,8 @@ export default function AdminStatusesPage() {
                 <p className="mt-1 text-xs text-gray-500">color: {s.color} · icon: {s.icon || "package"}</p>
                 {s.emailSubject && <p className="mt-1 text-xs text-gray-500 line-clamp-1">subject: {s.emailSubject}</p>}
                 <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => startEdit(s)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition cursor-pointer">Edit</button>
-                  <button onClick={() => setDeleteTarget(s)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
+                  <button onClick={() => startEdit(s)} className={btnEdit}>Edit</button>
+                  <button onClick={() => setDeleteTarget(s)} className={btnDelete}>Delete</button>
                 </div>
               </div>
             ))}
@@ -596,8 +499,8 @@ export default function AdminStatusesPage() {
               This will also remove <code className="bg-gray-100 px-1 py-0.5 rounded">timeline:{deleteTarget.key}</code> from Email Templates. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition text-sm cursor-pointer">No, Keep It</button>
-              <button onClick={confirmDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 transition text-sm">{deleting ? "Deleting..." : "Yes, Delete"}</button>
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className={btnModalKeep}>No, Keep It</button>
+              <button onClick={confirmDelete} disabled={deleting} className={btnModalDelete}>{deleting ? "Deleting..." : "Yes, Delete"}</button>
             </div>
           </div>
         </div>
