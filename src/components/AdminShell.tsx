@@ -132,11 +132,7 @@ export default function AdminShell({ children }: Props) {
       label: "Company Settings",
       icon: <Phone className="w-5 h-5" />,
     },
-    {
-      href: `/${locale}/dashboard/admin/tracking`,
-      label: "Tracking Updates",
-      icon: <Route className="w-5 h-5" />,
-    },
+    
     {
       href: `/${locale}/dashboard/admin/deleted-users`,
       label: "Deleted Users",

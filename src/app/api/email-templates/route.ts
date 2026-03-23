@@ -597,29 +597,34 @@ export async function POST(req: Request) {
     if (key.startsWith("timeline:")) {
       const statusKey = key.replace("timeline:", "");
 
-      await db.collection("statuses").updateOne(
-        { key: statusKey },
-        {
-          $set: {
-            emailSubject: doc.subject,
-            emailTitle: doc.title,
-            emailPreheader: doc.preheader,
-            emailBodyHtml: doc.bodyHtml,
-            emailButtonText: doc.buttonText,
-            emailButtonUrlType: doc.buttonUrlType,
-            badgeText: doc.badgeText,
-            badgeTone: doc.badgeTone,
-            showButton: doc.showButton,
-            showLink: doc.showLink,
-            linkText: doc.linkText,
-            linkUrlType: doc.linkUrlType,
-            showDetailsCard: doc.showDetailsCard,
-            detailsCardType: doc.detailsCardType,
-            updatedAt: new Date(),
-          },
-        }
-      );
+      // Sync email fields back to statuses collection
+      const existingStatus = await db.collection("statuses").findOne({ key: statusKey });
+      if (existingStatus) {
+        await db.collection("statuses").updateOne(
+          { key: statusKey },
+          {
+            $set: {
+              emailSubject: doc.subject,
+              emailTitle: doc.title,
+              emailPreheader: doc.preheader,
+              emailBodyHtml: doc.bodyHtml,
+              emailButtonText: doc.buttonText,
+              emailButtonUrlType: doc.buttonUrlType,
+              badgeText: doc.badgeText,
+              badgeTone: doc.badgeTone,
+              showButton: doc.showButton,
+              showLink: doc.showLink,
+              linkText: doc.linkText,
+              linkUrlType: doc.linkUrlType,
+              showDetailsCard: doc.showDetailsCard,
+              detailsCardType: doc.detailsCardType,
+              updatedAt: new Date(),
+            },
+          }
+        );
+      }
 
+      // Save to email_templates with timeline category
       await db.collection(COLLECTION).updateOne(
         { key },
         {
@@ -638,6 +643,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Non-timeline templates
     await db.collection(COLLECTION).updateOne(
       { key },
       {

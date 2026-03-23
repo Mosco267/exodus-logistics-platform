@@ -168,7 +168,7 @@ export default function AdminStatusesPage() {
         return;
       }
 
-      setMsg(mode === "edit" ? "Timeline stage updated successfully." : "Timeline stage created successfully.");
+      setMsg(mode === "edit" ? "Timeline stage updated and email template synced." : "Timeline stage created and email template synced.");
       await fetchStatuses();
 
       if (mode === "create") resetForm();

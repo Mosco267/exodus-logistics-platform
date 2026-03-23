@@ -499,10 +499,39 @@ export async function POST(req: Request) {
     };
 
     await db.collection("statuses").updateOne(
-      { key },
-      { $set: doc },
-      { upsert: true }
-    );
+  { key },
+  { $set: doc },
+  { upsert: true }
+);
+
+// Sync to email_templates as timeline:key
+const templateKey = `timeline:${key}`;
+const templateDoc = {
+  key: templateKey,
+  label: label,
+  category: "timeline",
+  subject: emailSubject || `Shipment update: {{shipmentId}}`,
+  title: emailTitle || label,
+  preheader: emailPreheader || "",
+  bodyHtml: emailBodyHtml || `{{badge}}\n\n<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">\nHello {{name}},\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{intro}}\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{detail}}\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{extra}}\n</p>\n\n{{detailsCard}}\n\n{{destinationBlock}}\n\n{{noteBlock}}\n\n<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">\n{{closingText}}\n</p>\n\n{{invoiceLink}}`,
+  buttonText: emailButtonText || "Track Shipment",
+  buttonUrlType: emailButtonUrlType || "track",
+  badgeText: "",
+  badgeTone: "",
+  showButton: true,
+  showLink: true,
+  linkText: "View Invoice",
+  linkUrlType: "invoice",
+  showDetailsCard: true,
+  detailsCardType: "shipment",
+  updatedAt: now,
+};
+
+await db.collection("email_templates").updateOne(
+  { key: templateKey },
+  { $set: templateDoc, $setOnInsert: { createdAt: now } },
+  { upsert: true }
+);
 
     return NextResponse.json({ ok: true, status: doc });
   } catch (err) {
