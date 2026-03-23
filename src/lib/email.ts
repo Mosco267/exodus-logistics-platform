@@ -1977,6 +1977,7 @@ const defaultBodyHtml = `
     trackUrl: TRACK_URL,
     invoiceUrl: INVOICE_URL,
     supportUrl: SUPPORT_URL,
+    closingText: closingMessage,
   };
 
   const finalSubject =
