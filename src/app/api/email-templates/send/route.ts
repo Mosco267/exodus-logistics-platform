@@ -47,6 +47,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Template not found." }, { status: 404 });
     }
 
+    // Fetch actual shipment to get invoice number
+const shipmentDoc = await db.collection("shipments").findOne(
+  { $or: [{ shipmentId: shipmentId }, { trackingNumber: trackingNumber }] },
+  { projection: { _id: 0, invoice: 1 } }
+) as any;
+const invoiceNumber = String(shipmentDoc?.invoice?.invoiceNumber || "").trim() || "—";
+
     // Fetch placeholder content
     const pcDoc = await db.collection("placeholder_content").findOne({ _id: "main" as any });
     const pc: Record<string, string> = (pcDoc?.content as Record<string, string>) || {};
@@ -78,13 +85,14 @@ const invoiceLinkHtml = template.showLink !== false && linkHref && linkTextVal
 // Build details card HTML
 const detailsCardType = String(template.detailsCardType || "shipment").toLowerCase();
 const detailsCardHtml = template.showDetailsCard !== false && detailsCardType !== "none"
-  ? `<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"><tr><td style="padding:14px 20px;border-radius:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;table-layout:fixed;"><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Shipment Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(shipmentId)}</td></tr><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Tracking Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(trackingNumber || "—")}</td></tr></table></td></tr></table>`
+  ? `<table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;border-collapse:separate;width:100%;max-width:560px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;"><tr><td style="padding:14px 20px;border-radius:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;table-layout:fixed;"><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Shipment Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(shipmentId)}</td></tr><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Tracking Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(trackingNumber || "—")}</td></tr><tr><td style="padding:8px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Invoice Number:</td><td align="right" style="padding:8px 0;font-size:12px;color:#1d4ed8;font-weight:800;width:55%;">${esc(invoiceNumber)}</td></tr></table></td></tr></table>`
   : "";
 
     const vars: Record<string, string> = {
       name: esc(name),
       shipmentId: esc(shipmentId),
       trackingNumber: esc(trackingNumber || "—"),
+      invoiceNumber: esc(invoiceNumber),
       email: esc(to),
       trackUrl,
       invoiceUrl,
