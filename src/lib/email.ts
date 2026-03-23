@@ -3,6 +3,18 @@ import { renderEmailTemplate } from "@/lib/emailTemplate";
 import clientPromise from "@/lib/mongodb";
 
 
+async function getPlaceholderContent(): Promise<Record<string, string>> {
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+    const doc = await db.collection("placeholder_content").findOne({ _id: "main" as any });
+    return (doc?.content as Record<string, string>) || {};
+  } catch {
+    return {};
+  }
+}
+
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ Server should use APP_URL (not PUBLIC_APP_URL)
@@ -527,30 +539,24 @@ function shortenEmail(email: string, max = 22) {
   return `${value.slice(0, max - 3)}...`;
 }
 
-function getInvoiceStatusExtraMessage(status: InvoiceStatus) {
-  if (status === "paid") {
-    return "Payment for this invoice has been confirmed successfully in our system.";
-  }
-  if (status === "overdue") {
-    return "This invoice is now overdue and requires prompt attention.";
-  }
-  if (status === "cancelled") {
-    return "This invoice has been cancelled in our system.";
-  }
-  return "This invoice is currently unpaid and payment is still required.";
+function getInvoiceStatusExtraMessage(status: InvoiceStatus, content?: Record<string, string>) {
+  if (status === "paid")
+    return content?.invoiceMessage_paid || "Payment for this invoice has been confirmed successfully in our system.";
+  if (status === "overdue")
+    return content?.invoiceMessage_overdue || "This invoice is now overdue and requires prompt attention.";
+  if (status === "cancelled")
+    return content?.invoiceMessage_cancelled || "This invoice has been cancelled in our system.";
+  return content?.invoiceMessage_unpaid || "This invoice is currently unpaid and payment is still required.";
 }
 
-function getInvoiceStatusActionMessage(status: InvoiceStatus) {
-  if (status === "paid") {
-    return "No further payment action is required at this time. Shipment processing may continue normally, and you may keep this invoice for your billing records and future reference.";
-  }
-  if (status === "overdue") {
-    return "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.";
-  }
-  if (status === "cancelled") {
-    return "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If you were not expecting this update or need clarification on the next step, please contact support before taking further action.";
-  }
-  return "Please review the invoice details carefully and complete payment as soon as possible so shipment processing can continue without unnecessary interruption.";
+function getInvoiceStatusActionMessage(status: InvoiceStatus, content?: Record<string, string>) {
+  if (status === "paid")
+    return content?.actionMessage_paid || "No further payment action is required at this time. Shipment processing may continue normally, and you may keep this invoice for your billing records and future reference.";
+  if (status === "overdue")
+    return content?.actionMessage_overdue || "To avoid continued shipment delay, processing hold, or additional administrative follow-up, payment should be completed as soon as possible. We recommend reviewing the invoice immediately and settling the outstanding amount without delay.";
+  if (status === "cancelled")
+    return content?.actionMessage_cancelled || "No payment should be made against this invoice unless our support team has specifically instructed otherwise. If this update was not expected, please contact support for clarification.";
+  return content?.actionMessage_unpaid || "Please review the invoice details carefully and complete payment as soon as possible so shipment processing can continue without unnecessary interruption.";
 }
 
 function renderToneBadge(
@@ -727,6 +733,8 @@ export async function sendShipmentCreatedSenderEmail(
   const paid = Boolean(args.paid);
   const locale = args.locale || DEFAULT_LOCALE;
 
+  const placeholderContent = await getPlaceholderContent();
+
   const q = args.trackingNumber || args.shipmentId;
 
   const trackUrl = buildTrackUrl(q, locale);
@@ -744,6 +752,8 @@ export async function sendShipmentCreatedSenderEmail(
     args.shipmentScope
   );
 
+ 
+
   const invoiceStatusNormalized = args.status
   ? normalizeInvoiceStatus(args.status)
   : args.paid
@@ -754,12 +764,12 @@ const invoiceStatus = invoiceStatusLabel(invoiceStatusNormalized);
 
 const paymentMessage =
   invoiceStatusNormalized === "paid"
-    ? "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached."
+    ? (placeholderContent.paymentMessage_paid || "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached.")
     : invoiceStatusNormalized === "overdue"
-    ? "This invoice is currently overdue. Please complete payment as soon as possible to avoid delay in shipment processing and movement to the next logistics stage."
+    ? (placeholderContent.paymentMessage_overdue || "This invoice is currently overdue. Please complete payment as soon as possible to avoid delay in shipment processing and movement to the next logistics stage.")
     : invoiceStatusNormalized === "cancelled"
-    ? "This invoice has been cancelled. Shipment processing cannot continue under the current invoice status. Please contact support if you believe this was done in error."
-    : "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.";
+    ? (placeholderContent.paymentMessage_cancelled || "This invoice has been cancelled. Shipment processing cannot continue under the current invoice status. Please contact support if you believe this was done in error.")
+    : (placeholderContent.paymentMessage_unpaid || "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.");
 
   const templateOverride = await getEmailTemplate("shipment_created_sender");
 
@@ -990,6 +1000,8 @@ export async function sendShipmentCreatedReceiverEmailV2(
   const paid = Boolean(args.paid);
   const locale = args.locale || DEFAULT_LOCALE;
 
+  const placeholderContent = await getPlaceholderContent();
+
   const q = args.trackingNumber || args.shipmentId;
 
   const trackUrl = buildTrackUrl(q, locale);
@@ -1017,12 +1029,12 @@ const invoiceStatusText = invoiceStatusLabel(invoiceStatus);
 
 const paymentMessage =
   invoiceStatus === "paid"
-    ? "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached."
+    ? (placeholderContent.paymentMessage_paid || "Payment has been confirmed successfully. Your shipment is now ready to move through the next logistics stage, and you will continue to receive progress updates as new checkpoints are reached.")
     : invoiceStatus === "overdue"
-    ? "This invoice is currently overdue. Please complete payment as soon as possible to avoid delay in shipment processing and movement to the next logistics stage."
+    ? (placeholderContent.paymentMessage_overdue || "This invoice is currently overdue. Please complete payment as soon as possible to avoid delay in shipment processing and movement to the next logistics stage.")
     : invoiceStatus === "cancelled"
-    ? "This invoice has been cancelled. Shipment processing cannot continue under the current invoice status. Please contact support if you believe this was done in error."
-    : "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.";
+    ? (placeholderContent.paymentMessage_cancelled || "This invoice has been cancelled. Shipment processing cannot continue under the current invoice status. Please contact support if you believe this was done in error.")
+    : (placeholderContent.paymentMessage_unpaid || "Payment is still required before shipment processing can continue. Once payment is completed, the shipment will move to the next stage and you will receive further updates automatically.");
 
   const templateOverride = await getEmailTemplate("shipment_created_receiver");
 
@@ -1661,6 +1673,8 @@ export async function sendShipmentStatusEmail(
   const status = cleanStr(opts.statusLabel) || "Shipment Update";
   const locale = opts.locale || DEFAULT_LOCALE;
 
+  const placeholderContent = await getPlaceholderContent();
+
   const q = opts.trackingNumber || opts.shipmentId;
   const TRACK_URL = buildTrackUrl(q, locale);
   const INVOICE_URL = buildInvoiceFullUrlByQ(q, locale);
@@ -1695,87 +1709,87 @@ export async function sendShipmentStatusEmail(
   let extra = "";
 
   if (normalizedStatus === "pickup" || normalizedStatus === "pickedup") {
-    title = "Shipment picked up";
-    subject = `Exodus Logistics: Shipment picked up (${opts.shipmentId})`;
-    intro = `We are pleased to inform you that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully picked up and entered into our logistics network.`;
-    detail = `The shipment is now being processed for movement from <strong>${esc(origin)}</strong> toward <strong>${esc(destination)}</strong>.`;
-    extra = `Our team will continue processing the shipment and you will receive another update once it reaches the next checkpoint.`;
-  } else if (normalizedStatus === "warehouse") {
-    title = "Shipment received at warehouse";
-    subject = `Exodus Logistics: Shipment received at warehouse (${opts.shipmentId})`;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been received at our warehouse facility.`;
-    detail = `It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>${esc(destination)}</strong>.`;
-    extra = `You will be notified again as soon as the shipment leaves the warehouse and proceeds to transit.`;
-  } else if (normalizedStatus === "intransit") {
-    title = "Shipment in transit";
-    subject = `Exodus Logistics: Shipment in transit (${opts.shipmentId})`;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>in transit</strong>.`;
-    detail = `It is currently moving through our logistics network from <strong>${esc(origin)}</strong> toward <strong>${esc(destination)}</strong>.`;
-    extra = `Our system will continue to provide updates as the shipment progresses through the next checkpoints.`;
-  } else if (normalizedStatus === "outfordelivery") {
-    title = "Shipment out for delivery";
-    subject = `Exodus Logistics: Out for delivery (${opts.shipmentId})`;
-    buttonText = "Track Delivery";
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>out for delivery</strong>.`;
-    detail = `Our delivery process is in progress and the shipment is on its final route to the delivery address below.`;
-    extra = `Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.`;
-  } else if (normalizedStatus === "delivered") {
-    title = "Shipment delivered";
-    subject = `Exodus Logistics: Shipment delivered (${opts.shipmentId})`;
-    buttonText = "View Shipment";
-    intro = `This is to confirm that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully <strong>delivered</strong>.`;
-    detail = `Delivery has been completed at <strong>${esc(fullDestination)}</strong>.`;
-    extra = `If you have any concern regarding the delivery or need clarification, please contact our support team with your shipment details.`;
-  } else if (normalizedStatus === "customclearance") {
-    title = "Shipment under customs clearance";
-    subject = `Exodus Logistics: Customs clearance update (${opts.shipmentId})`;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently undergoing <strong>customs clearance</strong>.`;
-    detail = `This is a routine compliance stage before the shipment proceeds toward <strong>${esc(destination)}</strong>.`;
-    extra = `If any additional verification is required, our team will contact you promptly and provide further guidance.`;
-  } else if (normalizedStatus === "unclaimed") {
-    title = "Shipment marked unclaimed";
-    subject = `Exodus Logistics: Shipment marked unclaimed (${opts.shipmentId})`;
-    buttonText = "Contact Support";
-    buttonLink = SUPPORT_URL;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently marked as <strong>unclaimed</strong>.`;
-    detail = `The shipment is being held pending the next required action from the recipient or support team.`;
-    extra = `Please contact our support team as soon as possible for assistance regarding pickup, redelivery, or further instructions.`;
-  } else if (normalizedStatus === "invalidaddress") {
-    title = "Address issue on shipment";
-    subject = `Exodus Logistics: Address issue detected (${opts.shipmentId})`;
-    buttonText = "Contact Support";
-    buttonLink = SUPPORT_URL;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently on hold due to an <strong>address issue</strong>.`;
-    detail = `We were unable to proceed normally because the destination address requires confirmation or correction.`;
-    extra = `Please contact support to verify the correct delivery details so shipment processing can continue without further delay.`;
-  } else if (normalizedStatus === "paymentissue") {
-    title = "Shipment update";
-    subject = `Exodus Logistics: Payment issue (${opts.shipmentId})`;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>Payment Issue</strong>.`;
-    detail = `There is currently an issue affecting payment confirmation or processing for this shipment.`;
-    extra = `Please review the invoice and complete any required payment so shipment processing can resume normally.`;
-  } else if (normalizedStatus === "cancelled" || normalizedStatus === "canceled") {
-    title = "Shipment cancelled";
-    subject = `Exodus Logistics: Shipment cancelled (${opts.shipmentId})`;
-    buttonText = "Contact Support";
-    buttonLink = SUPPORT_URL;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been marked as <strong>cancelled</strong>.`;
-    detail = `This shipment is no longer progressing through our logistics network.`;
-    extra = `If you believe this update was made in error or require clarification, please contact our support team for assistance.`;
-  } else if (normalizedStatus === "created") {
-    title = "Shipment created";
-    subject = `Exodus Logistics: Shipment created (${opts.shipmentId})`;
-    buttonText = "View Shipment";
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully created in our system.`;
-    detail = `It is now being processed and prepared for the next logistics stage toward <strong>${esc(destination)}</strong>.`;
-    extra = `You will receive additional notifications as soon as the shipment moves through the next checkpoints.`;
-  } else {
-    title = "Shipment update";
-    subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
-    intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>${esc(status)}</strong>.`;
-    detail = `You may review the latest shipment progress and invoice information using the links below.`;
-    extra = `We will continue to keep you informed as new updates become available.`;
-  }
+  title = "Shipment picked up";
+  subject = `Exodus Logistics: Shipment picked up (${opts.shipmentId})`;
+  intro = placeholderContent.timeline_pickup_intro || `We are pleased to inform you that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully picked up and entered into our logistics network.`;
+  detail = placeholderContent.timeline_pickup_detail || `The shipment is now being processed for movement from <strong>${esc(origin)}</strong> toward <strong>${esc(destination)}</strong>.`;
+  extra = placeholderContent.timeline_pickup_extra || `Our team will continue processing the shipment and you will receive another update once it reaches the next checkpoint.`;
+} else if (normalizedStatus === "warehouse") {
+  title = "Shipment received at warehouse";
+  subject = `Exodus Logistics: Shipment received at warehouse (${opts.shipmentId})`;
+  intro = placeholderContent.timeline_warehouse_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been received at our warehouse facility.`;
+  detail = placeholderContent.timeline_warehouse_detail || `It is currently undergoing internal handling and preparation before moving to the next shipping stage toward <strong>${esc(destination)}</strong>.`;
+  extra = placeholderContent.timeline_warehouse_extra || `You will be notified again as soon as the shipment leaves the warehouse and proceeds to transit.`;
+} else if (normalizedStatus === "intransit") {
+  title = "Shipment in transit";
+  subject = `Exodus Logistics: Shipment in transit (${opts.shipmentId})`;
+  intro = placeholderContent.timeline_intransit_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>in transit</strong>.`;
+  detail = placeholderContent.timeline_intransit_detail || `It is currently moving through our logistics network from <strong>${esc(origin)}</strong> toward <strong>${esc(destination)}</strong>.`;
+  extra = placeholderContent.timeline_intransit_extra || `Our system will continue to provide updates as the shipment progresses through the next checkpoints.`;
+} else if (normalizedStatus === "outfordelivery") {
+  title = "Shipment out for delivery";
+  subject = `Exodus Logistics: Out for delivery (${opts.shipmentId})`;
+  buttonText = "Track Delivery";
+  intro = placeholderContent.timeline_outfordelivery_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> is now <strong>out for delivery</strong>.`;
+  detail = placeholderContent.timeline_outfordelivery_detail || `Our delivery process is in progress and the shipment is on its final route to the delivery address below.`;
+  extra = placeholderContent.timeline_outfordelivery_extra || `Please make sure you are available and prepared to receive or pick up the shipment once delivery is completed.`;
+} else if (normalizedStatus === "delivered") {
+  title = "Shipment delivered";
+  subject = `Exodus Logistics: Shipment delivered (${opts.shipmentId})`;
+  buttonText = "View Shipment";
+  intro = placeholderContent.timeline_delivered_intro || `This is to confirm that your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully <strong>delivered</strong>.`;
+  detail = placeholderContent.timeline_delivered_detail || `Delivery has been completed at <strong>${esc(fullDestination)}</strong>.`;
+  extra = placeholderContent.timeline_delivered_extra || `If you have any concern regarding the delivery or need clarification, please contact our support team with your shipment details.`;
+} else if (normalizedStatus === "customclearance") {
+  title = "Shipment under customs clearance";
+  subject = `Exodus Logistics: Customs clearance update (${opts.shipmentId})`;
+  intro = placeholderContent.timeline_customclearance_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently undergoing <strong>customs clearance</strong>.`;
+  detail = placeholderContent.timeline_customclearance_detail || `This is a routine compliance stage before the shipment proceeds toward <strong>${esc(destination)}</strong>.`;
+  extra = placeholderContent.timeline_customclearance_extra || `If any additional verification is required, our team will contact you promptly and provide further guidance.`;
+} else if (normalizedStatus === "unclaimed") {
+  title = "Shipment marked unclaimed";
+  subject = `Exodus Logistics: Shipment marked unclaimed (${opts.shipmentId})`;
+  buttonText = "Contact Support";
+  buttonLink = SUPPORT_URL;
+  intro = placeholderContent.timeline_unclaimed_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently marked as <strong>unclaimed</strong>.`;
+  detail = placeholderContent.timeline_unclaimed_detail || `The shipment is being held pending the next required action from the recipient or support team.`;
+  extra = placeholderContent.timeline_unclaimed_extra || `Please contact our support team as soon as possible for assistance regarding pickup, redelivery, or further instructions.`;
+} else if (normalizedStatus === "invalidaddress") {
+  title = "Address issue on shipment";
+  subject = `Exodus Logistics: Address issue detected (${opts.shipmentId})`;
+  buttonText = "Contact Support";
+  buttonLink = SUPPORT_URL;
+  intro = placeholderContent.timeline_invalidaddress_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> is currently on hold due to an <strong>address issue</strong>.`;
+  detail = placeholderContent.timeline_invalidaddress_detail || `We were unable to proceed normally because the destination address requires confirmation or correction.`;
+  extra = placeholderContent.timeline_invalidaddress_extra || `Please contact support to verify the correct delivery details so shipment processing can continue without further delay.`;
+} else if (normalizedStatus === "paymentissue") {
+  title = "Shipment update";
+  subject = `Exodus Logistics: Payment issue (${opts.shipmentId})`;
+  intro = placeholderContent.timeline_paymentissue_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>Payment Issue</strong>.`;
+  detail = placeholderContent.timeline_paymentissue_detail || `There is currently an issue affecting payment confirmation or processing for this shipment.`;
+  extra = placeholderContent.timeline_paymentissue_extra || `Please review the invoice and complete any required payment so shipment processing can resume normally.`;
+} else if (normalizedStatus === "cancelled" || normalizedStatus === "canceled") {
+  title = "Shipment cancelled";
+  subject = `Exodus Logistics: Shipment cancelled (${opts.shipmentId})`;
+  buttonText = "Contact Support";
+  buttonLink = SUPPORT_URL;
+  intro = placeholderContent.timeline_cancelled_intro || `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been marked as <strong>cancelled</strong>.`;
+  detail = placeholderContent.timeline_cancelled_detail || `This shipment is no longer progressing through our logistics network.`;
+  extra = placeholderContent.timeline_cancelled_extra || `If you believe this update was made in error or require clarification, please contact our support team for assistance.`;
+} else if (normalizedStatus === "created") {
+  title = "Shipment created";
+  subject = `Exodus Logistics: Shipment created (${opts.shipmentId})`;
+  buttonText = "View Shipment";
+  intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been successfully created in our system.`;
+  detail = `It is now being processed and prepared for the next logistics stage toward <strong>${esc(destination)}</strong>.`;
+  extra = `You will receive additional notifications as soon as the shipment moves through the next checkpoints.`;
+} else {
+  title = "Shipment update";
+  subject = `Exodus Logistics: Shipment update (${opts.shipmentId})`;
+  intro = `Your shipment <strong>${esc(opts.shipmentId)}</strong> has been updated to <strong>${esc(status)}</strong>.`;
+  detail = `You may review the latest shipment progress and invoice information using the links below.`;
+  extra = `We will continue to keep you informed as new updates become available.`;
+}
 
   const destinationLabel =
     normalizedStatus === "outfordelivery" ? "Delivery Address" : "Destination";
@@ -2032,6 +2046,8 @@ export async function sendInvoiceUpdateEmail(
     ? "paid"
     : "unpaid";
 
+  const placeholderContent = await getPlaceholderContent();
+
   const statusLabel = invoiceStatusLabel(status);
 
   const templateOverride = await getEmailTemplate("invoice_status_update");
@@ -2104,11 +2120,11 @@ export async function sendInvoiceUpdateEmail(
 </p>
 
   <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-    ${esc(getInvoiceStatusExtraMessage(status))}
+    ${esc(getInvoiceStatusExtraMessage(status, placeholderContent))}
   </p>
 
   <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-    ${esc(getInvoiceStatusActionMessage(status))}
+    ${esc(getInvoiceStatusActionMessage(status, placeholderContent))}
   </p>
 
   ${detailsCardHtml}
@@ -2126,8 +2142,8 @@ export async function sendInvoiceUpdateEmail(
   trackingNumber: esc(opts.trackingNumber || "—"),
   invoiceNumber: esc(invoiceNumber),
   invoiceStatus: esc(statusLabel),
-  invoiceMessage: esc(getInvoiceStatusExtraMessage(status)),
-  actionMessage: esc(getInvoiceStatusActionMessage(status)),
+  invoiceMessage: esc(getInvoiceStatusExtraMessage(status, placeholderContent)),
+  actionMessage: esc(getInvoiceStatusActionMessage(status, placeholderContent)),
   badge: badgeHtml,
   detailsCard: detailsCardHtml,
   invoiceLink: invoiceLinkHtml,
