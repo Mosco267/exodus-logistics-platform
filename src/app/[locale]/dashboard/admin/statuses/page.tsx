@@ -15,6 +15,14 @@ type StatusDoc = {
   emailBodyHtml?: string;
   emailButtonText?: string;
   emailButtonUrlType?: string;
+  badgeText?: string;
+  badgeTone?: "" | "blue" | "green" | "red";
+  showButton?: boolean;
+  showLink?: boolean;
+  linkText?: string;
+  linkUrlType?: string;
+  showDetailsCard?: boolean;
+  detailsCardType?: "shipment" | "account" | "invoice" | "changes" | "none";
 };
 
 const DEFAULT_BODY = `{{badge}}
@@ -95,18 +103,30 @@ export default function AdminStatusesPage() {
   const [editingKey, setEditingKey] = useState("");
   const [placeholderContent, setPlaceholderContent] = useState<Record<string, string>>({});
 
+  // Stage fields
   const [label, setLabel] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [color, setColor] = useState("blue");
   const [icon, setIcon] = useState("package");
   const [defaultUpdate, setDefaultUpdate] = useState("");
   const [nextStep, setNextStep] = useState("");
+
+  // Email fields
   const [emailSubject, setEmailSubject] = useState("");
   const [emailTitle, setEmailTitle] = useState("");
   const [emailPreheader, setEmailPreheader] = useState("");
   const [emailBodyHtml, setEmailBodyHtml] = useState(DEFAULT_BODY);
   const [emailButtonText, setEmailButtonText] = useState("Track Shipment");
   const [emailButtonUrlType, setEmailButtonUrlType] = useState("track");
+  const [badgeText, setBadgeText] = useState("");
+  const [useCustomBadgeText, setUseCustomBadgeText] = useState(false);
+  const [badgeTone, setBadgeTone] = useState<"" | "blue" | "green" | "red">("");
+  const [showButton, setShowButton] = useState(true);
+  const [showLink, setShowLink] = useState(true);
+  const [linkText, setLinkText] = useState("View Invoice");
+  const [linkUrlType, setLinkUrlType] = useState("invoice");
+  const [showDetailsCard, setShowDetailsCard] = useState(true);
+  const [detailsCardType, setDetailsCardType] = useState<"shipment" | "account" | "invoice" | "changes" | "none">("shipment");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -147,7 +167,11 @@ export default function AdminStatusesPage() {
     setColor("blue"); setIcon("package"); setDefaultUpdate(""); setNextStep("");
     setEmailSubject(""); setEmailTitle(""); setEmailPreheader("");
     setEmailBodyHtml(DEFAULT_BODY); setEmailButtonText("Track Shipment");
-    setEmailButtonUrlType("track"); setMsg(""); setShowPreview(false);
+    setEmailButtonUrlType("track"); setBadgeText(""); setUseCustomBadgeText(false);
+    setBadgeTone(""); setShowButton(true); setShowLink(true);
+    setLinkText("View Invoice"); setLinkUrlType("invoice");
+    setShowDetailsCard(true); setDetailsCardType("shipment");
+    setMsg(""); setShowPreview(false);
   };
 
   const startEdit = (s: StatusDoc) => {
@@ -159,6 +183,15 @@ export default function AdminStatusesPage() {
     setEmailBodyHtml(s.emailBodyHtml || DEFAULT_BODY);
     setEmailButtonText(s.emailButtonText || "Track Shipment");
     setEmailButtonUrlType(s.emailButtonUrlType || "track");
+    setBadgeText(s.badgeText || "");
+    setUseCustomBadgeText(Boolean(String(s.badgeText || "").trim()));
+    setBadgeTone((s.badgeTone as "" | "blue" | "green" | "red") || "");
+    setShowButton(typeof s.showButton === "boolean" ? s.showButton : true);
+    setShowLink(typeof s.showLink === "boolean" ? s.showLink : true);
+    setLinkText(s.linkText || "View Invoice");
+    setLinkUrlType(s.linkUrlType || "invoice");
+    setShowDetailsCard(typeof s.showDetailsCard === "boolean" ? s.showDetailsCard : true);
+    setDetailsCardType((s.detailsCardType as "shipment" | "account" | "invoice" | "changes" | "none") || "shipment");
     setMsg(""); setShowPreview(false);
     setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
   };
@@ -183,6 +216,11 @@ export default function AdminStatusesPage() {
           emailSubject: emailSubject.trim(), emailTitle: emailTitle.trim(),
           emailPreheader: emailPreheader.trim(), emailBodyHtml: emailBodyHtml.trim(),
           emailButtonText: emailButtonText.trim(), emailButtonUrlType: emailButtonUrlType.trim(),
+          badgeText: useCustomBadgeText ? badgeText.trim() : "",
+          badgeTone,
+          showButton, showLink,
+          linkText: linkText.trim(), linkUrlType,
+          showDetailsCard, detailsCardType,
         }),
       });
       const data = await res.json();
@@ -211,26 +249,30 @@ export default function AdminStatusesPage() {
     finally { setDeleting(false); setDeleteTarget(null); }
   };
 
-  // Preview logic — always a timeline key
+  // Preview logic
   const previewKey = mode === "edit" ? `timeline:${editingKey}` : `timeline:${normalizeKey(keyInput || label)}`;
 
-  const getTimelinePreviewMeta = (key: string) => {
-    const n = key.replace(/^timeline:/, "").toLowerCase();
-    if (n === "delivered") return { badgeText: "DELIVERED", badgeTone: "green" as const, buttonText: "View Shipment" };
-    if (n === "cancelled" || n === "canceled") return { badgeText: "CANCELLED", badgeTone: "red" as const, buttonText: "Contact Support" };
-    if (n === "unclaimed") return { badgeText: "UNCLAIMED", badgeTone: "red" as const, buttonText: "Contact Support" };
-    if (n === "invalidaddress") return { badgeText: "INVALID ADDRESS", badgeTone: "red" as const, buttonText: "Contact Support" };
-    if (n === "paymentissue") return { badgeText: "PAYMENT ISSUE", badgeTone: "red" as const, buttonText: "Track Shipment" };
-    if (n === "outfordelivery") return { badgeText: "OUT FOR DELIVERY", badgeTone: "blue" as const, buttonText: "Track Delivery" };
-    if (n === "pickup" || n === "pickedup") return { badgeText: "PICKED UP", badgeTone: "blue" as const, buttonText: "Track Shipment" };
-    if (n === "warehouse") return { badgeText: "WAREHOUSE", badgeTone: "blue" as const, buttonText: "Track Shipment" };
-    if (n === "intransit") return { badgeText: "IN TRANSIT", badgeTone: "blue" as const, buttonText: "Track Shipment" };
-    if (n === "customclearance") return { badgeText: "CUSTOM CLEARANCE", badgeTone: "blue" as const, buttonText: "Track Shipment" };
-    if (n === "created") return { badgeText: "CREATED", badgeTone: "blue" as const, buttonText: "View Shipment" };
-    // Custom stage — use the label
-    const badgeText = label.trim().toUpperCase() || "SHIPMENT UPDATE";
-    const tone: "blue" | "green" | "red" = color === "green" ? "green" : color === "red" ? "red" : "blue";
-    return { badgeText, badgeTone: tone, buttonText: emailButtonText || "Track Shipment" };
+  const getTimelinePreviewMeta = () => {
+    const n = previewKey.replace(/^timeline:/, "").toLowerCase();
+    // Custom badge always wins if set
+    if (useCustomBadgeText && badgeText.trim()) {
+      return { badgeText: badgeText.trim(), badgeTone: (badgeTone || "blue") as "blue" | "green" | "red" };
+    }
+    const toneOverride = badgeTone as "blue" | "green" | "red" | "";
+    if (n === "delivered") return { badgeText: "DELIVERED", badgeTone: (toneOverride || "green") as "blue" | "green" | "red" };
+    if (n === "cancelled" || n === "canceled") return { badgeText: "CANCELLED", badgeTone: (toneOverride || "red") as "blue" | "green" | "red" };
+    if (n === "unclaimed") return { badgeText: "UNCLAIMED", badgeTone: (toneOverride || "red") as "blue" | "green" | "red" };
+    if (n === "invalidaddress") return { badgeText: "INVALID ADDRESS", badgeTone: (toneOverride || "red") as "blue" | "green" | "red" };
+    if (n === "paymentissue") return { badgeText: "PAYMENT ISSUE", badgeTone: (toneOverride || "red") as "blue" | "green" | "red" };
+    if (n === "outfordelivery") return { badgeText: "OUT FOR DELIVERY", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
+    if (n === "pickup" || n === "pickedup") return { badgeText: "PICKED UP", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
+    if (n === "warehouse") return { badgeText: "WAREHOUSE", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
+    if (n === "intransit") return { badgeText: "IN TRANSIT", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
+    if (n === "customclearance") return { badgeText: "CUSTOM CLEARANCE", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
+    if (n === "created") return { badgeText: "CREATED", badgeTone: (toneOverride || "blue") as "blue" | "green" | "red" };
+    // Custom stage
+    const autoTone: "blue" | "green" | "red" = color === "green" ? "green" : color === "red" ? "red" : "blue";
+    return { badgeText: label.trim().toUpperCase() || "SHIPMENT UPDATE", badgeTone: (toneOverride || autoTone) as "blue" | "green" | "red" };
   };
 
   const getTimelinePreviewContent = (key: string, pc: Record<string, string> = {}) => {
@@ -245,26 +287,22 @@ export default function AdminStatusesPage() {
     if (n === "invalidaddress") return { intro: pc.timeline_invalidaddress_intro || "Your shipment <strong>[Shipment ID]</strong> is currently on hold due to an <strong>address issue</strong>.", detail: pc.timeline_invalidaddress_detail || "We were unable to proceed normally because the destination address requires confirmation or correction.", extra: pc.timeline_invalidaddress_extra || "Please contact support to verify the correct delivery details.", destinationLabel: "Destination" };
     if (n === "paymentissue") return { intro: pc.timeline_paymentissue_intro || "Your shipment <strong>[Shipment ID]</strong> has been updated to <strong>Payment Issue</strong>.", detail: pc.timeline_paymentissue_detail || "There is currently an issue affecting payment confirmation or processing for this shipment.", extra: pc.timeline_paymentissue_extra || "Please review the invoice and complete any required payment.", destinationLabel: "Destination" };
     if (n === "cancelled") return { intro: pc.timeline_cancelled_intro || "Your shipment <strong>[Shipment ID]</strong> has been marked as <strong>cancelled</strong>.", detail: pc.timeline_cancelled_detail || "This shipment is no longer progressing through our logistics network.", extra: pc.timeline_cancelled_extra || "If you believe this update was made in error, please contact our support team.", destinationLabel: "Destination" };
-    // Custom stage fallback
-    return {
-      intro: placeholderContent.default_intro || "There has been an update to your shipment.",
-      detail: placeholderContent.default_detail || "Please review the latest shipment information using the links below.",
-      extra: placeholderContent.default_extra || "You will continue to receive updates as your shipment progresses.",
-      destinationLabel: "Destination",
-    };
+    return { intro: pc.default_intro || "There has been an update to your shipment.", detail: pc.default_detail || "Please review the latest shipment information using the links below.", extra: pc.default_extra || "You will continue to receive updates as your shipment progresses.", destinationLabel: "Destination" };
   };
 
-  const previewMeta = getTimelinePreviewMeta(previewKey);
+  const previewMeta = getTimelinePreviewMeta();
   const previewBadgeHtml = renderToneBadgeHtml(previewMeta.badgeText, previewMeta.badgeTone);
   const timelineContent = getTimelinePreviewContent(previewKey, placeholderContent);
 
-  const previewDetailsCardHtml = renderShipmentDetailsCardHtml({
-    shipmentId: "[Shipment ID]",
-    trackingNumber: "[Tracking Number]",
-    invoiceNumber: "[Invoice Number]",
-  });
+  const previewDetailsCardHtml = !showDetailsCard || detailsCardType === "none" ? ""
+    : detailsCardType === "account" ? renderSimpleInfoCardHtml([{ label: "Account Email", value: "[Account Email]" }, { label: "Access Status", value: "[Access Status]" }])
+    : detailsCardType === "invoice" ? renderSimpleInfoCardHtml([{ label: "Shipment Number", value: "[Shipment Number]" }, { label: "Invoice Number", value: "[Invoice Number]" }, { label: "Status", value: "[Invoice Status]" }])
+    : detailsCardType === "changes" ? `<div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><thead><tr style="background:#f9fafb;"><th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Field</th><th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Previous</th><th align="left" style="padding:12px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">Updated</th></tr></thead><tbody><tr><td style="padding:12px 14px;font-size:13px;color:#111827;font-weight:700;">Field Name</td><td style="padding:12px 14px;font-size:13px;color:#6b7280;">Old value</td><td style="padding:12px 14px;font-size:13px;color:#111827;">New value</td></tr></tbody></table></div>`
+    : renderShipmentDetailsCardHtml({ shipmentId: "[Shipment ID]", trackingNumber: "[Tracking Number]", invoiceNumber: "[Invoice Number]" });
 
-  const previewInvoiceLinkHtml = `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">View Invoice</a></div>`;
+  const previewInvoiceLinkHtml = showLink && linkText
+    ? `<div style="margin-top:12px"><a href="#" style="color:#2563eb;text-decoration:underline;font-weight:700;">${esc(linkText)}</a></div>`
+    : "";
 
   const previewBodyHtml = (emailBodyHtml || "<p>No content yet.</p>")
     .replace(/{{closingText}}/g, `<p style='margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;'>${placeholderContent.closingText_tracking || "You can use the button below to open the shipment page for the latest tracking updates."}</p>`)
@@ -286,8 +324,7 @@ export default function AdminStatusesPage() {
     .replace(/{{destinationBlock}}/g, `<div style="margin:18px 0 0 0;"><p style="margin:0 0 6px 0;font-size:14px;line-height:20px;color:#6b7280;">${timelineContent.destinationLabel}</p><p style="margin:0;font-size:15px;line-height:24px;font-weight:700;color:#111827;">${previewKey.includes("outfordelivery") || previewKey.includes("delivered") ? "[Full Destination]" : "[Destination]"}</p></div>`)
     .replace(/{{noteBlock}}/g, `<div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;"><p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Additional note:</strong> [Additional Note]</p></div>`)
     .replace(/{{note}}/g, `<div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;"><p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Additional note:</strong> [Additional Note]</p></div>`)
-    .replace(/{{changesTable}}/g, "")
-    .replace(/{{otherPartyLine}}/g, "")
+    .replace(/{{changesTable}}/g, "").replace(/{{otherPartyLine}}/g, "")
     .replace(/{{supportUrl}}/g, "#").replace(/{{trackUrl}}/g, "#").replace(/{{invoiceUrl}}/g, "#")
     .replace(/{{email}}/g, "<span style='color:#0f172a;font-weight:700;'>[Email Address]</span>")
     .replace(/{{shortEmail}}/g, "<span style='color:#0f172a;font-weight:700;'>[Short Email]</span>")
@@ -299,7 +336,7 @@ export default function AdminStatusesPage() {
     title: emailTitle || label || "Template Title",
     preheader: emailPreheader,
     bodyHtml: previewBodyHtml,
-    button: emailButtonText ? { text: emailButtonText, href: "#" } : undefined,
+    button: showButton && emailButtonText ? { text: emailButtonText, href: "#" } : undefined,
   });
 
   return (
@@ -315,9 +352,7 @@ export default function AdminStatusesPage() {
             </p>
           </div>
           {mode === "edit" && (
-            <button onClick={resetForm} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">
-              Clear
-            </button>
+            <button onClick={resetForm} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">Clear</button>
           )}
         </div>
 
@@ -366,12 +401,13 @@ export default function AdminStatusesPage() {
             <textarea value={nextStep} onChange={(e) => setNextStep(e.target.value)} rows={2} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
           </div>
 
-          {/* Email section */}
+          {/* Email section divider */}
           <div className="mt-2 border-t border-gray-100 pt-6">
             <h2 className="text-base font-extrabold text-gray-900">Automatic Email</h2>
             <p className="mt-1 text-sm text-gray-500">This email is sent automatically when this stage is applied to a shipment. It also appears in Email Templates under Automated Templates.</p>
           </div>
 
+          {/* Subject / Title / Preheader */}
           <div>
             <label className="text-xs font-semibold text-gray-600">Email Subject</label>
             <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="e.g. Shipment update: {{shipmentId}}" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
@@ -385,6 +421,42 @@ export default function AdminStatusesPage() {
             <input value={emailPreheader} onChange={(e) => setEmailPreheader(e.target.value)} placeholder="e.g. Your shipment is now in transit." className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
           </div>
 
+          {/* Badge Text + Badge Color */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Badge Text</label>
+              <select value={useCustomBadgeText ? "custom" : "auto"} onChange={(e) => { const m = e.target.value; setUseCustomBadgeText(m === "custom"); if (m === "auto") setBadgeText(""); }} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
+                <option value="auto">Auto (Use system default)</option>
+                <option value="custom">Custom</option>
+              </select>
+              {useCustomBadgeText && (
+                <input value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="Enter custom badge text" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
+              )}
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Badge Color</label>
+              <select value={badgeTone || ""} onChange={(e) => setBadgeTone(e.target.value as "" | "blue" | "green" | "red")} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
+                <option value="">Auto (Use system default)</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="red">Red</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Show Button + Show Link checkboxes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+              <input type="checkbox" checked={showButton} onChange={(e) => setShowButton(e.target.checked)} />
+              Show Button
+            </label>
+            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+              <input type="checkbox" checked={showLink} onChange={(e) => setShowLink(e.target.checked)} />
+              Show Link
+            </label>
+          </div>
+
+          {/* Button Text + Button URL Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-600">Button Text</label>
@@ -402,6 +474,42 @@ export default function AdminStatusesPage() {
             </div>
           </div>
 
+          {/* Link Text + Link URL Type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Link Text</label>
+              <input value={linkText} onChange={(e) => setLinkText(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Link URL Type</label>
+              <select value={linkUrlType} onChange={(e) => setLinkUrlType(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
+                <option value="track">track</option>
+                <option value="invoice">invoice</option>
+                <option value="support">support</option>
+                <option value="signin">sign-in</option>
+                <option value="none">none</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Show Details Card + Details Card Type */}
+          <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+            <input type="checkbox" checked={showDetailsCard} onChange={(e) => setShowDetailsCard(e.target.checked)} />
+            Show Details Card
+          </label>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-600">Details Card Type</label>
+            <select value={detailsCardType} onChange={(e) => setDetailsCardType(e.target.value as "shipment" | "account" | "invoice" | "changes" | "none")} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white">
+              <option value="shipment">shipment</option>
+              <option value="account">account</option>
+              <option value="invoice">invoice</option>
+              <option value="changes">changes</option>
+              <option value="none">none</option>
+            </select>
+          </div>
+
+          {/* Body HTML */}
           <div>
             <label className="text-xs font-semibold text-gray-600">Email Body HTML</label>
             <textarea value={emailBodyHtml} onChange={(e) => setEmailBodyHtml(e.target.value)} rows={18} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-mono" />
@@ -419,9 +527,7 @@ export default function AdminStatusesPage() {
             {showPreview ? "Hide Preview" : "Preview"}
           </button>
           {mode === "edit" && (
-            <button onClick={resetForm} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">
-              Cancel
-            </button>
+            <button onClick={resetForm} className="px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">Cancel</button>
           )}
           {msg && <span className="text-sm font-semibold text-gray-700">{msg}</span>}
         </div>
@@ -477,19 +583,13 @@ export default function AdminStatusesPage() {
               <span className="text-2xl">🗑️</span>
             </div>
             <h3 className="text-lg font-extrabold text-gray-900 text-center mb-1">Delete Timeline Stage</h3>
-            <p className="text-sm text-gray-500 text-center mb-2">
-              Are you sure you want to delete <strong>{deleteTarget.label}</strong>?
-            </p>
+            <p className="text-sm text-gray-500 text-center mb-2">Are you sure you want to delete <strong>{deleteTarget.label}</strong>?</p>
             <p className="text-xs text-gray-400 text-center mb-6">
               This will also remove <code className="bg-gray-100 px-1 py-0.5 rounded">timeline:{deleteTarget.key}</code> from Email Templates. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">
-                No, Keep It
-              </button>
-              <button onClick={confirmDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 transition text-sm">
-                {deleting ? "Deleting..." : "Yes, Delete"}
-              </button>
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting} className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">No, Keep It</button>
+              <button onClick={confirmDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 transition text-sm">{deleting ? "Deleting..." : "Yes, Delete"}</button>
             </div>
           </div>
         </div>
