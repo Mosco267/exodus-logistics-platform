@@ -163,43 +163,43 @@ function formatChangedFields(
   const rows = changes
     .filter((c) => cleanStr(c.newValue))
     .map((c) => {
-      const oldVal = cleanStr(c.oldValue) || "—";
-      const newVal = cleanStr(c.newValue) || "—";
+      const oldVal = cleanStr(c.oldValue) || "null";
+      const newVal = cleanStr(c.newValue) || "null";
 
       return `
-        <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;font-weight:700;word-break:break-word;overflow-wrap:anywhere;vertical-align:top;width:26%;line-height:20px;">
-            ${esc(c.label)}
-          </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;line-height:20px;width:37%;">
-            ${esc(oldVal)}
-          </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;line-height:20px;width:37%;">
-            ${esc(newVal)}
-          </td>
-        </tr>
-      `;
+  <tr>
+    <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;font-weight:700;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;vertical-align:top;width:30%;line-height:18px;">
+      ${esc(c.label)}
+    </td>
+    <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;line-height:18px;width:35%;">
+      ${esc(oldVal)}
+    </td>
+    <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#111827;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;line-height:18px;width:35%;">
+      ${esc(newVal)}
+    </td>
+  </tr>
+`;
     })
     .join("");
 
   if (!rows) return "";
 
-  return `
-    <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;width:100%;">
-        <thead>
-          <tr style="background:#f9fafb;">
-            <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:26%;font-weight:700;">Field</th>
-            <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:37%;font-weight:700;">Previous</th>
-            <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:37%;font-weight:700;">Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    </div>
-  `;
+ return `
+  <div style="margin:16px 0 0 0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#ffffff;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;background:#ffffff;width:100%;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:30%;font-weight:700;">Field</th>
+          <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:35%;font-weight:700;">Previous</th>
+          <th align="left" style="padding:10px 12px;font-size:12px;color:#374151;border-bottom:1px solid #e5e7eb;width:35%;font-weight:700;">Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  </div>
+`;
 }
 
 /**
