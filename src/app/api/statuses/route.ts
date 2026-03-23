@@ -474,6 +474,15 @@ export async function POST(req: Request) {
     const emailButtonText = String(body.emailButtonText || "").trim();
     const emailButtonUrlType = String(body.emailButtonUrlType || "track").trim();
 
+    const badgeText = String(body.badgeText || "").trim();
+    const badgeTone = String(body.badgeTone ?? "").trim();
+    const showButton = typeof body.showButton === "boolean" ? body.showButton : true;
+    const showLink = typeof body.showLink === "boolean" ? body.showLink : true;
+    const linkText = String(body.linkText || "").trim();
+    const linkUrlType = String(body.linkUrlType || "invoice").trim();
+    const showDetailsCard = typeof body.showDetailsCard === "boolean" ? body.showDetailsCard : true;
+    const detailsCardType = String(body.detailsCardType || "shipment").trim();
+
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
@@ -494,44 +503,52 @@ export async function POST(req: Request) {
       emailBodyHtml,
       emailButtonText,
       emailButtonUrlType,
+      badgeText,
+      badgeTone,
+      showButton,
+      showLink,
+      linkText,
+      linkUrlType,
+      showDetailsCard,
+      detailsCardType,
       updatedAt: now,
       ...(existing ? {} : { createdAt: now }),
     };
 
     await db.collection("statuses").updateOne(
-  { key },
-  { $set: doc },
-  { upsert: true }
-);
+      { key },
+      { $set: doc },
+      { upsert: true }
+    );
 
-// Sync to email_templates as timeline:key
-const templateKey = `timeline:${key}`;
-const templateDoc = {
-  key: templateKey,
-  label: label,
-  category: "timeline",
-  subject: emailSubject || `Shipment update: {{shipmentId}}`,
-  title: emailTitle || label,
-  preheader: emailPreheader || "",
-  bodyHtml: emailBodyHtml || `{{badge}}\n\n<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">\nHello {{name}},\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{intro}}\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{detail}}\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{extra}}\n</p>\n\n{{detailsCard}}\n\n{{destinationBlock}}\n\n{{noteBlock}}\n\n<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">\n{{closingText}}\n</p>\n\n{{invoiceLink}}`,
-  buttonText: emailButtonText || "Track Shipment",
-  buttonUrlType: emailButtonUrlType || "track",
-  badgeText: "",
-  badgeTone: "",
-  showButton: true,
-  showLink: true,
-  linkText: "View Invoice",
-  linkUrlType: "invoice",
-  showDetailsCard: true,
-  detailsCardType: "shipment",
-  updatedAt: now,
-};
+    // Sync to email_templates as timeline:key
+    const templateKey = `timeline:${key}`;
+    const templateDoc = {
+      key: templateKey,
+      label: label,
+      category: "timeline",
+      subject: emailSubject || `Shipment update: {{shipmentId}}`,
+      title: emailTitle || label,
+      preheader: emailPreheader || "",
+      bodyHtml: emailBodyHtml || `{{badge}}\n\n<p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">\nHello {{name}},\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{intro}}\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{detail}}\n</p>\n\n<p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">\n{{extra}}\n</p>\n\n{{detailsCard}}\n\n{{destinationBlock}}\n\n{{noteBlock}}\n\n<p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">\n{{closingText}}\n</p>\n\n{{invoiceLink}}`,
+      buttonText: emailButtonText || "Track Shipment",
+      buttonUrlType: emailButtonUrlType || "track",
+      badgeText,
+      badgeTone,
+      showButton,
+      showLink,
+      linkText: linkText || "View Invoice",
+      linkUrlType: linkUrlType || "invoice",
+      showDetailsCard,
+      detailsCardType: detailsCardType || "shipment",
+      updatedAt: now,
+    };
 
-await db.collection("email_templates").updateOne(
-  { key: templateKey },
-  { $set: templateDoc, $setOnInsert: { createdAt: now } },
-  { upsert: true }
-);
+    await db.collection("email_templates").updateOne(
+      { key: templateKey },
+      { $set: templateDoc, $setOnInsert: { createdAt: now } },
+      { upsert: true }
+    );
 
     return NextResponse.json({ ok: true, status: doc });
   } catch (err) {
