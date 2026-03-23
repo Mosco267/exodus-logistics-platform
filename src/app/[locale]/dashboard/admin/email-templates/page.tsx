@@ -129,7 +129,7 @@ function buildPreviewEmailHtml(args: { subject: string; title: string; preheader
               </td></tr>
             </table>
           </td></tr>
-          <tr><td style="padding:10px 10px 0 10px;font-size:11px;line-height:16px;color:#9ca3af;text-align:center;">This message was sent to gabrielmoses888@gmail.com.</td></tr>
+          
         </table>
       </td></tr>
     </table>
@@ -676,7 +676,7 @@ setTimeout(() => {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-lg font-extrabold text-gray-900">Automated Templates</h2>
-            <p className="text-xs text-gray-500 mt-0.5">System templates triggered automatically. Can be edited but not deleted or manually sent.</p>
+            <p className="text-xs text-gray-500 mt-0.5">System templates triggered automatically. Can be edited and deleted but cannot be manually sent.</p>
           </div>
           <button onClick={fetchTemplates} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition text-sm">Refresh</button>
         </div>
