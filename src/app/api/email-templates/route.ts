@@ -653,3 +653,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to save email template." }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json();
+    const key = String(body?.key || "").trim();
+
+    if (!key) {
+      return NextResponse.json({ error: "Key is required." }, { status: 400 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    await db.collection(COLLECTION).deleteOne({ key });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Failed to delete template." }, { status: 500 });
+  }
+}
