@@ -531,7 +531,7 @@ export default function TrackResultPage() {
 
                           {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
                           {/* pb-3 creates the gap between stages so the line runs through it */}
-                          <div className="flex-1 min-w-0 pb-4 ml-2">
+                          <div className="flex-1 min-w-0 pb-4 ml-5">
                             <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
                               isCompleted ? "border-green-200 bg-green-50/40"
                               : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
