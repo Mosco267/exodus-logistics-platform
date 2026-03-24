@@ -25,6 +25,8 @@ import {
   Home,
   Clock3,
   AlertTriangle,
+  ClipboardList,
+  Route,
 } from "lucide-react";
 
 type LocationLite = {
@@ -81,13 +83,11 @@ type TrackApiResponse = {
   carrierName?: string | null;
 };
 
-// ─── Date formatting using viewer's browser timezone ───────────────────────
-
+// ─── Date formatting — viewer's browser timezone ──────────────────────────
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  // Uses viewer's local timezone automatically (no timeZone override)
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
@@ -105,22 +105,16 @@ function fmtEstimatedRange(
   if (!iso) return { text: "—", endDate: null };
   const start = new Date(iso);
   if (Number.isNaN(start.getTime())) return { text: "—", endDate: null };
-
   const end = new Date(start);
   const extraDays = String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
   end.setDate(end.getDate() + extraDays);
-
   const startText = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const endText = end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-
   return { text: `${startText} – ${endText}`, endDate: end };
 }
 
-// Check if estimated delivery has passed in viewer's local timezone
-// We compare end-of-day of endDate in local time
 function isDeliveryOverdue(endDate: Date | null): boolean {
   if (!endDate) return false;
-  // Set to end of that day in local time
   const endOfDay = new Date(endDate);
   endOfDay.setHours(23, 59, 59, 999);
   return Date.now() > endOfDay.getTime();
@@ -135,8 +129,8 @@ function safeColor(c?: string): string {
   return String(c || "").trim();
 }
 
+// Fix 8 — icon key from DB takes priority; falls back to label matching
 function getStageIcon(label?: string, iconKey?: string) {
-  // Use stored icon key first
   const key = String(iconKey || "").toLowerCase();
   if (key === "truck") return Truck;
   if (key === "warehouse") return Warehouse;
@@ -146,11 +140,10 @@ function getStageIcon(label?: string, iconKey?: string) {
   if (key === "clock") return Clock3;
   if (key === "check") return CheckCircle2;
   if (key === "package") return Package;
-  if (key === "route") return Truck;
+  if (key === "route") return Route;
   if (key === "alert") return AlertCircle;
   if (key === "file") return FileText;
 
-  // Fall back to label matching
   const v = String(label || "").trim().toLowerCase();
   if (v.includes("created")) return Package;
   if (v.includes("pickup") || v.includes("picked")) return Truck;
@@ -160,26 +153,24 @@ function getStageIcon(label?: string, iconKey?: string) {
   if (v.includes("out for delivery")) return Truck;
   if (v.includes("delivered")) return Home;
   if (v.includes("transit")) return Truck;
-  if (v.includes("unclaimed") || v.includes("clock")) return Clock3;
+  if (v.includes("unclaimed")) return Clock3;
   return CircleDashed;
 }
 
-function stageDotStyle(stageIndex: number, currentStageIndex: number, stageBaseColor?: string) {
-  if (stageIndex < currentStageIndex) return { background: "#22c55e" };
-  if (stageIndex === currentStageIndex) return { background: safeColor(stageBaseColor) || "#f59e0b" };
-  return { background: "#d1d5db" };
-}
-
+// Fix 7 — clean copy button, no text shown, just icon; shows checkmark when copied
 function CopyIconButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
   if (!value) return null;
   return (
     <button
       type="button"
       onClick={onCopy}
-      className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition"
-      title="Copy"
+      className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 bg-white text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition shrink-0"
+      title={copied ? "Copied!" : "Copy"}
     >
-      {copied ? <><Check className="w-3.5 h-3.5" />Copied</> : <Copy className="w-3.5 h-3.5" />}
+      {copied
+        ? <Check className="w-3.5 h-3.5 text-green-600" />
+        : <Copy className="w-3.5 h-3.5" />
+      }
     </button>
   );
 }
@@ -298,14 +289,22 @@ export default function TrackResultPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/40 to-white">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
 
-        {/* Nav */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Link href={`/${locale}/track`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-            <MapPin className="w-4 h-4" /> Back to Track
+        {/* Fix 6 — mobile: left/right nav; desktop: flex-wrap */}
+        <div className="mb-6 flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
+          <Link
+            href={`/${locale}/track`}
+            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
+          >
+            <MapPin className="w-4 h-4" />
+            <span>Back to Track</span>
           </Link>
           {invoiceQ && (
-            <Link href={`/${locale}/invoice`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-              <FileText className="w-4 h-4" /> View Invoice
+            <Link
+              href={`/${locale}/invoice`}
+              className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
+            >
+              <FileText className="w-4 h-4" />
+              <span>View Invoice</span>
             </Link>
           )}
         </div>
@@ -330,44 +329,41 @@ export default function TrackResultPage() {
           <>
             {/* ── HEADER CARD ── */}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-lg overflow-hidden">
-
-              {/* Blue accent bar */}
               <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
 
               <div className="p-5 sm:p-7">
 
-                {/* Top row — IDs + status */}
+                {/* IDs + status */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
 
-                  {/* Left — shipment numbers */}
+                  {/* Left — IDs */}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Shipment Number</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis max-w-[280px] sm:max-w-none">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Shipment Number</p>
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px] sm:max-w-none leading-tight">
                         {data.shipmentId || "—"}
                       </h1>
                       <CopyIconButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} />
                     </div>
 
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Tracking</span>
-                        <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{data.trackingNumber || "—"}</span>
+                    <div className="mt-3 space-y-1.5">
+                      {/* Fix 1 — "Tracking No." and "Invoice No." */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">Tracking No.</span>
+                        <span className="text-sm font-bold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{data.trackingNumber || "—"}</span>
                         <CopyIconButton value={data.trackingNumber} copied={copiedKey === "track"} onCopy={() => handleCopy("track", data.trackingNumber)} />
                       </div>
-                      {invoiceNumber && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Invoice</span>
-                          <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{invoiceNumber}</span>
-                          <CopyIconButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} />
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">Invoice No.</span>
+                        <span className="text-sm font-bold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{invoiceNumber || "—"}</span>
+                        {invoiceNumber && <CopyIconButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} />}
+                      </div>
                     </div>
                   </div>
 
                   {/* Right — status */}
                   <div className="sm:text-right shrink-0">
-                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
                     <p className="text-lg sm:text-xl font-extrabold text-blue-700 leading-tight">
                       {data.currentStatus || events[currentIndex]?.label || "—"}
                     </p>
@@ -382,11 +378,11 @@ export default function TrackResultPage() {
                   </div>
                 </div>
 
-                {/* Delivery overdue warning — based on viewer local time */}
+                {/* Delivery overdue warning */}
                 {deliveryOverdue && (
                   <div className="mt-4 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
                     <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700 font-medium">
+                    <p className="text-sm text-red-700 font-medium leading-relaxed">
                       The estimated delivery date has passed in your local time. Please{" "}
                       <a href="mailto:support@goexoduslogistics.com" className="cursor-pointer font-bold underline hover:text-red-900 transition">contact support</a>{" "}
                       for an updated delivery timeline.
@@ -394,7 +390,7 @@ export default function TrackResultPage() {
                   </div>
                 )}
 
-                {/* Note / Next step */}
+                {/* Origin / Note / Next step */}
                 {(data.origin || data.statusNote || data.nextStep) && (
                   <div className="mt-4 space-y-2 text-sm border-t border-gray-100 pt-4">
                     {data.origin && (
@@ -418,11 +414,11 @@ export default function TrackResultPage() {
                   </div>
                 )}
 
-                {/* Info cards grid */}
+                {/* Fix 2 — stronger visible borders on all cards */}
                 <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 
                   {/* Invoice */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Invoice</p>
@@ -435,7 +431,7 @@ export default function TrackResultPage() {
                   </div>
 
                   {/* Destination */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Destination</p>
@@ -447,8 +443,8 @@ export default function TrackResultPage() {
                     </p>
                   </div>
 
-                  {/* Delivery Details */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  {/* Delivery */}
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Truck className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Delivery</p>
@@ -459,8 +455,8 @@ export default function TrackResultPage() {
                     </p>
                   </div>
 
-                  {/* Package Details */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  {/* Package */}
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Package</p>
@@ -472,11 +468,11 @@ export default function TrackResultPage() {
                     </div>
                   </div>
 
-                  {/* Package Description */}
+                  {/* Fix 3 — Description uses ClipboardList icon instead of Package */}
                   {data.packageDescription && (
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                       <div className="flex items-center gap-2 mb-2">
-                        <Package className="w-4 h-4 text-blue-600" />
+                        <ClipboardList className="w-4 h-4 text-blue-600" />
                         <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Description</p>
                       </div>
                       <p className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{data.packageDescription}</p>
@@ -484,7 +480,7 @@ export default function TrackResultPage() {
                   )}
 
                   {/* Carrier */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <LifeBuoy className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Carrier</p>
@@ -500,7 +496,7 @@ export default function TrackResultPage() {
                   </div>
 
                   {/* Created */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Created</p>
@@ -524,9 +520,10 @@ export default function TrackResultPage() {
                 <p className="text-sm text-gray-500 mb-6">Live tracking history. All times are shown in your local timezone.</p>
 
                 {events.length === 0 ? (
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 text-sm text-gray-600 text-center">No tracking updates yet.</div>
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 text-center">No tracking updates yet.</div>
                 ) : (
-                  <div className="space-y-3">
+                  // Fix 5 — consistent left padding + centering for mobile
+                  <div className="space-y-0">
                     {events.map((ev, idx) => {
                       const isOpen = openIdx === idx;
                       const stageLoc = fmtLoc(ev.location);
@@ -537,110 +534,134 @@ export default function TrackResultPage() {
                       const labelLower = String(ev.label || "").toLowerCase();
                       const isCancelled = labelLower === "cancelled" || labelLower === "canceled";
                       const isDelivered = labelLower === "delivered";
+                      const isLast = idx === events.length - 1;
+
+                      const currentDotColor = isCompleted ? "#22c55e" : safeColor(stageBaseColor) || "#f59e0b";
+                      const nextEvent = events[idx + 1];
+                      const nextDotColor = !isLast
+                        ? (idx + 1 < currentIndex ? "#22c55e" : safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
+                        : currentDotColor;
 
                       return (
-                        <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10 pb-1">
-                          {/* Timeline rail */}
-                          <div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
-                            {(() => {
-                              const nextEvent = events[idx + 1];
-                              const currentDotColor = isCompleted ? "#22c55e" : safeColor(stageBaseColor) || "#f59e0b";
-                              const nextDotColor = idx !== events.length - 1
-                                ? (idx + 1 < currentIndex ? "#22c55e" : safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
-                                : currentDotColor;
-                              return (
-                                <>
-                                  <div className="h-5 w-5 rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 mt-5" style={{ background: currentDotColor }}>
-                                    {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
-                                  </div>
-                                  {idx !== events.length - 1 && (
-                                    <div className="w-[3px] flex-1 -mt-[2px] rounded-full" style={{ minHeight: "80px", background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)` }} />
-                                  )}
-                                </>
-                              );
-                            })()}
+                        // Fix 4+5 — outer wrapper handles the rail; card is full width
+                        <div key={`${ev.key || ev.label}-${idx}`} className="flex gap-0">
+
+                          {/* Fix 4 — rail column: dot + line perfectly connected */}
+                          <div className="flex flex-col items-center" style={{ width: "40px", minWidth: "40px" }}>
+                            {/* dot */}
+                            <div
+                              className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
+                              style={{ background: currentDotColor, width: "22px", height: "22px", marginTop: "18px" }}
+                            >
+                              {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
+                            </div>
+                            {/* line — stretches to fill remaining space, touching next dot */}
+                            {!isLast && (
+                              <div
+                                className="w-[3px] flex-1 rounded-full"
+                                style={{
+                                  background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
+                                  minHeight: "24px",
+                                }}
+                              />
+                            )}
                           </div>
 
-                          {/* Stage card */}
-                          <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
-                            isCompleted ? "border-green-200 bg-green-50/30"
-                            : isCurrent && isCancelled ? "border-red-200 bg-red-50/30 shadow"
-                            : isCurrent && isDelivered ? "border-green-200 bg-green-50/30 shadow"
-                            : isCurrent ? "border-blue-200 bg-blue-50/30 shadow-md"
-                            : "border-gray-100 bg-white"
-                          }`}>
-                            <button type="button" onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))} className="cursor-pointer w-full text-left p-4 sm:p-5">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-start gap-3 min-w-0">
-                                  <div className={`shrink-0 h-11 w-11 rounded-2xl flex items-center justify-center border ${
-                                    isCompleted ? "bg-green-100 border-green-200 text-green-700"
-                                    : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
-                                    : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
-                                    : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
-                                    : "bg-gray-100 border-gray-200 text-gray-500"
-                                  }`}>
-                                    {(() => { const Icon = getStageIcon(ev.label, ev.icon); return <Icon className="w-5 h-5" />; })()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
-                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                                        isCompleted ? "bg-green-100 text-green-700 border-green-200"
-                                        : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
-                                        : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
-                                        : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
-                                        : "bg-gray-100 text-gray-500 border-gray-200"
-                                      }`}>
-                                        {isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current" : "Upcoming"}
-                                      </span>
+                          {/* card */}
+                          <div className="flex-1 min-w-0 pb-3">
+                            <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
+                              isCompleted ? "border-green-200 bg-green-50/40"
+                              : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
+                              : isCurrent && isDelivered ? "border-green-200 bg-green-50/40 shadow-md"
+                              : isCurrent ? "border-blue-200 bg-blue-50/40 shadow-md"
+                              : "border-gray-200 bg-white"
+                            }`}>
+                              <button
+                                type="button"
+                                onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
+                                className="cursor-pointer w-full text-left p-4"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-start gap-3 min-w-0">
+                                    {/* Fix 8 — icon from DB key */}
+                                    <div className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center border ${
+                                      isCompleted ? "bg-green-100 border-green-200 text-green-700"
+                                      : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
+                                      : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
+                                      : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
+                                      : "bg-gray-100 border-gray-200 text-gray-500"
+                                    }`}>
+                                      {(() => {
+                                        const Icon = getStageIcon(ev.label, ev.icon);
+                                        return <Icon className="w-5 h-5" />;
+                                      })()}
                                     </div>
-                                    <p className="mt-0.5 text-xs text-gray-500">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
+
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
+                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                                          isCompleted ? "bg-green-100 text-green-700 border-green-200"
+                                          : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
+                                          : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
+                                          : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
+                                          : "bg-gray-100 text-gray-500 border-gray-200"
+                                        }`}>
+                                          {isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current" : "Upcoming"}
+                                        </span>
+                                      </div>
+                                      <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
+                                    </div>
                                   </div>
+
+                                  <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform mt-1 ${isOpen ? "rotate-180" : ""}`} />
                                 </div>
-                                <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform mt-1 ${isOpen ? "rotate-180" : ""}`} />
-                              </div>
 
-                              {isOpen && (
-                                <div className="mt-4 border-t border-gray-200 pt-4">
-                                  <div className="space-y-2">
-                                    {(ev.entries || []).map((en, j) => {
-                                      const loc = fmtLoc(en.location);
-                                      const when = fmtDate(en.occurredAt);
-                                      const isLast = j === (ev.entries?.length || 0) - 1;
-                                      const entryDotBg = isCompleted && isLast ? "#22c55e" : safeColor(en.color) || "#9ca3af";
+                                {/* Expanded entries */}
+                                {isOpen && (
+                                  <div className="mt-4 border-t border-gray-200 pt-4">
+                                    <div className="space-y-2">
+                                      {(ev.entries || []).map((en, j) => {
+                                        const loc = fmtLoc(en.location);
+                                        const when = fmtDate(en.occurredAt);
+                                        const isLastEntry = j === (ev.entries?.length || 0) - 1;
+                                        const entryDotBg = isCompleted && isLastEntry ? "#22c55e" : safeColor(en.color) || "#9ca3af";
 
-                                      return (
-                                        <div key={`entry-${j}`} className="relative pl-8">
-                                          {!isLast && <div className="absolute left-[10px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />}
-                                          <div className="absolute left-[7px] top-[11px]">
-                                            <div className="h-3 w-3 rounded-full ring-2 ring-white" style={{ background: entryDotBg }} />
+                                        return (
+                                          <div key={`entry-${j}`} className="relative pl-7">
+                                            {!isLastEntry && (
+                                              <div className="absolute left-[9px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />
+                                            )}
+                                            <div className="absolute left-[6px] top-[11px]">
+                                              <div className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
+                                            </div>
+                                            <div className={`rounded-xl border border-gray-100 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
+                                              <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
+                                              <p className="text-sm text-gray-800 mt-1 leading-relaxed">{en.note?.trim() || "No additional details provided."}</p>
+                                            </div>
                                           </div>
-                                          <div className={`rounded-xl border border-gray-100 bg-white px-4 py-3 ${!isLast ? "mb-2" : ""}`}>
-                                            <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
-                                            <p className="text-sm text-gray-800 mt-1 leading-relaxed">{en.note?.trim() || "No additional details provided."}</p>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                                        );
+                                      })}
+                                    </div>
 
-                                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Invoice</p>
-                                      <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Destination</p>
-                                      <p className="mt-0.5 text-xs font-bold text-gray-900">{data.destination || "—"}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Current Location</p>
-                                      <p className="mt-0.5 text-xs font-bold text-gray-900">{data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}</p>
+                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                      <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Invoice</p>
+                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
+                                      </div>
+                                      <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Destination</p>
+                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{data.destination || "—"}</p>
+                                      </div>
+                                      <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Current Location</p>
+                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}</p>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
-                            </button>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
