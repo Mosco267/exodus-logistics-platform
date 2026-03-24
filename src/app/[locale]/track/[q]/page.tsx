@@ -501,7 +501,7 @@ export default function TrackResultPage() {
                         : currentDotColor;
 
                       return (
-                        <div key={`${ev.key || ev.label}-${idx}`} className="flex items-stretch gap-3 relative">
+                        <div key={`${ev.key || ev.label}-${idx}`} className="flex items-stretch ">
 
                           {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
                           <div className="flex flex-col items-center shrink-0" style={{ width: "36px" }}>
@@ -520,7 +520,7 @@ export default function TrackResultPage() {
                                 className="w-[3px] flex-1 rounded-b-full"
                                 style={{
                                   background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
-                                  minHeight: "12px",
+                                  minHeight: "52px",
                                 }}
                               />
                             )}
