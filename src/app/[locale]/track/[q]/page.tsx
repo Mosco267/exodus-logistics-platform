@@ -595,11 +595,11 @@ export default function TrackResultPage() {
                                         const entryDotBg = isCompleted && isLastEntry ? "#22c55e" : safeColor(en.color) || "#9ca3af";
 
                                         return (
-                                          <div key={`entry-${j}`} className="relative pl-7">
+                                          <div key={`entry-${j}`} className="relative pl-4">
                                             {!isLastEntry && (
-                                              <div className="absolute left-[9px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />
-                                            )}
-                                            <div className="absolute left-[6px] top-[11px]">
+  <div className="absolute left-[6px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />
+)}
+<div className="absolute left-[3px] top-[11px]">
                                               <div className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
                                             </div>
                                             <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
