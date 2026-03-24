@@ -481,7 +481,7 @@ export default function TrackResultPage() {
                 {events.length === 0 ? (
                   <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 text-center">No tracking updates yet.</div>
                 ) : (
-                  <div className="space-y-0">
+                  <div className="space-y-0 -ml-3">
                     {events.map((ev, idx) => {
                       const isOpen = openIdx === idx;
                       const stageLoc = fmtLoc(ev.location);
