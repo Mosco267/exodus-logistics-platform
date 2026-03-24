@@ -595,7 +595,7 @@ export default function TrackResultPage() {
                                         const entryDotBg = isCompleted && isLastEntry ? "#22c55e" : safeColor(en.color) || "#9ca3af";
 
                                         return (
-                                          <div key={`entry-${j}`} className="relative pl-1">
+                                          <div key={`entry-${j}`} className="relative -ml-2">
                                             {!isLastEntry && (
   <div className="absolute left-[3px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />
 )}
