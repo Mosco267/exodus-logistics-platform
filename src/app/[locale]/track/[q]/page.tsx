@@ -518,7 +518,7 @@ export default function TrackResultPage() {
       className="absolute"
       style={{
         top: "40px",
-        bottom: "-24px",
+        bottom: "-8px",
         width: "3px",
         left: "50%",
         transform: "translateX(-50%)",
