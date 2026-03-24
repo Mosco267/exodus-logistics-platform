@@ -83,7 +83,6 @@ type TrackApiResponse = {
   carrierName?: string | null;
 };
 
-// ─── Date formatting — viewer's browser timezone ──────────────────────────
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -129,7 +128,6 @@ function safeColor(c?: string): string {
   return String(c || "").trim();
 }
 
-// Fix 8 — icon key from DB takes priority; falls back to label matching
 function getStageIcon(label?: string, iconKey?: string) {
   const key = String(iconKey || "").toLowerCase();
   if (key === "truck") return Truck;
@@ -157,15 +155,15 @@ function getStageIcon(label?: string, iconKey?: string) {
   return CircleDashed;
 }
 
-// Fix 7 — clean copy button, no text shown, just icon; shows checkmark when copied
+// Fix 3 — icon-only button, no title/tooltip (removes browser "Copy" tooltip)
 function CopyIconButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
   if (!value) return null;
   return (
     <button
       type="button"
       onClick={onCopy}
+      aria-label={copied ? "Copied" : "Copy to clipboard"}
       className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 bg-white text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition shrink-0"
-      title={copied ? "Copied!" : "Copy"}
     >
       {copied
         ? <Check className="w-3.5 h-3.5 text-green-600" />
@@ -289,22 +287,13 @@ export default function TrackResultPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/40 to-white">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
 
-        {/* Fix 6 — mobile: left/right nav; desktop: flex-wrap */}
         <div className="mb-6 flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
-          <Link
-            href={`/${locale}/track`}
-            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
-          >
-            <MapPin className="w-4 h-4" />
-            <span>Back to Track</span>
+          <Link href={`/${locale}/track`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+            <MapPin className="w-4 h-4" /><span>Back to Track</span>
           </Link>
           {invoiceQ && (
-            <Link
-              href={`/${locale}/invoice`}
-              className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
-            >
-              <FileText className="w-4 h-4" />
-              <span>View Invoice</span>
+            <Link href={`/${locale}/invoice`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+              <FileText className="w-4 h-4" /><span>View Invoice</span>
             </Link>
           )}
         </div>
@@ -327,16 +316,11 @@ export default function TrackResultPage() {
 
         {!loading && data && (
           <>
-            {/* ── HEADER CARD ── */}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-lg overflow-hidden">
               <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
-
               <div className="p-5 sm:p-7">
 
-                {/* IDs + status */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
-
-                  {/* Left — IDs */}
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Shipment Number</p>
                     <div className="flex items-center gap-2">
@@ -345,9 +329,7 @@ export default function TrackResultPage() {
                       </h1>
                       <CopyIconButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} />
                     </div>
-
                     <div className="mt-3 space-y-1.5">
-                      {/* Fix 1 — "Tracking No." and "Invoice No." */}
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">Tracking No.</span>
                         <span className="text-sm font-bold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{data.trackingNumber || "—"}</span>
@@ -361,7 +343,6 @@ export default function TrackResultPage() {
                     </div>
                   </div>
 
-                  {/* Right — status */}
                   <div className="sm:text-right shrink-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
                     <p className="text-lg sm:text-xl font-extrabold text-blue-700 leading-tight">
@@ -378,7 +359,6 @@ export default function TrackResultPage() {
                   </div>
                 </div>
 
-                {/* Delivery overdue warning */}
                 {deliveryOverdue && (
                   <div className="mt-4 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
                     <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -390,7 +370,6 @@ export default function TrackResultPage() {
                   </div>
                 )}
 
-                {/* Origin / Note / Next step */}
                 {(data.origin || data.statusNote || data.nextStep) && (
                   <div className="mt-4 space-y-2 text-sm border-t border-gray-100 pt-4">
                     {data.origin && (
@@ -414,48 +393,35 @@ export default function TrackResultPage() {
                   </div>
                 )}
 
-                {/* Fix 2 — stronger visible borders on all cards */}
                 <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-
-                  {/* Invoice */}
                   <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Invoice</p>
                     </div>
-                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>
-                      {invoiceStatusLabel}
-                    </div>
+                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>{invoiceStatusLabel}</div>
                     <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
                     {invoiceNumber && <p className="mt-1 text-xs text-gray-500 font-medium">{invoiceNumber}</p>}
                   </div>
 
-                  {/* Destination */}
                   <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Destination</p>
                     </div>
                     <p className="text-sm font-bold text-gray-900 leading-snug">{data.destination || "—"}</p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      <span className="font-semibold">Current location:</span>{" "}
-                      {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500"><span className="font-semibold">Current location:</span>{" "}{data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}</p>
                   </div>
 
-                  {/* Delivery */}
                   <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Truck className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Delivery</p>
                     </div>
                     <p className="text-sm font-bold text-gray-900">{estimatedRangeText}</p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      <span className="font-semibold">Means:</span> {data.shipmentMeans || "—"}
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500"><span className="font-semibold">Means:</span> {data.shipmentMeans || "—"}</p>
                   </div>
 
-                  {/* Package */}
                   <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-4 h-4 text-blue-600" />
@@ -468,7 +434,6 @@ export default function TrackResultPage() {
                     </div>
                   </div>
 
-                  {/* Fix 3 — Description uses ClipboardList icon instead of Package */}
                   {data.packageDescription && (
                     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                       <div className="flex items-center gap-2 mb-2">
@@ -479,7 +444,6 @@ export default function TrackResultPage() {
                     </div>
                   )}
 
-                  {/* Carrier */}
                   <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <LifeBuoy className="w-4 h-4 text-blue-600" />
@@ -488,14 +452,10 @@ export default function TrackResultPage() {
                     <div className="space-y-1 text-xs text-gray-700">
                       <p><span className="font-semibold">Carrier:</span> {data.carrierName || "Exodus Logistics"}</p>
                       <p><span className="font-semibold">Service:</span> {`${String(data.shipmentScope || "").toLowerCase() === "local" ? "Local" : "International"} ${data.serviceLevel || ""}`.trim() || "—"}</p>
-                      <p>
-                        <span className="font-semibold">Support:</span>{" "}
-                        <a href="mailto:support@goexoduslogistics.com" className="cursor-pointer text-blue-700 underline font-semibold hover:text-blue-900 transition">support@goexoduslogistics.com</a>
-                      </p>
+                      <p><span className="font-semibold">Support:</span>{" "}<a href="mailto:support@goexoduslogistics.com" className="cursor-pointer text-blue-700 underline font-semibold hover:text-blue-900 transition">support@goexoduslogistics.com</a></p>
                     </div>
                   </div>
 
-                  {/* Created */}
                   <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
@@ -504,12 +464,11 @@ export default function TrackResultPage() {
                     <p className="text-xs font-bold text-gray-900">{fmtDate(data.createdAt || events[0]?.occurredAt)}</p>
                     <p className="mt-1 text-xs text-gray-500">All times shown in your local timezone.</p>
                   </div>
-
                 </div>
               </div>
             </motion.div>
 
-            {/* ── TIMELINE ── */}
+            {/* TIMELINE */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-5 rounded-3xl border border-gray-200 bg-white shadow-lg overflow-hidden">
               <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
               <div className="p-5 sm:p-7">
@@ -522,7 +481,6 @@ export default function TrackResultPage() {
                 {events.length === 0 ? (
                   <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 text-center">No tracking updates yet.</div>
                 ) : (
-                  // Fix 5 — consistent left padding + centering for mobile
                   <div className="space-y-0">
                     {events.map((ev, idx) => {
                       const isOpen = openIdx === idx;
@@ -543,32 +501,34 @@ export default function TrackResultPage() {
                         : currentDotColor;
 
                       return (
-                        // Fix 4+5 — outer wrapper handles the rail; card is full width
-                        <div key={`${ev.key || ev.label}-${idx}`} className="flex gap-0">
+                        <div key={`${ev.key || ev.label}-${idx}`} className="flex">
 
-                          {/* Fix 4 — rail column: dot + line perfectly connected */}
-                          <div className="flex flex-col items-center" style={{ width: "40px", minWidth: "40px" }}>
+                          {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
+                          <div className="flex flex-col items-center shrink-0" style={{ width: "36px" }}>
+                            {/* spacer to align dot with card top padding */}
+                            <div style={{ height: "20px" }} />
                             {/* dot */}
                             <div
                               className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
-                              style={{ background: currentDotColor, width: "22px", height: "22px", marginTop: "18px" }}
+                              style={{ background: currentDotColor, width: "22px", height: "22px" }}
                             >
                               {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
                             </div>
-                            {/* line — stretches to fill remaining space, touching next dot */}
+                            {/* Fix 2 — line stretches from bottom of dot all the way to next dot; no gap */}
                             {!isLast && (
                               <div
-                                className="w-[3px] flex-1 rounded-full"
+                                className="w-[3px] flex-1 rounded-b-full"
                                 style={{
                                   background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
-                                  minHeight: "24px",
+                                  minHeight: "12px",
                                 }}
                               />
                             )}
                           </div>
 
-                          {/* card */}
-                          <div className="flex-1 min-w-0 pb-3">
+                          {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
+                          {/* pb-3 creates the gap between stages so the line runs through it */}
+                          <div className="flex-1 min-w-0 pl-2 pb-4">
                             <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
                               isCompleted ? "border-green-200 bg-green-50/40"
                               : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
@@ -583,7 +543,6 @@ export default function TrackResultPage() {
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex items-start gap-3 min-w-0">
-                                    {/* Fix 8 — icon from DB key */}
                                     <div className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center border ${
                                       isCompleted ? "bg-green-100 border-green-200 text-green-700"
                                       : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
@@ -600,6 +559,7 @@ export default function TrackResultPage() {
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
+                                        {/* Fix 2 — "Current" → "Current Stage" */}
                                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                                           isCompleted ? "bg-green-100 text-green-700 border-green-200"
                                           : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
@@ -607,7 +567,11 @@ export default function TrackResultPage() {
                                           : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
                                           : "bg-gray-100 text-gray-500 border-gray-200"
                                         }`}>
-                                          {isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current" : "Upcoming"}
+                                          {isCompleted ? "Completed"
+                                            : isCurrent && isCancelled ? "Cancelled"
+                                            : isCurrent && isDelivered ? "Delivered"
+                                            : isCurrent ? "Current Stage"
+                                            : "Upcoming"}
                                         </span>
                                       </div>
                                       <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
@@ -617,9 +581,9 @@ export default function TrackResultPage() {
                                   <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform mt-1 ${isOpen ? "rotate-180" : ""}`} />
                                 </div>
 
-                                {/* Expanded entries */}
                                 {isOpen && (
                                   <div className="mt-4 border-t border-gray-200 pt-4">
+                                    {/* Fix 2 inner line — entries also connect properly */}
                                     <div className="space-y-2">
                                       {(ev.entries || []).map((en, j) => {
                                         const loc = fmtLoc(en.location);
@@ -635,7 +599,7 @@ export default function TrackResultPage() {
                                             <div className="absolute left-[6px] top-[11px]">
                                               <div className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
                                             </div>
-                                            <div className={`rounded-xl border border-gray-100 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
+                                            <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                               <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
                                               <p className="text-sm text-gray-800 mt-1 leading-relaxed">{en.note?.trim() || "No additional details provided."}</p>
                                             </div>
