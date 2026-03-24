@@ -504,7 +504,7 @@ export default function TrackResultPage() {
                         <div key={`${ev.key || ev.label}-${idx}`} className="flex relative">
 
                           {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
-                          <div className="relative shrink-0 flex flex-col items-center" style={{ width: "20px" }}>
+                          <div className="relative shrink-0 flex flex-col items-center" style={{ width: "14px" }}>
   {/* dot */}
   <div
     className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
