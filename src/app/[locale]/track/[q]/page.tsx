@@ -518,10 +518,9 @@ export default function TrackResultPage() {
       className="absolute"
       style={{
         top: "40px",
-        bottom: "-16px",
+        bottom: "-24px",
         width: "3px",
-        left: "50%",
-        transform: "translateX(-50%)",
+        left: "10px",
         background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
         borderRadius: "0 0 4px 4px",
       }}
