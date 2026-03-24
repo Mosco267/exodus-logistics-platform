@@ -597,7 +597,7 @@ export default function TrackResultPage() {
                                         return (
                                           <div key={`entry-${j}`} className="relative pl-1">
                                             {!isLastEntry && (
-  <div className="absolute left-[-10px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[ev.entries.length - 1]?.color) || "#d1d5db"} 100%)` }} />
+  <div className="absolute left-[-13px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[ev.entries.length - 1]?.color) || "#d1d5db"} 100%)` }} />
 )}
 <div className="absolute left-[-12px] top-[11px]">
                                               <div className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
