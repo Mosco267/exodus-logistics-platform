@@ -8,6 +8,8 @@ type CompanySettingsDoc = {
   phone?: string;
   email?: string;
   registrationNumber?: string;
+  country?: string;
+  timezone?: string;
 };
 
 export async function GET() {
@@ -44,6 +46,8 @@ export async function PATCH(req: Request) {
     phone: String(body?.phone || "").trim(),
     email: String(body?.email || "").trim(),
     registrationNumber: String(body?.registrationNumber || "").trim(),
+    country: String(body?.country || "").trim(),
+    timezone: String(body?.timezone || "").trim(),
   };
 
   await db.collection<CompanySettingsDoc>("company_settings").updateOne(

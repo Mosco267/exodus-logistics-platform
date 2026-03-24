@@ -23,7 +23,8 @@ import {
   Plane,
   ShieldCheck,
   Home,
-  Clock3
+  Clock3,
+  AlertTriangle,
 } from "lucide-react";
 
 type LocationLite = {
@@ -44,6 +45,7 @@ type GroupedEvent = {
   key?: string;
   label: string;
   color?: string;
+  icon?: string;
   occurredAt: string;
   location?: LocationLite;
   entries: Entry[];
@@ -52,28 +54,22 @@ type GroupedEvent = {
 type TrackApiResponse = {
   shipmentId: string;
   trackingNumber: string;
-  
-
   currentStatus?: string;
   statusNote?: string;
   nextStep?: string;
-
   createdAt?: string | null;
   updatedAt?: string | null;
-
   origin?: string | null;
   destination?: string | null;
   currentLocation?: string | null;
   packageDescription?: string | null;
-
   invoice?: {
     paid: boolean;
     status?: "paid" | "unpaid" | "overdue" | "cancelled";
     amount: number;
     currency: string;
-    invoiceNumber?: string; // ✅ add invoice number here
+    invoiceNumber?: string;
   } | null;
-
   events: GroupedEvent[];
   estimatedDelivery?: string | null;
   shipmentMeans?: string | null;
@@ -85,136 +81,105 @@ type TrackApiResponse = {
   carrierName?: string | null;
 };
 
-function fmtDate(iso?: string | null) {
+// ─── Date formatting using viewer's browser timezone ───────────────────────
+
+function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-US", {
+  // Uses viewer's local timezone automatically (no timeZone override)
+  return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  }).format(d) + " UTC";
-}
-
-function fmtDateOnly(iso?: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+    hour12: true,
+  }).format(d);
 }
 
 function fmtEstimatedRange(
   iso?: string | null,
   shipmentScope?: string | null
-) {
-  if (!iso) return "—";
-
+): { text: string; endDate: Date | null } {
+  if (!iso) return { text: "—", endDate: null };
   const start = new Date(iso);
-  if (Number.isNaN(start.getTime())) return "—";
+  if (Number.isNaN(start.getTime())) return { text: "—", endDate: null };
 
   const end = new Date(start);
-  const extraDays =
-    String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
-
+  const extraDays = String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
   end.setDate(end.getDate() + extraDays);
 
-  const startText = start.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
+  const startText = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const endText = end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
-  const endText = end.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  return `${startText} - ${endText}`;
+  return { text: `${startText} – ${endText}`, endDate: end };
 }
 
-function fmtLoc(loc?: LocationLite) {
+// Check if estimated delivery has passed in viewer's local timezone
+// We compare end-of-day of endDate in local time
+function isDeliveryOverdue(endDate: Date | null): boolean {
+  if (!endDate) return false;
+  // Set to end of that day in local time
+  const endOfDay = new Date(endDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  return Date.now() > endOfDay.getTime();
+}
+
+function fmtLoc(loc?: LocationLite): string {
   if (!loc) return "";
-  const parts = [loc.city, loc.state, loc.country]
-    .map((x) => String(x || "").trim())
-    .filter(Boolean);
-  return parts.join(", ");
+  return [loc.city, loc.state, loc.country].map((x) => String(x || "").trim()).filter(Boolean).join(", ");
 }
 
-function safeColor(c?: string) {
-  const v = String(c || "").trim();
-  return v || "";
+function safeColor(c?: string): string {
+  return String(c || "").trim();
 }
 
-function getStageIcon(label?: string) {
+function getStageIcon(label?: string, iconKey?: string) {
+  // Use stored icon key first
+  const key = String(iconKey || "").toLowerCase();
+  if (key === "truck") return Truck;
+  if (key === "warehouse") return Warehouse;
+  if (key === "plane") return Plane;
+  if (key === "shield") return ShieldCheck;
+  if (key === "home") return Home;
+  if (key === "clock") return Clock3;
+  if (key === "check") return CheckCircle2;
+  if (key === "package") return Package;
+  if (key === "route") return Truck;
+  if (key === "alert") return AlertCircle;
+  if (key === "file") return FileText;
+
+  // Fall back to label matching
   const v = String(label || "").trim().toLowerCase();
-
   if (v.includes("created")) return Package;
-  if (v.includes("pickup")) return Truck;
+  if (v.includes("pickup") || v.includes("picked")) return Truck;
   if (v.includes("warehouse")) return Warehouse;
   if (v.includes("air") || v.includes("flight") || v.includes("freight")) return Plane;
   if (v.includes("custom")) return ShieldCheck;
   if (v.includes("out for delivery")) return Truck;
   if (v.includes("delivered")) return Home;
   if (v.includes("transit")) return Truck;
-  if (v.includes("unclaimed")) return Clock3;
-
+  if (v.includes("unclaimed") || v.includes("clock")) return Clock3;
   return CircleDashed;
 }
 
-/**
- * ✅ Completed steps => GREEN
- * ✅ Current step => admin color if provided, else amber
- * ✅ Upcoming => gray
- */
-function stageDotStyle(
-  stageIndex: number,
-  currentStageIndex: number,
-  stageBaseColor?: string
-) {
+function stageDotStyle(stageIndex: number, currentStageIndex: number, stageBaseColor?: string) {
   if (stageIndex < currentStageIndex) return { background: "#22c55e" };
-  if (stageIndex === currentStageIndex) {
-    return { background: safeColor(stageBaseColor) || "#f59e0b" };
-  }
+  if (stageIndex === currentStageIndex) return { background: safeColor(stageBaseColor) || "#f59e0b" };
   return { background: "#d1d5db" };
 }
 
-/** ✅ small copy icon button that turns into "Copied" briefly */
-function CopyIconButton({
-  value,
-  copied,
-  onCopy,
-}: {
-  value: string;
-  copied: boolean;
-  onCopy: () => void;
-}) {
+function CopyIconButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
   if (!value) return null;
-
   return (
     <button
       type="button"
       onClick={onCopy}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700
-                 hover:border-blue-300 hover:text-blue-700 transition"
-      aria-label="Copy to clipboard"
+      className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition"
       title="Copy"
     >
-      {copied ? (
-        <>
-          <Check className="w-4 h-4" />
-          Copied
-        </>
-      ) : (
-        <Copy className="w-4 h-4" />
-      )}
+      {copied ? <><Check className="w-3.5 h-3.5" />Copied</> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
@@ -222,14 +187,10 @@ function CopyIconButton({
 async function copyToClipboard(text: string) {
   const v = String(text || "").trim();
   if (!v) return;
-
-  // modern
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(v);
     return;
   }
-
-  // fallback
   const ta = document.createElement("textarea");
   ta.value = v;
   ta.style.position = "fixed";
@@ -249,34 +210,22 @@ export default function TrackResultPage() {
   const [data, setData] = useState<TrackApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
-  // accordion open stage
   const [openIdx, setOpenIdx] = useState<number | null>(0);
-
-  // ✅ copy state per field
   const [copiedKey, setCopiedKey] = useState<null | "ship" | "track" | "inv">(null);
 
   const load = async () => {
     setLoading(true);
     setErr("");
     setData(null);
-
     try {
       const res = await fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q }),
       });
-
       const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setErr(json?.error || "Tracking unavailable. Try again later.");
-        return;
-      }
-
+      if (!res.ok) { setErr(json?.error || "Tracking unavailable. Try again later."); return; }
       setData(json as TrackApiResponse);
-
       const evs = Array.isArray((json as any)?.events) ? (json as any).events : [];
       setOpenIdx(evs.length ? evs.length - 1 : 0);
     } catch (e: any) {
@@ -286,41 +235,22 @@ export default function TrackResultPage() {
     }
   };
 
-  useEffect(() => {
-    if (!q) return;
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  useEffect(() => { if (!q) return; void load(); }, [q]);
 
   const events = useMemo(() => {
     const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
-
-    // sort oldest -> newest by stage time
-   evs.sort((a, b) => {
-  const aKey = String(a?.key || "").toLowerCase();
-  const bKey = String(b?.key || "").toLowerCase();
-
-  if (aKey === "created" && bKey !== "created") return -1;
-  if (bKey === "created" && aKey !== "created") return 1;
-
-  return (
-    new Date(a?.occurredAt || 0).getTime() -
-    new Date(b?.occurredAt || 0).getTime()
-  );
-});
-
-    // stage entries oldest -> newest
+    evs.sort((a, b) => {
+      const aKey = String(a?.key || "").toLowerCase();
+      const bKey = String(b?.key || "").toLowerCase();
+      if (aKey === "created" && bKey !== "created") return -1;
+      if (bKey === "created" && aKey !== "created") return 1;
+      return new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime();
+    });
     evs.forEach((ev: any) => {
       if (Array.isArray(ev?.entries)) {
-        ev.entries.sort(
-          (x: any, y: any) =>
-            new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime()
-        );
-      } else {
-        ev.entries = [];
-      }
+        ev.entries.sort((x: any, y: any) => new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime());
+      } else { ev.entries = []; }
     });
-
     return evs;
   }, [data]);
 
@@ -331,592 +261,396 @@ export default function TrackResultPage() {
   const invoiceAmount = Number(data?.invoice?.amount ?? 0);
   const invoiceCurrency = String(data?.invoice?.currency || "USD");
   const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
-
   const invoiceQ = data?.trackingNumber || data?.shipmentId || q;
+
+  const { text: estimatedRangeText, endDate: estimatedEndDate } = useMemo(
+    () => fmtEstimatedRange(data?.estimatedDelivery, data?.shipmentScope),
+    [data?.estimatedDelivery, data?.shipmentScope]
+  );
+
+  const deliveryOverdue = useMemo(() => {
+    if (!data?.estimatedDelivery) return false;
+    if (String(data?.currentStatus || "").toLowerCase() === "delivered") return false;
+    return isDeliveryOverdue(estimatedEndDate);
+  }, [estimatedEndDate, data?.currentStatus, data?.estimatedDelivery]);
 
   const handleCopy = async (key: "ship" | "track" | "inv", value: string) => {
     try {
       await copyToClipboard(value);
       setCopiedKey(key);
-      window.setTimeout(() => {
-        setCopiedKey((cur) => (cur === key ? null : cur));
-      }, 1200);
-    } catch {
-      // do nothing (no noisy errors for users)
-    }
+      window.setTimeout(() => { setCopiedKey((cur) => (cur === key ? null : cur)); }, 1500);
+    } catch {}
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-6 flex flex-col sm:flex-row gap-3">
-          <Link
-            href={`/${locale}/track`}
-            className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
-                       hover:border-blue-600 hover:text-blue-700 transition"
-          >
-            <MapPin className="w-5 h-5 mr-2" /> Back to Track
-          </Link>
+  const invoiceStatusColor =
+    invoiceStatus === "paid" ? "text-green-700 bg-green-50 border-green-200"
+    : invoiceStatus === "overdue" ? "text-red-700 bg-red-50 border-red-200"
+    : invoiceStatus === "cancelled" ? "text-gray-700 bg-gray-50 border-gray-200"
+    : "text-amber-700 bg-amber-50 border-amber-200";
 
-          {invoiceQ ? (
-  <Link
-    href={`/${locale}/invoice`}
-    className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-gray-300 bg-white font-semibold text-gray-900
-               hover:border-blue-600 hover:text-blue-700 transition"
-  >
-    <FileText className="w-5 h-5 mr-2" /> View Invoice
-  </Link>
-) : null}
+  const invoiceStatusLabel =
+    invoiceStatus === "paid" ? "PAID"
+    : invoiceStatus === "overdue" ? "OVERDUE"
+    : invoiceStatus === "cancelled" ? "CANCELLED"
+    : "UNPAID";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/40 to-white">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
+
+        {/* Nav */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Link href={`/${locale}/track`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+            <MapPin className="w-4 h-4" /> Back to Track
+          </Link>
+          {invoiceQ && (
+            <Link href={`/${locale}/invoice`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+              <FileText className="w-4 h-4" /> View Invoice
+            </Link>
+          )}
         </div>
 
         {loading && (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
-            <p className="text-sm text-gray-700">Loading tracking…</p>
+          <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-lg flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
+            <p className="text-sm text-gray-600 font-medium">Loading tracking information…</p>
           </div>
         )}
 
         {!loading && err && (
-          <div className="rounded-3xl border border-red-200 bg-white p-6 shadow-xl">
-            <div className="flex items-center text-red-700 font-semibold">
-              <AlertCircle className="w-5 h-5 mr-2" />
-              {err}
+          <div className="rounded-3xl border border-red-100 bg-white p-6 shadow-lg">
+            <div className="flex items-center gap-3 text-red-700 font-semibold">
+              <AlertCircle className="w-5 h-5 shrink-0" /> {err}
             </div>
+            <p className="mt-2 text-sm text-gray-500 pl-8">Please verify your tracking number and try again.</p>
           </div>
         )}
 
         {!loading && data && (
           <>
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-gray-200 bg-white shadow-xl p-6"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-600">Shipment Number:</p>
+            {/* ── HEADER CARD ── */}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-lg overflow-hidden">
 
-                  <div className="flex items-start gap-3 flex-wrap">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 break-all">
-                      {data.shipmentId || "—"}
-                    </h1>
+              {/* Blue accent bar */}
+              <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
 
-                    <CopyIconButton
-                      value={data.shipmentId}
-                      copied={copiedKey === "ship"}
-                      onCopy={() => handleCopy("ship", data.shipmentId)}
-                    />
-                  </div>
+              <div className="p-5 sm:p-7">
 
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <p className="text-sm text-gray-600">
-                        Tracking:{" "}
-                        <span className="font-semibold text-gray-900 break-all">
-                          {data.trackingNumber || "—"}
-                        </span>
-                      </p>
-                      <CopyIconButton
-                        value={data.trackingNumber}
-                        copied={copiedKey === "track"}
-                        onCopy={() => handleCopy("track", data.trackingNumber)}
-                      />
+                {/* Top row — IDs + status */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
+
+                  {/* Left — shipment numbers */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Shipment Number</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis max-w-[280px] sm:max-w-none">
+                        {data.shipmentId || "—"}
+                      </h1>
+                      <CopyIconButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} />
                     </div>
 
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <p className="text-sm text-gray-600">
-                        Invoice:{" "}
-                        <span className="font-semibold text-gray-900 break-all">
-                          {invoiceNumber || "—"}
-                        </span>
-                      </p>
-                      <CopyIconButton
-                        value={invoiceNumber}
-                        copied={copiedKey === "inv"}
-                        onCopy={() => handleCopy("inv", invoiceNumber)}
-                      />
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Tracking</span>
+                        <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{data.trackingNumber || "—"}</span>
+                        <CopyIconButton value={data.trackingNumber} copied={copiedKey === "track"} onCopy={() => handleCopy("track", data.trackingNumber)} />
+                      </div>
+                      {invoiceNumber && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Invoice</span>
+                          <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{invoiceNumber}</span>
+                          <CopyIconButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} />
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
 
-                <div className="sm:text-right">
-                  <p className="text-xs text-gray-600">Current status</p>
-                  <p className="text-lg font-extrabold text-blue-700">
-                    {data.currentStatus || events[currentIndex]?.label || "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-600">
-  Last updated:{" "}
-  <span className="font-semibold">
-    {fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}
-  </span>
-</p>
-
-                  {data.estimatedDelivery ? (
-                    <>
-                      <p className="mt-2 text-xs text-gray-600">
-                        Estimated delivery:{" "}
-                        <span className="font-semibold">
-                          {fmtEstimatedRange(data.estimatedDelivery, data.shipmentScope)}
-                        </span>
-                      </p>
-
-                      {new Date(data.estimatedDelivery).getTime() < Date.now() &&
-                      String(data.currentStatus || '').toLowerCase() !== 'delivered' ? (
-                        <p className="mt-2 text-xs text-red-600">
-                          The estimated delivery date has passed. Please contact{" "}
-                          <a
-                            href="mailto:support@goexoduslogistics.com"
-                            className="font-semibold underline"
-                          >
-                            support
-                          </a>{" "}
-                          for an updated delivery timeline and further assistance.
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* ✅ add back missing details (origin, note, next step) */}
-              <div className="mt-4 grid grid-cols-1 gap-2 text-sm">
-                {data.origin ? (
-                  <div className="flex items-start gap-2 text-gray-700">
-                    <Truck className="w-4 h-4 mt-0.5 text-gray-500" />
-                    <div>
-                      <span className="font-semibold">Origin:</span> {data.origin}
-                    </div>
-                  </div>
-                ) : null}
-
-                {data.statusNote ? (
-                  <div className="flex items-start gap-2 text-gray-700">
-                    <Info className="w-4 h-4 mt-0.5 text-gray-500" />
-                    <div>
-                      <span className="font-semibold">Note:</span> {data.statusNote}
-                    </div>
-                  </div>
-                ) : null}
-
-                {data.nextStep ? (
-                  <div className="flex items-start gap-2 text-gray-700">
-                    <CornerDownRight className="w-4 h-4 mt-0.5 text-gray-500" />
-                    <div>
-                      <span className="font-semibold">Next step:</span> {data.nextStep}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Cards */}
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                    <FileText className="w-4 h-4 text-gray-700" />
-                    Invoice
-                  </div>
-                  <p
-  className={`mt-2 text-sm font-extrabold ${
-    invoiceStatus === "paid"
-      ? "text-green-700"
-      : invoiceStatus === "overdue"
-      ? "text-red-700"
-      : invoiceStatus === "cancelled"
-      ? "text-gray-700"
-      : "text-amber-700"
-  }`}
->
-  {invoiceStatus === "paid"
-    ? "PAID"
-    : invoiceStatus === "overdue"
-    ? "OVERDUE"
-    : invoiceStatus === "cancelled"
-    ? "CANCELLED"
-    : "UNPAID"}{" "}
-  • {invoiceAmount.toFixed(2)} {invoiceCurrency}
-</p>
-                  {invoiceNumber ? (
-                    <p className="mt-1 text-xs text-gray-600">
-                      Invoice number:{" "}
-                      <span className="font-semibold text-gray-900">{invoiceNumber}</span>
+                  {/* Right — status */}
+                  <div className="sm:text-right shrink-0">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
+                    <p className="text-lg sm:text-xl font-extrabold text-blue-700 leading-tight">
+                      {data.currentStatus || events[currentIndex]?.label || "—"}
                     </p>
-                  ) : null}
+                    <p className="mt-1 text-xs text-gray-500">
+                      Last updated: <span className="font-semibold text-gray-700">{fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}</span>
+                    </p>
+                    {data.estimatedDelivery && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Est. delivery: <span className="font-semibold text-gray-700">{estimatedRangeText}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                    <MapPin className="w-4 h-4 text-gray-700" />
-                    Destination
+                {/* Delivery overdue warning — based on viewer local time */}
+                {deliveryOverdue && (
+                  <div className="mt-4 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700 font-medium">
+                      The estimated delivery date has passed in your local time. Please{" "}
+                      <a href="mailto:support@goexoduslogistics.com" className="cursor-pointer font-bold underline hover:text-red-900 transition">contact support</a>{" "}
+                      for an updated delivery timeline.
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm text-gray-800 font-semibold">
-                    {data.destination || "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-600">
-                    <span className="font-semibold">Current location:</span>{" "}
-                    {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
-                  </p>
-                </div>
+                )}
 
-                <div className="rounded-2xl border border-gray-200 p-4">
-  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-    <Truck className="w-4 h-4 text-gray-700" />
-    Delivery Details
-  </div>
-  <p className="mt-2 text-sm text-gray-800">
-    <span className="font-semibold">Estimated delivery:</span>{" "}
-    {fmtEstimatedRange(data.estimatedDelivery, data.shipmentScope)}
-  </p>
-  <p className="mt-1 text-sm text-gray-800">
-    <span className="font-semibold">Shipment means:</span>{" "}
-    {data.shipmentMeans || "—"}
-  </p>
-</div>
-
-<div className="rounded-2xl border border-gray-200 p-4">
-  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-    <Package className="w-4 h-4 text-gray-700" />
-    Package Details
-  </div>
-  <div className="mt-2 space-y-1 text-sm text-gray-800">
-    <p>
-      <span className="font-semibold">Weight:</span>{" "}
-      {data.weightKg != null && String(data.weightKg).trim() !== ""
-        ? `${data.weightKg} kg`
-        : "—"}
-    </p>
-    <p>
-      <span className="font-semibold">Dimensions:</span>{" "}
-      {data.dimensionsCm
-        ? `${data.dimensionsCm.length || "—"} × ${data.dimensionsCm.width || "—"} × ${data.dimensionsCm.height || "—"} cm`
-        : "—"}
-    </p>
-    
-    <p>
-      <span className="font-semibold">Package type:</span>{" "}
-      {data.shipmentType || "—"}
-    </p>
-  </div>
-</div>
-
-{data.packageDescription ? (
-  <div className="rounded-2xl border border-gray-200 p-4">
-    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-      <Package className="w-4 h-4 text-gray-700" />
-      Package Description
-    </div>
-    <p className="mt-2 text-sm text-gray-800 whitespace-pre-line">
-      {data.packageDescription}
-    </p>
-  </div>
-) : null}
-
-<div className="rounded-2xl border border-gray-200 p-4">
-  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-    <LifeBuoy className="w-4 h-4 text-gray-700" />
-    Carrier Information
-  </div>
-  <div className="mt-2 space-y-1 text-sm text-gray-800">
-    <p>
-      <span className="font-semibold">Carrier:</span>{" "}
-      {data.carrierName || "Exodus Logistics"}
-    </p>
-    <p>
-      <span className="font-semibold">Service type:</span>{" "}
-      {`${String(data.shipmentScope || "").toLowerCase() === "local" ? "Local" : "International"} ${data.serviceLevel || ""}`.trim() || "—"}
-    </p>
-    <p>
-      <span className="font-semibold">Support:</span>{" "}
-      <a
-        href="mailto:support@goexoduslogistics.com"
-        className="text-blue-700 underline font-medium"
-      >
-        support@goexoduslogistics.com
-      </a>
-    </p>
-  </div>
-</div>
-
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                    <Calendar className="w-4 h-4 text-gray-700" />
-                    Created
+                {/* Note / Next step */}
+                {(data.origin || data.statusNote || data.nextStep) && (
+                  <div className="mt-4 space-y-2 text-sm border-t border-gray-100 pt-4">
+                    {data.origin && (
+                      <div className="flex items-start gap-2 text-gray-700">
+                        <Truck className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
+                        <span><span className="font-semibold">Origin:</span> {data.origin}</span>
+                      </div>
+                    )}
+                    {data.statusNote && (
+                      <div className="flex items-start gap-2 text-gray-700">
+                        <Info className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
+                        <span><span className="font-semibold">Note:</span> {data.statusNote}</span>
+                      </div>
+                    )}
+                    {data.nextStep && (
+                      <div className="flex items-start gap-2 text-gray-700">
+                        <CornerDownRight className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
+                        <span><span className="font-semibold">Next step:</span> {data.nextStep}</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="mt-2 text-sm text-gray-800 font-semibold">
-                    {fmtDate(data.createdAt || events[0]?.occurredAt)}
-                  </p>
+                )}
+
+                {/* Info cards grid */}
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+                  {/* Invoice */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Invoice</p>
+                    </div>
+                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>
+                      {invoiceStatusLabel}
+                    </div>
+                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
+                    {invoiceNumber && <p className="mt-1 text-xs text-gray-500 font-medium">{invoiceNumber}</p>}
+                  </div>
+
+                  {/* Destination */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-4 h-4 text-blue-600" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Destination</p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 leading-snug">{data.destination || "—"}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <span className="font-semibold">Current location:</span>{" "}
+                      {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
+                    </p>
+                  </div>
+
+                  {/* Delivery Details */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Truck className="w-4 h-4 text-blue-600" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Delivery</p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900">{estimatedRangeText}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <span className="font-semibold">Means:</span> {data.shipmentMeans || "—"}
+                    </p>
+                  </div>
+
+                  {/* Package Details */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package className="w-4 h-4 text-blue-600" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Package</p>
+                    </div>
+                    <div className="space-y-1 text-xs text-gray-700">
+                      <p><span className="font-semibold">Weight:</span> {data.weightKg != null && String(data.weightKg).trim() !== "" ? `${data.weightKg} kg` : "—"}</p>
+                      <p><span className="font-semibold">Dimensions:</span> {data.dimensionsCm ? `${data.dimensionsCm.length || "—"} × ${data.dimensionsCm.width || "—"} × ${data.dimensionsCm.height || "—"} cm` : "—"}</p>
+                      <p><span className="font-semibold">Type:</span> {data.shipmentType || "—"}</p>
+                    </div>
+                  </div>
+
+                  {/* Package Description */}
+                  {data.packageDescription && (
+                    <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Package className="w-4 h-4 text-blue-600" />
+                        <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Description</p>
+                      </div>
+                      <p className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{data.packageDescription}</p>
+                    </div>
+                  )}
+
+                  {/* Carrier */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="flex items-center gap-2 mb-2">
+                      <LifeBuoy className="w-4 h-4 text-blue-600" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Carrier</p>
+                    </div>
+                    <div className="space-y-1 text-xs text-gray-700">
+                      <p><span className="font-semibold">Carrier:</span> {data.carrierName || "Exodus Logistics"}</p>
+                      <p><span className="font-semibold">Service:</span> {`${String(data.shipmentScope || "").toLowerCase() === "local" ? "Local" : "International"} ${data.serviceLevel || ""}`.trim() || "—"}</p>
+                      <p>
+                        <span className="font-semibold">Support:</span>{" "}
+                        <a href="mailto:support@goexoduslogistics.com" className="cursor-pointer text-blue-700 underline font-semibold hover:text-blue-900 transition">support@goexoduslogistics.com</a>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Created */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Created</p>
+                    </div>
+                    <p className="text-xs font-bold text-gray-900">{fmtDate(data.createdAt || events[0]?.occurredAt)}</p>
+                    <p className="mt-1 text-xs text-gray-500">All times shown in your local timezone.</p>
+                  </div>
+
                 </div>
               </div>
             </motion.div>
 
-            {/* Timeline */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6 rounded-3xl border border-gray-200 bg-white shadow-xl p-6"
-            >
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-blue-700" />
-                <h2 className="text-lg font-extrabold text-gray-900">
-                  Shipment Timeline
-                </h2>
-              </div>
+            {/* ── TIMELINE ── */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-5 rounded-3xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
+              <div className="p-5 sm:p-7">
+                <div className="flex items-center gap-3 mb-1">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  <h2 className="text-lg font-extrabold text-gray-900">Shipment Timeline</h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-6">Live tracking history. All times are shown in your local timezone.</p>
 
-              <p className="mt-1 text-sm text-gray-600">
-                This timeline grows as our team adds updates. Older updates never disappear.
-              </p>
-
-              <div className="mt-6">
                 {events.length === 0 ? (
-                  <div className="rounded-2xl border border-gray-200 p-4 text-sm text-gray-700">
-                    No tracking updates yet.
-                  </div>
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 text-sm text-gray-600 text-center">No tracking updates yet.</div>
                 ) : (
                   <div className="space-y-3">
-                      {events.map((ev, idx) => {
-                        const isOpen = openIdx === idx;
-                        const stageLoc = fmtLoc(ev.location);
-                        const stageWhen = fmtDate(ev.occurredAt);
+                    {events.map((ev, idx) => {
+                      const isOpen = openIdx === idx;
+                      const stageLoc = fmtLoc(ev.location);
+                      const stageWhen = fmtDate(ev.occurredAt);
+                      const stageBaseColor = safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
+                      const isCompleted = idx < currentIndex;
+                      const isCurrent = idx === currentIndex;
+                      const labelLower = String(ev.label || "").toLowerCase();
+                      const isCancelled = labelLower === "cancelled" || labelLower === "canceled";
+                      const isDelivered = labelLower === "delivered";
 
-                        const stageBaseColor =
-                          safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
+                      return (
+                        <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10 pb-1">
+                          {/* Timeline rail */}
+                          <div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
+                            {(() => {
+                              const nextEvent = events[idx + 1];
+                              const currentDotColor = isCompleted ? "#22c55e" : safeColor(stageBaseColor) || "#f59e0b";
+                              const nextDotColor = idx !== events.length - 1
+                                ? (idx + 1 < currentIndex ? "#22c55e" : safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
+                                : currentDotColor;
+                              return (
+                                <>
+                                  <div className="h-5 w-5 rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 mt-5" style={{ background: currentDotColor }}>
+                                    {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                  </div>
+                                  {idx !== events.length - 1 && (
+                                    <div className="w-[3px] flex-1 -mt-[2px] rounded-full" style={{ minHeight: "80px", background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)` }} />
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
 
-                        const dotStyle = stageDotStyle(idx, currentIndex, stageBaseColor);
+                          {/* Stage card */}
+                          <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
+                            isCompleted ? "border-green-200 bg-green-50/30"
+                            : isCurrent && isCancelled ? "border-red-200 bg-red-50/30 shadow"
+                            : isCurrent && isDelivered ? "border-green-200 bg-green-50/30 shadow"
+                            : isCurrent ? "border-blue-200 bg-blue-50/30 shadow-md"
+                            : "border-gray-100 bg-white"
+                          }`}>
+                            <button type="button" onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))} className="cursor-pointer w-full text-left p-4 sm:p-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-3 min-w-0">
+                                  <div className={`shrink-0 h-11 w-11 rounded-2xl flex items-center justify-center border ${
+                                    isCompleted ? "bg-green-100 border-green-200 text-green-700"
+                                    : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
+                                    : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
+                                    : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
+                                    : "bg-gray-100 border-gray-200 text-gray-500"
+                                  }`}>
+                                    {(() => { const Icon = getStageIcon(ev.label, ev.icon); return <Icon className="w-5 h-5" />; })()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
+                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                                        isCompleted ? "bg-green-100 text-green-700 border-green-200"
+                                        : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
+                                        : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
+                                        : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
+                                        : "bg-gray-100 text-gray-500 border-gray-200"
+                                      }`}>
+                                        {isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current" : "Upcoming"}
+                                      </span>
+                                    </div>
+                                    <p className="mt-0.5 text-xs text-gray-500">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
+                                  </div>
+                                </div>
+                                <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform mt-1 ${isOpen ? "rotate-180" : ""}`} />
+                              </div>
 
-                        return (
-                          <div key={`${ev.key || ev.label}-${idx}`} className="relative pl-10 pb-2">
-  {/* Left timeline rail */}
-<div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
-  {(() => {
-    const nextEvent = events[idx + 1];
+                              {isOpen && (
+                                <div className="mt-4 border-t border-gray-200 pt-4">
+                                  <div className="space-y-2">
+                                    {(ev.entries || []).map((en, j) => {
+                                      const loc = fmtLoc(en.location);
+                                      const when = fmtDate(en.occurredAt);
+                                      const isLast = j === (ev.entries?.length || 0) - 1;
+                                      const entryDotBg = isCompleted && isLast ? "#22c55e" : safeColor(en.color) || "#9ca3af";
 
-    const currentDotColor =
-      idx < currentIndex
-        ? "#22c55e"
-        : safeColor(stageBaseColor) || "#f59e0b";
+                                      return (
+                                        <div key={`entry-${j}`} className="relative pl-8">
+                                          {!isLast && <div className="absolute left-[10px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />}
+                                          <div className="absolute left-[7px] top-[11px]">
+                                            <div className="h-3 w-3 rounded-full ring-2 ring-white" style={{ background: entryDotBg }} />
+                                          </div>
+                                          <div className={`rounded-xl border border-gray-100 bg-white px-4 py-3 ${!isLast ? "mb-2" : ""}`}>
+                                            <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
+                                            <p className="text-sm text-gray-800 mt-1 leading-relaxed">{en.note?.trim() || "No additional details provided."}</p>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
 
-    const nextDotColor =
-      idx !== events.length - 1
-        ? idx + 1 < currentIndex
-          ? "#22c55e"
-          : safeColor(nextEvent?.entries?.[0]?.color) ||
-            safeColor(nextEvent?.color) ||
-            "#d1d5db"
-        : currentDotColor;
-
-    return (
-      <>
-        <div
-          className="h-5 w-5 rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 mt-5"
-          style={{ background: currentDotColor }}
-        >
-          {idx < currentIndex ? (
-            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-          ) : null}
-        </div>
-
-        {idx !== events.length - 1 ? (
-          <div
-            className="w-[4px] flex-1 -mt-[2px] rounded-full"
-            style={{
-              minHeight: "96px",
-              background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
-            }}
-          />
-        ) : null}
-      </>
-    );
-  })()}
-</div>
-
-<div
-  className={`rounded-3xl border shadow-sm transition overflow-hidden ${
-    idx < currentIndex
-      ? "border-green-200 bg-green-50/40"
-      : idx === currentIndex
-      ? "border-blue-200 bg-blue-50/40 shadow-md"
-      : "border-gray-200 bg-white"
-  }`}
->
-  <button
-    type="button"
-    onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
-    className="w-full text-left p-5"
-  >
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex items-start gap-4 min-w-0">
-        <div
-  className={`shrink-0 h-12 w-12 rounded-2xl flex items-center justify-center border ${
-    idx < currentIndex
-      ? "bg-green-100 border-green-200 text-green-700"
-      : idx === currentIndex &&
-        String(ev.label || "").trim().toLowerCase() === "cancelled"
-      ? "bg-red-100 border-red-200 text-red-700"
-      : idx === currentIndex &&
-        String(ev.label || "").trim().toLowerCase() === "delivered"
-      ? "bg-green-100 border-green-200 text-green-700"
-      : idx === currentIndex
-      ? "bg-blue-100 border-blue-200 text-blue-700"
-      : "bg-gray-100 border-gray-200 text-gray-600"
-  }`}
->
-          {(() => {
-            const Icon = getStageIcon(ev.label);
-            return <Icon className="w-5 h-5" />;
-          })()}
-        </div>
-
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-base sm:text-lg font-extrabold text-gray-900">
-              {ev.label}
-            </p>
-
-            <span
-  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold border ${
-    idx < currentIndex
-      ? "bg-green-100 text-green-700 border-green-200"
-      : idx === currentIndex &&
-        String(ev.label || "").trim().toLowerCase() === "cancelled"
-      ? "bg-red-100 text-red-700 border-red-200"
-      : idx === currentIndex &&
-        String(ev.label || "").trim().toLowerCase() === "delivered"
-      ? "bg-green-100 text-green-700 border-green-200"
-      : idx === currentIndex
-      ? "bg-blue-100 text-blue-700 border-blue-200"
-      : "bg-gray-100 text-gray-600 border-gray-200"
-  }`}
->
-  {idx < currentIndex
-    ? "Completed"
-    : idx === currentIndex &&
-      String(ev.label || "").trim().toLowerCase() === "cancelled"
-    ? "Shipment Cancelled"
-    : idx === currentIndex &&
-      String(ev.label || "").trim().toLowerCase() === "delivered"
-    ? "Successfully Delivered"
-    : idx === currentIndex
-    ? "Current Stage"
-    : "Upcoming"}
-</span>
-          </div>
-
-          <p className="mt-1 text-sm text-gray-600">
-            {stageWhen}
-            {stageLoc ? ` • ${stageLoc}` : ""}
-          </p>
-        </div>
-      </div>
-
-      <ChevronDown
-        className={`w-5 h-5 text-gray-500 transition shrink-0 ${
-          isOpen ? "rotate-180" : ""
-        }`}
-      />
-    </div>
-
-    {isOpen && (
-  <div className="mt-5 border-t border-gray-200 pt-4">
-    <div className="relative">
-      <div className="space-y-0">
-        {(ev.entries || []).map((en, j) => {
-          const loc = fmtLoc(en.location);
-          const when = fmtDate(en.occurredAt);
-
-          const isStageCompleted = idx < currentIndex;
-          const isLastEntry = j === (ev.entries?.length || 0) - 1;
-
-          const entryDotBg =
-            isStageCompleted && isLastEntry
-              ? "#22c55e"
-              : safeColor(en.color) || "#9ca3af";
-
-          return (
-            <div
-              key={`${ev.key || ev.label}-entry-${j}`}
-              className="relative pl-12"
-            >
-              {/* grey connector line */}
-              {!isLastEntry ? (
-  <div className="absolute left-[17px] top-[14px] bottom-[-18px] w-[2px] bg-gray-300 rounded-full" />
-) : null}
-
-              {/* entry dot */}
-              <div className="absolute left-[11px] top-[12px]">
-                <div
-                  className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm"
-                  style={{ background: entryDotBg }}
-                />
+                                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Invoice</p>
+                                      <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Destination</p>
+                                      <p className="mt-0.5 text-xs font-bold text-gray-900">{data.destination || "—"}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Current Location</p>
+                                      <p className="mt-0.5 text-xs font-bold text-gray-900">{data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-
-              <div className={`${j === 0 ? "" : "mt-0"} rounded-2xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-3" : ""}`}>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-gray-500">
-                    {when}
-                    {loc ? ` • ${loc}` : ""}
-                  </p>
-                  <p className="text-sm text-gray-800 mt-1 leading-6">
-                    {en.note?.trim()
-                      ? en.note
-                      : "No additional details were provided for this update."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-
-    <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-          Invoice
-        </p>
-        <p className="mt-1 text-sm font-semibold text-gray-900">
-          {invoiceStatus === "paid"
-            ? "PAID"
-            : invoiceStatus === "overdue"
-            ? "OVERDUE"
-            : invoiceStatus === "cancelled"
-            ? "CANCELLED"
-            : "UNPAID"}{" "}
-          • {invoiceAmount.toFixed(2)} {invoiceCurrency}
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-          Destination
-        </p>
-        <p className="mt-1 text-sm font-semibold text-gray-900">
-          {data.destination || "—"}
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-          Current Location
-        </p>
-        <p className="mt-1 text-sm font-semibold text-gray-900">
-          {data.currentLocation ||
-            fmtLoc(events[currentIndex]?.location) ||
-            "—"}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
-  </button>
-</div>
-</div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
+            </motion.div>
+          </>
+        )}
       </div>
     </div>
   );
