@@ -504,7 +504,7 @@ export default function TrackResultPage() {
                         <div key={`${ev.key || ev.label}-${idx}`} className="flex relative">
 
                           {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
-                          <div className="relative shrink-0 flex flex-col items-center" style={{ width: "36px" }}>
+                          <div className="relative shrink-0 flex flex-col items-center" style={{ width: "28px" }}>
   {/* dot */}
   <div
     className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
@@ -520,7 +520,7 @@ export default function TrackResultPage() {
         top: "40px",
         bottom: "-24px",
         width: "3px",
-        left: "10px",
+        left: "7px",
         background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
         borderRadius: "0 0 4px 4px",
       }}
@@ -530,7 +530,7 @@ export default function TrackResultPage() {
 
                           {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
                           {/* pb-3 creates the gap between stages so the line runs through it */}
-                          <div className="flex-1 min-w-0 pl-2 pb-4">
+                          <div className="flex-1 min-w-0 pb-4">
                             <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
                               isCompleted ? "border-green-200 bg-green-50/40"
                               : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
