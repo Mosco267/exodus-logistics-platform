@@ -597,10 +597,10 @@ export default function TrackResultPage() {
                                         return (
                                           <div key={`entry-${j}`} className="relative pl-1">
                                             {!isLastEntry && (
-  <div className="absolute left-[2px] top-[14px] bottom-[-10px] w-[2px] bg-gray-200 rounded-full" />
+  <div className="absolute left-[-7px] top-[14px] bottom-[-10px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[ev.entries.length - 1]?.color) || "#d1d5db"} 100%)` }} />
 )}
-<div className="absolute left-[-4px] top-[11px]">
-                                              <div className="h-3 w-3 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
+<div className="absolute left-[-8px] top-[11px]">
+                                              <div className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
                                             </div>
                                             <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                               <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
