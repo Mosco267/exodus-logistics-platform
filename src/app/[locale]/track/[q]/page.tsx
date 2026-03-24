@@ -318,7 +318,7 @@ export default function TrackResultPage() {
           <>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-lg overflow-hidden">
               <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
-              <div className="p-5 sm:p-7">
+              <div className="p-5 sm:p-7 pl-3 sm:pl-3">
 
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
                   <div className="min-w-0 flex-1">
@@ -531,7 +531,7 @@ export default function TrackResultPage() {
 
                           {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
                           {/* pb-3 creates the gap between stages so the line runs through it */}
-                          <div className="flex-1 min-w-0 pb-4 ml-5">
+                          <div className="flex-1 min-w-0 pb-4">
                             <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
                               isCompleted ? "border-green-200 bg-green-50/40"
                               : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
