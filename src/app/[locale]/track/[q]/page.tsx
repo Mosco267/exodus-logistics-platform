@@ -501,30 +501,33 @@ export default function TrackResultPage() {
                         : currentDotColor;
 
                       return (
-                        <div key={`${ev.key || ev.label}-${idx}`} className="flex items-stretch ">
+                        <div key={`${ev.key || ev.label}-${idx}`} className="flex relative">
 
                           {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
-                          <div className="flex flex-col items-center shrink-0" style={{ width: "36px" }}>
-                            {/* spacer to align dot with card top padding */}
-                            <div style={{ height: "20px" }} />
-                            {/* dot */}
-                            <div
-                              className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
-                              style={{ background: currentDotColor, width: "22px", height: "22px" }}
-                            >
-                              {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
-                            </div>
-                            {/* Fix 2 — line stretches from bottom of dot all the way to next dot; no gap */}
-                            {!isLast && (
-                              <div
-                                className="w-[3px] flex-1 rounded-b-full"
-                                style={{
-                                  background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
-                                  minHeight: "52px",
-                                }}
-                              />
-                            )}
-                          </div>
+                          <div className="relative shrink-0 flex flex-col items-center" style={{ width: "36px" }}>
+  {/* dot */}
+  <div
+    className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
+    style={{ background: currentDotColor, width: "22px", height: "22px", marginTop: "18px" }}
+  >
+    {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
+  </div>
+  {/* line — absolutely positioned from dot bottom to bottom of entire row */}
+  {!isLast && (
+    <div
+      className="absolute"
+      style={{
+        top: "40px",
+        bottom: "-16px",
+        width: "3px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
+        borderRadius: "0 0 4px 4px",
+      }}
+    />
+  )}
+</div>
 
                           {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
                           {/* pb-3 creates the gap between stages so the line runs through it */}
