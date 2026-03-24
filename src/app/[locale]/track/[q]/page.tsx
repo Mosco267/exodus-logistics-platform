@@ -501,7 +501,7 @@ export default function TrackResultPage() {
                         : currentDotColor;
 
                       return (
-                        <div key={`${ev.key || ev.label}-${idx}`} className="flex items-stretch">
+                        <div key={`${ev.key || ev.label}-${idx}`} className="flex items-stretch gap-3 relative">
 
                           {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
                           <div className="flex flex-col items-center shrink-0" style={{ width: "36px" }}>
