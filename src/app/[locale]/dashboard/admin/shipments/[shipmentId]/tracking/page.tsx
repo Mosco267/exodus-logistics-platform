@@ -634,12 +634,12 @@ export default function AdminShipmentTrackingPage() {
           </motion.div>
 
           {/* ── TIMELINE ── */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
             <div className="px-6 py-5 border-b border-gray-100">
               <h2 className="text-base font-extrabold text-gray-900">Timeline</h2>
               <p className="mt-0.5 text-xs text-gray-500">{groupedEvents.length} stage{groupedEvents.length !== 1 ? "s" : ""} · {events.length} total entr{events.length !== 1 ? "ies" : "y"}</p>
             </div>
-            <div className="px-6 py-5 space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div className="px-6 py-5 space-y-3 flex-1 overflow-y-auto">
               {groupedEvents.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">No tracking events yet.</div>
               ) : groupedEvents.map((group, groupIdx) => {

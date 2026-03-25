@@ -592,7 +592,7 @@ export default function TrackResultPage() {
                                         const loc = fmtLoc(en.location);
                                         const when = fmtDate(en.occurredAt);
                                         const isLastEntry = j === (ev.entries?.length || 0) - 1;
-                                        const entryDotBg = isCompleted && isLastEntry ? "#22c55e" : safeColor(en.color) || "#9ca3af";
+                                       const entryDotBg = safeColor(en.color) || "#9ca3af";
 
                                         return (
                                           <div key={`entry-${j}`} className="relative pl-1">

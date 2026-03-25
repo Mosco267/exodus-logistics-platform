@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { details } from "framer-motion/client";
 
 function escapeRegex(input: string) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -157,6 +158,7 @@ export async function POST(req: Request) {
         label,
         // note field: details takes priority over note for display
         note: cleanStr(ev?.details || ev?.note || ev?.statusNote || ""),
+        details: cleanStr(ev?.details || ""),
         occurredAt,
         color: cleanStr(ev?.color),
         detailColor: cleanStr(ev?.detailColor),
@@ -195,6 +197,7 @@ export async function POST(req: Request) {
             {
               occurredAt: e.occurredAt,
               note: e.note,
+              details: e.details,
               color: e.color || "",
               detailColor: e.detailColor || "",
               location: e.location,
@@ -208,6 +211,7 @@ export async function POST(req: Request) {
         g.entries.push({
           occurredAt: e.occurredAt,
           note: e.note,
+          details: e.details,
           color: e.color || "",
           detailColor: e.detailColor || "",
           location: e.location,
@@ -215,7 +219,8 @@ export async function POST(req: Request) {
         });
         // Update occurredAt to latest but keep first location on the group
         g.occurredAt = e.occurredAt;
-        if (e.color) g.color = e.color;
+g.location = e.location; // Fix 2 — always use LAST entry's location for stage header
+if (e.color) g.color = e.color;
         if (e.icon && !g.icon) g.icon = e.icon;
       }
     }
