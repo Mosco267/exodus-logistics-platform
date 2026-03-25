@@ -10,6 +10,7 @@ import {
   PlusCircle,
   ArrowLeft,
   ChevronDown,
+  Clock,
 } from "lucide-react";
 
 type LocationLite = {
@@ -23,10 +24,13 @@ type TrackingEvent = {
   key?: string;
   label: string;
   note?: string;
+  details?: string;
+  additionalNote?: string;
   occurredAt: string;
   color?: string;
   detailColor?: string;
   location?: LocationLite;
+  currentLocation?: string;
 };
 
 type StatusDoc = {
@@ -38,6 +42,18 @@ type StatusDoc = {
   nextStep?: string;
 };
 
+// Fix 2 — stages that should default to red
+const RED_STAGES = new Set(["paymentissue", "invalidaddress", "cancelled", "canceled", "unclaimed"]);
+// Fix 2 — stages that default to green
+const GREEN_STAGES = new Set(["delivered"]);
+
+function getDefaultColors(key: string): { stageColor: string; detailColor: string } {
+  const k = key.toLowerCase().replace(/[\s_-]+/g, "");
+  if (RED_STAGES.has(k)) return { stageColor: "#ef4444", detailColor: "#ef4444" };
+  if (GREEN_STAGES.has(k)) return { stageColor: "#22c55e", detailColor: "#22c55e" };
+  return { stageColor: "#f59e0b", detailColor: "#f59e0b" };
+}
+
 const PRESET_COLORS = [
   { label: "Amber", value: "#f59e0b" },
   { label: "Green", value: "#22c55e" },
@@ -47,35 +63,18 @@ const PRESET_COLORS = [
   { label: "Gray", value: "#6b7280" },
 ];
 
-function ColorPicker({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
       <label className="text-sm font-semibold text-gray-700">{label}</label>
       <div className="mt-2 flex items-center gap-2 flex-wrap">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-12 rounded-xl border border-gray-300 bg-white cursor-pointer"
-        />
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-9 w-12 rounded-xl border border-gray-300 bg-white cursor-pointer" />
         {PRESET_COLORS.map((c) => (
           <button
             key={c.value}
             type="button"
             onClick={() => onChange(c.value)}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
-              value === c.value
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-gray-200 hover:bg-gray-50 text-gray-700"
-            }`}
+            className={`cursor-pointer px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${value === c.value ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-50 text-gray-700"}`}
             style={{ borderLeftColor: c.value, borderLeftWidth: "3px" }}
           >
             {c.label}
@@ -86,10 +85,15 @@ function ColorPicker({
   );
 }
 
+function getNowLocal() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function AdminShipmentTrackingPage() {
   const params = useParams();
   const router = useRouter();
-
   const locale = (params?.locale as string) || "en";
   const shipmentId = String(params?.shipmentId || "").trim();
 
@@ -98,38 +102,38 @@ export default function AdminShipmentTrackingPage() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
-
-  // Statuses from DB
   const [statuses, setStatuses] = useState<StatusDoc[]>([]);
   const [showStageDropdown, setShowStageDropdown] = useState(false);
 
-  // Form fields
+  // Stage
   const [selectedStageKey, setSelectedStageKey] = useState("");
   const [label, setLabel] = useState("");
-  const [currentLocation, setCurrentLocation] = useState("");
-  const [note, setNote] = useState("");
-  const [defaultNote, setDefaultNote] = useState(""); // from status
-  const [useDefaultNote, setUseDefaultNote] = useState(true);
 
-  // Two colors:
-  // stageColor = the main dot color on timeline (the stage pill color)
-  // detailColor = color of the inner entry dot — defaults amber, overrides stageColor if red/green
+  // Fix 1 — three separate text fields
+  const [details, setDetails] = useState("");           // must be filled by admin
+  const [note, setNote] = useState("");                 // default from stage, editable
+  const [additionalNote, setAdditionalNote] = useState(""); // default from stage, editable
+  const [defaultNote, setDefaultNote] = useState("");   // loaded from stage
+
+  // Colors
   const [stageColor, setStageColor] = useState("#f59e0b");
   const [detailColor, setDetailColor] = useState("#f59e0b");
 
-  const [country, setCountry] = useState("");
-  const [state, setState] = useState("");
-  const [city, setCity] = useState("");
+  // Fix 3 — location fields
+  const [destination, setDestination] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [previousLocation, setPreviousLocation] = useState("");
+  const [currentLocation, setCurrentLocation] = useState(""); // only editable one
 
-  const [occurredAt, setOccurredAt] = useState(() => {
-    const d = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  });
+  // Fix 4 — date mode
+  const [useLocalTime, setUseLocalTime] = useState(true);
+  const [occurredAt, setOccurredAt] = useState(getNowLocal);
 
-  // Effective stage color: detail color overrides stage color if detail is red or green
+  // Fix 5 — effective stage color logic
+  // Red stage color is NEVER overridden
+  // Amber/other can be overridden by detail color if detail is green/red
   const effectiveStageColor = useMemo(() => {
-    if (stageColor === "#ef4444") return stageColor; // red stage color is never overridden
+    if (stageColor === "#ef4444") return stageColor; // red is permanent
     if (detailColor === "#ef4444") return "#ef4444";
     if (detailColor === "#22c55e") return "#22c55e";
     return stageColor;
@@ -138,15 +142,12 @@ export default function AdminShipmentTrackingPage() {
   const events: TrackingEvent[] = useMemo(() => {
     const arr = Array.isArray(shipment?.trackingEvents) ? shipment.trackingEvents : [];
     return [...arr].sort(
-      (a: any, b: any) =>
-        new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
+      (a: any, b: any) => new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
     );
   }, [shipment]);
 
   const load = async () => {
-    setErr("");
-    setOk("");
-    setLoading(true);
+    setErr(""); setOk(""); setLoading(true);
     try {
       const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, { cache: "no-store" });
       const json = await res.json().catch(() => null);
@@ -154,9 +155,19 @@ export default function AdminShipmentTrackingPage() {
       setShipment(json?.shipment || null);
       const s = json?.shipment;
       if (s) {
-        setCountry((prev) => prev || String(s?.receiverCountry || s?.destinationCountryCode || "").trim());
-        setState((prev) => prev || String(s?.receiverState || "").trim());
-        setCity((prev) => prev || String(s?.receiverCity || "").trim());
+        // Fix 3 — pre-fill read-only location fields from shipment
+        const dest = [s?.receiverCity, s?.receiverState, s?.receiverCountry].filter(Boolean).join(", ");
+        const orig = [s?.senderCity, s?.senderState, s?.senderCountry].filter(Boolean).join(", ");
+        setDestination(dest);
+        setOrigin(orig);
+
+        // Previous location = last event's location if any
+        const evts = Array.isArray(s?.trackingEvents) ? s.trackingEvents : [];
+        if (evts.length > 0) {
+          const last = evts[evts.length - 1];
+          const lc = [last?.location?.city, last?.location?.state, last?.location?.country].filter(Boolean).join(", ");
+          setPreviousLocation(lc);
+        }
       }
     } catch (e: any) {
       setErr(e?.message || "Failed to load shipment.");
@@ -170,9 +181,7 @@ export default function AdminShipmentTrackingPage() {
       const res = await fetch("/api/statuses", { cache: "no-store" });
       const data = await res.json();
       setStatuses(Array.isArray(data?.statuses) ? data.statuses : []);
-    } catch {
-      setStatuses([]);
-    }
+    } catch { setStatuses([]); }
   };
 
   useEffect(() => {
@@ -184,49 +193,67 @@ export default function AdminShipmentTrackingPage() {
   const selectStage = (s: StatusDoc) => {
     setSelectedStageKey(s.key);
     setLabel(s.label);
-    setDefaultNote(s.defaultUpdate || "");
-    setUseDefaultNote(true);
-    // Set stage color from status color name
-    const colorMap: Record<string, string> = {
-      blue: "#3b82f6", green: "#22c55e", red: "#ef4444", amber: "#f59e0b",
-      orange: "#f97316", purple: "#8b5cf6", pink: "#ec4899", cyan: "#06b6d4",
-      slate: "#64748b", indigo: "#6366f1", gray: "#6b7280",
-    };
-    setStageColor(colorMap[s.color?.toLowerCase()] || "#f59e0b");
+
+    // Fix 2 — set colors based on stage key
+    const colors = getDefaultColors(s.key);
+    setStageColor(colors.stageColor);
+    setDetailColor(colors.detailColor);
+
+    // Fix 1 — load default note/additional note from stage
+    const def = s.defaultUpdate || "";
+    setDefaultNote(def);
+    setNote(def);
+    setAdditionalNote(def);
+    setDetails(""); // always empty — must be filled by admin
+
     setShowStageDropdown(false);
   };
 
   const addEvent = async () => {
-    setErr("");
-    setOk("");
+    setErr(""); setOk("");
 
-    if (!label.trim()) {
-      setErr("Please select a stage or enter a status label.");
+    if (!label.trim()) { setErr("Please select a stage."); return; }
+
+    // Fix 1 — details is required
+    if (!details.trim()) {
+      setErr("Please fill in the Details field before adding this stage.");
       return;
     }
 
-    const iso = new Date(occurredAt).toISOString();
-    const finalNote = useDefaultNote && defaultNote ? defaultNote : note.trim();
+    // Fix 3 — current location required
+    if (!currentLocation.trim()) {
+      setErr("Please fill in the Current Location before adding this stage.");
+      return;
+    }
 
-    // Parse current location string into parts
-    const locParts = currentLocation.trim().split(",").map((p) => p.trim());
-    const locCity = city || locParts[0] || "";
-    const locState = state || locParts[1] || "";
-    const locCountry = country || locParts[2] || "";
+    // Fix 4 — use local time or custom
+    const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
+
+    // Parse current location into city/state/country
+    const parts = currentLocation.split(",").map((p) => p.trim());
+    const locCity = parts[0] || "";
+    const locState = parts[1] || "";
+    const locCountry = parts[2] || "";
 
     const trackingEvent = {
       key: selectedStageKey || label.toLowerCase().trim().replace(/[\s_-]+/g, "-"),
       label: label.trim(),
-      note: finalNote,
-      occurredAt: iso,
+      details: details.trim(),
+      note: note.trim(),
+      additionalNote: additionalNote.trim(),
+      occurredAt: isoTime,
+
+      // Fix 5 — store effective color so it's permanent in DB
       color: effectiveStageColor,
       detailColor: detailColor,
+
       location: {
         country: locCountry,
         state: locState,
         city: locCity,
         county: "",
       },
+      currentLocation: currentLocation.trim(),
     };
 
     setSaving(true);
@@ -238,9 +265,21 @@ export default function AdminShipmentTrackingPage() {
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) throw new Error(json?.error || "Failed to save tracking update");
+
       setOk("Update saved successfully.");
+      // Reset form
+      setDetails("");
       setNote("");
-      setUseDefaultNote(true);
+      setAdditionalNote("");
+      setDefaultNote("");
+      setCurrentLocation("");
+      setLabel("");
+      setSelectedStageKey("");
+      setStageColor("#f59e0b");
+      setDetailColor("#f59e0b");
+      setUseLocalTime(true);
+      setOccurredAt(getNowLocal());
+
       await load();
       window.setTimeout(() => setOk(""), 3000);
     } catch (e: any) {
@@ -250,35 +289,20 @@ export default function AdminShipmentTrackingPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-10">
-        <p className="text-sm text-gray-700">Loading…</p>
-      </div>
-    );
-  }
-
-  if (!shipment) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-10">
-        <p className="text-sm text-red-600">Shipment not found.</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="max-w-5xl mx-auto px-4 py-10"><p className="text-sm text-gray-700">Loading…</p></div>;
+  if (!shipment) return <div className="max-w-5xl mx-auto px-4 py-10"><p className="text-sm text-red-600">Shipment not found.</p></div>;
 
   const invoiceStatus = String(shipment?.invoice?.status || "unpaid").toLowerCase();
   const invoiceAmount = Number(shipment?.invoice?.amount ?? 0);
   const invoiceCurrency = String(shipment?.invoice?.currency || shipment?.declaredValueCurrency || "USD");
+  const invoiceStatusColor = invoiceStatus === "paid" ? "text-green-700" : invoiceStatus === "overdue" || invoiceStatus === "cancelled" ? "text-red-700" : "text-amber-700";
+  const invoiceStatusLabel = invoiceStatus === "paid" ? "PAID" : invoiceStatus === "overdue" ? "OVERDUE" : invoiceStatus === "cancelled" ? "CANCELLED" : "UNPAID";
 
-  const invoiceStatusColor =
-    invoiceStatus === "paid" ? "text-green-700"
-    : invoiceStatus === "overdue" || invoiceStatus === "cancelled" ? "text-red-700"
-    : "text-amber-700";
-
-  const invoiceStatusLabel = invoiceStatus === "paid" ? "PAID"
-    : invoiceStatus === "overdue" ? "OVERDUE"
-    : invoiceStatus === "cancelled" ? "CANCELLED"
-    : "UNPAID";
+  const colorMap: Record<string, string> = {
+    blue: "#3b82f6", green: "#22c55e", red: "#ef4444", amber: "#f59e0b",
+    orange: "#f97316", purple: "#8b5cf6", pink: "#ec4899", cyan: "#06b6d4",
+    slate: "#64748b", indigo: "#6366f1", gray: "#6b7280",
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
@@ -287,16 +311,10 @@ export default function AdminShipmentTrackingPage() {
         {/* Header */}
         <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <button
-              type="button"
-              onClick={() => router.push(`/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`)}
-              className="cursor-pointer inline-flex items-center text-sm font-semibold text-gray-600 hover:text-blue-700 transition"
-            >
+            <button type="button" onClick={() => router.push(`/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`)} className="cursor-pointer inline-flex items-center text-sm font-semibold text-gray-600 hover:text-blue-700 transition">
               <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to shipments
             </button>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Tracking Update
-            </h1>
+            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900">Tracking Update</h1>
             <p className="mt-0.5 text-sm text-gray-500">
               Shipment: <span className="font-bold text-gray-800">{shipmentId}</span>
               {" · "}Tracking: <span className="font-bold text-gray-800">{shipment?.trackingNumber || "—"}</span>
@@ -304,22 +322,20 @@ export default function AdminShipmentTrackingPage() {
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm text-right">
             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Invoice</p>
-            <p className={`text-base font-extrabold ${invoiceStatusColor}`}>
-              {invoiceStatusLabel} · {invoiceAmount.toFixed(2)} {invoiceCurrency}
-            </p>
+            <p className={`text-base font-extrabold ${invoiceStatusColor}`}>{invoiceStatusLabel} · {invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* ── ADD UPDATE FORM ── */}
+          {/* ── FORM ── */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-gray-200 shadow-xl p-6">
             <h2 className="text-lg font-extrabold text-gray-900">Add Tracking Update</h2>
             <p className="mt-1 text-sm text-gray-500">Each save appends a new entry to the timeline.</p>
 
             <div className="mt-5 space-y-4">
 
-              {/* Stage selector dropdown */}
+              {/* Stage dropdown */}
               <div>
                 <label className="text-sm font-semibold text-gray-700">Stage</label>
                 <div className="relative mt-2">
@@ -347,10 +363,7 @@ export default function AdminShipmentTrackingPage() {
                               onClick={() => selectStage(s)}
                               className={`cursor-pointer w-full text-left px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-700 transition flex items-center gap-3 ${selectedStageKey === s.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-800"}`}
                             >
-                              <span className="w-3 h-3 rounded-full shrink-0" style={{ background: (() => {
-                                const colorMap: Record<string, string> = { blue: "#3b82f6", green: "#22c55e", red: "#ef4444", amber: "#f59e0b", orange: "#f97316", purple: "#8b5cf6", pink: "#ec4899", cyan: "#06b6d4", slate: "#64748b", indigo: "#6366f1", gray: "#6b7280" };
-                                return colorMap[s.color?.toLowerCase()] || "#f59e0b";
-                              })() }} />
+                              <span className="w-3 h-3 rounded-full shrink-0" style={{ background: colorMap[s.color?.toLowerCase()] || "#f59e0b" }} />
                               {s.label}
                             </button>
                           ))
@@ -359,101 +372,129 @@ export default function AdminShipmentTrackingPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Manual override label */}
-                <input
-                  value={label}
-                  onChange={(e) => { setLabel(e.target.value); setSelectedStageKey(""); }}
-                  placeholder="Or type a custom label…"
-                  className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 placeholder-gray-400"
-                />
               </div>
 
-              {/* Date & time */}
+              {/* Fix 4 — Date mode toggle */}
               <div>
                 <label className="text-sm font-semibold text-gray-700">Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={occurredAt}
-                  onChange={(e) => setOccurredAt(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
-                />
-              </div>
-
-              {/* Current location */}
-              <div>
-                <label className="text-sm font-semibold text-gray-700">Current Location</label>
-                <input
-                  value={currentLocation}
-                  onChange={(e) => setCurrentLocation(e.target.value)}
-                  placeholder="e.g. Lagos, Lagos State, Nigeria"
-                  className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
-                />
-                <p className="mt-1 text-xs text-gray-400">Format: City, State, Country — or fill fields below</p>
-
-                {/* Separate location fields */}
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="rounded-xl border border-gray-200 px-3 py-2 text-xs focus:outline-none focus:border-blue-400" />
-                  <input value={state} onChange={(e) => setState(e.target.value)} placeholder="State" className="rounded-xl border border-gray-200 px-3 py-2 text-xs focus:outline-none focus:border-blue-400" />
-                  <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" className="rounded-xl border border-gray-200 px-3 py-2 text-xs focus:outline-none focus:border-blue-400" />
+                <div className="mt-2 flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" checked={useLocalTime} onChange={() => setUseLocalTime(true)} />
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    Use my local time (auto)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" checked={!useLocalTime} onChange={() => setUseLocalTime(false)} />
+                    Custom date & time
+                  </label>
                 </div>
-              </div>
-
-              {/* Details / note */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-semibold text-gray-700">Details / Note</label>
-                  {defaultNote && (
-                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={useDefaultNote}
-                        onChange={(e) => setUseDefaultNote(e.target.checked)}
-                        className="rounded"
-                      />
-                      Use default from stage
-                    </label>
-                  )}
-                </div>
-
-                {useDefaultNote && defaultNote ? (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-gray-700">
-                    <p className="text-xs font-semibold text-blue-600 mb-1">Default from stage:</p>
-                    {defaultNote}
-                  </div>
-                ) : (
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="e.g. Shipment received at warehouse. Departure planned in 10 minutes."
-                    className="w-full min-h-[100px] rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                {!useLocalTime && (
+                  <input
+                    type="datetime-local"
+                    value={occurredAt}
+                    onChange={(e) => setOccurredAt(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
                   />
+                )}
+                {useLocalTime && (
+                  <p className="mt-1.5 text-xs text-gray-400">Time will be recorded as the moment you click Add Update.</p>
                 )}
               </div>
 
-              {/* Stage color (main dot) */}
-              <ColorPicker
-                label="Stage Color (main timeline dot)"
-                value={stageColor}
-                onChange={setStageColor}
-              />
+              {/* Fix 3 — Location fields */}
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                <p className="text-sm font-extrabold text-gray-700 mb-1">Location</p>
 
-              {/* Detail color (inner entry dot) */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Destination (read-only)</label>
+                  <div className="mt-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-600">{destination || "—"}</div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Origin (read-only)</label>
+                  <div className="mt-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-600">{origin || "—"}</div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Previous Location (read-only)</label>
+                  <div className="mt-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-600">{previousLocation || "—"}</div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Current Location <span className="text-red-500">*</span></label>
+                  <input
+                    value={currentLocation}
+                    onChange={(e) => setCurrentLocation(e.target.value)}
+                    placeholder="e.g. Lagos, Lagos State, Nigeria"
+                    className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">Required. Format: City, State, Country</p>
+                </div>
+              </div>
+
+              {/* Fix 1 — Details (required, empty by default) */}
               <div>
-                <ColorPicker
-                  label="Detail Color (inner entry dot)"
-                  value={detailColor}
-                  onChange={setDetailColor}
+                <label className="text-sm font-semibold text-gray-700">
+                  Details <span className="text-red-500">*</span>
+                  <span className="ml-2 text-xs font-normal text-gray-400">(required — describe what happened)</span>
+                </label>
+                <textarea
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                  placeholder="e.g. Shipment arrived at the sorting facility and is being processed for the next stage."
+                  className="mt-2 w-full min-h-[90px] rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
                 />
+              </div>
+
+              {/* Fix 1 — Note (default from stage, editable) */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-700">Note</label>
+                  {defaultNote && (
+                    <button type="button" onClick={() => setNote(defaultNote)} className="cursor-pointer text-xs text-blue-600 hover:underline">
+                      Reset to default
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={defaultNote || "Optional note about this stage…"}
+                  className="w-full min-h-[80px] rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+
+              {/* Fix 1 — Additional Note (default from stage, editable) */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-700">Additional Note</label>
+                  {defaultNote && (
+                    <button type="button" onClick={() => setAdditionalNote(defaultNote)} className="cursor-pointer text-xs text-blue-600 hover:underline">
+                      Reset to default
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={additionalNote}
+                  onChange={(e) => setAdditionalNote(e.target.value)}
+                  placeholder={defaultNote || "Optional additional note…"}
+                  className="w-full min-h-[80px] rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+
+              {/* Colors */}
+              <ColorPicker label="Stage Color (main timeline dot)" value={stageColor} onChange={setStageColor} />
+
+              <div>
+                <ColorPicker label="Detail Color (inner entry dot)" value={detailColor} onChange={setDetailColor} />
                 <p className="mt-1.5 text-xs text-gray-400">
-                  Default: Amber. If you set Red or Green here, it will also override the stage color above (unless the stage is already Red).
+                  Default: Amber. Red or Green detail color overrides the stage color unless the stage is already Red.
                 </p>
-                {/* Preview */}
                 <div className="mt-3 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5">
                   <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: effectiveStageColor }} />
-                  <span className="text-xs text-gray-500">Stage dot preview</span>
+                  <span className="text-xs text-gray-500">Stage dot</span>
                   <div className="w-3 h-3 rounded-full ml-4" style={{ background: detailColor }} />
-                  <span className="text-xs text-gray-500">Detail dot preview</span>
+                  <span className="text-xs text-gray-500">Detail dot</span>
                 </div>
               </div>
 
@@ -464,23 +505,11 @@ export default function AdminShipmentTrackingPage() {
                 disabled={saving}
                 className="cursor-pointer w-full rounded-2xl bg-blue-600 text-white py-4 font-semibold transition flex items-center justify-center hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {saving ? (
-                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Saving…</>
-                ) : (
-                  <><PlusCircle className="w-5 h-5 mr-2" />Add Update</>
-                )}
+                {saving ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Saving…</> : <><PlusCircle className="w-5 h-5 mr-2" />Add Update</>}
               </button>
 
-              {err && (
-                <div className="flex items-center text-red-600 font-semibold text-sm">
-                  <AlertCircle className="w-4 h-4 mr-2 shrink-0" />{err}
-                </div>
-              )}
-              {ok && (
-                <div className="flex items-center text-green-700 font-semibold text-sm">
-                  <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />{ok}
-                </div>
-              )}
+              {err && <div className="flex items-center text-red-600 font-semibold text-sm"><AlertCircle className="w-4 h-4 mr-2 shrink-0" />{err}</div>}
+              {ok && <div className="flex items-center text-green-700 font-semibold text-sm"><CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />{ok}</div>}
             </div>
           </motion.div>
 
@@ -491,31 +520,26 @@ export default function AdminShipmentTrackingPage() {
 
             <div className="mt-5 space-y-3">
               {events.length === 0 ? (
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 text-sm text-gray-500 text-center">
-                  No tracking updates yet.
-                </div>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 text-sm text-gray-500 text-center">No tracking updates yet.</div>
               ) : (
                 events.map((ev, idx) => {
-                  const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country]
-                    .filter(Boolean)
-                    .join(", ");
+                  const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country].filter(Boolean).join(", ");
                   return (
                     <div key={idx} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-200 transition">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <div className="flex flex-col items-center gap-1 pt-0.5 shrink-0">
-                            <span className="w-4 h-4 rounded-full border-2 border-white shadow-sm shrink-0" style={{ background: ev.color || "#f59e0b" }} />
-                            {ev.detailColor && (
-                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: ev.detailColor || "#f59e0b" }} />
-                            )}
+                            <span className="w-4 h-4 rounded-full border-2 border-white shadow-sm" style={{ background: ev.color || "#f59e0b" }} />
+                            {ev.detailColor && <span className="w-2.5 h-2.5 rounded-full" style={{ background: ev.detailColor }} />}
                           </div>
                           <div className="min-w-0">
                             <p className="font-extrabold text-gray-900 text-sm">{ev.label}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {new Date(ev.occurredAt).toLocaleString()}
-                              {loc ? ` · ${loc}` : ""}
-                            </p>
-                            {ev.note && <p className="mt-1.5 text-sm text-gray-700 leading-relaxed">{ev.note}</p>}
+                            <p className="text-xs text-gray-500 mt-0.5">{new Date(ev.occurredAt).toLocaleString()}{loc ? ` · ${loc}` : ""}</p>
+                            {ev.details && <p className="mt-1.5 text-sm text-gray-800 font-medium">{ev.details}</p>}
+                            {ev.note && <p className="mt-1 text-sm text-gray-600">{ev.note}</p>}
+                            {ev.additionalNote && ev.additionalNote !== ev.note && (
+                              <p className="mt-1 text-xs text-gray-500 italic">{ev.additionalNote}</p>
+                            )}
                           </div>
                         </div>
                         <span className="text-xs font-bold text-gray-400 shrink-0">#{idx + 1}</span>
