@@ -201,19 +201,21 @@ export async function POST(req: Request) {
           meta: e.meta,
         });
       } else {
-        const g = groups[idx];
-        g.entries.push({
-          occurredAt: e.occurredAt,
-          note: e.note,
-          color: e.color || "",
-          detailColor: e.detailColor || "",
-          location: e.location,
-        });
-        g.occurredAt = e.occurredAt;
-        g.location = e.location;
-        if (e.color) g.color = e.color;
-        if (e.icon && !g.icon) g.icon = e.icon;
-      }
+  const g = groups[idx];
+  g.entries.push({
+    occurredAt: e.occurredAt,
+    note: e.note,
+    color: e.color || "",
+    detailColor: e.detailColor || "",
+    location: e.location,
+  });
+  // Fix 1 — only update occurredAt for display, but NEVER update location
+  // Each stage keeps its own first location permanently
+  g.occurredAt = e.occurredAt;
+  // Fix 1 — do NOT update g.location here — keep first entry's location
+  if (e.color) g.color = e.color;
+  if (e.icon && !g.icon) g.icon = e.icon;
+}
     }
 
     const lastGroup = groups[groups.length - 1] || null;

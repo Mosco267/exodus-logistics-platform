@@ -356,6 +356,7 @@ await db.collection("shipments").updateOne(
     let shouldSendTrackingStageEmail = false;
     let trackingStageEmailLabel = "";
     let trackingStageEmailNote = "";
+    let trackingStageEmailAdditionalNote = "";
 
     if (body?.trackingEvent) {
       const ev = body.trackingEvent;
@@ -392,7 +393,8 @@ await db.collection("shipments").updateOne(
 
       shouldSendTrackingStageEmail = !stageAlreadyExists;
       trackingStageEmailLabel = event.label;
-      trackingStageEmailNote = event.note || event.details || "";
+      trackingStageEmailNote = event.details || event.note || "";
+      trackingStageEmailAdditionalNote = event.additionalNote || "";  
 
       $push.trackingEvents = event;
       $set.status = event.label;
@@ -439,8 +441,8 @@ await db.collection("shipments").updateOne(
       const fullDestination = joinNice([(updated as any)?.receiverAddress, (updated as any)?.receiverCity, (updated as any)?.receiverState, (updated as any)?.receiverPostalCode, (updated as any)?.receiverCountry]);
       const origin = joinNice([(updated as any)?.senderCity, (updated as any)?.senderState, (updated as any)?.senderCountry]);
 
-      if (senderEmail) await sendShipmentStatusEmail(senderEmail, { name: senderName, shipmentId, statusLabel: trackingStageEmailLabel, trackingNumber, invoiceNumber: invoiceNumber || undefined, destination, fullDestination, origin, note: trackingStageEmailNote }).catch(() => null);
-      if (receiverEmail) await sendShipmentStatusEmail(receiverEmail, { name: receiverName, shipmentId, statusLabel: trackingStageEmailLabel, trackingNumber, invoiceNumber: invoiceNumber || undefined, destination, fullDestination, origin, note: trackingStageEmailNote }).catch(() => null);
+      if (senderEmail) await sendShipmentStatusEmail(senderEmail, { name: senderName, shipmentId, statusLabel: trackingStageEmailLabel, trackingNumber, invoiceNumber: invoiceNumber || undefined, destination, fullDestination, origin, note: trackingStageEmailNote, additionalNote: trackingStageEmailAdditionalNote, }).catch(() => null);
+      if (receiverEmail) await sendShipmentStatusEmail(receiverEmail, { name: receiverName, shipmentId, statusLabel: trackingStageEmailLabel, trackingNumber, invoiceNumber: invoiceNumber || undefined, destination, fullDestination, origin, note: trackingStageEmailNote, additionalNote: trackingStageEmailAdditionalNote, }).catch(() => null);
     }
 
     // NOTIFICATION + EMAIL for invoice changes

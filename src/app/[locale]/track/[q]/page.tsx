@@ -621,7 +621,7 @@ export default function TrackResultPage() {
                                         <p className="mt-0.5 text-xs font-bold text-gray-900">{data.destination || "—"}</p>
                                       </div>
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Current Location</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Location</p>
                                         <p className="mt-0.5 text-xs font-bold text-gray-900">{data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}</p>
                                       </div>
                                     </div>

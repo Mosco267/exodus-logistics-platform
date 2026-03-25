@@ -1682,6 +1682,7 @@ export async function sendShipmentStatusEmail(
     fullDestination?: string;
     origin?: string;
     note?: string;
+    additionalNote?: string;
     estimatedDeliveryDate?: string | null;
     locale?: string;
   }
@@ -1820,12 +1821,12 @@ export async function sendShipmentStatusEmail(
       ? fullDestination
       : destination;
 
-  const noteBlockHtml = note
+  const additionalNote = cleanStr(opts.additionalNote);
+  const noteBlockHtml = (note || additionalNote)
     ? `
       <div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
-        <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">
-          <strong>Additional note:</strong> ${esc(note)}
-        </p>
+        ${note ? `<p style="margin:0 0 6px 0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Note:</strong> ${esc(note)}</p>` : ""}
+        ${additionalNote && additionalNote !== note ? `<p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Additional note:</strong> ${esc(additionalNote)}</p>` : ""}
       </div>
     `
     : "";
