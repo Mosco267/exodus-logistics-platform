@@ -156,7 +156,7 @@ export async function POST(req: Request) {
       return {
         key,
         label,
-        note: cleanStr(ev?.note || ev?.statusNote || ""),
+        note: cleanStr(ev?.details || ev?.note || ev?.statusNote || ""),
         occurredAt,
         color: cleanStr(ev?.color),
         detailColor: cleanStr(ev?.detailColor),

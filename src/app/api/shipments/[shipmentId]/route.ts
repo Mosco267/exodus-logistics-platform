@@ -160,34 +160,50 @@ export async function PATCH(
 
     // ADD a sub-entry to an existing tracking event by index
     if (body?.addSubEntryToEventIndex !== undefined && body?.subEntry !== undefined) {
-      const idx = Number(body.addSubEntryToEventIndex);
-      const events = Array.isArray((existing as any)?.trackingEvents) ? [...(existing as any).trackingEvents] : [];
-      if (idx >= 0 && idx < events.length) {
-        const sub = body.subEntry;
-        if (!Array.isArray(events[idx].subEntries)) events[idx].subEntries = [];
-        events[idx].subEntries.push({
-          details: String(sub.details || "").trim(),
-          note: String(sub.note || "").trim(),
-          additionalNote: String(sub.additionalNote || "").trim(),
-          color: String(sub.color || events[idx].detailColor || "#f59e0b").trim(),
-          occurredAt: sub.occurredAt ? new Date(sub.occurredAt).toISOString() : new Date().toISOString(),
-          currentLocation: String(sub.currentLocation || "").trim(),
-          location: {
-            country: String(sub.location?.country || "").trim(),
-            state: String(sub.location?.state || "").trim(),
-            city: String(sub.location?.city || "").trim(),
-            county: String(sub.location?.county || "").trim(),
-          },
-        });
-        await db.collection("shipments").updateOne(
-          shipmentIdQuery(shipmentId),
-          { $set: { trackingEvents: events, updatedAt: new Date() } }
-        );
-        const updated = await db.collection("shipments").findOne(shipmentIdQuery(shipmentId), { projection: { _id: 0 } });
-        return NextResponse.json({ ok: true, shipment: updated });
-      }
-      return NextResponse.json({ error: "Invalid event index" }, { status: 400 });
-    }
+  const idx = Number(body.addSubEntryToEventIndex);
+  const events = Array.isArray((existing as any)?.trackingEvents)
+    ? [...(existing as any).trackingEvents]
+    : [];
+  if (idx >= 0 && idx < events.length) {
+    const parentEvent = events[idx];
+    const sub = body.subEntry;
+    // Save as a new trackingEvent with the SAME key as parent
+    // so the track API groups it under the same stage
+    const newEntry = {
+      key: String(parentEvent.key || "").trim(),
+      label: String(parentEvent.label || "").trim(),
+      details: String(sub.details || "").trim(),
+      note: String(sub.note || "").trim(),
+      additionalNote: String(sub.additionalNote || "").trim(),
+      color: String(sub.color || parentEvent.color || "#f59e0b").trim(),
+      detailColor: String(sub.color || "#f59e0b").trim(),
+      currentLocation: String(sub.currentLocation || "").trim(),
+      occurredAt: sub.occurredAt
+        ? new Date(sub.occurredAt).toISOString()
+        : new Date().toISOString(),
+      location: {
+        country: String(sub.location?.country || parentEvent.location?.country || "").trim(),
+        state: String(sub.location?.state || parentEvent.location?.state || "").trim(),
+        city: String(sub.location?.city || parentEvent.location?.city || "").trim(),
+        county: "",
+      },
+    };
+    await db.collection("shipments").updateOne(
+  shipmentIdQuery(shipmentId),
+  { $push: { trackingEvents: newEntry } } as any
+);
+await db.collection("shipments").updateOne(
+  shipmentIdQuery(shipmentId),
+  { $set: { updatedAt: new Date() } }
+);
+    const updated = await db.collection("shipments").findOne(
+      shipmentIdQuery(shipmentId),
+      { projection: { _id: 0 } }
+    );
+    return NextResponse.json({ ok: true, shipment: updated });
+  }
+  return NextResponse.json({ error: "Invalid event index" }, { status: 400 });
+}
 
     const pricingDoc = await db.collection<PricingSettingsDoc>("pricing_settings").findOne({ _id: "default" });
     const pricingProfiles: PricingProfiles = pricingDoc?.settings ?? DEFAULT_PRICING;
@@ -475,34 +491,7 @@ export async function PATCH(
         // Fix 1 — for ALL non-created events, only update color if they are NOT red
         // and only if new status is green (paid) or amber (unpaid/overdue)
         // Never touch red events
-        if (nextStatus === "paid" || nextStatus === "unpaid") {
-          const updateColor = nextStatus === "paid" ? "#22c55e" : "#f59e0b";
-          const updatedEvents = Array.isArray((existing as any)?.trackingEvents) ? [...(existing as any).trackingEvents] : [];
-          let needsUpdate = false;
-
-          for (let i = 0; i < updatedEvents.length; i++) {
-            const ev = updatedEvents[i];
-            const evColor = String(ev?.color || "");
-            // Fix 1 — NEVER change red events
-            if (!isRedColor(evColor)) {
-              // Only change amber → green (paid), or green → amber (unpaid)
-              if (isGreenColor(evColor) || (!isRedColor(evColor) && !isGreenColor(evColor))) {
-                updatedEvents[i] = { ...ev, color: updateColor };
-                needsUpdate = true;
-              }
-            }
-          }
-
-          if (needsUpdate) {
-            await db.collection("shipments").updateOne(
-              shipmentIdQuery(shipmentId),
-              { $set: { trackingEvents: updatedEvents } }
-            );
-            if ((updated as any)?.trackingEvents) {
-              (updated as any).trackingEvents = updatedEvents;
-            }
-          }
-        }
+        
 
         const senderEmail = String((updated as any)?.senderEmail || (existing as any)?.senderEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase();
         const receiverEmail = String((updated as any)?.receiverEmail || (existing as any)?.receiverEmail || "").trim().toLowerCase();
