@@ -45,7 +45,6 @@ function fmtLoc(loc: any) {
   return parts.join(", ");
 }
 
-// ✅ invoice format: EXS-INV-YYYY-MM-1234567 (fallback for old shipments)
 function makeInvoiceNumber(seedA: string, seedB: string) {
   const now = new Date();
   const yyyy = String(now.getFullYear());
@@ -63,20 +62,16 @@ export async function POST(req: Request) {
     const q = normUpper(body?.trackingNumber || body?.q || "");
 
     if (!q) {
-      return NextResponse.json(
-        { error: "Tracking number is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Tracking number is required" }, { status: 400 });
     }
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-   // ✅ allow ONLY tracking number search
-const shipment = await db.collection("shipments").findOne(
-  ciExact("trackingNumber", q),
-  { projection: { _id: 0 } }
-);
+    const shipment = await db.collection("shipments").findOne(
+      ciExact("trackingNumber", q),
+      { projection: { _id: 0 } }
+    );
 
     if (!shipment) {
       return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
@@ -84,55 +79,53 @@ const shipment = await db.collection("shipments").findOne(
 
     const s: any = shipment;
 
+    // ── Load statuses so we can attach icon to each event group ──
+    const statusesList = await db.collection("statuses").find({}).toArray();
+    const statusByKey = new Map<string, any>();
+    const statusByLabel = new Map<string, any>();
+    for (const st of statusesList) {
+      if (st.key) statusByKey.set(String(st.key).toLowerCase(), st);
+      if (st.label) statusByLabel.set(String(st.label).toLowerCase(), st);
+    }
+
     const invoiceNumber =
       normUpper(s?.invoice?.invoiceNumber) ||
       makeInvoiceNumber(cleanStr(s?.shipmentId), cleanStr(s?.trackingNumber));
 
     const rawInvoiceStatus = cleanStr(s?.invoice?.status).toLowerCase();
+    const invoiceStatus =
+      rawInvoiceStatus === "paid" ? "paid"
+      : rawInvoiceStatus === "overdue" ? "overdue"
+      : rawInvoiceStatus === "cancelled" || rawInvoiceStatus === "canceled" ? "cancelled"
+      : "unpaid";
 
-const invoiceStatus =
-  rawInvoiceStatus === "paid"
-    ? "paid"
-    : rawInvoiceStatus === "overdue"
-    ? "overdue"
-    : rawInvoiceStatus === "cancelled" || rawInvoiceStatus === "canceled"
-    ? "cancelled"
-    : "unpaid";
-
-const invoice = s?.invoice
-  ? {
-      invoiceNumber,
-      paid: invoiceStatus === "paid",
-      status: invoiceStatus,
-      amount: Number(s.invoice?.amount ?? 0),
-      currency: cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
-    }
-  : {
-      invoiceNumber,
-      paid: false,
-      status: "unpaid",
-      amount: 0,
-      currency: cleanStr(s?.declaredValueCurrency || "USD") || "USD",
-    };
+    const invoice = s?.invoice
+      ? {
+          invoiceNumber,
+          paid: invoiceStatus === "paid",
+          status: invoiceStatus,
+          amount: Number(s.invoice?.amount ?? 0),
+          currency: cleanStr(s.invoice?.currency || s?.declaredValueCurrency || "USD") || "USD",
+        }
+      : {
+          invoiceNumber,
+          paid: false,
+          status: "unpaid",
+          amount: 0,
+          currency: cleanStr(s?.declaredValueCurrency || "USD") || "USD",
+        };
 
     const destination = [s?.receiverCity, s?.receiverState, s?.receiverCountry]
-      .map(cleanStr)
-      .filter(Boolean)
-      .join(", ");
+      .map(cleanStr).filter(Boolean).join(", ");
 
     const origin = [s?.senderCity, s?.senderState, s?.senderCountry]
-      .map(cleanStr)
-      .filter(Boolean)
-      .join(", ");
+      .map(cleanStr).filter(Boolean).join(", ");
 
-    // timeline
     let raw = Array.isArray(s?.trackingEvents) ? [...s.trackingEvents] : [];
 
-    raw.sort((a: any, b: any) => {
-      const ta = new Date(a?.occurredAt || 0).getTime();
-      const tb = new Date(b?.occurredAt || 0).getTime();
-      return ta - tb;
-    });
+    raw.sort((a: any, b: any) =>
+      new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime()
+    );
 
     if (raw.length === 0) {
       const occurredAt = s?.statusUpdatedAt || s?.createdAt || new Date().toISOString();
@@ -153,12 +146,21 @@ const invoice = s?.invoice
       const key = normKey(ev?.key || label || "update");
       const occurredAt = cleanStr(ev?.occurredAt) || new Date().toISOString();
 
+      // ── Find matching status for icon ──
+      const matchedStatus =
+        statusByKey.get(key) ||
+        statusByKey.get(key.replace(/-/g, "")) ||
+        statusByLabel.get(label.toLowerCase()) ||
+        null;
+
       return {
         key,
         label,
         note: cleanStr(ev?.note || ev?.statusNote || ""),
         occurredAt,
         color: cleanStr(ev?.color),
+        detailColor: cleanStr(ev?.detailColor),
+        icon: cleanStr(matchedStatus?.icon || ev?.icon || ""),
         location: locLite(ev?.location || {}),
         meta: {
           invoicePaid: Boolean(invoice.paid),
@@ -170,7 +172,7 @@ const invoice = s?.invoice
       };
     });
 
-    // group stages
+    // ── Group by key (stage) ──
     const groups: any[] = [];
     const indexByKey = new Map<string, number>();
 
@@ -184,6 +186,7 @@ const invoice = s?.invoice
           key: k,
           label: e.label,
           color: e.color || "",
+          icon: e.icon || "",          // ← icon now included
           occurredAt: e.occurredAt,
           location: e.location,
           entries: [
@@ -191,6 +194,7 @@ const invoice = s?.invoice
               occurredAt: e.occurredAt,
               note: e.note,
               color: e.color || "",
+              detailColor: e.detailColor || "",
               location: e.location,
             },
           ],
@@ -202,21 +206,20 @@ const invoice = s?.invoice
           occurredAt: e.occurredAt,
           note: e.note,
           color: e.color || "",
+          detailColor: e.detailColor || "",
           location: e.location,
         });
         g.occurredAt = e.occurredAt;
         g.location = e.location;
         if (e.color) g.color = e.color;
+        if (e.icon && !g.icon) g.icon = e.icon;
       }
     }
 
     const lastGroup = groups[groups.length - 1] || null;
     const currentLocation = lastGroup?.location ? fmtLoc(lastGroup.location) : "";
 
-    const estimatedDelivery =
-  s?.estimatedDeliveryDate ||
-  s?.estimatedDelivery ||
-  null;
+    const estimatedDelivery = s?.estimatedDeliveryDate || s?.estimatedDelivery || null;
 
     return NextResponse.json({
       shipmentId: cleanStr(s?.shipmentId),
@@ -234,8 +237,7 @@ const invoice = s?.invoice
       currentLocation: currentLocation || null,
       packageDescription: cleanStr(s?.packageDescription || null),
 
-      invoice, // ✅ includes invoiceNumber
-
+      invoice,
       events: groups,
       estimatedDelivery,
       shipmentMeans: cleanStr(s?.shipmentMeans) || null,
