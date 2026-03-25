@@ -406,35 +406,47 @@ export default function AdminShipmentTrackingPage() {
     setAddModal(true);
   };
 
-  const saveSubEntry = async () => {
-    if (!subDetails.trim()) { setErr("Details is required."); return; }
-    if (addTargetIdx === null) return;
-    setSubSaving(true);
-    const locStr = [subCity, subState, subCountry].filter(Boolean).join(", ");
-    try {
-      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          addSubEntryToEventIndex: addTargetIdx,
-          subEntry: {
-            details: subDetails, note: subNote, additionalNote: "",
-            color: subColor, currentLocation: locStr,
-            location: { city: subCity, state: subState, country: subCountry, county: "" },
-          },
-        }),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error || "Failed");
-      setAddModal(false);
-      setSubDetails(""); setSubNote(""); setSubColor("#f59e0b");
-      setSubCity(""); setSubState(""); setSubCountry("");
-      setOk("Details added.");
-      await load();
-      window.setTimeout(() => setOk(""), 3000);
-    } catch (e: any) { setErr(e?.message || "Failed to add."); }
-    finally { setSubSaving(false); }
-  };
+const saveSubEntry = async () => {
+  if (!subDetails.trim()) { setErr("Details is required."); return; }
+  if (addTargetIdx === null) return;
+  setSubSaving(true);
+
+  const locStr = [subCity, subState, subCountry].filter(Boolean).join(", ");
+  const parentEvent = events[addTargetIdx];
+  const parentTime = new Date(parentEvent?.occurredAt || 0).getTime();
+  const subOccurredAt = new Date(parentTime + 1000).toISOString();
+
+  try {
+    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        addSubEntryToEventIndex: addTargetIdx,
+        subEntry: {
+          details: subDetails,
+          note: subNote,
+          additionalNote: "",
+          color: subColor,
+          currentLocation: locStr,
+          occurredAt: subOccurredAt,
+          location: { city: subCity, state: subState, country: subCountry, county: "" },
+        },
+      }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || "Failed");
+    setAddModal(false);
+    setSubDetails(""); setSubNote(""); setSubColor("#f59e0b");
+    setSubCity(""); setSubState(""); setSubCountry("");
+    setOk("Details added.");
+    await load();
+    window.setTimeout(() => setOk(""), 3000);
+  } catch (e: any) {
+    setErr(e?.message || "Failed to add.");
+  } finally {
+    setSubSaving(false);
+  }
+};
 
   const deleteEvent = async (rawIdx: number) => {
     setDeletingIdx(rawIdx);
