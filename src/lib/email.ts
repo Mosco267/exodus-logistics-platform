@@ -1822,14 +1822,13 @@ export async function sendShipmentStatusEmail(
       : destination;
 
   const additionalNote = cleanStr(opts.additionalNote);
-  const noteBlockHtml = (note || additionalNote)
-    ? `
-      <div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
-        ${note ? `<p style="margin:0 0 6px 0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Note:</strong> ${esc(note)}</p>` : ""}
-        ${additionalNote && additionalNote !== note ? `<p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Additional note:</strong> ${esc(additionalNote)}</p>` : ""}
-      </div>
-    `
-    : "";
+  const noteBlockHtml = additionalNote
+  ? `
+    <div style="margin:20px 0 0 0;padding:14px 16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;">
+      <p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;"><strong>Additional note:</strong> ${esc(additionalNote)}</p>
+    </div>
+  `
+  : "";
 
   const dynamicBadgeTone: EmailTone =
     normalizedStatus === "delivered"
