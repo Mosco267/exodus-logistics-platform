@@ -606,9 +606,10 @@ export default function TrackResultPage() {
                                             </div>
                                             <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                               <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
-                                              {(en as any).details?.trim() && <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>}
-{en.note?.trim() && <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{en.note}</p>}
-{!(en as any).details?.trim() && !en.note?.trim() && <p className="text-sm text-gray-400 mt-1">No additional details provided.</p>}
+                                              {(en as any).details?.trim()
+  ? <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
+  : <p className="text-sm text-gray-400 mt-1">No additional details provided.</p>
+}
                                             </div>
                                           </div>
                                         );
