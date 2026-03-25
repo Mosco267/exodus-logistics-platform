@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     const s: any = shipment;
 
-    // ── Load statuses so we can attach icon to each event group ──
+    // Load statuses for icon matching
     const statusesList = await db.collection("statuses").find({}).toArray();
     const statusByKey = new Map<string, any>();
     const statusByLabel = new Map<string, any>();
@@ -146,7 +146,6 @@ export async function POST(req: Request) {
       const key = normKey(ev?.key || label || "update");
       const occurredAt = cleanStr(ev?.occurredAt) || new Date().toISOString();
 
-      // ── Find matching status for icon ──
       const matchedStatus =
         statusByKey.get(key) ||
         statusByKey.get(key.replace(/-/g, "")) ||
@@ -156,12 +155,15 @@ export async function POST(req: Request) {
       return {
         key,
         label,
+        // note field: details takes priority over note for display
         note: cleanStr(ev?.details || ev?.note || ev?.statusNote || ""),
         occurredAt,
         color: cleanStr(ev?.color),
         detailColor: cleanStr(ev?.detailColor),
         icon: cleanStr(matchedStatus?.icon || ev?.icon || ""),
         location: locLite(ev?.location || {}),
+        // Fix 4 — also pass currentLocation string if stored
+        currentLocation: cleanStr(ev?.currentLocation || ""),
         meta: {
           invoicePaid: Boolean(invoice.paid),
           invoiceAmount: Number(invoice.amount ?? 0),
@@ -172,7 +174,7 @@ export async function POST(req: Request) {
       };
     });
 
-    // ── Group by key (stage) ──
+    // Group by key (stage)
     const groups: any[] = [];
     const indexByKey = new Map<string, number>();
 
@@ -186,7 +188,7 @@ export async function POST(req: Request) {
           key: k,
           label: e.label,
           color: e.color || "",
-          icon: e.icon || "",          // ← icon now included
+          icon: e.icon || "",
           occurredAt: e.occurredAt,
           location: e.location,
           entries: [
@@ -196,30 +198,40 @@ export async function POST(req: Request) {
               color: e.color || "",
               detailColor: e.detailColor || "",
               location: e.location,
+              currentLocation: e.currentLocation || "",
             },
           ],
           meta: e.meta,
         });
       } else {
-  const g = groups[idx];
-  g.entries.push({
-    occurredAt: e.occurredAt,
-    note: e.note,
-    color: e.color || "",
-    detailColor: e.detailColor || "",
-    location: e.location,
-  });
-  // Fix 1 — only update occurredAt for display, but NEVER update location
-  // Each stage keeps its own first location permanently
-  g.occurredAt = e.occurredAt;
-  // Fix 1 — do NOT update g.location here — keep first entry's location
-  if (e.color) g.color = e.color;
-  if (e.icon && !g.icon) g.icon = e.icon;
-}
+        const g = groups[idx];
+        g.entries.push({
+          occurredAt: e.occurredAt,
+          note: e.note,
+          color: e.color || "",
+          detailColor: e.detailColor || "",
+          location: e.location,
+          currentLocation: e.currentLocation || "",
+        });
+        // Update occurredAt to latest but keep first location on the group
+        g.occurredAt = e.occurredAt;
+        if (e.color) g.color = e.color;
+        if (e.icon && !g.icon) g.icon = e.icon;
+      }
     }
 
     const lastGroup = groups[groups.length - 1] || null;
-    const currentLocation = lastGroup?.location ? fmtLoc(lastGroup.location) : "";
+
+    // Fix 4 — currentLocation and statusNote come from the LAST ENTRY of the last group
+    // not from the group header itself
+    const lastGroupEntries = lastGroup?.entries || [];
+    const lastEntry = lastGroupEntries[lastGroupEntries.length - 1] || null;
+
+    // currentLocation: prefer stored currentLocation string, fall back to formatted location
+    const currentLocation = cleanStr(lastEntry?.currentLocation) || fmtLoc(lastEntry?.location) || fmtLoc(lastGroup?.location) || "";
+
+    // statusNote for the track page: last entry's note
+    const lastEntryNote = cleanStr(lastEntry?.note || "");
 
     const estimatedDelivery = s?.estimatedDeliveryDate || s?.estimatedDelivery || null;
 
@@ -228,7 +240,8 @@ export async function POST(req: Request) {
       trackingNumber: cleanStr(s?.trackingNumber),
 
       currentStatus: cleanStr(s?.status || lastGroup?.label || "—"),
-      statusNote: cleanStr(s?.statusNote || ""),
+      // Fix 4 — statusNote from last entry, not from shipment-level field
+      statusNote: lastEntryNote || cleanStr(s?.statusNote || ""),
       nextStep: cleanStr(s?.nextStep || ""),
 
       createdAt: s?.createdAt || null,
@@ -236,6 +249,7 @@ export async function POST(req: Request) {
 
       origin: origin || null,
       destination: destination || null,
+      // Fix 4 — currentLocation from last entry
       currentLocation: currentLocation || null,
       packageDescription: cleanStr(s?.packageDescription || null),
 

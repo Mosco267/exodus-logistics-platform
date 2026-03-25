@@ -6,15 +6,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle, CheckCircle2, Loader2, PlusCircle, ArrowLeft,
   ChevronDown, Clock, Pencil, Trash2, Plus, X, Save,
-  MapPin, FileText, StickyNote, MessageSquare,
+  FileText, StickyNote, ChevronRight,
 } from "lucide-react";
 
 type LocationLite = { country?: string; state?: string; city?: string; county?: string; };
 type TrackingEvent = {
   key?: string; label: string; details?: string; note?: string; additionalNote?: string;
-  occurredAt: string; color?: string; detailColor?: string; currentLocation?: string; location?: LocationLite;
+  occurredAt: string; color?: string; detailColor?: string; currentLocation?: string;
+  location?: LocationLite;
 };
-type StatusDoc = { key: string; label: string; color: string; icon?: string; defaultUpdate?: string; nextStep?: string; };
+type StatusDoc = { key: string; label: string; color: string; icon?: string; defaultUpdate?: string; };
 
 const RED_STAGES = new Set(["paymentissue", "invalidaddress", "cancelled", "canceled", "unclaimed"]);
 const GREEN_STAGES = new Set(["delivered"]);
@@ -33,154 +34,126 @@ const colorMap: Record<string, string> = {
 };
 
 const PRESET_COLORS = [
-  { label: "Amber", value: "#f59e0b", bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700" },
-  { label: "Green", value: "#22c55e", bg: "bg-green-50", border: "border-green-300", text: "text-green-700" },
-  { label: "Red", value: "#ef4444", bg: "bg-red-50", border: "border-red-300", text: "text-red-700" },
-  { label: "Blue", value: "#3b82f6", bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700" },
-  { label: "Purple", value: "#8b5cf6", bg: "bg-purple-50", border: "border-purple-300", text: "text-purple-700" },
-  { label: "Gray", value: "#6b7280", bg: "bg-gray-50", border: "border-gray-300", text: "text-gray-700" },
+  { label: "Amber", value: "#f59e0b" },
+  { label: "Green", value: "#22c55e" },
+  { label: "Red", value: "#ef4444" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Purple", value: "#8b5cf6" },
+  { label: "Gray", value: "#6b7280" },
 ];
 
-// Simple country/state/city data
-const COUNTRIES = ["Nigeria", "United States", "United Kingdom", "Canada", "Germany", "France", "Australia", "Ghana", "South Africa", "Kenya", "India", "China", "Brazil", "Mexico", "Japan", "South Korea", "Italy", "Spain", "Netherlands", "Sweden", "Norway", "Denmark", "Finland", "Switzerland", "Austria", "Belgium", "Portugal", "Poland", "Turkey", "Saudi Arabia", "UAE", "Qatar", "Egypt", "Morocco", "Ethiopia", "Tanzania", "Uganda", "Rwanda", "Senegal", "Ivory Coast", "Cameroon", "Angola", "Mozambique", "Zimbabwe", "Zambia", "Botswana", "Namibia", "Singapore", "Malaysia", "Indonesia", "Philippines", "Thailand", "Vietnam", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal", "Argentina", "Chile", "Colombia", "Peru", "Venezuela", "Jamaica", "Trinidad and Tobago", "Barbados", "New Zealand", "Ireland", "Scotland", "Wales"].sort();
+const COUNTRIES = ["Nigeria","United States","United Kingdom","Canada","Germany","France","Australia","Ghana","South Africa","Kenya","India","China","Brazil","Mexico","Japan","South Korea","Italy","Spain","Netherlands","Sweden","Norway","Denmark","Finland","Switzerland","Austria","Belgium","Portugal","Poland","Turkey","Saudi Arabia","UAE","Qatar","Egypt","Morocco","Ethiopia","Tanzania","Uganda","Rwanda","Senegal","Ivory Coast","Cameroon","Angola","Mozambique","Zimbabwe","Zambia","Botswana","Namibia","Singapore","Malaysia","Indonesia","Philippines","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","Nepal","Argentina","Chile","Colombia","Peru","Venezuela","Jamaica","Trinidad and Tobago","New Zealand","Ireland"].sort();
 
 const STATES_BY_COUNTRY: Record<string, string[]> = {
-  "Nigeria": ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"],
-  "United States": ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
-  "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
-  "Canada": ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"],
-  "Germany": ["Baden-Württemberg", "Bavaria", "Berlin", "Brandenburg", "Bremen", "Hamburg", "Hesse", "Lower Saxony", "Mecklenburg-Vorpommern", "North Rhine-Westphalia", "Rhineland-Palatinate", "Saarland", "Saxony", "Saxony-Anhalt", "Schleswig-Holstein", "Thuringia"],
-  "Ghana": ["Ashanti", "Brong-Ahafo", "Central", "Eastern", "Greater Accra", "Northern", "Upper East", "Upper West", "Volta", "Western"],
-  "South Africa": ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "Northern Cape", "North West", "Western Cape"],
-  "Kenya": ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Uasin Gishu", "Machakos", "Meru", "Kilifi", "Kakamega", "Kisii"],
+  "Nigeria": ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"],
+  "United States": ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"],
+  "United Kingdom": ["England","Scotland","Wales","Northern Ireland"],
+  "Canada": ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Nova Scotia","Ontario","Prince Edward Island","Quebec","Saskatchewan"],
+  "Germany": ["Baden-Württemberg","Bavaria","Berlin","Brandenburg","Bremen","Hamburg","Hesse","Lower Saxony","Mecklenburg-Vorpommern","North Rhine-Westphalia","Rhineland-Palatinate","Saarland","Saxony","Saxony-Anhalt","Schleswig-Holstein","Thuringia"],
+  "Ghana": ["Ashanti","Brong-Ahafo","Central","Eastern","Greater Accra","Northern","Upper East","Upper West","Volta","Western"],
+  "South Africa": ["Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo","Mpumalanga","Northern Cape","North West","Western Cape"],
+  "Kenya": ["Nairobi","Mombasa","Kisumu","Nakuru","Uasin Gishu","Machakos","Meru","Kilifi","Kakamega","Kisii"],
 };
 
-function getStates(country: string): string[] {
-  return STATES_BY_COUNTRY[country] || [];
-}
-
-function getNowLocal() {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function LocationFields({ city, state, country, onCity, onState, onCountry }: {
+  city: string; state: string; country: string;
+  onCity: (v: string) => void; onState: (v: string) => void; onCountry: (v: string) => void;
+}) {
+  const states = STATES_BY_COUNTRY[country] || [];
+  return (
+    <div className="space-y-2">
+      <div>
+        <label className="text-xs font-semibold text-gray-500 mb-1 block">Country</label>
+        <select value={country} onChange={(e) => { onCountry(e.target.value); onState(""); onCity(""); }}
+          className="cursor-pointer w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400">
+          <option value="">Select country…</option>
+          {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 mb-1 block">State / Province</label>
+        {states.length > 0 ? (
+          <select value={state} onChange={(e) => { onState(e.target.value); onCity(""); }}
+            className="cursor-pointer w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400">
+            <option value="">Select state…</option>
+            {states.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        ) : (
+          <input value={state} onChange={(e) => onState(e.target.value)} placeholder="Enter state / province"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
+        )}
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 mb-1 block">City</label>
+        <input value={city} onChange={(e) => onCity(e.target.value)} placeholder="Enter city"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
+      </div>
+      {(city || state || country) && (
+        <p className="text-xs text-blue-600 font-medium">📍 {[city, state, country].filter(Boolean).join(", ")}</p>
+      )}
+    </div>
+  );
 }
 
 function ColorDots({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {PRESET_COLORS.map((c) => (
-        <button
-          key={c.value}
-          type="button"
-          onClick={() => onChange(c.value)}
-          title={c.label}
-          className={`cursor-pointer relative w-8 h-8 rounded-full border-2 transition-all ${
-            value === c.value ? "border-gray-800 scale-110 shadow-md" : "border-white shadow-sm hover:scale-105"
-          }`}
-          style={{ background: c.value }}
-        >
-          {value === c.value && (
-            <span className="absolute inset-0 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4 text-white drop-shadow" />
-            </span>
-          )}
+        <button key={c.value} type="button" onClick={() => onChange(c.value)} title={c.label}
+          className={`cursor-pointer relative w-8 h-8 rounded-full border-2 transition-all ${value === c.value ? "border-gray-700 scale-110 shadow-md" : "border-white shadow-sm hover:scale-105"}`}
+          style={{ background: c.value }}>
+          {value === c.value && <span className="absolute inset-0 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-white drop-shadow" /></span>}
         </button>
       ))}
-      <div className="relative flex items-center gap-1.5">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden"
-          title="Custom color"
-        />
+      <div className="flex items-center gap-1.5">
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
+          className="w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" title="Custom" />
         <span className="text-xs text-gray-400">Custom</span>
       </div>
       <div className="flex items-center gap-1.5 ml-1">
         <div className="w-5 h-5 rounded-full border border-gray-200 shadow-sm" style={{ background: value }} />
-        <span className="text-xs font-mono text-gray-500">{value}</span>
+        <span className="text-xs font-mono text-gray-400">{value}</span>
       </div>
     </div>
   );
 }
 
-function LocationFields({
-  city, state, country,
-  onCity, onState, onCountry,
-  label = "Location",
-}: {
-  city: string; state: string; country: string;
-  onCity: (v: string) => void; onState: (v: string) => void; onCountry: (v: string) => void;
-  label?: string;
-}) {
-  const states = getStates(country);
+// Modal wrapper
+function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
 
+  if (!open) return null;
   return (
-    <div className="space-y-2">
-      <label className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</label>
-      <div className="grid grid-cols-1 gap-2">
-        {/* Country dropdown */}
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Country</label>
-          <select
-            value={country}
-            onChange={(e) => { onCountry(e.target.value); onState(""); onCity(""); }}
-            className="cursor-pointer w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 text-gray-800"
-          >
-            <option value="">Select country…</option>
-            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-extrabold text-gray-900">{title}</h3>
+          <button type="button" onClick={onClose} className="cursor-pointer p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 transition">
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        {/* State dropdown or input */}
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">State / Province</label>
-          {states.length > 0 ? (
-            <select
-              value={state}
-              onChange={(e) => { onState(e.target.value); onCity(""); }}
-              className="cursor-pointer w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 text-gray-800"
-            >
-              <option value="">Select state…</option>
-              {states.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          ) : (
-            <input
-              value={state}
-              onChange={(e) => onState(e.target.value)}
-              placeholder="Enter state / province"
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
-            />
-          )}
+        <div className="overflow-y-auto flex-1 px-6 py-5">
+          {children}
         </div>
-        {/* City input */}
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">City</label>
-          <input
-            value={city}
-            onChange={(e) => onCity(e.target.value)}
-            placeholder="Enter city"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
-          />
-        </div>
-      </div>
-      {(city || state || country) && (
-        <p className="text-xs text-blue-600 font-medium">
-          📍 {[city, state, country].filter(Boolean).join(", ")}
-        </p>
-      )}
+      </motion.div>
     </div>
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-semibold text-gray-700">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  );
+function getNowLocal() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function AdminShipmentTrackingPage() {
@@ -211,29 +184,32 @@ export default function AdminShipmentTrackingPage() {
   const [locCountry, setLocCountry] = useState("");
   const [useLocalTime, setUseLocalTime] = useState(true);
   const [occurredAt, setOccurredAt] = useState(getNowLocal);
-
-  // Read-only info
   const [destination, setDestination] = useState("");
   const [origin, setOrigin] = useState("");
   const [previousLocation, setPreviousLocation] = useState("");
 
-  // Edit state
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  // Edit modal state
+  const [editModal, setEditModal] = useState(false);
+  // editTargetIdx = the trackingEvent index in the raw array
+  const [editTargetIdx, setEditTargetIdx] = useState<number | null>(null);
+  // When editing, we first show a list of entries in that stage to pick from
+  // editStageGroup = the group object (with all its entry indices)
+  const [editStageGroup, setEditStageGroup] = useState<{ label: string; indices: number[] } | null>(null);
   const [editDetails, setEditDetails] = useState("");
   const [editNote, setEditNote] = useState("");
   const [editAdditionalNote, setEditAdditionalNote] = useState("");
   const [editColor, setEditColor] = useState("#f59e0b");
-  const [editDetailColor, setEditDetailColor] = useState("#f59e0b");
   const [editCity, setEditCity] = useState("");
   const [editState, setEditState] = useState("");
   const [editCountry, setEditCountry] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
-  // Add sub-entry state
-  const [addingSubIdx, setAddingSubIdx] = useState<number | null>(null);
+  // Add modal state
+  const [addModal, setAddModal] = useState(false);
+  const [addTargetIdx, setAddTargetIdx] = useState<number | null>(null);
+  const [addTargetLabel, setAddTargetLabel] = useState("");
   const [subDetails, setSubDetails] = useState("");
   const [subNote, setSubNote] = useState("");
-  const [subAdditionalNote, setSubAdditionalNote] = useState("");
   const [subColor, setSubColor] = useState("#f59e0b");
   const [subCity, setSubCity] = useState("");
   const [subState, setSubState] = useState("");
@@ -251,10 +227,38 @@ export default function AdminShipmentTrackingPage() {
     return stageColor;
   }, [stageColor, detailColor]);
 
+  // Raw sorted events
   const events: TrackingEvent[] = useMemo(() => {
     const arr = Array.isArray(shipment?.trackingEvents) ? shipment.trackingEvents : [];
     return [...arr].sort((a: any, b: any) => new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime());
   }, [shipment]);
+
+  // Group events by key for display (same logic as public track page)
+  const groupedEvents = useMemo(() => {
+    const groups: { key: string; label: string; color: string; occurredAt: string; location: any; entries: { idx: number; ev: TrackingEvent }[] }[] = [];
+    const indexByKey = new Map<string, number>();
+
+    events.forEach((ev, idx) => {
+      const k = String(ev.key || ev.label || "").toLowerCase().replace(/[\s_-]+/g, "-");
+      const existing = indexByKey.get(k);
+      if (existing === undefined) {
+        indexByKey.set(k, groups.length);
+        groups.push({
+          key: k,
+          label: ev.label,
+          color: ev.color || "#f59e0b",
+          occurredAt: ev.occurredAt,
+          location: ev.location,
+          entries: [{ idx, ev }],
+        });
+      } else {
+        groups[existing].entries.push({ idx, ev });
+        groups[existing].occurredAt = ev.occurredAt;
+        if (ev.color) groups[existing].color = ev.color;
+      }
+    });
+    return groups;
+  }, [events]);
 
   const load = async () => {
     setErr(""); setOk(""); setLoading(true);
@@ -335,21 +339,29 @@ export default function AdminShipmentTrackingPage() {
     finally { setSaving(false); }
   };
 
-  // Fix 1 — open edit with existing data pre-filled
-  const openEdit = (idx: number) => {
-    const ev = events[idx];
-    setEditingIdx(idx);
+  // Open edit modal — first show stage entry picker
+  const openEditModal = (groupIdx: number) => {
+    const group = groupedEvents[groupIdx];
+    if (!group) return;
+    setEditStageGroup({ label: group.label, indices: group.entries.map(e => e.idx) });
+    setEditTargetIdx(null); // will be set when user picks an entry
+    setEditModal(true);
+  };
+
+  const pickEditEntry = (rawIdx: number) => {
+    const ev = events[rawIdx];
+    setEditTargetIdx(rawIdx);
     setEditDetails(ev.details || "");
     setEditNote(ev.note || "");
     setEditAdditionalNote(ev.additionalNote || "");
     setEditColor(ev.color || "#f59e0b");
-    setEditDetailColor(ev.detailColor || "#f59e0b");
     setEditCity(ev.location?.city || "");
     setEditState(ev.location?.state || "");
     setEditCountry(ev.location?.country || "");
   };
 
-  const saveEdit = async (idx: number) => {
+  const saveEdit = async () => {
+    if (editTargetIdx === null) return;
     setEditSaving(true);
     const locStr = [editCity, editState, editCountry].filter(Boolean).join(", ");
     try {
@@ -357,40 +369,46 @@ export default function AdminShipmentTrackingPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          editTrackingEventIndex: idx,
+          editTrackingEventIndex: editTargetIdx,
           editTrackingEventData: {
             details: editDetails, note: editNote, additionalNote: editAdditionalNote,
-            color: editColor, detailColor: editDetailColor,
+            color: editColor,
             currentLocation: locStr,
             location: { city: editCity, state: editState, country: editCountry, county: "" },
           },
         }),
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error || "Failed to save");
-      setEditingIdx(null);
+      if (!res.ok) throw new Error(json?.error || "Failed");
+      setEditModal(false);
+      setEditTargetIdx(null);
+      setEditStageGroup(null);
       setOk("Edit saved.");
       await load();
       window.setTimeout(() => setOk(""), 3000);
-    } catch (e: any) { setErr(e?.message || "Failed to save edit."); }
+    } catch (e: any) { setErr(e?.message || "Failed to save."); }
     finally { setEditSaving(false); }
   };
 
-  // Fix 2 — open add-sub with existing event data pre-filled
-  const openAddSub = (idx: number) => {
-    const ev = events[idx];
-    setAddingSubIdx(idx);
-    setSubDetails(ev.details || "");
-    setSubNote(ev.note || "");
-    setSubAdditionalNote(ev.additionalNote || "");
-    setSubColor(ev.detailColor || ev.color || "#f59e0b");
-    setSubCity(ev.location?.city || "");
-    setSubState(ev.location?.state || "");
-    setSubCountry(ev.location?.country || "");
+  // Open add modal — pre-fill with last entry of this stage
+  const openAddModal = (groupIdx: number) => {
+    const group = groupedEvents[groupIdx];
+    if (!group) return;
+    const lastEntry = group.entries[group.entries.length - 1]?.ev;
+    setAddTargetIdx(group.entries[group.entries.length - 1]?.idx ?? null);
+    setAddTargetLabel(group.label);
+    setSubDetails(lastEntry?.details || "");
+    setSubNote(lastEntry?.note || "");
+    setSubColor(lastEntry?.detailColor || lastEntry?.color || "#f59e0b");
+    setSubCity(lastEntry?.location?.city || "");
+    setSubState(lastEntry?.location?.state || "");
+    setSubCountry(lastEntry?.location?.country || "");
+    setAddModal(true);
   };
 
-  const saveSubEntry = async (idx: number) => {
+  const saveSubEntry = async () => {
     if (!subDetails.trim()) { setErr("Details is required."); return; }
+    if (addTargetIdx === null) return;
     setSubSaving(true);
     const locStr = [subCity, subState, subCountry].filter(Boolean).join(", ");
     try {
@@ -398,33 +416,33 @@ export default function AdminShipmentTrackingPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          addSubEntryToEventIndex: idx,
+          addSubEntryToEventIndex: addTargetIdx,
           subEntry: {
-            details: subDetails, note: subNote, additionalNote: subAdditionalNote,
+            details: subDetails, note: subNote, additionalNote: "",
             color: subColor, currentLocation: locStr,
             location: { city: subCity, state: subState, country: subCountry, county: "" },
           },
         }),
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error || "Failed to add");
-      setAddingSubIdx(null);
-      setSubDetails(""); setSubNote(""); setSubAdditionalNote("");
-      setSubColor("#f59e0b"); setSubCity(""); setSubState(""); setSubCountry("");
-      setOk("Sub-entry added.");
+      if (!res.ok) throw new Error(json?.error || "Failed");
+      setAddModal(false);
+      setSubDetails(""); setSubNote(""); setSubColor("#f59e0b");
+      setSubCity(""); setSubState(""); setSubCountry("");
+      setOk("Details added.");
       await load();
       window.setTimeout(() => setOk(""), 3000);
     } catch (e: any) { setErr(e?.message || "Failed to add."); }
     finally { setSubSaving(false); }
   };
 
-  const deleteEvent = async (idx: number) => {
-    setDeletingIdx(idx);
+  const deleteEvent = async (rawIdx: number) => {
+    setDeletingIdx(rawIdx);
     try {
       const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deleteTrackingEventIndex: idx }),
+        body: JSON.stringify({ deleteTrackingEventIndex: rawIdx }),
       });
       if (!res.ok) throw new Error("Failed to delete");
       setConfirmDeleteIdx(null);
@@ -443,7 +461,6 @@ export default function AdminShipmentTrackingPage() {
   const invoiceStatusLabel = invoiceStatus === "paid" ? "PAID" : invoiceStatus === "overdue" ? "OVERDUE" : invoiceStatus === "cancelled" ? "CANCELLED" : "UNPAID";
 
   const inputCls = "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition placeholder:text-gray-400";
-  const textareaCls = `${inputCls} min-h-[90px] resize-none`;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -470,7 +487,6 @@ export default function AdminShipmentTrackingPage() {
           </div>
         </div>
 
-        {/* Alerts */}
         <AnimatePresence>
           {err && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -498,14 +514,14 @@ export default function AdminShipmentTrackingPage() {
             <div className="px-6 py-5 space-y-5">
 
               {/* Stage */}
-              <Field label="Stage" required>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Stage <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <button type="button" onClick={() => setShowStageDropdown(v => !v)}
-                    className="cursor-pointer w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-left flex items-center justify-between hover:border-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-100">
+                    className="cursor-pointer w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-left flex items-center justify-between hover:border-blue-400 transition focus:outline-none">
                     {label ? (
                       <span className="flex items-center gap-2 font-semibold text-gray-900">
-                        <span className="w-3 h-3 rounded-full" style={{ background: effectiveStageColor }} />
-                        {label}
+                        <span className="w-3 h-3 rounded-full" style={{ background: effectiveStageColor }} />{label}
                       </span>
                     ) : <span className="text-gray-400">Select a timeline stage…</span>}
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${showStageDropdown ? "rotate-180" : ""}`} />
@@ -513,8 +529,7 @@ export default function AdminShipmentTrackingPage() {
                   {showStageDropdown && (
                     <div className="absolute z-50 mt-1 w-full rounded-2xl border border-gray-200 bg-white shadow-xl overflow-hidden">
                       <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
-                        {statuses.length === 0
-                          ? <p className="px-4 py-3 text-sm text-gray-500">No stages found.</p>
+                        {statuses.length === 0 ? <p className="px-4 py-3 text-sm text-gray-500">No stages found.</p>
                           : statuses.map((s) => (
                             <button key={s.key} type="button" onClick={() => selectStage(s)}
                               className={`cursor-pointer w-full text-left px-4 py-3 text-sm flex items-center gap-3 transition ${selectedStageKey === s.key ? "bg-blue-50 text-blue-700 font-semibold" : "hover:bg-gray-50 text-gray-800"}`}>
@@ -526,27 +541,27 @@ export default function AdminShipmentTrackingPage() {
                     </div>
                   )}
                 </div>
-              </Field>
+              </div>
 
               {/* Date */}
-              <Field label="Date & Time">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Date & Time</label>
                 <div className="flex items-center gap-4 mb-2">
                   <label className="flex items-center gap-2 text-sm cursor-pointer text-gray-700">
                     <input type="radio" checked={useLocalTime} onChange={() => setUseLocalTime(true)} className="accent-blue-600" />
                     <Clock className="w-3.5 h-3.5 text-gray-400" /> Auto (now)
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer text-gray-700">
-                    <input type="radio" checked={!useLocalTime} onChange={() => setUseLocalTime(false)} className="accent-blue-600" />
-                    Custom
+                    <input type="radio" checked={!useLocalTime} onChange={() => setUseLocalTime(false)} className="accent-blue-600" /> Custom
                   </label>
                 </div>
                 {!useLocalTime && <input type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} className={inputCls} />}
                 {useLocalTime && <p className="text-xs text-gray-400">Time is recorded when you click Add Update.</p>}
-              </Field>
+              </div>
 
               {/* Location */}
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-2">
                   {[["Destination", destination], ["Origin", origin], ["Previous Location", previousLocation]].map(([lbl, val]) => (
                     <div key={lbl}>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{lbl}</p>
@@ -555,70 +570,64 @@ export default function AdminShipmentTrackingPage() {
                   ))}
                 </div>
                 <div className="border-t border-gray-200 pt-4">
-                  <LocationFields
-                    city={locCity} state={locState} country={locCountry}
-                    onCity={setLocCity} onState={setLocState} onCountry={setLocCountry}
-                    label="Current Location *"
-                  />
+                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">Current Location <span className="text-red-500">*</span></p>
+                  <LocationFields city={locCity} state={locState} country={locCountry} onCity={setLocCity} onState={setLocState} onCountry={setLocCountry} />
                 </div>
               </div>
 
               {/* Details */}
-              <Field label="Details" required>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Details <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-300 pointer-events-none" />
-                  <textarea value={details} onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Describe what happened at this stage…"
+                  <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Describe what happened at this stage…"
                     className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 min-h-[90px] resize-none placeholder:text-gray-400 transition" />
                 </div>
-              </Field>
+              </div>
 
               {/* Note */}
-              <Field label="Note">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Note</label>
                 <div className="relative">
                   <StickyNote className="absolute left-3 top-3 w-4 h-4 text-gray-300 pointer-events-none" />
-                  <textarea value={note} onChange={(e) => setNote(e.target.value)}
-                    placeholder={defaultNote || "Optional note shown on tracking page…"}
+                  <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={defaultNote || "Optional note shown on tracking page…"}
                     className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 min-h-[70px] resize-none placeholder:text-gray-400 transition" />
                 </div>
                 {defaultNote && <button type="button" onClick={() => setNote(defaultNote)} className="cursor-pointer mt-1 text-xs text-blue-600 hover:underline">Reset to default</button>}
-              </Field>
+              </div>
 
               {/* Additional Note */}
-              <Field label="Additional Note">
-                <div className="relative">
-                  <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-gray-300 pointer-events-none" />
-                  <textarea value={additionalNote} onChange={(e) => setAdditionalNote(e.target.value)}
-                    placeholder={defaultNote || "Shown in email to customer…"}
-                    className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 min-h-[70px] resize-none placeholder:text-gray-400 transition" />
-                </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Additional Note <span className="text-xs font-normal text-gray-400">(shown in email)</span></label>
+                <textarea value={additionalNote} onChange={(e) => setAdditionalNote(e.target.value)} placeholder={defaultNote || "Shown in email to customer…"}
+                  className={`${inputCls} min-h-[70px] resize-none`} />
                 {defaultNote && <button type="button" onClick={() => setAdditionalNote(defaultNote)} className="cursor-pointer mt-1 text-xs text-blue-600 hover:underline">Reset to default</button>}
-              </Field>
+              </div>
 
               {/* Colors */}
-              <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 mb-2">Stage Color <span className="text-xs font-normal text-gray-400">(main dot)</span></p>
                   <ColorDots value={stageColor} onChange={setStageColor} />
                 </div>
                 <div className="border-t border-gray-200 pt-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Detail Color <span className="text-xs font-normal text-gray-400">(inner dot — red/green overrides stage)</span></p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Detail Color <span className="text-xs font-normal text-gray-400">(inner dot)</span></p>
                   <ColorDots value={detailColor} onChange={setDetailColor} />
                 </div>
                 <div className="flex items-center gap-4 pt-2 border-t border-gray-200">
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full border-2 border-white shadow-md" style={{ background: effectiveStageColor }} />
-                    <span className="text-xs text-gray-500">Stage dot</span>
+                    <span className="text-xs text-gray-500">Stage dot preview</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full border border-white shadow" style={{ background: detailColor }} />
-                    <span className="text-xs text-gray-500">Detail dot</span>
+                    <span className="text-xs text-gray-500">Detail dot preview</span>
                   </div>
                 </div>
               </div>
 
               <button type="button" onClick={addEvent} disabled={saving}
-                className="cursor-pointer w-full rounded-2xl bg-blue-600 text-white py-3.5 font-bold text-sm transition flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm">
+                className="cursor-pointer w-full rounded-2xl bg-blue-600 text-white py-3.5 font-bold text-sm transition flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 shadow-sm">
                 {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : <><PlusCircle className="w-4 h-4" />Add Update</>}
               </button>
             </div>
@@ -628,120 +637,85 @@ export default function AdminShipmentTrackingPage() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100">
               <h2 className="text-base font-extrabold text-gray-900">Timeline</h2>
-              <p className="mt-0.5 text-xs text-gray-500">{events.length} event{events.length !== 1 ? "s" : ""} · Edit, delete or add details to any stage.</p>
+              <p className="mt-0.5 text-xs text-gray-500">{groupedEvents.length} stage{groupedEvents.length !== 1 ? "s" : ""} · {events.length} total entr{events.length !== 1 ? "ies" : "y"}</p>
             </div>
             <div className="px-6 py-5 space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
-              {events.length === 0 ? (
+              {groupedEvents.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">No tracking events yet.</div>
-              ) : events.map((ev, idx) => {
-                const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country].filter(Boolean).join(", ");
-                const isEditing = editingIdx === idx;
-                const isAddingSub = addingSubIdx === idx;
-                const isConfirmDelete = confirmDeleteIdx === idx;
-
+              ) : groupedEvents.map((group, groupIdx) => {
+                const isLast = groupIdx === groupedEvents.length - 1;
                 return (
-                  <div key={idx} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
-                            <span className="w-4 h-4 rounded-full ring-2 ring-white shadow" style={{ background: ev.color || "#f59e0b" }} />
-                            {ev.detailColor && <span className="w-2.5 h-2.5 rounded-full" style={{ background: ev.detailColor }} />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-bold text-gray-900 text-sm">{ev.label}</p>
-                              <span className="text-[10px] font-bold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">#{idx + 1}</span>
-                            </div>
-                            <p className="text-xs text-gray-400 mt-0.5">{new Date(ev.occurredAt).toLocaleString()}{loc ? ` · ${loc}` : ""}</p>
-                            {ev.details && <p className="mt-1.5 text-sm text-gray-800 font-medium leading-relaxed">{ev.details}</p>}
-                            {ev.note && <p className="mt-1 text-xs text-gray-500 leading-relaxed">{ev.note}</p>}
-                            {ev.additionalNote && ev.additionalNote !== ev.note && <p className="mt-1 text-xs text-gray-400 italic">{ev.additionalNote}</p>}
-                          </div>
+                  <div key={group.key + groupIdx} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+
+                    {/* Stage header */}
+                    <div className="px-4 py-3 flex items-center justify-between gap-2 bg-gray-50/50 border-b border-gray-100">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-3.5 h-3.5 rounded-full ring-2 ring-white shadow shrink-0" style={{ background: group.color || "#f59e0b" }} />
+                        <div>
+                          <p className="text-sm font-bold text-gray-900">{group.label}</p>
+                          <p className="text-xs text-gray-400">{new Date(group.occurredAt).toLocaleString()} · {group.entries.length} entr{group.entries.length !== 1 ? "ies" : "y"}</p>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button type="button" onClick={() => isEditing ? setEditingIdx(null) : openEdit(idx)}
-                            className={`cursor-pointer p-1.5 rounded-lg transition ${isEditing ? "bg-blue-100 text-blue-700" : "hover:bg-blue-50 text-blue-500"}`}>
-                            {isEditing ? <X className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
-                          </button>
-                          <button type="button" onClick={() => isAddingSub ? setAddingSubIdx(null) : openAddSub(idx)}
-                            className={`cursor-pointer p-1.5 rounded-lg transition ${isAddingSub ? "bg-green-100 text-green-700" : "hover:bg-green-50 text-green-500"}`}>
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                          <button type="button" onClick={() => setConfirmDeleteIdx(isConfirmDelete ? null : idx)}
-                            className={`cursor-pointer p-1.5 rounded-lg transition ${isConfirmDelete ? "bg-red-100 text-red-700" : "hover:bg-red-50 text-red-400"}`}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button type="button" onClick={() => openEditModal(groupIdx)}
+                          className="cursor-pointer p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition" title="Edit an entry">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button type="button" onClick={() => openAddModal(groupIdx)}
+                          className="cursor-pointer p-1.5 rounded-lg hover:bg-green-50 text-green-500 transition" title="Add details">
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
 
-                    {/* Edit form */}
-                    {isEditing && (
-                      <div className="border-t border-blue-100 bg-blue-50/30 px-4 py-4 space-y-3">
-                        <p className="text-xs font-bold text-blue-600 uppercase tracking-wide">Edit Stage #{idx + 1}</p>
-                        <textarea value={editDetails} onChange={(e) => setEditDetails(e.target.value)} placeholder="Details"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 min-h-[80px] resize-none" />
-                        <textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Note"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 min-h-[60px] resize-none" />
-                        <textarea value={editAdditionalNote} onChange={(e) => setEditAdditionalNote(e.target.value)} placeholder="Additional Note"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 min-h-[60px] resize-none" />
-                        <LocationFields city={editCity} state={editState} country={editCountry} onCity={setEditCity} onState={setEditState} onCountry={setEditCountry} label="Location" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 mb-2">Color</p>
-                          <ColorDots value={editColor} onChange={setEditColor} />
-                        </div>
-                        <div className="flex gap-2 pt-1">
-                          <button type="button" onClick={() => saveEdit(idx)} disabled={editSaving}
-                            className="cursor-pointer flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-1.5">
-                            {editSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : <><Save className="w-4 h-4" />Save Changes</>}
-                          </button>
-                          <button type="button" onClick={() => setEditingIdx(null)}
-                            className="cursor-pointer px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50">Cancel</button>
-                        </div>
-                      </div>
-                    )}
+                    {/* Entries inside the stage */}
+                    <div className="divide-y divide-gray-50">
+                      {group.entries.map(({ idx: rawIdx, ev }, entryIdx) => {
+                        const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country].filter(Boolean).join(", ");
+                        const isLastEntry = entryIdx === group.entries.length - 1;
+                        const isConfirmDelete = confirmDeleteIdx === rawIdx;
 
-                    {/* Add sub-entry form */}
-                    {isAddingSub && (
-                      <div className="border-t border-green-100 bg-green-50/30 px-4 py-4 space-y-3">
-                        <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Add Details to Stage #{idx + 1}</p>
-                        <textarea value={subDetails} onChange={(e) => setSubDetails(e.target.value)} placeholder="Details (required)"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-green-400 min-h-[80px] resize-none" />
-                        <textarea value={subNote} onChange={(e) => setSubNote(e.target.value)} placeholder="Note (optional)"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-green-400 min-h-[60px] resize-none" />
-                        <textarea value={subAdditionalNote} onChange={(e) => setSubAdditionalNote(e.target.value)} placeholder="Additional Note (optional)"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-green-400 min-h-[60px] resize-none" />
-                        <LocationFields city={subCity} state={subState} country={subCountry} onCity={setSubCity} onState={setSubState} onCountry={setSubCountry} label="Location" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 mb-2">Detail Color</p>
-                          <ColorDots value={subColor} onChange={setSubColor} />
-                        </div>
-                        <div className="flex gap-2 pt-1">
-                          <button type="button" onClick={() => saveSubEntry(idx)} disabled={subSaving}
-                            className="cursor-pointer flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-1.5">
-                            {subSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : <><Plus className="w-4 h-4" />Add Details</>}
-                          </button>
-                          <button type="button" onClick={() => setAddingSubIdx(null)}
-                            className="cursor-pointer px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50">Cancel</button>
-                        </div>
-                      </div>
-                    )}
+                        return (
+                          <div key={rawIdx} className="px-4 py-3">
+                            <div className="flex items-start gap-2.5">
+                              <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
+                                <span className="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ background: ev.color || "#f59e0b" }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-xs text-gray-400">{new Date(ev.occurredAt).toLocaleString()}{loc ? ` · ${loc}` : ""}</p>
+                                  <button type="button" onClick={() => setConfirmDeleteIdx(isConfirmDelete ? null : rawIdx)}
+                                    className="cursor-pointer p-1 rounded-lg hover:bg-red-50 text-red-400 transition shrink-0">
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                {ev.details && <p className="mt-1 text-sm text-gray-800 font-medium leading-relaxed">{ev.details}</p>}
+                                {ev.note && <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{ev.note}</p>}
+                                {isLastEntry && isLast && ev.currentLocation && (
+                                  <p className="mt-1 text-xs text-blue-600 font-semibold">📍 Current: {ev.currentLocation}</p>
+                                )}
+                              </div>
+                            </div>
 
-                    {/* Delete confirm */}
-                    {isConfirmDelete && (
-                      <div className="border-t border-red-100 bg-red-50/30 px-4 py-4">
-                        <p className="text-sm font-semibold text-red-700 mb-3">Delete "{ev.label}"? This cannot be undone.</p>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => deleteEvent(idx)} disabled={deletingIdx === idx}
-                            className="cursor-pointer flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-1.5">
-                            {deletingIdx === idx ? <><Loader2 className="w-4 h-4 animate-spin" />Deleting…</> : <><Trash2 className="w-4 h-4" />Yes, Delete</>}
-                          </button>
-                          <button type="button" onClick={() => setConfirmDeleteIdx(null)}
-                            className="cursor-pointer px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50">Cancel</button>
-                        </div>
-                      </div>
-                    )}
+                            {/* Delete confirm inline */}
+                            {isConfirmDelete && (
+                              <div className="mt-2 rounded-xl bg-red-50 border border-red-100 px-3 py-2.5 flex items-center justify-between gap-3">
+                                <p className="text-xs font-semibold text-red-700">Delete this entry?</p>
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={() => deleteEvent(rawIdx)} disabled={deletingIdx === rawIdx}
+                                    className="cursor-pointer px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-60 flex items-center gap-1">
+                                    {deletingIdx === rawIdx ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                    Delete
+                                  </button>
+                                  <button type="button" onClick={() => setConfirmDeleteIdx(null)}
+                                    className="cursor-pointer px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -749,6 +723,124 @@ export default function AdminShipmentTrackingPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* ── EDIT MODAL ── */}
+      <AnimatePresence>
+        {editModal && (
+          <Modal open={editModal} onClose={() => { setEditModal(false); setEditTargetIdx(null); setEditStageGroup(null); }} title={editTargetIdx === null ? `Edit — ${editStageGroup?.label}` : `Editing Entry`}>
+            {editTargetIdx === null && editStageGroup ? (
+              // Step 1: pick which entry to edit
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500 mb-3">Select an entry to edit:</p>
+                {editStageGroup.indices.map((rawIdx, i) => {
+                  const ev = events[rawIdx];
+                  const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country].filter(Boolean).join(", ");
+                  return (
+                    <button key={rawIdx} type="button" onClick={() => pickEditEntry(rawIdx)}
+                      className="cursor-pointer w-full text-left rounded-2xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/30 transition p-4 flex items-center justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <span className="w-3 h-3 rounded-full mt-1 shrink-0" style={{ background: ev.color || "#f59e0b" }} />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-400">{new Date(ev.occurredAt).toLocaleString()}{loc ? ` · ${loc}` : ""}</p>
+                          {ev.details && <p className="text-sm text-gray-800 font-medium mt-0.5 line-clamp-2">{ev.details}</p>}
+                          {!ev.details && ev.note && <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{ev.note}</p>}
+                          <span className="text-xs text-gray-300">Entry #{i + 1}</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              // Step 2: edit form
+              <div className="space-y-4">
+                <button type="button" onClick={() => setEditTargetIdx(null)}
+                  className="cursor-pointer inline-flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition mb-1">
+                  <ArrowLeft className="w-3 h-3" /> Back to entry list
+                </button>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Details</label>
+                  <textarea value={editDetails} onChange={(e) => setEditDetails(e.target.value)} placeholder="Details"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 min-h-[90px] resize-none" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Note</label>
+                  <textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Note"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 min-h-[70px] resize-none" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Additional Note</label>
+                  <textarea value={editAdditionalNote} onChange={(e) => setEditAdditionalNote(e.target.value)} placeholder="Additional note (in email)"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 min-h-[60px] resize-none" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Location</label>
+                  <LocationFields city={editCity} state={editState} country={editCountry} onCity={setEditCity} onState={setEditState} onCountry={setEditCountry} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Color</label>
+                  <ColorDots value={editColor} onChange={setEditColor} />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={saveEdit} disabled={editSaving}
+                    className="cursor-pointer flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                    {editSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : <><Save className="w-4 h-4" />Save Changes</>}
+                  </button>
+                  <button type="button" onClick={() => { setEditModal(false); setEditTargetIdx(null); setEditStageGroup(null); }}
+                    className="cursor-pointer px-5 py-3 rounded-2xl border border-gray-200 text-sm font-semibold hover:bg-gray-50">Cancel</button>
+                </div>
+              </div>
+            )}
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* ── ADD MODAL ── */}
+      <AnimatePresence>
+        {addModal && (
+          <Modal open={addModal} onClose={() => setAddModal(false)} title={`Add Details — ${addTargetLabel}`}>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Details <span className="text-red-500">*</span></label>
+                <textarea value={subDetails} onChange={(e) => setSubDetails(e.target.value)} placeholder="Describe the update…"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 min-h-[90px] resize-none" />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Note</label>
+                <textarea value={subNote} onChange={(e) => setSubNote(e.target.value)} placeholder="Optional note…"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 min-h-[70px] resize-none" />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Location</label>
+                <LocationFields city={subCity} state={subState} country={subCountry} onCity={setSubCity} onState={setSubState} onCountry={setSubCountry} />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">Color</label>
+                <ColorDots value={subColor} onChange={setSubColor} />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={saveSubEntry} disabled={subSaving}
+                  className="cursor-pointer flex-1 py-3 rounded-2xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                  {subSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : <><Plus className="w-4 h-4" />Add Details</>}
+                </button>
+                <button type="button" onClick={() => setAddModal(false)}
+                  className="cursor-pointer px-5 py-3 rounded-2xl border border-gray-200 text-sm font-semibold hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
