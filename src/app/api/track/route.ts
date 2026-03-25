@@ -157,7 +157,7 @@ export async function POST(req: Request) {
         key,
         label,
         // note field: details takes priority over note for display
-        note: cleanStr(ev?.details || ev?.note || ev?.statusNote || ""),
+        note: cleanStr(ev?.note || ev?.statusNote || ""),
         details: cleanStr(ev?.details || ""),
         occurredAt,
         color: cleanStr(ev?.color),
