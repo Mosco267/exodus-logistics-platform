@@ -198,6 +198,7 @@ export default function AdminShipmentTrackingPage() {
   const [overrideInnerColor, setOverrideInnerColor] = useState("#22c55e");
   // Track whether defaults have been set for current event count
   const [overrideInitializedForCount, setOverrideInitializedForCount] = useState(-1);
+const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(false);
 
   // Edit modal state
   const [editModal, setEditModal] = useState(false);
@@ -308,16 +309,19 @@ export default function AdminShipmentTrackingPage() {
   // Fix 1 — only set override defaults ONCE per unique event count
   // Never overwrite if user has manually changed them
   useEffect(() => {
-    if (!lastStageInfo) return;
-    if (overrideInitializedForCount === events.length) return; // already initialized for this count
-    setOverrideInitializedForCount(events.length);
+  if (!lastStageInfo) return;
+  if (overrideInitializedForCount === events.length) return;
+  // Only set defaults if user hasn't manually touched the checkboxes
+  if (!userHasManuallySetOverride) {
     const prevIsRed = isRedColor(lastStageInfo.outerColor);
     const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
     setOverrideOuterDot(!prevIsRed);
     setOverrideInnerDot(!prevInnerIsRed);
     setOverrideOuterColor("#22c55e");
     setOverrideInnerColor("#22c55e");
-  }, [events.length]);
+  }
+  setOverrideInitializedForCount(events.length);
+}, [events.length]);
 
   const selectStage = (s: StatusDoc) => {
     setSelectedStageKey(s.key);
@@ -405,6 +409,7 @@ export default function AdminShipmentTrackingPage() {
       setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
       setUseLocalTime(true); setOccurredAt(getNowLocal());
       await load();
+      setUserHasManuallySetOverride(false);
       window.setTimeout(() => setOk(""), 3000);
     } catch (e: any) { setErr(e?.message || "Failed to save."); }
     finally { setSaving(false); }
@@ -727,7 +732,7 @@ export default function AdminShipmentTrackingPage() {
 
                   <div className="space-y-2">
                     <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={overrideOuterDot} onChange={(e) => setOverrideOuterDot(e.target.checked)}
+                      <input type="checkbox" checked={overrideOuterDot}onChange={(e) => { setOverrideOuterDot(e.target.checked); setUserHasManuallySetOverride(true); }}
                         className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override outer dot color</span>
                       {lastStageInfo && (
@@ -746,7 +751,7 @@ export default function AdminShipmentTrackingPage() {
 
                   <div className="space-y-2 border-t border-blue-100 pt-3">
                     <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={overrideInnerDot} onChange={(e) => setOverrideInnerDot(e.target.checked)}
+                      <input type="checkbox" checked={overrideInnerDot} onChange={(e) => { setOverrideInnerDot(e.target.checked); setUserHasManuallySetOverride(true); }}
                         className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override last entry inner dot color</span>
                       {lastStageInfo && (

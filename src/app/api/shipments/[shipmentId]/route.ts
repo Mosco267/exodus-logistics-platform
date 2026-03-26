@@ -176,7 +176,7 @@ export async function PATCH(
       note: String(sub.note || "").trim(),
       additionalNote: String(sub.additionalNote || "").trim(),
       color: String(sub.color || parentEvent.color || "#f59e0b").trim(),
-      detailColor: String(sub.color || "#f59e0b").trim(),
+      detailColor: String(sub.detailColor || sub.color || "#f59e0b").trim(),
       currentLocation: String(sub.currentLocation || "").trim(),
       occurredAt: sub.occurredAt
         ? new Date(sub.occurredAt).toISOString()
