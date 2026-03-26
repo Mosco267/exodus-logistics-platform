@@ -496,11 +496,11 @@ export default function TrackResultPage() {
                       const isDelivered = labelLower === "delivered";
                       const isLast = idx === events.length - 1;
 
-                      const currentDotColor = isCompleted ? "#22c55e" : safeColor(stageBaseColor) || "#f59e0b";
+                      const currentDotColor = safeColor(stageBaseColor) || "#f59e0b";
                       const nextEvent = events[idx + 1];
-                      const nextDotColor = !isLast
-                        ? (idx + 1 < currentIndex ? "#22c55e" : safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
-                        : currentDotColor;
+                     const nextDotColor = !isLast
+  ? (safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
+  : currentDotColor;
 
                       return (
                         <div key={`${ev.key || ev.label}-${idx}`} className="flex relative">
