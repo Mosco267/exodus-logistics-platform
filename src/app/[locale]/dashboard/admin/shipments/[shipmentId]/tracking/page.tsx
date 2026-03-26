@@ -190,33 +190,39 @@ export default function AdminShipmentTrackingPage() {
   const [origin, setOrigin] = useState("");
   const [previousLocation, setPreviousLocation] = useState("");
 
-  // Override state
+  // Override — use a ref-like approach: store as plain booleans, never auto-set them
+  // Fix 1: initialize to false, only set when user explicitly checks
   const [overrideOuterDot, setOverrideOuterDot] = useState(false);
   const [overrideInnerDot, setOverrideInnerDot] = useState(false);
   const [overrideOuterColor, setOverrideOuterColor] = useState("#22c55e");
   const [overrideInnerColor, setOverrideInnerColor] = useState("#22c55e");
+  // Track whether defaults have been set for current event count
+  const [overrideInitializedForCount, setOverrideInitializedForCount] = useState(-1);
 
   // Edit modal state
-  const [editDetailColor, setEditDetailColor] = useState("#f59e0b");
   const [editModal, setEditModal] = useState(false);
   const [editTargetIdx, setEditTargetIdx] = useState<number | null>(null);
-  const [editStageGroup, setEditStageGroup] = useState<{ label: string; indices: number[] } | null>(null);
+  const [editStageGroup, setEditStageGroup] = useState<{ label: string; indices: number[]; lastRawIdx: number } | null>(null);
   const [editDetails, setEditDetails] = useState("");
   const [editNote, setEditNote] = useState("");
   const [editAdditionalNote, setEditAdditionalNote] = useState("");
   const [editColor, setEditColor] = useState("#f59e0b");
+  const [editDetailColor, setEditDetailColor] = useState("#f59e0b");
   const [editCity, setEditCity] = useState("");
   const [editState, setEditState] = useState("");
   const [editCountry, setEditCountry] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  // Track if the entry being edited is the last in its stage
+  const [editIsLastEntry, setEditIsLastEntry] = useState(false);
 
   // Add modal state
   const [addModal, setAddModal] = useState(false);
   const [addTargetIdx, setAddTargetIdx] = useState<number | null>(null);
   const [addTargetLabel, setAddTargetLabel] = useState("");
+  const [addStageOuterColor, setAddStageOuterColor] = useState("#f59e0b"); // Issue 2
   const [subDetails, setSubDetails] = useState("");
   const [subNote, setSubNote] = useState("");
-  const [subColor, setSubColor] = useState("#f59e0b");
+  const [subColor, setSubColor] = useState("#f59e0b"); // inner dot
   const [subCity, setSubCity] = useState("");
   const [subState, setSubState] = useState("");
   const [subCountry, setSubCountry] = useState("");
@@ -238,7 +244,6 @@ export default function AdminShipmentTrackingPage() {
     return [...arr].sort((a: any, b: any) => new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime());
   }, [shipment]);
 
-  // Group events by key — same as public track page
   const groupedEvents = useMemo(() => {
     const groups: {
       key: string; label: string; color: string; occurredAt: string;
@@ -261,7 +266,6 @@ export default function AdminShipmentTrackingPage() {
     return groups;
   }, [events]);
 
-  // Get info about the last stage for override defaults
   const lastStageInfo = useMemo(() => {
     if (groupedEvents.length === 0) return null;
     const lastGroup = groupedEvents[groupedEvents.length - 1];
@@ -270,7 +274,7 @@ export default function AdminShipmentTrackingPage() {
       outerColor: lastGroup.color || "#f59e0b",
       innerColor: lastEntry?.ev?.detailColor || lastEntry?.ev?.color || "#f59e0b",
       lastEntryRawIdx: lastEntry?.idx ?? null,
-      lastGroupRawIdx: lastGroup.entries[0]?.idx ?? null,
+      allEntryIndices: lastGroup.entries.map(e => e.idx),
     };
   }, [groupedEvents]);
 
@@ -301,16 +305,19 @@ export default function AdminShipmentTrackingPage() {
     fetch("/api/statuses", { cache: "no-store" }).then(r => r.json()).then(d => setStatuses(Array.isArray(d?.statuses) ? d.statuses : [])).catch(() => {});
   }, [shipmentId]);
 
-  // When last stage changes, update override defaults
+  // Fix 1 — only set override defaults ONCE per unique event count
+  // Never overwrite if user has manually changed them
   useEffect(() => {
-  if (!lastStageInfo) return;
-  const prevIsRed = isRedColor(lastStageInfo.outerColor);
-  const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
-  setOverrideOuterDot(!prevIsRed);
-  setOverrideInnerDot(!prevInnerIsRed);
-  setOverrideOuterColor("#22c55e");
-  setOverrideInnerColor("#22c55e");
-}, [events.length]); // re-run when events change, not on idx
+    if (!lastStageInfo) return;
+    if (overrideInitializedForCount === events.length) return; // already initialized for this count
+    setOverrideInitializedForCount(events.length);
+    const prevIsRed = isRedColor(lastStageInfo.outerColor);
+    const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
+    setOverrideOuterDot(!prevIsRed);
+    setOverrideInnerDot(!prevInnerIsRed);
+    setOverrideOuterColor("#22c55e");
+    setOverrideInnerColor("#22c55e");
+  }, [events.length]);
 
   const selectStage = (s: StatusDoc) => {
     setSelectedStageKey(s.key);
@@ -326,96 +333,107 @@ export default function AdminShipmentTrackingPage() {
     setShowStageDropdown(false);
   };
 
+  // Fix 1 — capture override state at click time, not from reactive state
   const addEvent = async () => {
-  setErr(""); setOk("");
-  if (!label.trim()) { setErr("Please select a stage."); return; }
-  if (!details.trim()) { setErr("Details is required."); return; }
-  if (!locCity.trim() && !locCountry.trim()) { setErr("Please fill in at least city and country."); return; }
+    setErr(""); setOk("");
+    if (!label.trim()) { setErr("Please select a stage."); return; }
+    if (!details.trim()) { setErr("Details is required."); return; }
+    if (!locCity.trim() && !locCountry.trim()) { setErr("Please fill in at least city and country."); return; }
 
-  const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
-  const locStr = [locCity, locState, locCountry].filter(Boolean).join(", ");
+    const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
+    const locStr = [locCity, locState, locCountry].filter(Boolean).join(", ");
 
-  setSaving(true);
-  try {
-    // Step 1 — Apply overrides directly using current groupedEvents (before reload)
-    if (lastStageInfo && (overrideOuterDot || overrideInnerDot)) {
-      const lastGroup = groupedEvents[groupedEvents.length - 1];
+    // Capture current override state synchronously before any async ops
+    const shouldOverrideOuter = overrideOuterDot;
+    const shouldOverrideInner = overrideInnerDot;
+    const outerColorToApply = overrideOuterColor;
+    const innerColorToApply = overrideInnerColor;
+    const lastInfo = lastStageInfo; // snapshot
 
-      if (overrideOuterDot && lastGroup) {
-        // Update color on ALL events in the last stage group
-        for (const { idx: rawIdx } of lastGroup.entries) {
+    setSaving(true);
+    try {
+      // Step 1 — Apply overrides only if checkboxes are checked
+      if (lastInfo && (shouldOverrideOuter || shouldOverrideInner)) {
+        const lastGroup = groupedEvents[groupedEvents.length - 1];
+
+        if (shouldOverrideOuter && lastGroup) {
+          for (const { idx: rawIdx } of lastGroup.entries) {
+            await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                editTrackingEventIndex: rawIdx,
+                editTrackingEventData: { color: outerColorToApply },
+              }),
+            });
+          }
+        }
+
+        if (shouldOverrideInner && lastInfo.lastEntryRawIdx !== null) {
           await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              editTrackingEventIndex: rawIdx,
-              editTrackingEventData: { color: overrideOuterColor },
+              editTrackingEventIndex: lastInfo.lastEntryRawIdx,
+              editTrackingEventData: { detailColor: innerColorToApply },
             }),
           });
         }
       }
 
-      if (overrideInnerDot && lastStageInfo.lastEntryRawIdx !== null) {
-        // Update detailColor on the last entry only
-        await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            editTrackingEventIndex: lastStageInfo.lastEntryRawIdx,
-            editTrackingEventData: { detailColor: overrideInnerColor },
-          }),
-        });
-      }
-    }
+      // Step 2 — Save new event
+      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trackingEvent: {
+            key: selectedStageKey || label.toLowerCase().trim().replace(/[\s_-]+/g, "-"),
+            label: label.trim(), details: details.trim(), note: note.trim(),
+            additionalNote: additionalNote.trim(), occurredAt: isoTime,
+            color: effectiveStageColor, detailColor,
+            currentLocation: locStr,
+            location: { city: locCity.trim(), state: locState.trim(), country: locCountry.trim(), county: "" },
+          },
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error || "Failed to save");
 
-    // Step 2 — Save new tracking event (NO load() in between)
-    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        trackingEvent: {
-          key: selectedStageKey || label.toLowerCase().trim().replace(/[\s_-]+/g, "-"),
-          label: label.trim(), details: details.trim(), note: note.trim(),
-          additionalNote: additionalNote.trim(), occurredAt: isoTime,
-          color: effectiveStageColor, detailColor,
-          currentLocation: locStr,
-          location: { city: locCity.trim(), state: locState.trim(), country: locCountry.trim(), county: "" },
-        },
-      }),
-    });
-    const json = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(json?.error || "Failed to save");
-
-    setOk("Update saved.");
-    setDetails(""); setNote(""); setAdditionalNote(""); setDefaultNote("");
-    setLocCity(""); setLocState(""); setLocCountry("");
-    setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
-    setUseLocalTime(true); setOccurredAt(getNowLocal());
-    await load(); // Only reload ONCE at the very end
-    window.setTimeout(() => setOk(""), 3000);
-  } catch (e: any) { setErr(e?.message || "Failed to save."); }
-  finally { setSaving(false); }
-};
+      setOk("Update saved.");
+      setDetails(""); setNote(""); setAdditionalNote(""); setDefaultNote("");
+      setLocCity(""); setLocState(""); setLocCountry("");
+      setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
+      setUseLocalTime(true); setOccurredAt(getNowLocal());
+      await load();
+      window.setTimeout(() => setOk(""), 3000);
+    } catch (e: any) { setErr(e?.message || "Failed to save."); }
+    finally { setSaving(false); }
+  };
 
   const openEditModal = (groupIdx: number) => {
     const group = groupedEvents[groupIdx];
     if (!group) return;
-    setEditStageGroup({ label: group.label, indices: group.entries.map(e => e.idx) });
+    const lastRawIdx = group.entries[group.entries.length - 1]?.idx ?? -1;
+    setEditStageGroup({ label: group.label, indices: group.entries.map(e => e.idx), lastRawIdx });
     setEditTargetIdx(null);
+    setEditIsLastEntry(false);
     setEditModal(true);
   };
 
   const pickEditEntry = (rawIdx: number) => {
     const ev = events[rawIdx];
+    // Issue 3: check if this is the last entry in its stage
+    const isLast = editStageGroup?.lastRawIdx === rawIdx;
+    setEditIsLastEntry(isLast ?? false);
     setEditTargetIdx(rawIdx);
     setEditDetails(ev.details || "");
     setEditNote(ev.note || "");
     setEditAdditionalNote(ev.additionalNote || "");
     setEditColor(ev.color || "#f59e0b");
+    setEditDetailColor(ev.detailColor || "#f59e0b");
     setEditCity(ev.location?.city || "");
     setEditState(ev.location?.state || "");
     setEditCountry(ev.location?.country || "");
-    setEditDetailColor(ev.detailColor || "#f59e0b");
   };
 
   const saveEdit = async () => {
@@ -429,12 +447,12 @@ export default function AdminShipmentTrackingPage() {
         body: JSON.stringify({
           editTrackingEventIndex: editTargetIdx,
           editTrackingEventData: {
-  details: editDetails, note: editNote, additionalNote: editAdditionalNote,
-  color: editColor,
-  detailColor: editDetailColor,  // ← add this
-  currentLocation: locStr,
-  location: { city: editCity, state: editState, country: editCountry, county: "" },
-},
+            details: editDetails, note: editNote, additionalNote: editAdditionalNote,
+            color: editColor,
+            detailColor: editDetailColor,
+            currentLocation: locStr,
+            location: { city: editCity, state: editState, country: editCountry, county: "" },
+          },
         }),
       });
       const json = await res.json().catch(() => null);
@@ -447,12 +465,14 @@ export default function AdminShipmentTrackingPage() {
     finally { setEditSaving(false); }
   };
 
+  // Issue 2 — open add modal with outer color pre-filled from stage
   const openAddModal = (groupIdx: number) => {
     const group = groupedEvents[groupIdx];
     if (!group) return;
     const lastEntry = group.entries[group.entries.length - 1]?.ev;
     setAddTargetIdx(group.entries[group.entries.length - 1]?.idx ?? null);
     setAddTargetLabel(group.label);
+    setAddStageOuterColor(group.color || "#f59e0b"); // pre-fill outer from stage color
     setSubDetails(lastEntry?.details || "");
     setSubNote(lastEntry?.note || "");
     setSubColor(lastEntry?.detailColor || lastEntry?.color || "#f59e0b");
@@ -480,7 +500,9 @@ export default function AdminShipmentTrackingPage() {
           addSubEntryToEventIndex: addTargetIdx,
           subEntry: {
             details: subDetails, note: subNote, additionalNote: "",
-            color: subColor, currentLocation: locStr, occurredAt: subOccurredAt,
+            color: addStageOuterColor, // Issue 2: outer dot color
+            detailColor: subColor,     // inner dot color
+            currentLocation: locStr, occurredAt: subOccurredAt,
             location: { city: subCity, state: subState, country: subCountry, county: "" },
           },
         }),
@@ -489,6 +511,7 @@ export default function AdminShipmentTrackingPage() {
       if (!res.ok) throw new Error(json?.error || "Failed");
       setAddModal(false);
       setSubDetails(""); setSubNote(""); setSubColor("#f59e0b");
+      setAddStageOuterColor("#f59e0b");
       setSubCity(""); setSubState(""); setSubCountry("");
       setOk("Details added.");
       await load();
@@ -520,7 +543,6 @@ export default function AdminShipmentTrackingPage() {
   const invoiceCurrency = String(shipment?.invoice?.currency || "USD");
   const invoiceStatusColor = invoiceStatus === "paid" ? "text-green-700 bg-green-50 border-green-200" : invoiceStatus === "overdue" || invoiceStatus === "cancelled" ? "text-red-700 bg-red-50 border-red-200" : "text-amber-700 bg-amber-50 border-amber-200";
   const invoiceStatusLabel = invoiceStatus === "paid" ? "PAID" : invoiceStatus === "overdue" ? "OVERDUE" : invoiceStatus === "cancelled" ? "CANCELLED" : "UNPAID";
-
   const inputCls = "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition placeholder:text-gray-400";
 
   return (
@@ -573,7 +595,6 @@ export default function AdminShipmentTrackingPage() {
             </div>
             <div className="px-6 py-5 space-y-5">
 
-              {/* Stage */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Stage <span className="text-red-500">*</span></label>
                 <div className="relative">
@@ -603,7 +624,6 @@ export default function AdminShipmentTrackingPage() {
                 </div>
               </div>
 
-              {/* Date */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Date & Time</label>
                 <div className="flex items-center gap-4 mb-2">
@@ -619,7 +639,6 @@ export default function AdminShipmentTrackingPage() {
                 {useLocalTime && <p className="text-xs text-gray-400">Time is recorded when you click Add Update.</p>}
               </div>
 
-              {/* Location */}
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
                 <div className="grid grid-cols-1 gap-2">
                   {[["Destination", destination], ["Origin", origin], ["Previous Location", previousLocation]].map(([lbl, val]) => (
@@ -635,7 +654,6 @@ export default function AdminShipmentTrackingPage() {
                 </div>
               </div>
 
-              {/* Details */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Details <span className="text-red-500">*</span></label>
                 <div className="relative">
@@ -645,7 +663,6 @@ export default function AdminShipmentTrackingPage() {
                 </div>
               </div>
 
-              {/* Note */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Note</label>
                 <div className="relative">
@@ -656,7 +673,6 @@ export default function AdminShipmentTrackingPage() {
                 {defaultNote && <button type="button" onClick={() => setNote(defaultNote)} className="cursor-pointer mt-1 text-xs text-blue-600 hover:underline">Reset to default</button>}
               </div>
 
-              {/* Additional Note */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Additional Note <span className="text-xs font-normal text-gray-400">(shown in email)</span></label>
                 <textarea value={additionalNote} onChange={(e) => setAdditionalNote(e.target.value)} placeholder={defaultNote || "Shown in email to customer…"}
@@ -664,7 +680,6 @@ export default function AdminShipmentTrackingPage() {
                 {defaultNote && <button type="button" onClick={() => setAdditionalNote(defaultNote)} className="cursor-pointer mt-1 text-xs text-blue-600 hover:underline">Reset to default</button>}
               </div>
 
-              {/* Colors */}
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 mb-2">Stage Color <span className="text-xs font-normal text-gray-400">(main dot)</span></p>
@@ -686,7 +701,7 @@ export default function AdminShipmentTrackingPage() {
                 </div>
               </div>
 
-              {/* ── OVERRIDE PREVIOUS STAGE COLORS ── */}
+              {/* Override section */}
               {groupedEvents.length > 0 && (
                 <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
                   <div>
@@ -695,7 +710,8 @@ export default function AdminShipmentTrackingPage() {
                       Update the previous stage's dot colors when this new stage is added.
                       {lastStageInfo && (
                         <span className="ml-1">
-                          Previous: <span className="inline-flex items-center gap-1">
+                          Previous:{" "}
+                          <span className="inline-flex items-center gap-1">
                             <span className="w-3 h-3 rounded-full inline-block border border-white shadow-sm" style={{ background: lastStageInfo.outerColor }} />
                             outer
                           </span>
@@ -709,52 +725,40 @@ export default function AdminShipmentTrackingPage() {
                     </p>
                   </div>
 
-                  {/* Outer dot override */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={overrideOuterDot}
-                        onChange={(e) => setOverrideOuterDot(e.target.checked)}
-                        className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={overrideOuterDot} onChange={(e) => setOverrideOuterDot(e.target.checked)}
+                        className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override outer dot color</span>
                       {lastStageInfo && (
                         <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <span className="w-3 h-3 rounded-full" style={{ background: lastStageInfo.outerColor }} />
-                          →
+                          <span className="w-3 h-3 rounded-full" style={{ background: lastStageInfo.outerColor }} />→
                           <span className="w-3 h-3 rounded-full" style={{ background: overrideOuterColor }} />
                         </span>
                       )}
                     </label>
                     {overrideOuterDot && (
                       <div className="pl-6">
-                        <ColorDots value={overrideOuterColor} onChange={(v) => { setOverrideOuterColor(v); }} />
+                        <ColorDots value={overrideOuterColor} onChange={setOverrideOuterColor} />
                       </div>
                     )}
                   </div>
 
-                  {/* Inner dot override */}
                   <div className="space-y-2 border-t border-blue-100 pt-3">
                     <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={overrideInnerDot}
-                        onChange={(e) => setOverrideInnerDot(e.target.checked)}
-                        className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={overrideInnerDot} onChange={(e) => setOverrideInnerDot(e.target.checked)}
+                        className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override last entry inner dot color</span>
                       {lastStageInfo && (
                         <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: lastStageInfo.innerColor }} />
-                          →
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: lastStageInfo.innerColor }} />→
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: overrideInnerColor }} />
                         </span>
                       )}
                     </label>
                     {overrideInnerDot && (
                       <div className="pl-6">
-                        <ColorDots value={overrideInnerColor} onChange={(v) => { setOverrideInnerColor(v); }} />
+                        <ColorDots value={overrideInnerColor} onChange={setOverrideInnerColor} />
                       </div>
                     )}
                   </div>
@@ -791,11 +795,11 @@ export default function AdminShipmentTrackingPage() {
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button type="button" onClick={() => openEditModal(groupIdx)}
-                          className="cursor-pointer p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition" title="Edit an entry">
+                          className="cursor-pointer p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button type="button" onClick={() => openAddModal(groupIdx)}
-                          className="cursor-pointer p-1.5 rounded-lg hover:bg-green-50 text-green-500 transition" title="Add details">
+                          className="cursor-pointer p-1.5 rounded-lg hover:bg-green-50 text-green-500 transition">
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -869,6 +873,7 @@ export default function AdminShipmentTrackingPage() {
                 {editStageGroup.indices.map((rawIdx, i) => {
                   const ev = events[rawIdx];
                   const loc = [ev?.location?.city, ev?.location?.state, ev?.location?.country].filter(Boolean).join(", ");
+                  const isLastInGroup = editStageGroup.lastRawIdx === rawIdx;
                   return (
                     <button key={rawIdx} type="button" onClick={() => pickEditEntry(rawIdx)}
                       className="cursor-pointer w-full text-left rounded-2xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/30 transition p-4 flex items-center justify-between gap-3">
@@ -878,7 +883,10 @@ export default function AdminShipmentTrackingPage() {
                           <p className="text-xs text-gray-400">{new Date(ev.occurredAt).toLocaleString()}{loc ? ` · ${loc}` : ""}</p>
                           {ev.details && <p className="text-sm text-gray-800 font-medium mt-0.5 line-clamp-2">{ev.details}</p>}
                           {!ev.details && ev.note && <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{ev.note}</p>}
-                          <span className="text-xs text-gray-300">Entry #{i + 1}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-300">Entry #{i + 1}</span>
+                            {isLastInGroup && <span className="text-xs font-semibold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">Last</span>}
+                          </div>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
@@ -911,14 +919,26 @@ export default function AdminShipmentTrackingPage() {
                   <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Location</label>
                   <LocationFields city={editCity} state={editState} country={editCountry} onCity={setEditCity} onState={setEditState} onCountry={setEditCountry} />
                 </div>
+
+                {/* Issue 3 — outer dot only for last entry */}
+                {editIsLastEntry && (
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                      Outer Dot Color
+                      <span className="ml-2 text-xs font-normal text-gray-400">(affects stage header)</span>
+                    </label>
+                    <ColorDots value={editColor} onChange={setEditColor} />
+                  </div>
+                )}
+
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Color (outer dot)</label>
-                  <ColorDots value={editColor} onChange={setEditColor} />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Detail Color (inner dot)</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Inner Dot Color
+                    <span className="ml-2 text-xs font-normal text-gray-400">(this entry only)</span>
+                  </label>
                   <ColorDots value={editDetailColor} onChange={setEditDetailColor} />
                 </div>
+
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={saveEdit} disabled={editSaving}
                     className="cursor-pointer flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2">
@@ -933,7 +953,7 @@ export default function AdminShipmentTrackingPage() {
         )}
       </AnimatePresence>
 
-      {/* ADD MODAL */}
+      {/* ADD MODAL — Issue 2: outer dot + inner dot */}
       <AnimatePresence>
         {addModal && (
           <Modal open={addModal} onClose={() => setAddModal(false)} title={`Add Details — ${addTargetLabel}`}>
@@ -953,7 +973,17 @@ export default function AdminShipmentTrackingPage() {
                 <LocationFields city={subCity} state={subState} country={subCountry} onCity={setSubCity} onState={setSubState} onCountry={setSubCountry} />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">Color</label>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  Outer Dot Color
+                  <span className="ml-2 text-xs font-normal text-gray-400">(stage dot color)</span>
+                </label>
+                <ColorDots value={addStageOuterColor} onChange={setAddStageOuterColor} />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  Inner Dot Color
+                  <span className="ml-2 text-xs font-normal text-gray-400">(this entry dot)</span>
+                </label>
                 <ColorDots value={subColor} onChange={setSubColor} />
               </div>
               <div className="flex gap-3 pt-2">
