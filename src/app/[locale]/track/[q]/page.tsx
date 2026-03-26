@@ -488,7 +488,8 @@ export default function TrackResultPage() {
                       const isOpen = openIdx === idx;
                       const stageLoc = fmtLoc(ev.location);
                       const stageWhen = fmtDate(ev.occurredAt);
-                      const stageBaseColor = safeColor(ev?.entries?.[0]?.color) || safeColor(ev?.color) || "";
+                      const lastEntryColor = ev?.entries?.[ev.entries.length - 1];
+const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) || "";
                       const isCompleted = idx < currentIndex;
                       const isCurrent = idx === currentIndex;
                       const labelLower = String(ev.label || "").toLowerCase();
