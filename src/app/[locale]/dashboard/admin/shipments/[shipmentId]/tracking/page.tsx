@@ -197,6 +197,7 @@ export default function AdminShipmentTrackingPage() {
   const [overrideInnerColor, setOverrideInnerColor] = useState("#22c55e");
 
   // Edit modal state
+  const [editDetailColor, setEditDetailColor] = useState("#f59e0b");
   const [editModal, setEditModal] = useState(false);
   const [editTargetIdx, setEditTargetIdx] = useState<number | null>(null);
   const [editStageGroup, setEditStageGroup] = useState<{ label: string; indices: number[] } | null>(null);
@@ -327,80 +328,75 @@ export default function AdminShipmentTrackingPage() {
   };
 
   const addEvent = async () => {
-    setErr(""); setOk("");
-    if (!label.trim()) { setErr("Please select a stage."); return; }
-    if (!details.trim()) { setErr("Details is required."); return; }
-    if (!locCity.trim() && !locCountry.trim()) { setErr("Please fill in at least city and country."); return; }
+  setErr(""); setOk("");
+  if (!label.trim()) { setErr("Please select a stage."); return; }
+  if (!details.trim()) { setErr("Details is required."); return; }
+  if (!locCity.trim() && !locCountry.trim()) { setErr("Please fill in at least city and country."); return; }
 
-    const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
-    const locStr = [locCity, locState, locCountry].filter(Boolean).join(", ");
+  const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
+  const locStr = [locCity, locState, locCountry].filter(Boolean).join(", ");
 
-    setSaving(true);
-    try {
-      // Step 1 — Apply color overrides to previous stage BEFORE adding new event
-      if (lastStageInfo && (overrideOuterDot || overrideInnerDot)) {
-        const overridePayload: any = {};
+  setSaving(true);
+  try {
+    // Step 1 — Apply overrides directly using current groupedEvents (before reload)
+    if (lastStageInfo && (overrideOuterDot || overrideInnerDot)) {
+      const lastGroup = groupedEvents[groupedEvents.length - 1];
 
-        if (overrideOuterDot && lastStageInfo.lastGroupRawIdx !== null) {
-          // Override the outer dot = the first event of the last stage (the stage header color)
-          // We edit all events in the last group to update their color
-          const lastGroup = groupedEvents[groupedEvents.length - 1];
-          for (const { idx: rawIdx } of lastGroup.entries) {
-            await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                editTrackingEventIndex: rawIdx,
-                editTrackingEventData: { color: overrideOuterColor },
-              }),
-            });
-          }
-        }
-
-        if (overrideInnerDot && lastStageInfo.lastEntryRawIdx !== null) {
-          // Override only the last entry's detailColor
+      if (overrideOuterDot && lastGroup) {
+        // Update color on ALL events in the last stage group
+        for (const { idx: rawIdx } of lastGroup.entries) {
           await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              editTrackingEventIndex: lastStageInfo.lastEntryRawIdx,
-              editTrackingEventData: { detailColor: overrideInnerColor },
+              editTrackingEventIndex: rawIdx,
+              editTrackingEventData: { color: overrideOuterColor },
             }),
           });
         }
-
-        // Reload to get fresh indices after override
-        await load();
       }
 
-      // Step 2 — Save the new tracking event
-      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackingEvent: {
-            key: selectedStageKey || label.toLowerCase().trim().replace(/[\s_-]+/g, "-"),
-            label: label.trim(), details: details.trim(), note: note.trim(),
-            additionalNote: additionalNote.trim(), occurredAt: isoTime,
-            color: effectiveStageColor, detailColor,
-            currentLocation: locStr,
-            location: { city: locCity.trim(), state: locState.trim(), country: locCountry.trim(), county: "" },
-          },
-        }),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error || "Failed to save");
+      if (overrideInnerDot && lastStageInfo.lastEntryRawIdx !== null) {
+        // Update detailColor on the last entry only
+        await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            editTrackingEventIndex: lastStageInfo.lastEntryRawIdx,
+            editTrackingEventData: { detailColor: overrideInnerColor },
+          }),
+        });
+      }
+    }
 
-      setOk("Update saved.");
-      setDetails(""); setNote(""); setAdditionalNote(""); setDefaultNote("");
-      setLocCity(""); setLocState(""); setLocCountry("");
-      setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
-      setUseLocalTime(true); setOccurredAt(getNowLocal());
-      await load();
-      window.setTimeout(() => setOk(""), 3000);
-    } catch (e: any) { setErr(e?.message || "Failed to save."); }
-    finally { setSaving(false); }
-  };
+    // Step 2 — Save new tracking event (NO load() in between)
+    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trackingEvent: {
+          key: selectedStageKey || label.toLowerCase().trim().replace(/[\s_-]+/g, "-"),
+          label: label.trim(), details: details.trim(), note: note.trim(),
+          additionalNote: additionalNote.trim(), occurredAt: isoTime,
+          color: effectiveStageColor, detailColor,
+          currentLocation: locStr,
+          location: { city: locCity.trim(), state: locState.trim(), country: locCountry.trim(), county: "" },
+        },
+      }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || "Failed to save");
+
+    setOk("Update saved.");
+    setDetails(""); setNote(""); setAdditionalNote(""); setDefaultNote("");
+    setLocCity(""); setLocState(""); setLocCountry("");
+    setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
+    setUseLocalTime(true); setOccurredAt(getNowLocal());
+    await load(); // Only reload ONCE at the very end
+    window.setTimeout(() => setOk(""), 3000);
+  } catch (e: any) { setErr(e?.message || "Failed to save."); }
+  finally { setSaving(false); }
+};
 
   const openEditModal = (groupIdx: number) => {
     const group = groupedEvents[groupIdx];
@@ -420,6 +416,7 @@ export default function AdminShipmentTrackingPage() {
     setEditCity(ev.location?.city || "");
     setEditState(ev.location?.state || "");
     setEditCountry(ev.location?.country || "");
+    setEditDetailColor(ev.detailColor || "#f59e0b");
   };
 
   const saveEdit = async () => {
@@ -433,10 +430,12 @@ export default function AdminShipmentTrackingPage() {
         body: JSON.stringify({
           editTrackingEventIndex: editTargetIdx,
           editTrackingEventData: {
-            details: editDetails, note: editNote, additionalNote: editAdditionalNote,
-            color: editColor, currentLocation: locStr,
-            location: { city: editCity, state: editState, country: editCountry, county: "" },
-          },
+  details: editDetails, note: editNote, additionalNote: editAdditionalNote,
+  color: editColor,
+  detailColor: editDetailColor,  // ← add this
+  currentLocation: locStr,
+  location: { city: editCity, state: editState, country: editCountry, county: "" },
+},
         }),
       });
       const json = await res.json().catch(() => null);
@@ -914,8 +913,12 @@ export default function AdminShipmentTrackingPage() {
                   <LocationFields city={editCity} state={editState} country={editCountry} onCity={setEditCity} onState={setEditState} onCountry={setEditCountry} />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Color</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Color (outer dot)</label>
                   <ColorDots value={editColor} onChange={setEditColor} />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Detail Color (inner dot)</label>
+                  <ColorDots value={editDetailColor} onChange={setEditDetailColor} />
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={saveEdit} disabled={editSaving}
