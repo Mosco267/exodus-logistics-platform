@@ -303,15 +303,14 @@ export default function AdminShipmentTrackingPage() {
 
   // When last stage changes, update override defaults
   useEffect(() => {
-    if (!lastStageInfo) return;
-    const prevIsRed = isRedColor(lastStageInfo.outerColor);
-    const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
-    // Default ON if previous is amber, OFF if red
-    setOverrideOuterDot(!prevIsRed);
-    setOverrideInnerDot(!prevInnerIsRed);
-    setOverrideOuterColor("#22c55e");
-    setOverrideInnerColor("#22c55e");
-  }, [lastStageInfo?.lastEntryRawIdx]);
+  if (!lastStageInfo) return;
+  const prevIsRed = isRedColor(lastStageInfo.outerColor);
+  const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
+  setOverrideOuterDot(!prevIsRed);
+  setOverrideInnerDot(!prevInnerIsRed);
+  setOverrideOuterColor("#22c55e");
+  setOverrideInnerColor("#22c55e");
+}, [events.length]); // re-run when events change, not on idx
 
   const selectStage = (s: StatusDoc) => {
     setSelectedStageKey(s.key);
