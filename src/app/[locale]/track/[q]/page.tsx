@@ -43,6 +43,9 @@ type Entry = {
   color?: string;
   detailColor?: string;
   location?: LocationLite;
+  badgeText?: string;
+  badgeColor?: string;
+  badgeLocked?: boolean;
 };
 
 type GroupedEvent = {
@@ -497,6 +500,10 @@ const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) 
                       const isDelivered = labelLower === "delivered";
                       const isLast = idx === events.length - 1;
 
+                      const lastEntry = ev?.entries?.[ev.entries.length - 1];
+const customBadgeText = (lastEntry as any)?.badgeText || "";
+const customBadgeColor = (lastEntry as any)?.badgeColor || "";
+
                       const currentDotColor = safeColor(stageBaseColor) || "#f59e0b";
                       const nextEvent = events[idx + 1];
                      const nextDotColor = !isLast
@@ -513,7 +520,7 @@ const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) 
     className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
     style={{ background: currentDotColor, width: "19px", height: "19px", marginTop: "19px" }}
   >
-    {isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
+    {isCompleted && !customBadgeText && <CheckCircle2 className="w-3 h-3 text-white" />}
   </div>
   {/* line — absolutely positioned from dot bottom to bottom of entire row */}
   {!isLast && (
@@ -535,13 +542,8 @@ const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) 
                           {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
                           {/* pb-3 creates the gap between stages so the line runs through it */}
                           <div className="flex-1 min-w-0 pb-4 ml-3">
-                            <div className={`rounded-2xl border shadow-sm overflow-hidden transition ${
-                              isCompleted ? "border-green-200 bg-green-50/40"
-                              : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
-                              : isCurrent && isDelivered ? "border-green-200 bg-green-50/40 shadow-md"
-                              : isCurrent ? "border-blue-200 bg-blue-50/40 shadow-md"
-                              : "border-gray-200 bg-white"
-                            }`}>
+                            <div className="rounded-2xl border shadow-sm overflow-hidden transition"
+style={customBadgeColor ? { borderColor: customBadgeColor + "60", background: customBadgeColor + "10" } : undefined}>
                               <button
                                 type="button"
                                 onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
@@ -566,19 +568,20 @@ const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) 
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
                                         {/* Fix 2 — "Current" → "Current Stage" */}
-                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                                          isCompleted ? "bg-green-100 text-green-700 border-green-200"
-                                          : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
-                                          : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
-                                          : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
-                                          : "bg-gray-100 text-gray-500 border-gray-200"
-                                        }`}>
-                                          {isCompleted ? "Completed"
-                                            : isCurrent && isCancelled ? "Cancelled"
-                                            : isCurrent && isDelivered ? "Delivered"
-                                            : isCurrent ? "Current Stage"
-                                            : "Upcoming"}
-                                        </span>
+                                        <span
+  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+    !customBadgeText
+      ? isCompleted ? "bg-green-100 text-green-700 border-green-200"
+        : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
+        : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
+        : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
+        : "bg-gray-100 text-gray-500 border-gray-200"
+      : ""
+  }`}
+  style={customBadgeText && customBadgeColor ? { background: customBadgeColor + "20", borderColor: customBadgeColor, color: customBadgeColor } : undefined}
+>
+  {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
+</span>
                                       </div>
                                       <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
                                     </div>

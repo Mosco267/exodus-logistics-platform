@@ -140,6 +140,9 @@ export async function PATCH(
           additionalNote: ev.additionalNote !== undefined ? String(ev.additionalNote).trim() : events[idx].additionalNote,
           color: ev.color !== undefined ? String(ev.color).trim() : events[idx].color,
           detailColor: ev.detailColor !== undefined ? String(ev.detailColor).trim() : events[idx].detailColor,
+          badgeText: ev.badgeText !== undefined ? String(ev.badgeText).trim() : events[idx].badgeText,
+badgeColor: ev.badgeColor !== undefined ? String(ev.badgeColor).trim() : events[idx].badgeColor,
+badgeLocked: ev.badgeLocked !== undefined ? Boolean(ev.badgeLocked) : events[idx].badgeLocked,
           currentLocation: ev.currentLocation !== undefined ? String(ev.currentLocation).trim() : events[idx].currentLocation,
           location: ev.location !== undefined ? {
             country: String(ev.location?.country || "").trim(),
@@ -177,6 +180,9 @@ export async function PATCH(
       additionalNote: String(sub.additionalNote || "").trim(),
       color: String(sub.color || parentEvent.color || "#f59e0b").trim(),
       detailColor: String(sub.detailColor || sub.color || "#f59e0b").trim(),
+      badgeText: String(sub.badgeText || "").trim(),
+badgeColor: String(sub.badgeColor || "").trim(),
+badgeLocked: Boolean(sub.badgeLocked ?? false),
       currentLocation: String(sub.currentLocation || "").trim(),
       occurredAt: sub.occurredAt
         ? new Date(sub.occurredAt).toISOString()
@@ -375,6 +381,9 @@ await db.collection("shipments").updateOne(
         occurredAt: ev?.occurredAt ? new Date(ev.occurredAt).toISOString() : now.toISOString(),
         color: String(ev?.color || "").trim(),
         detailColor: String(ev?.detailColor || "").trim(),
+        badgeText: String(ev?.badgeText || "").trim(),
+badgeColor: String(ev?.badgeColor || "").trim(),
+badgeLocked: Boolean(ev?.badgeLocked ?? false),
         currentLocation: String(ev?.currentLocation || "").trim(),
         location: {
           country: String(ev?.location?.country || "").trim(),

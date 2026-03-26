@@ -6,14 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle, CheckCircle2, Loader2, PlusCircle, ArrowLeft,
   ChevronDown, Clock, Pencil, Trash2, Plus, X, Save,
-  FileText, StickyNote, ChevronRight,
+  FileText, StickyNote, ChevronRight, Tag,
 } from "lucide-react";
 
 type LocationLite = { country?: string; state?: string; city?: string; county?: string; };
 type TrackingEvent = {
   key?: string; label: string; details?: string; note?: string; additionalNote?: string;
   occurredAt: string; color?: string; detailColor?: string; currentLocation?: string;
-  location?: LocationLite;
+  location?: LocationLite; badgeText?: string; badgeColor?: string; badgeLocked?: boolean;
 };
 type StatusDoc = { key: string; label: string; color: string; icon?: string; defaultUpdate?: string; };
 
@@ -45,6 +45,15 @@ const PRESET_COLORS = [
   { label: "Blue", value: "#3b82f6" },
   { label: "Purple", value: "#8b5cf6" },
   { label: "Gray", value: "#6b7280" },
+];
+
+const BADGE_PRESETS = [
+  { label: "Completed", value: "Completed" },
+  { label: "In Progress", value: "In Progress" },
+  { label: "Pending", value: "Pending" },
+  { label: "On Hold", value: "On Hold" },
+  { label: "Delayed", value: "Delayed" },
+  { label: "Cancelled", value: "Cancelled" },
 ];
 
 const COUNTRIES = ["Nigeria","United States","United Kingdom","Canada","Germany","France","Australia","Ghana","South Africa","Kenya","India","China","Brazil","Mexico","Japan","South Korea","Italy","Spain","Netherlands","Sweden","Norway","Denmark","Finland","Switzerland","Austria","Belgium","Portugal","Poland","Turkey","Saudi Arabia","UAE","Qatar","Egypt","Morocco","Ethiopia","Tanzania","Uganda","Rwanda","Senegal","Ivory Coast","Cameroon","Angola","Mozambique","Zimbabwe","Zambia","Botswana","Namibia","Singapore","Malaysia","Indonesia","Philippines","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","Nepal","Argentina","Chile","Colombia","Peru","Venezuela","Jamaica","Trinidad and Tobago","New Zealand","Ireland"].sort();
@@ -123,6 +132,42 @@ function ColorDots({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
+function BadgeFields({ text, color, onText, onColor }: {
+  text: string; color: string; onText: (v: string) => void; onColor: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
+      <div className="flex items-center gap-2">
+        <Tag className="w-4 h-4 text-gray-400" />
+        <p className="text-sm font-semibold text-gray-700">Badge</p>
+        {text && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border"
+            style={{ background: color + "20", borderColor: color, color }}>
+            {text}
+          </span>
+        )}
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Badge Text</label>
+        <div className="flex gap-2 flex-wrap mb-2">
+          {BADGE_PRESETS.map((p) => (
+            <button key={p.value} type="button" onClick={() => onText(p.value)}
+              className={`cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${text === p.value ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-100 text-gray-600"}`}>
+              {p.value}
+            </button>
+          ))}
+        </div>
+        <input value={text} onChange={(e) => onText(e.target.value)} placeholder="Custom badge text…"
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Badge Color</label>
+        <ColorDots value={color} onChange={onColor} />
+      </div>
+    </div>
+  );
+}
+
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -189,16 +234,18 @@ export default function AdminShipmentTrackingPage() {
   const [destination, setDestination] = useState("");
   const [origin, setOrigin] = useState("");
   const [previousLocation, setPreviousLocation] = useState("");
+  // Badge for new stage
+  const [badgeText, setBadgeText] = useState("");
+  const [badgeColor, setBadgeColor] = useState("#22c55e");
 
-  // Override — use a ref-like approach: store as plain booleans, never auto-set them
-  // Fix 1: initialize to false, only set when user explicitly checks
+  // Override state
   const [overrideOuterDot, setOverrideOuterDot] = useState(false);
   const [overrideInnerDot, setOverrideInnerDot] = useState(false);
   const [overrideOuterColor, setOverrideOuterColor] = useState("#22c55e");
   const [overrideInnerColor, setOverrideInnerColor] = useState("#22c55e");
-  // Track whether defaults have been set for current event count
+  const [overrideBadge, setOverrideBadge] = useState(true); // override previous badge to Completed
   const [overrideInitializedForCount, setOverrideInitializedForCount] = useState(-1);
-const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(false);
+  const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(false);
 
   // Edit modal state
   const [editModal, setEditModal] = useState(false);
@@ -212,21 +259,26 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
   const [editCity, setEditCity] = useState("");
   const [editState, setEditState] = useState("");
   const [editCountry, setEditCountry] = useState("");
+  const [editBadgeText, setEditBadgeText] = useState("");
+  const [editBadgeColor, setEditBadgeColor] = useState("#22c55e");
+  const [editBadgeLocked, setEditBadgeLocked] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
-  // Track if the entry being edited is the last in its stage
   const [editIsLastEntry, setEditIsLastEntry] = useState(false);
 
   // Add modal state
   const [addModal, setAddModal] = useState(false);
   const [addTargetIdx, setAddTargetIdx] = useState<number | null>(null);
   const [addTargetLabel, setAddTargetLabel] = useState("");
-  const [addStageOuterColor, setAddStageOuterColor] = useState("#f59e0b"); // Issue 2
+  const [addStageOuterColor, setAddStageOuterColor] = useState("#f59e0b");
   const [subDetails, setSubDetails] = useState("");
   const [subNote, setSubNote] = useState("");
-  const [subColor, setSubColor] = useState("#f59e0b"); // inner dot
+  const [subColor, setSubColor] = useState("#f59e0b");
   const [subCity, setSubCity] = useState("");
   const [subState, setSubState] = useState("");
   const [subCountry, setSubCountry] = useState("");
+  const [subBadgeText, setSubBadgeText] = useState("");
+  const [subBadgeColor, setSubBadgeColor] = useState("#22c55e");
+  const [subBadgeLocked, setSubBadgeLocked] = useState(false);
   const [subSaving, setSubSaving] = useState(false);
 
   // Delete state
@@ -276,6 +328,7 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
       innerColor: lastEntry?.ev?.detailColor || lastEntry?.ev?.color || "#f59e0b",
       lastEntryRawIdx: lastEntry?.idx ?? null,
       allEntryIndices: lastGroup.entries.map(e => e.idx),
+      lastEntryBadgeLocked: lastEntry?.ev?.badgeLocked ?? false,
     };
   }, [groupedEvents]);
 
@@ -306,22 +359,21 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
     fetch("/api/statuses", { cache: "no-store" }).then(r => r.json()).then(d => setStatuses(Array.isArray(d?.statuses) ? d.statuses : [])).catch(() => {});
   }, [shipmentId]);
 
-  // Fix 1 — only set override defaults ONCE per unique event count
-  // Never overwrite if user has manually changed them
   useEffect(() => {
-  if (!lastStageInfo) return;
-  if (overrideInitializedForCount === events.length) return;
-  // Only set defaults if user hasn't manually touched the checkboxes
-  if (!userHasManuallySetOverride) {
-    const prevIsRed = isRedColor(lastStageInfo.outerColor);
-    const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
-    setOverrideOuterDot(!prevIsRed);
-    setOverrideInnerDot(!prevInnerIsRed);
-    setOverrideOuterColor("#22c55e");
-    setOverrideInnerColor("#22c55e");
-  }
-  setOverrideInitializedForCount(events.length);
-}, [events.length]);
+    if (!lastStageInfo) return;
+    if (overrideInitializedForCount === events.length) return;
+    if (!userHasManuallySetOverride) {
+      const prevIsRed = isRedColor(lastStageInfo.outerColor);
+      const prevInnerIsRed = isRedColor(lastStageInfo.innerColor);
+      setOverrideOuterDot(!prevIsRed);
+      setOverrideInnerDot(!prevInnerIsRed);
+      setOverrideOuterColor("#22c55e");
+      setOverrideInnerColor("#22c55e");
+      // Default badge override: ON if previous badge is not locked
+      setOverrideBadge(!lastStageInfo.lastEntryBadgeLocked);
+    }
+    setOverrideInitializedForCount(events.length);
+  }, [events.length]);
 
   const selectStage = (s: StatusDoc) => {
     setSelectedStageKey(s.key);
@@ -337,7 +389,6 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
     setShowStageDropdown(false);
   };
 
-  // Fix 1 — capture override state at click time, not from reactive state
   const addEvent = async () => {
     setErr(""); setOk("");
     if (!label.trim()) { setErr("Please select a stage."); return; }
@@ -347,17 +398,16 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
     const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
     const locStr = [locCity, locState, locCountry].filter(Boolean).join(", ");
 
-    // Capture current override state synchronously before any async ops
     const shouldOverrideOuter = overrideOuterDot;
     const shouldOverrideInner = overrideInnerDot;
+    const shouldOverrideBadgeToCompleted = overrideBadge;
     const outerColorToApply = overrideOuterColor;
     const innerColorToApply = overrideInnerColor;
-    const lastInfo = lastStageInfo; // snapshot
+    const lastInfo = lastStageInfo;
 
     setSaving(true);
     try {
-      // Step 1 — Apply overrides only if checkboxes are checked
-      if (lastInfo && (shouldOverrideOuter || shouldOverrideInner)) {
+      if (lastInfo && (shouldOverrideOuter || shouldOverrideInner || shouldOverrideBadgeToCompleted)) {
         const lastGroup = groupedEvents[groupedEvents.length - 1];
 
         if (shouldOverrideOuter && lastGroup) {
@@ -383,9 +433,20 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
             }),
           });
         }
+
+        // Override previous stage badge to "Completed" — only on last entry of last group
+        if (shouldOverrideBadgeToCompleted && lastInfo.lastEntryRawIdx !== null) {
+          await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              editTrackingEventIndex: lastInfo.lastEntryRawIdx,
+              editTrackingEventData: { badgeText: "Completed", badgeColor: "#22c55e", badgeLocked: false },
+            }),
+          });
+        }
       }
 
-      // Step 2 — Save new event
       const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -397,6 +458,9 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
             color: effectiveStageColor, detailColor,
             currentLocation: locStr,
             location: { city: locCity.trim(), state: locState.trim(), country: locCountry.trim(), county: "" },
+            badgeText: badgeText.trim() || "",
+            badgeColor: badgeText.trim() ? badgeColor : "",
+            badgeLocked: badgeText.trim() ? true : false,
           },
         }),
       });
@@ -407,6 +471,7 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
       setDetails(""); setNote(""); setAdditionalNote(""); setDefaultNote("");
       setLocCity(""); setLocState(""); setLocCountry("");
       setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
+      setBadgeText(""); setBadgeColor("#22c55e");
       setUseLocalTime(true); setOccurredAt(getNowLocal());
       await load();
       setUserHasManuallySetOverride(false);
@@ -427,7 +492,6 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
 
   const pickEditEntry = (rawIdx: number) => {
     const ev = events[rawIdx];
-    // Issue 3: check if this is the last entry in its stage
     const isLast = editStageGroup?.lastRawIdx === rawIdx;
     setEditIsLastEntry(isLast ?? false);
     setEditTargetIdx(rawIdx);
@@ -439,6 +503,9 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
     setEditCity(ev.location?.city || "");
     setEditState(ev.location?.state || "");
     setEditCountry(ev.location?.country || "");
+    setEditBadgeText(ev.badgeText || "");
+    setEditBadgeColor(ev.badgeColor || "#22c55e");
+    setEditBadgeLocked(ev.badgeLocked ?? false);
   };
 
   const saveEdit = async () => {
@@ -453,10 +520,12 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
           editTrackingEventIndex: editTargetIdx,
           editTrackingEventData: {
             details: editDetails, note: editNote, additionalNote: editAdditionalNote,
-            color: editColor,
-            detailColor: editDetailColor,
+            color: editColor, detailColor: editDetailColor,
             currentLocation: locStr,
             location: { city: editCity, state: editState, country: editCountry, county: "" },
+            badgeText: editBadgeText.trim(),
+            badgeColor: editBadgeText.trim() ? editBadgeColor : "",
+            badgeLocked: editBadgeText.trim() ? editBadgeLocked : false,
           },
         }),
       });
@@ -470,20 +539,22 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
     finally { setEditSaving(false); }
   };
 
-  // Issue 2 — open add modal with outer color pre-filled from stage
   const openAddModal = (groupIdx: number) => {
     const group = groupedEvents[groupIdx];
     if (!group) return;
     const lastEntry = group.entries[group.entries.length - 1]?.ev;
     setAddTargetIdx(group.entries[group.entries.length - 1]?.idx ?? null);
     setAddTargetLabel(group.label);
-    setAddStageOuterColor(group.color || "#f59e0b"); // pre-fill outer from stage color
+    setAddStageOuterColor(group.color || "#f59e0b");
     setSubDetails(lastEntry?.details || "");
     setSubNote(lastEntry?.note || "");
     setSubColor(lastEntry?.detailColor || lastEntry?.color || "#f59e0b");
     setSubCity(lastEntry?.location?.city || "");
     setSubState(lastEntry?.location?.state || "");
     setSubCountry(lastEntry?.location?.country || "");
+    setSubBadgeText(lastEntry?.badgeText || "");
+    setSubBadgeColor(lastEntry?.badgeColor || "#22c55e");
+    setSubBadgeLocked(lastEntry?.badgeLocked ?? false);
     setAddModal(true);
   };
 
@@ -505,10 +576,12 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
           addSubEntryToEventIndex: addTargetIdx,
           subEntry: {
             details: subDetails, note: subNote, additionalNote: "",
-            color: addStageOuterColor, // Issue 2: outer dot color
-            detailColor: subColor,     // inner dot color
+            color: addStageOuterColor, detailColor: subColor,
             currentLocation: locStr, occurredAt: subOccurredAt,
             location: { city: subCity, state: subState, country: subCountry, county: "" },
+            badgeText: subBadgeText.trim(),
+            badgeColor: subBadgeText.trim() ? subBadgeColor : "",
+            badgeLocked: subBadgeText.trim() ? subBadgeLocked : false,
           },
         }),
       });
@@ -518,6 +591,7 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
       setSubDetails(""); setSubNote(""); setSubColor("#f59e0b");
       setAddStageOuterColor("#f59e0b");
       setSubCity(""); setSubState(""); setSubCountry("");
+      setSubBadgeText(""); setSubBadgeColor("#22c55e"); setSubBadgeLocked(false);
       setOk("Details added.");
       await load();
       window.setTimeout(() => setOk(""), 3000);
@@ -706,17 +780,19 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                 </div>
               </div>
 
+              {/* Badge for this new stage */}
+              <BadgeFields text={badgeText} color={badgeColor} onText={setBadgeText} onColor={setBadgeColor} />
+
               {/* Override section */}
               {groupedEvents.length > 0 && (
                 <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
                   <div>
-                    <p className="text-sm font-extrabold text-gray-800">Override Previous Stage Colors</p>
+                    <p className="text-sm font-extrabold text-gray-800">Override Previous Stage</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Update the previous stage's dot colors when this new stage is added.
+                      Update the previous stage when this new stage is added.
                       {lastStageInfo && (
                         <span className="ml-1">
-                          Previous:{" "}
-                          <span className="inline-flex items-center gap-1">
+                          Previous: <span className="inline-flex items-center gap-1">
                             <span className="w-3 h-3 rounded-full inline-block border border-white shadow-sm" style={{ background: lastStageInfo.outerColor }} />
                             outer
                           </span>
@@ -730,9 +806,10 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                     </p>
                   </div>
 
+                  {/* Outer dot */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={overrideOuterDot}onChange={(e) => { setOverrideOuterDot(e.target.checked); setUserHasManuallySetOverride(true); }}
+                      <input type="checkbox" checked={overrideOuterDot} onChange={(e) => { setOverrideOuterDot(e.target.checked); setUserHasManuallySetOverride(true); }}
                         className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override outer dot color</span>
                       {lastStageInfo && (
@@ -742,13 +819,10 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                         </span>
                       )}
                     </label>
-                    {overrideOuterDot && (
-                      <div className="pl-6">
-                        <ColorDots value={overrideOuterColor} onChange={setOverrideOuterColor} />
-                      </div>
-                    )}
+                    {overrideOuterDot && <div className="pl-6"><ColorDots value={overrideOuterColor} onChange={setOverrideOuterColor} /></div>}
                   </div>
 
+                  {/* Inner dot */}
                   <div className="space-y-2 border-t border-blue-100 pt-3">
                     <label className="flex items-center gap-2.5 cursor-pointer">
                       <input type="checkbox" checked={overrideInnerDot} onChange={(e) => { setOverrideInnerDot(e.target.checked); setUserHasManuallySetOverride(true); }}
@@ -761,11 +835,18 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                         </span>
                       )}
                     </label>
-                    {overrideInnerDot && (
-                      <div className="pl-6">
-                        <ColorDots value={overrideInnerColor} onChange={setOverrideInnerColor} />
-                      </div>
-                    )}
+                    {overrideInnerDot && <div className="pl-6"><ColorDots value={overrideInnerColor} onChange={setOverrideInnerColor} /></div>}
+                  </div>
+
+                  {/* Badge override */}
+                  <div className="space-y-2 border-t border-blue-100 pt-3">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                      <input type="checkbox" checked={overrideBadge} onChange={(e) => { setOverrideBadge(e.target.checked); setUserHasManuallySetOverride(true); }}
+                        className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+                      <span className="text-sm font-semibold text-gray-700">Override previous badge to "Completed"</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border bg-green-50 border-green-200 text-green-700">Completed</span>
+                    </label>
+                    <p className="pl-6 text-xs text-gray-400">If off, the previous stage keeps its current badge text.</p>
                   </div>
                 </div>
               )}
@@ -788,13 +869,24 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                 <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">No tracking events yet.</div>
               ) : groupedEvents.map((group, groupIdx) => {
                 const isLast = groupIdx === groupedEvents.length - 1;
+                const lastGroupEntry = group.entries[group.entries.length - 1]?.ev;
+                const groupBadgeText = lastGroupEntry?.badgeText || "";
+                const groupBadgeColor = lastGroupEntry?.badgeColor || "";
                 return (
                   <div key={group.key + groupIdx} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
                     <div className="px-4 py-3 flex items-center justify-between gap-2 bg-gray-50/50 border-b border-gray-100">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="w-3.5 h-3.5 rounded-full ring-2 ring-white shadow shrink-0" style={{ background: group.color || "#f59e0b" }} />
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{group.label}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-bold text-gray-900">{group.label}</p>
+                            {groupBadgeText && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border"
+                                style={{ background: (groupBadgeColor || "#22c55e") + "20", borderColor: groupBadgeColor || "#22c55e", color: groupBadgeColor || "#22c55e" }}>
+                                {groupBadgeText}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-400">{new Date(group.occurredAt).toLocaleString()} · {group.entries.length} entr{group.entries.length !== 1 ? "ies" : "y"}</p>
                         </div>
                       </div>
@@ -835,6 +927,12 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                                 </div>
                                 {ev.details && <p className="mt-1 text-sm text-gray-800 font-medium leading-relaxed">{ev.details}</p>}
                                 {ev.note && <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{ev.note}</p>}
+                                {ev.badgeText && (
+                                  <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border"
+                                    style={{ background: (ev.badgeColor || "#22c55e") + "20", borderColor: ev.badgeColor || "#22c55e", color: ev.badgeColor || "#22c55e" }}>
+                                    {ev.badgeText}{ev.badgeLocked && " 🔒"}
+                                  </span>
+                                )}
                                 {isLastEntry && isLast && ev.currentLocation && (
                                   <p className="mt-1 text-xs text-blue-600 font-semibold">📍 Current: {ev.currentLocation}</p>
                                 )}
@@ -867,7 +965,7 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
         </div>
       </div>
 
-      {/* EDIT MODAL */}
+    {/* EDIT MODAL */}
       <AnimatePresence>
         {editModal && (
           <Modal open={editModal} onClose={() => { setEditModal(false); setEditTargetIdx(null); setEditStageGroup(null); }}
@@ -888,9 +986,15 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                           <p className="text-xs text-gray-400">{new Date(ev.occurredAt).toLocaleString()}{loc ? ` · ${loc}` : ""}</p>
                           {ev.details && <p className="text-sm text-gray-800 font-medium mt-0.5 line-clamp-2">{ev.details}</p>}
                           {!ev.details && ev.note && <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{ev.note}</p>}
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-xs text-gray-300">Entry #{i + 1}</span>
                             {isLastInGroup && <span className="text-xs font-semibold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">Last</span>}
+                            {ev.badgeText && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold border"
+                                style={{ background: (ev.badgeColor || "#22c55e") + "20", borderColor: ev.badgeColor || "#22c55e", color: ev.badgeColor || "#22c55e" }}>
+                                {ev.badgeText}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -925,12 +1029,10 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                   <LocationFields city={editCity} state={editState} country={editCountry} onCity={setEditCity} onState={setEditState} onCountry={setEditCountry} />
                 </div>
 
-                {/* Issue 3 — outer dot only for last entry */}
                 {editIsLastEntry && (
                   <div>
                     <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                      Outer Dot Color
-                      <span className="ml-2 text-xs font-normal text-gray-400">(affects stage header)</span>
+                      Outer Dot Color <span className="text-xs font-normal text-gray-400">(affects stage header)</span>
                     </label>
                     <ColorDots value={editColor} onChange={setEditColor} />
                   </div>
@@ -938,11 +1040,25 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
 
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                    Inner Dot Color
-                    <span className="ml-2 text-xs font-normal text-gray-400">(this entry only)</span>
+                    Inner Dot Color <span className="text-xs font-normal text-gray-400">(this entry only)</span>
                   </label>
                   <ColorDots value={editDetailColor} onChange={setEditDetailColor} />
                 </div>
+
+                {/* Badge section — only for last entry */}
+                {editIsLastEntry && (
+                  <div className="space-y-3">
+                    <BadgeFields text={editBadgeText} color={editBadgeColor} onText={setEditBadgeText} onColor={setEditBadgeColor} />
+                    {editBadgeText.trim() && (
+                      <label className="flex items-center gap-2.5 cursor-pointer pl-1">
+                        <input type="checkbox" checked={editBadgeLocked} onChange={(e) => setEditBadgeLocked(e.target.checked)}
+                          className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+                        <span className="text-sm font-semibold text-gray-700">Lock badge</span>
+                        <span className="text-xs text-gray-400">(prevents auto-override to "Completed" when next stage is added)</span>
+                      </label>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={saveEdit} disabled={editSaving}
@@ -958,7 +1074,7 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
         )}
       </AnimatePresence>
 
-      {/* ADD MODAL — Issue 2: outer dot + inner dot */}
+      {/* ADD MODAL */}
       <AnimatePresence>
         {addModal && (
           <Modal open={addModal} onClose={() => setAddModal(false)} title={`Add Details — ${addTargetLabel}`}>
@@ -978,19 +1094,22 @@ const [userHasManuallySetOverride, setUserHasManuallySetOverride] = useState(fal
                 <LocationFields city={subCity} state={subState} country={subCountry} onCity={setSubCity} onState={setSubState} onCountry={setSubCountry} />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                  Outer Dot Color
-                  <span className="ml-2 text-xs font-normal text-gray-400">(stage dot color)</span>
-                </label>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">Outer Dot Color <span className="text-xs font-normal text-gray-400">(stage dot color)</span></label>
                 <ColorDots value={addStageOuterColor} onChange={setAddStageOuterColor} />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                  Inner Dot Color
-                  <span className="ml-2 text-xs font-normal text-gray-400">(this entry dot)</span>
-                </label>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">Inner Dot Color <span className="text-xs font-normal text-gray-400">(this entry dot)</span></label>
                 <ColorDots value={subColor} onChange={setSubColor} />
               </div>
+              <BadgeFields text={subBadgeText} color={subBadgeColor} onText={setSubBadgeText} onColor={setSubBadgeColor} />
+              {subBadgeText.trim() && (
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input type="checkbox" checked={subBadgeLocked} onChange={(e) => setSubBadgeLocked(e.target.checked)}
+                    className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+                  <span className="text-sm font-semibold text-gray-700">Lock badge</span>
+                  <span className="text-xs text-gray-400">(prevents auto-override when next stage added)</span>
+                </label>
+              )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={saveSubEntry} disabled={subSaving}
                   className="cursor-pointer flex-1 py-3 rounded-2xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-2">

@@ -166,6 +166,9 @@ export async function POST(req: Request) {
         location: locLite(ev?.location || {}),
         // Fix 4 — also pass currentLocation string if stored
         currentLocation: cleanStr(ev?.currentLocation || ""),
+        badgeText: cleanStr(ev?.badgeText || ""),
+badgeColor: cleanStr(ev?.badgeColor || ""),
+badgeLocked: Boolean(ev?.badgeLocked ?? false),
         meta: {
           invoicePaid: Boolean(invoice.paid),
           invoiceAmount: Number(invoice.amount ?? 0),
@@ -193,6 +196,9 @@ export async function POST(req: Request) {
           icon: e.icon || "",
           occurredAt: e.occurredAt,
           location: e.location,
+          badgeText: e.badgeText || "",
+badgeColor: e.badgeColor || "",
+badgeLocked: e.badgeLocked ?? false,
           entries: [
             {
               occurredAt: e.occurredAt,
@@ -216,6 +222,9 @@ export async function POST(req: Request) {
           detailColor: e.detailColor || "",
           location: e.location,
           currentLocation: e.currentLocation || "",
+          badgeText: e.badgeText || "",
+badgeColor: e.badgeColor || "",
+badgeLocked: e.badgeLocked ?? false,
         });
         // Update occurredAt to latest but keep first location on the group
         g.occurredAt = e.occurredAt;
