@@ -306,8 +306,10 @@ await db.collection("shipments").updateOne(
     if (body?.declaredValue !== undefined) $set.declaredValue = declaredValue;
 
     // INVOICE UPDATE
-    const incomingInvoice = body?.invoice || null;
-    const shouldRecalcInvoice = incomingInvoice !== null || body?.declaredValue !== undefined || body?.declaredValueCurrency !== undefined || (existing as any)?.invoice === undefined;
+    const incomingInvoice: any = body?.invoice || null;
+    const shouldRecalcInvoice =
+  incomingInvoice !== null || body?.declaredValue !== undefined ||
+  body?.declaredValueCurrency !== undefined;
 
     if (shouldRecalcInvoice) {
       const prev = (existing as any)?.invoice || {};
@@ -461,11 +463,11 @@ await db.collection("shipments").updateOne(
       message = `Shipment ${shipmentId} was updated to ${trackingLabel}.`;
     }
 
-    if (body?.invoice !== undefined) {
-      const prevStatus = String(prevInvoice.status || "unpaid").toLowerCase();
-      const nextStatus = String(nextInvoice.status || "unpaid").toLowerCase();
+    if (body?.invoice !== undefined && !body?.trackingEvent) {
+  const prevStatus = String(prevInvoice.status || "unpaid").toLowerCase();
+  const nextStatus = String(nextInvoice.status || "unpaid").toLowerCase();
 
-      if (prevStatus !== nextStatus) {
+  if (prevStatus !== nextStatus) {
         title = nextStatus === "paid" ? "Invoice Paid" : nextStatus === "overdue" ? "Invoice Overdue" : nextStatus === "cancelled" ? "Invoice Cancelled" : "Invoice Updated";
         message = nextStatus === "paid" ? `Invoice for shipment ${shipmentId} is now PAID.` : nextStatus === "overdue" ? `Invoice for shipment ${shipmentId} is now OVERDUE.` : nextStatus === "cancelled" ? `Invoice for shipment ${shipmentId} has been CANCELLED.` : `Invoice for shipment ${shipmentId} is now UNPAID.`;
 
