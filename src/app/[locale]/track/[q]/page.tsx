@@ -542,8 +542,18 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                           {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
                           {/* pb-3 creates the gap between stages so the line runs through it */}
                           <div className="flex-1 min-w-0 pb-4 ml-3">
-                            <div className="rounded-2xl border shadow-sm overflow-hidden transition"
-style={customBadgeColor ? { borderColor: customBadgeColor + "60", background: customBadgeColor + "10" } : undefined}>
+                            <div
+  className={`rounded-2xl border shadow-sm overflow-hidden transition ${
+    !customBadgeColor
+      ? isCompleted ? "border-green-200 bg-green-50/40"
+        : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
+        : isCurrent && isDelivered ? "border-green-200 bg-green-50/40 shadow-md"
+        : isCurrent ? "border-blue-200 bg-blue-50/40 shadow-md"
+        : "border-gray-200 bg-white"
+      : "border"
+  }`}
+  style={customBadgeColor ? { borderColor: customBadgeColor + "60", background: customBadgeColor + "10" } : undefined}
+>
                               <button
                                 type="button"
                                 onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
