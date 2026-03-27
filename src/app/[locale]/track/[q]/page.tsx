@@ -520,7 +520,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
     className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
     style={{ background: currentDotColor, width: "19px", height: "19px", marginTop: "19px" }}
   >
-    {isCompleted && !customBadgeText && <CheckCircle2 className="w-3 h-3 text-white" />}
+    {(isCompleted || customBadgeText === "Completed" || customBadgeText === "Delivered") && <CheckCircle2 className="w-3 h-3 text-white" />}
   </div>
   {/* line — absolutely positioned from dot bottom to bottom of entire row */}
   {!isLast && (
@@ -552,7 +552,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
         : "border-gray-200 bg-white"
       : "border"
   }`}
-  style={customBadgeColor ? { borderColor: customBadgeColor + "60", background: customBadgeColor + "10" } : undefined}
+ style={customBadgeColor ? { borderColor: customBadgeColor + "60" } : undefined}
 >
                               <button
                                 type="button"
