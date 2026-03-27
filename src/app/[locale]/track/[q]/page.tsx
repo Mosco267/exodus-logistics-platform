@@ -520,7 +520,11 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
     className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
     style={{ background: currentDotColor, width: "19px", height: "19px", marginTop: "19px" }}
   >
-    {(isCompleted || customBadgeText === "Completed" || customBadgeText === "Delivered") && <CheckCircle2 className="w-3 h-3 text-white" />}
+    {(() => {
+  const completedBadges = new Set(["completed", "delivered", "done", "finished"]);
+  const showCheck = isCompleted && (!customBadgeText || completedBadges.has(customBadgeText.toLowerCase()));
+  return showCheck ? <CheckCircle2 className="w-3 h-3 text-white" /> : null;
+})()}
   </div>
   {/* line — absolutely positioned from dot bottom to bottom of entire row */}
   {!isLast && (
@@ -572,8 +576,8 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
       : ""
   }`}
   style={customBadgeColor ? {
-    background: customBadgeColor + "25",
-    borderColor: customBadgeColor + "50",
+    background: customBadgeColor + "1a",
+    borderColor: customBadgeColor + "33",
     color: customBadgeColor,
   } : undefined}
 >
@@ -597,7 +601,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
         : "bg-gray-100 text-gray-500 border-gray-200"
       : ""
   }`}
-  style={customBadgeText && customBadgeColor ? { background: customBadgeColor + "25", borderColor: customBadgeColor + "50", color: customBadgeColor } : undefined}
+  style={customBadgeText && customBadgeColor ? { background: customBadgeColor + "1a", borderColor: customBadgeColor + "33", color: customBadgeColor, fontWeight: 700 } : undefined}
 >
   {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
 </span>
