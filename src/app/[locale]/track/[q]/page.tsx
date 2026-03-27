@@ -640,17 +640,16 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                                         return (
                                           <div key={`entry-${j}`} className="relative pl-1">
                                             {!isLastEntry && (
-  <div className="absolute left-[-8px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[j + 1]?.detailColor) || safeColor(ev.entries?.[j + 1]?.color) || entryDotBg} 100%)` }} />
+  <div className="absolute left-[-8px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[j + 1]?.detailColor) || safeColor(ev.entries?.[j + 1]?.color) || "#d1d5db"} 100%)` }} />
 )}
 <div className="absolute left-[-12px] top-[11px]">
                                               <div className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
                                             </div>
                                             <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                               <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
-                                              {(en as any).details?.trim()
-  ? <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
-  : <p className="text-sm text-gray-400 mt-1">No additional details provided.</p>
-}
+                                              {(en as any).details?.trim() && (
+  <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
+)}
                                             </div>
                                           </div>
                                         );
