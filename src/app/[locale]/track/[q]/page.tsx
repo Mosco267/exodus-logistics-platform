@@ -572,8 +572,8 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
       : ""
   }`}
   style={customBadgeColor ? {
-    background: customBadgeColor + "20",
-    borderColor: customBadgeColor + "40",
+    background: customBadgeColor + "25",
+    borderColor: customBadgeColor + "50",
     color: customBadgeColor,
   } : undefined}
 >
@@ -597,7 +597,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
         : "bg-gray-100 text-gray-500 border-gray-200"
       : ""
   }`}
-  style={customBadgeText && customBadgeColor ? { background: customBadgeColor + "20", borderColor: customBadgeColor, color: customBadgeColor } : undefined}
+  style={customBadgeText && customBadgeColor ? { background: customBadgeColor + "25", borderColor: customBadgeColor + "50", color: customBadgeColor } : undefined}
 >
   {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
 </span>
