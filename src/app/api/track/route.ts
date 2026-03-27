@@ -199,36 +199,38 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
           badgeText: e.badgeText || "",
 badgeColor: e.badgeColor || "",
 badgeLocked: e.badgeLocked ?? false,
-          entries: [
-            {
-              occurredAt: e.occurredAt,
-              note: e.note,
-              details: e.details,
-              color: e.color || "",
-              detailColor: e.detailColor || "",
-              location: e.location,
-              currentLocation: e.currentLocation || "",
-              badgeText: e.badgeText || "",
-badgeColor: e.badgeColor || "",
-badgeLocked: e.badgeLocked ?? false,
-            },
-          ],
+          entries: e.details || e.note ? [
+  {
+    occurredAt: e.occurredAt,
+    note: e.note,
+    details: e.details,
+    color: e.color || "",
+    detailColor: e.detailColor || "",
+    location: e.location,
+    currentLocation: e.currentLocation || "",
+    badgeText: e.badgeText || "",
+    badgeColor: e.badgeColor || "",
+    badgeLocked: e.badgeLocked ?? false,
+  },
+] : [],
           meta: e.meta,
         });
       } else {
         const g = groups[idx];
-        g.entries.push({
-          occurredAt: e.occurredAt,
-          note: e.note,
-          details: e.details,
-          color: e.color || "",
-          detailColor: e.detailColor || "",
-          location: e.location,
-          currentLocation: e.currentLocation || "",
-          badgeText: e.badgeText || "",
-badgeColor: e.badgeColor || "",
-badgeLocked: e.badgeLocked ?? false,
-        });
+        if (e.details || e.note) {
+          g.entries.push({
+            occurredAt: e.occurredAt,
+            note: e.note,
+            details: e.details,
+            color: e.color || "",
+            detailColor: e.detailColor || "",
+            location: e.location,
+            currentLocation: e.currentLocation || "",
+            badgeText: e.badgeText || "",
+            badgeColor: e.badgeColor || "",
+            badgeLocked: e.badgeLocked ?? false,
+          });
+        }
         // Update occurredAt to latest but keep first location on the group
         g.occurredAt = e.occurredAt;
 g.location = e.location; // Fix 2 — always use LAST entry's location for stage header
@@ -245,10 +247,16 @@ if (e.color) g.color = e.color;
     const lastEntry = lastGroupEntries[lastGroupEntries.length - 1] || null;
 
     // currentLocation: prefer stored currentLocation string, fall back to formatted location
-    const currentLocation = cleanStr(lastEntry?.currentLocation) || fmtLoc(lastEntry?.location) || fmtLoc(lastGroup?.location) || "";
+   // Walk back through entries to find the last one with a real location
+const lastGroupEntries2 = lastGroupEntries.filter((en: any) =>
+  cleanStr(en?.currentLocation) || fmtLoc(en?.location)
+);
+const lastEntryWithLocation = lastGroupEntries2[lastGroupEntries2.length - 1] || null;
+const currentLocation = cleanStr(lastEntryWithLocation?.currentLocation) || fmtLoc(lastEntryWithLocation?.location) || fmtLoc(lastGroup?.location) || "";
 
     // statusNote for the track page: last entry's note
-    const lastEntryNote = cleanStr(lastEntry?.note || "");
+    const lastEntryWithNote = [...lastGroupEntries].reverse().find((en: any) => cleanStr(en?.note));
+const lastEntryNote = cleanStr(lastEntryWithNote?.note || "");
 
     const estimatedDelivery = s?.estimatedDeliveryDate || s?.estimatedDelivery || null;
 
