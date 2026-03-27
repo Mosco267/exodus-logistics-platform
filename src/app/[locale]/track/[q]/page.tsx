@@ -561,13 +561,22 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex items-start gap-3 min-w-0">
-                                    <div className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center border ${
-                                      isCompleted ? "bg-green-100 border-green-200 text-green-700"
-                                      : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
-                                      : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
-                                      : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
-                                      : "bg-gray-100 border-gray-200 text-gray-500"
-                                    }`}>
+                                    <div
+  className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center border ${
+    !customBadgeColor
+      ? isCompleted ? "bg-green-100 border-green-200 text-green-700"
+        : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
+        : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
+        : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
+        : "bg-gray-100 border-gray-200 text-gray-500"
+      : ""
+  }`}
+  style={customBadgeColor ? {
+    background: customBadgeColor + "20",
+    borderColor: customBadgeColor + "40",
+    color: customBadgeColor,
+  } : undefined}
+>
                                       {(() => {
                                         const Icon = getStageIcon(ev.label, ev.icon);
                                         return <Icon className="w-5 h-5" />;
