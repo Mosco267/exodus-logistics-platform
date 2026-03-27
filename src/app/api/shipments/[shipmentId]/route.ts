@@ -54,6 +54,42 @@ function isGreenColor(c: string) {
   return v === "#22c55e" || v === "#16a34a" || v === "green";
 }
 
+function makeCreatedEventSubEntry(
+  type: "pending" | "overdue" | "cancelled" | "paid",
+  now: Date
+): any {
+  const iso = now.toISOString();
+  const base = {
+    key: "created",
+    label: "Created",
+    note: "",
+    additionalNote: "",
+    currentLocation: "",
+    occurredAt: iso,
+    location: { country: "", state: "", city: "", county: "" },
+  };
+  if (type === "pending") return { ...base,
+    details: "Your shipment has been successfully created. However, your invoice payment is currently pending. Please complete your payment at your earliest convenience to ensure your shipment is processed and dispatched without delay.",
+    color: "#f59e0b", detailColor: "#f59e0b",
+    badgeText: "Pending Invoice", badgeColor: "#3b82f6", badgeLocked: true,
+  };
+  if (type === "overdue") return { ...base,
+    details: "Your invoice payment is now overdue. To avoid further delays or cancellation of your shipment, we kindly urge you to complete your payment immediately. Please contact our support team if you require assistance or have any concerns regarding your invoice.",
+    color: "#ef4444", detailColor: "#ef4444",
+    badgeText: "Invoice Overdue", badgeColor: "#ef4444", badgeLocked: true,
+  };
+  if (type === "cancelled") return { ...base,
+    details: "We regret to inform you that your shipment has been cancelled due to non-payment of the outstanding invoice. If you wish to proceed with your shipment, please create a new shipment request or contact our support team for further assistance. If you believe this cancellation was made in error, kindly reach out to us at support@goexoduslogistics.com and we will be happy to assist you.",
+    color: "#6b7280", detailColor: "#6b7280",
+    badgeText: "Shipment Cancelled", badgeColor: "#6b7280", badgeLocked: true,
+  };
+  return { ...base,
+    details: "Excellent news — your invoice has been successfully paid. Your shipment is now confirmed and will be progressing to the next phase shortly. You will be notified as soon as there is an update on your shipment status. Thank you for choosing Exodus Logistics.",
+    color: "#22c55e", detailColor: "#22c55e",
+    badgeText: "Completed", badgeColor: "#22c55e", badgeLocked: false,
+  };
+}
+
 type PricingSettings = PricingProfiles;
 type PricingSettingsDoc = {
   _id: string;
@@ -477,45 +513,54 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
   const nextStatus = String(nextInvoice.status || "unpaid").toLowerCase();
 
   if (prevStatus !== nextStatus) {
-        title = nextStatus === "paid" ? "Invoice Paid" : nextStatus === "overdue" ? "Invoice Overdue" : nextStatus === "cancelled" ? "Invoice Cancelled" : "Invoice Updated";
-        message = nextStatus === "paid" ? `Invoice for shipment ${shipmentId} is now PAID.` : nextStatus === "overdue" ? `Invoice for shipment ${shipmentId} is now OVERDUE.` : nextStatus === "cancelled" ? `Invoice for shipment ${shipmentId} has been CANCELLED.` : `Invoice for shipment ${shipmentId} is now UNPAID.`;
+    title = nextStatus === "paid" ? "Invoice Paid"
+      : nextStatus === "overdue" ? "Invoice Overdue"
+      : nextStatus === "cancelled" ? "Invoice Cancelled"
+      : "Invoice Updated";
+    message = nextStatus === "paid" ? `Invoice for shipment ${shipmentId} is now PAID.`
+      : nextStatus === "overdue" ? `Invoice for shipment ${shipmentId} is now OVERDUE.`
+      : nextStatus === "cancelled" ? `Invoice for shipment ${shipmentId} has been CANCELLED.`
+      : `Invoice for shipment ${shipmentId} is now UNPAID.`;
 
-        // Fix 1 — only update "created" event color if it is NOT already red
-        const createdColor = nextStatus === "paid" ? "#22c55e" : nextStatus === "cancelled" ? "#ef4444" : "#f59e0b";
+    // Add sub-entry to created stage + update all created event dot colors
+    const subEntryType =
+      nextStatus === "paid" ? "paid"
+      : nextStatus === "overdue" ? "overdue"
+      : nextStatus === "cancelled" ? "cancelled"
+      : null;
 
-        const currentEvents = Array.isArray((existing as any)?.trackingEvents) ? (existing as any).trackingEvents : [];
-        const createdEvent = currentEvents.find((ev: any) => String(ev?.key || "").toLowerCase() === "created");
+    if (subEntryType) {
+  const subEntry = makeCreatedEventSubEntry(subEntryType, now);
 
-        // Only update if the created event's color is NOT red (permanent)
-        if (createdEvent && !isRedColor(String(createdEvent?.color || ""))) {
-          await db.collection("shipments").updateOne(
-            shipmentIdQuery(shipmentId),
-            { $set: { "trackingEvents.$[created].color": createdColor } },
-            { arrayFilters: [{ "created.key": "created" }] }
-          );
+  const currentEventsForUpdate = Array.isArray((existing as any)?.trackingEvents)
+    ? (existing as any).trackingEvents
+    : [];
+  const updatedEventsWithColor = currentEventsForUpdate.map((ev: any) =>
+    String(ev?.key || "").toLowerCase() === "created"
+      ? { ...ev, color: subEntry.color, detailColor: subEntry.detailColor }
+      : ev
+  );
 
-          if ((updated as any)?.trackingEvents && Array.isArray((updated as any).trackingEvents)) {
-            (updated as any).trackingEvents = (updated as any).trackingEvents.map((ev: any) =>
-              String(ev?.key || "").toLowerCase() === "created" ? { ...ev, color: createdColor } : ev
-            );
-          }
-        }
+  await db.collection("shipments").updateOne(
+    shipmentIdQuery(shipmentId),
+    { $set: { trackingEvents: updatedEventsWithColor } }
+  );
+  await db.collection("shipments").updateOne(
+    shipmentIdQuery(shipmentId),
+    { $push: { trackingEvents: subEntry } } as any
+  );
+}
 
-        // Fix 1 — for ALL non-created events, only update color if they are NOT red
-        // and only if new status is green (paid) or amber (unpaid/overdue)
-        // Never touch red events
-        
+    const senderEmail = String((updated as any)?.senderEmail || (existing as any)?.senderEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase();
+    const receiverEmail = String((updated as any)?.receiverEmail || (existing as any)?.receiverEmail || "").trim().toLowerCase();
+    const senderName = String((updated as any)?.senderName || (existing as any)?.senderName || "Customer").trim();
+    const receiverName = String((updated as any)?.receiverName || (existing as any)?.receiverName || "Customer").trim();
+    const trackingNumber = String((updated as any)?.trackingNumber || (existing as any)?.trackingNumber || "").trim();
 
-        const senderEmail = String((updated as any)?.senderEmail || (existing as any)?.senderEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase();
-        const receiverEmail = String((updated as any)?.receiverEmail || (existing as any)?.receiverEmail || "").trim().toLowerCase();
-        const senderName = String((updated as any)?.senderName || (existing as any)?.senderName || "Customer").trim();
-        const receiverName = String((updated as any)?.receiverName || (existing as any)?.receiverName || "Customer").trim();
-        const trackingNumber = String((updated as any)?.trackingNumber || (existing as any)?.trackingNumber || "").trim();
-
-        if (senderEmail) await sendInvoiceUpdateEmail(senderEmail, { name: senderName, otherPartyName: receiverName, recipientRole: "sender", shipmentId, status: nextStatus, trackingNumber, invoiceNumber: nextInvoice.invoiceNumber || undefined }).catch(() => null);
-        if (receiverEmail) await sendInvoiceUpdateEmail(receiverEmail, { name: receiverName, otherPartyName: senderName, recipientRole: "receiver", shipmentId, status: nextStatus, trackingNumber, invoiceNumber: nextInvoice.invoiceNumber || undefined }).catch(() => null);
-      }
-    }
+    if (senderEmail) await sendInvoiceUpdateEmail(senderEmail, { name: senderName, otherPartyName: receiverName, recipientRole: "sender", shipmentId, status: nextStatus, trackingNumber, invoiceNumber: nextInvoice.invoiceNumber || undefined }).catch(() => null);
+    if (receiverEmail) await sendInvoiceUpdateEmail(receiverEmail, { name: receiverName, otherPartyName: senderName, recipientRole: "receiver", shipmentId, status: nextStatus, trackingNumber, invoiceNumber: nextInvoice.invoiceNumber || undefined }).catch(() => null);
+  }
+}
 
     await db.collection("notifications").insertOne({
       userEmail: String((updated as any)?.senderEmail || (updated as any)?.receiverEmail || (updated as any)?.createdByEmail || (existing as any)?.senderEmail || (existing as any)?.receiverEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase(),
