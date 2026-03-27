@@ -536,10 +536,10 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
     ? (existing as any).trackingEvents
     : [];
   const updatedEventsWithColor = currentEventsForUpdate.map((ev: any) =>
-    String(ev?.key || "").toLowerCase() === "created"
-      ? { ...ev, color: subEntry.color, detailColor: subEntry.detailColor }
-      : ev
-  );
+  String(ev?.key || "").toLowerCase() === "created"
+    ? { ...ev, color: subEntry.color }
+    : ev
+);
 
   await db.collection("shipments").updateOne(
     shipmentIdQuery(shipmentId),
