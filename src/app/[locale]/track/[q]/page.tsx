@@ -640,7 +640,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                                         return (
                                           <div key={`entry-${j}`} className="relative pl-1">
                                             {!isLastEntry && (
-  <div className="absolute left-[-8px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[j + 1]?.color) || entryDotBg} 100%)` }} />
+  <div className="absolute left-[-8px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[j + 1]?.detailColor) || safeColor(ev.entries?.[j + 1]?.color) || entryDotBg} 100%)` }} />
 )}
 <div className="absolute left-[-12px] top-[11px]">
                                               <div className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
