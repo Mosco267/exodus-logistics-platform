@@ -62,11 +62,55 @@ const STATES_BY_COUNTRY: Record<string, string[]> = {
   "Nigeria": ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"],
   "United States": ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"],
   "United Kingdom": ["England","Scotland","Wales","Northern Ireland"],
-  "Canada": ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Nova Scotia","Ontario","Prince Edward Island","Quebec","Saskatchewan"],
+  "Canada": ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Northwest Territories","Nova Scotia","Nunavut","Ontario","Prince Edward Island","Quebec","Saskatchewan","Yukon"],
   "Germany": ["Baden-Württemberg","Bavaria","Berlin","Brandenburg","Bremen","Hamburg","Hesse","Lower Saxony","Mecklenburg-Vorpommern","North Rhine-Westphalia","Rhineland-Palatinate","Saarland","Saxony","Saxony-Anhalt","Schleswig-Holstein","Thuringia"],
-  "Ghana": ["Ashanti","Brong-Ahafo","Central","Eastern","Greater Accra","Northern","Upper East","Upper West","Volta","Western"],
+  "France": ["Auvergne-Rhône-Alpes","Bourgogne-Franche-Comté","Brittany","Centre-Val de Loire","Corsica","Grand Est","Hauts-de-France","Île-de-France","Normandy","Nouvelle-Aquitaine","Occitanie","Pays de la Loire","Provence-Alpes-Côte d'Azur"],
+  "Australia": ["Australian Capital Territory","New South Wales","Northern Territory","Queensland","South Australia","Tasmania","Victoria","Western Australia"],
   "South Africa": ["Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo","Mpumalanga","Northern Cape","North West","Western Cape"],
-  "Kenya": ["Nairobi","Mombasa","Kisumu","Nakuru","Uasin Gishu","Machakos","Meru","Kilifi","Kakamega","Kisii"],
+  "Kenya": ["Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita-Taveta","Tana River","Tharaka-Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"],
+  "India": ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Jammu and Kashmir","Ladakh","Puducherry"],
+  "China": ["Anhui","Beijing","Chongqing","Fujian","Gansu","Guangdong","Guangxi","Guizhou","Hainan","Hebei","Heilongjiang","Henan","Hubei","Hunan","Inner Mongolia","Jiangsu","Jiangxi","Jilin","Liaoning","Ningxia","Qinghai","Shaanxi","Shandong","Shanghai","Shanxi","Sichuan","Tianjin","Tibet","Xinjiang","Yunnan","Zhejiang"],
+  "Brazil": ["Acre","Alagoas","Amapá","Amazonas","Bahia","Ceará","Distrito Federal","Espírito Santo","Goiás","Maranhão","Mato Grosso","Mato Grosso do Sul","Minas Gerais","Pará","Paraíba","Paraná","Pernambuco","Piauí","Rio de Janeiro","Rio Grande do Norte","Rio Grande do Sul","Rondônia","Roraima","Santa Catarina","São Paulo","Sergipe","Tocantins"],
+  "Mexico": ["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Guanajuato","Guerrero","Hidalgo","Jalisco","México","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"],
+  "Japan": ["Aichi","Akita","Aomori","Chiba","Ehime","Fukui","Fukuoka","Fukushima","Gifu","Gunma","Hiroshima","Hokkaido","Hyogo","Ibaraki","Ishikawa","Iwate","Kagawa","Kagoshima","Kanagawa","Kochi","Kumamoto","Kyoto","Mie","Miyagi","Miyazaki","Nagano","Nagasaki","Nara","Niigata","Oita","Okayama","Okinawa","Osaka","Saga","Saitama","Shiga","Shimane","Shizuoka","Tochigi","Tokushima","Tokyo","Tottori","Toyama","Wakayama","Yamagata","Yamaguchi","Yamanashi"],
+  "South Korea": ["Busan","Chungcheongbuk-do","Chungcheongnam-do","Daegu","Daejeon","Gangwon-do","Gwangju","Gyeonggi-do","Gyeongsangbuk-do","Gyeongsangnam-do","Incheon","Jeju","Jeollabuk-do","Jeollanam-do","Seoul","Sejong","Ulsan"],
+  "Italy": ["Abruzzo","Aosta Valley","Apulia","Basilicata","Calabria","Campania","Emilia-Romagna","Friuli-Venezia Giulia","Lazio","Liguria","Lombardy","Marche","Molise","Piedmont","Sardinia","Sicily","Trentino-South Tyrol","Tuscany","Umbria","Veneto"],
+  "Spain": ["Andalusia","Aragon","Asturias","Balearic Islands","Basque Country","Canary Islands","Cantabria","Castilla-La Mancha","Castile and León","Catalonia","Ceuta","Extremadura","Galicia","La Rioja","Madrid","Melilla","Murcia","Navarre","Valencia"],
+  "Netherlands": ["Drenthe","Flevoland","Friesland","Gelderland","Groningen","Limburg","North Brabant","North Holland","Overijssel","South Holland","Utrecht","Zeeland"],
+  "Sweden": ["Blekinge","Dalarna","Gävleborg","Gotland","Halland","Jämtland","Jönköping","Kalmar","Kronoberg","Norrbotten","Örebro","Östergötland","Skåne","Södermanland","Stockholm","Uppsala","Värmland","Västerbotten","Västernorrland","Västmanland","Västra Götaland"],
+  "Norway": ["Agder","Innlandet","Møre og Romsdal","Nordland","Oslo","Rogaland","Troms og Finnmark","Trøndelag","Vestfold og Telemark","Vestland","Viken"],
+  "Denmark": ["Capital Region","Central Denmark","North Denmark","Region Zealand","Southern Denmark"],
+  "Finland": ["Central Finland","Central Ostrobothnia","Kainuu","Kymenlaakso","Lapland","North Karelia","North Ostrobothnia","North Savo","Ostrobothnia","Päijänne Tavastia","Pirkanmaa","Satakunta","South Karelia","South Ostrobothnia","South Savo","Southwest Finland","Tavastia Proper","Uusimaa"],
+  "Switzerland": ["Aargau","Appenzell Ausserrhoden","Appenzell Innerrhoden","Basel-Landschaft","Basel-Stadt","Bern","Fribourg","Geneva","Glarus","Graubünden","Jura","Lucerne","Neuchâtel","Nidwalden","Obwalden","Schaffhausen","Schwyz","Solothurn","St. Gallen","Thurgau","Ticino","Uri","Valais","Vaud","Zug","Zürich"],
+  "Austria": ["Burgenland","Carinthia","Lower Austria","Salzburg","Styria","Tyrol","Upper Austria","Vienna","Vorarlberg"],
+  "Belgium": ["Brussels","Flemish Region","Walloon Region"],
+  "Portugal": ["Alentejo","Algarve","Azores","Centro","Lisbon","Madeira","Norte"],
+  "Poland": ["Greater Poland","Kuyavian-Pomeranian","Lesser Poland","Lodz","Lower Silesian","Lublin","Lubusz","Masovian","Opole","Podkarpackie","Podlaskie","Pomeranian","Silesian","Swietokrzyskie","Warmian-Masurian","West Pomeranian"],
+  "Turkey": ["Adana","Ankara","Antalya","Bursa","Diyarbakır","Erzurum","Eskişehir","Gaziantep","Hatay","İstanbul","İzmir","Kayseri","Kocaeli","Konya","Malatya","Mersin","Muğla","Samsun","Şanlıurfa","Trabzon"],
+  "Saudi Arabia": ["Al Bahah","Al Jawf","Al Madinah","Al Qassim","Asir","Eastern Province","Ha'il","Jazan","Mecca","Najran","Northern Borders","Riyadh","Tabuk"],
+  "UAE": ["Abu Dhabi","Ajman","Dubai","Fujairah","Ras Al Khaimah","Sharjah","Umm Al Quwain"],
+  "Qatar": ["Ad Dawhah","Al Khor","Al Rayyan","Al Shamal","Al Wakrah","Ash Shahaniyah","Madinat ash Shamal","Umm Salal"],
+  "Egypt": ["Alexandria","Aswan","Asyut","Beheira","Beni Suef","Cairo","Dakahlia","Damietta","Faiyum","Gharbia","Giza","Ismailia","Kafr El Sheikh","Luxor","Matruh","Minya","Monufia","New Valley","North Sinai","Port Said","Qalyubia","Qena","Red Sea","Sharqia","Sohag","South Sinai","Suez"],
+  "Morocco": ["Béni Mellal-Khénifra","Casablanca-Settat","Darâa-Tafilalet","Fès-Meknès","Guelmim-Oued Noun","Laâyoune-Sakia El Hamra","Marrakesh-Safi","Oriental","Rabat-Salé-Kénitra","Souss-Massa","Tanger-Tétouan-Al Hoceïma"],
+  "Ethiopia": ["Addis Ababa","Afar","Amhara","Benishangul-Gumuz","Dire Dawa","Gambela","Harari","Oromia","Sidama","Somali","South Ethiopia","Southwest Ethiopia","Tigray"],
+  "Tanzania": ["Arusha","Dar es Salaam","Dodoma","Geita","Iringa","Kagera","Katavi","Kigoma","Kilimanjaro","Lindi","Manyara","Mara","Mbeya","Morogoro","Mtwara","Mwanza","Njombe","Pemba North","Pemba South","Pwani","Rukwa","Ruvuma","Shinyanga","Simiyu","Singida","Songwe","Tabora","Tanga","Zanzibar North","Zanzibar South","Zanzibar West"],
+  "Uganda": ["Bugisu","Bukedi","Bunyoro","Busoga","Central","Elgon","Karamoja","Kigezi","Lango","North","Rwenzori","Sebei","Tooro","Toro","West Nile"],
+  "Rwanda": ["Eastern","Kigali","Northern","Southern","Western"],
+  "Senegal": ["Dakar","Diourbel","Fatick","Kaffrine","Kaolack","Kédougou","Kolda","Louga","Matam","Saint-Louis","Sédhiou","Tambacounda","Thiès","Ziguinchor"],
+  "Ghana": ["Ahafo","Ashanti","Bono","Bono East","Central","Eastern","Greater Accra","North East","Northern","Oti","Savannah","Upper East","Upper West","Volta","Western","Western North"],
+  "Ivory Coast": ["Abidjan","Bas-Sassandra","Comoé","Denguélé","Gôh-Djiboua","Lacs","Lagunes","Montagnes","Sassandra-Marahoué","Savanes","Vallée du Bandama","Woroba","Yamoussoukro","Zanzan"],
+  "Cameroon": ["Adamawa","Centre","East","Far North","Littoral","North","Northwest","South","Southwest","West"],
+  "Angola": ["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla","Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire"],
+  "Mozambique": ["Cabo Delgado","Gaza","Inhambane","Manica","Maputo","Nampula","Niassa","Sofala","Tete","Zambézia"],
+  "Zimbabwe": ["Bulawayo","Harare","Manicaland","Mashonaland Central","Mashonaland East","Mashonaland West","Masvingo","Matabeleland North","Matabeleland South","Midlands"],
+  "Zambia": ["Central","Copperbelt","Eastern","Luapula","Lusaka","Muchinga","Northern","North-Western","Southern","Western"],
+  "Botswana": ["Central","Ghanzi","Kgalagadi","Kgatleng","Kweneng","North East","North West","South East","Southern"],
+  "Namibia": ["Erongo","Hardap","Karas","Kavango East","Kavango West","Khomas","Kunene","Ohangwena","Omaheke","Omusati","Oshana","Oshikoto","Otjozondjupa","Zambezi"],
+  "Singapore": ["Central Region","East Region","North Region","North-East Region","West Region"],
+  "Malaysia": ["Johor","Kedah","Kelantan","Kuala Lumpur","Labuan","Melaka","Negeri Sembilan","Pahang","Penang","Perak","Perlis","Putrajaya","Sabah","Sarawak","Selangor","Terengganu"],
+  "Indonesia": ["Aceh","Bali","Bangka Belitung","Banten","Bengkulu","Central Java","Central Kalimantan","Central Sulawesi","East Java","East Kalimantan","East Nusa Tenggara","Gorontalo","Jakarta","Jambi","Lampung","Maluku","North Kalimantan","North Maluku","North Sulawesi","North Sumatra","Papua","Riau","Riau Islands","South East Sulawesi","South Kalimantan","South Sulawesi","South Sumatra","West Java","West Kalimantan","West Nusa Tenggara","West Papua","West Sulawesi","West Sumatra","Yogyakarta"],
+  "Philippines": ["Abra","Agusan del Norte","Agusan del Sur","Aklan","Albay","Antique","Apayao","Aurora","Basilan","Bataan","Batanes","Batangas","Benguet","Biliran","Bohol","Bukidnon","Bulacan","Cagayan","Camarines Norte","Camarines Sur","Camiguin","Capiz","Catanduanes","Cavite","Cebu","Compostela Valley","Cotabato","Davao del Norte","Davao del Sur","Davao Occidental","Davao Oriental","Dinagat Islands","Eastern Samar","Guimaras","Ifugao","Ilocos Norte","Ilocos Sur","Iloilo","Isabela","Kalinga","La Union","Laguna","Lanao del Norte","Lanao del Sur","Leyte","Maguindanao","Marinduque","Masbate","Metro Manila","Misamis Occidental","Misamis Oriental","Mountain Province","Negros Occidental","Negros Oriental","Northern Samar","Nueva Ecija","Nueva Vizcaya","Occidental Mindoro","Oriental Mindoro","Palawan","Pampanga","Pangasinan","Quezon","Quirino","Rizal","Romblon","Samar","Sarangani","Siquijor","Sorsogon","South Cotabato","Southern Leyte","Sultan Kudarat","Sulu","Surigao del Norte","Surigao del Sur","Tarlac","Tawi-Tawi","Zambales","Zamboanga del Norte","Zamboanga del Sur","Zamboanga Sibugay"],
+  "Thailand": ["Amnat Charoen","Ang Thong","Bangkok","Bueng Kan","Buri Ram","Chachoengsao","Chai Nat","Chaiyaphum","Chanthaburi","Chiang Mai","Chiang Rai","Chon Buri","Chumphon","Kalasin","Kamphaeng Phet","Kanchanaburi","Khon Kaen","Krabi","Lampang","Lamphun","Loei","Lop Buri","Mae Hong Son","Maha Sarakham","Mukdahan","Nakhon Nayok","Nakhon Pathom","Nakhon Phanom","Nakhon Ratchasima","Nakhon Sawan","Nakhon Si Thammarat","Nan","Narathiwat","Nong Bua Lam Phu","Nong Khai","Nonthaburi","Pathum Thani","Pattani","Phang Nga","Phatthalung","Phayao","Phetchabun","Phetchaburi","Phichit","Phitsanulok","Phra Nakhon Si Ayutthaya","Phrae","Phuket","Prachin Buri","Prachuap Khiri Khan","Ranong","Ratchaburi","Rayong","Roi Et","Sa Kaeo","Sakon Nakhon","Samut Prakan","Samut Sakhon","Samut Songkhram","Sara Buri","Satun","Sing Buri","Sisaket","Songkhla","Sukhothai","Suphan Buri","Surat Thani","Surin","Tak","Trang","Trat","Ubon Ratchathani","Udon Thani","Uthai Thani","Uttaradit","Yala","Yasothon"],
 };
 
 function LocationFields({ city, state, country, onCity, onState, onCountry }: {
@@ -132,38 +176,68 @@ function ColorDots({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
-function BadgeFields({ text, color, onText, onColor }: {
-  text: string; color: string; onText: (v: string) => void; onColor: (v: string) => void;
+function BadgeFields({
+  text, color, onText, onColor, mode, onMode, defaultLabel, defaultColor,
+}: {
+  text: string; color: string;
+  onText: (v: string) => void; onColor: (v: string) => void;
+  mode: "default" | "custom"; onMode: (v: "default" | "custom") => void;
+  defaultLabel: string; defaultColor: string;
 }) {
   return (
     <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
       <div className="flex items-center gap-2">
         <Tag className="w-4 h-4 text-gray-400" />
         <p className="text-sm font-semibold text-gray-700">Badge</p>
-        {text && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border"
+          style={{ background: (mode === "custom" ? color : defaultColor) + "1a", borderColor: (mode === "custom" ? color : defaultColor) + "33", color: mode === "custom" ? color : defaultColor }}>
+          {mode === "custom" ? (text || "Custom") : defaultLabel}
+        </span>
+      </div>
+
+      {/* Toggle */}
+      <div className="flex gap-2">
+        <button type="button" onClick={() => onMode("default")}
+          className={`cursor-pointer px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${mode === "default" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-100 text-gray-600"}`}>
+          Default Badge
+        </button>
+        <button type="button" onClick={() => onMode("custom")}
+          className={`cursor-pointer px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${mode === "custom" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-100 text-gray-600"}`}>
+          Custom Badge
+        </button>
+      </div>
+
+      {mode === "default" && (
+        <div className="rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+          <p className="text-xs text-gray-400 mb-1">Default badge — cannot be edited</p>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border"
-            style={{ background: color + "20", borderColor: color, color }}>
-            {text}
+            style={{ background: defaultColor + "1a", borderColor: defaultColor + "33", color: defaultColor }}>
+            {defaultLabel}
           </span>
-        )}
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Badge Text</label>
-        <div className="flex gap-2 flex-wrap mb-2">
-          {BADGE_PRESETS.map((p) => (
-            <button key={p.value} type="button" onClick={() => onText(p.value)}
-              className={`cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${text === p.value ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-100 text-gray-600"}`}>
-              {p.value}
-            </button>
-          ))}
         </div>
-        <input value={text} onChange={(e) => onText(e.target.value)} placeholder="Custom badge text…"
-          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Badge Color</label>
-        <ColorDots value={color} onChange={onColor} />
-      </div>
+      )}
+
+      {mode === "custom" && (
+        <>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Badge Text</label>
+            <div className="flex gap-2 flex-wrap mb-2">
+              {BADGE_PRESETS.map((p) => (
+                <button key={p.value} type="button" onClick={() => onText(p.value)}
+                  className={`cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${text === p.value ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-100 text-gray-600"}`}>
+                  {p.value}
+                </button>
+              ))}
+            </div>
+            <input value={text} onChange={(e) => onText(e.target.value)} placeholder="Custom badge text…"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Badge Color</label>
+            <ColorDots value={color} onChange={onColor} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -237,6 +311,10 @@ export default function AdminShipmentTrackingPage() {
   // Badge for new stage
   const [badgeText, setBadgeText] = useState("");
   const [badgeColor, setBadgeColor] = useState("#22c55e");
+
+const [badgeMode, setBadgeMode] = useState<"default" | "custom">("default");
+const [subBadgeMode, setSubBadgeMode] = useState<"default" | "custom">("default");
+const [editBadgeMode, setEditBadgeMode] = useState<"default" | "custom">("default");
 
   // Override state
   const [overrideOuterDot, setOverrideOuterDot] = useState(false);
@@ -458,9 +536,9 @@ export default function AdminShipmentTrackingPage() {
             color: effectiveStageColor, detailColor,
             currentLocation: locStr,
             location: { city: locCity.trim(), state: locState.trim(), country: locCountry.trim(), county: "" },
-            badgeText: badgeText.trim() || "",
-            badgeColor: badgeText.trim() ? badgeColor : "",
-            badgeLocked: badgeText.trim() ? true : false,
+            badgeText: badgeMode === "custom" && badgeText.trim() ? badgeText.trim() : "",
+badgeColor: badgeMode === "custom" && badgeText.trim() ? badgeColor : "",
+badgeLocked: badgeMode === "custom" && badgeText.trim() ? true : false,
           },
         }),
       });
@@ -471,7 +549,7 @@ export default function AdminShipmentTrackingPage() {
       setDetails(""); setNote(""); setAdditionalNote(""); setDefaultNote("");
       setLocCity(""); setLocState(""); setLocCountry("");
       setLabel(""); setSelectedStageKey(""); setStageColor("#f59e0b"); setDetailColor("#f59e0b");
-      setBadgeText(""); setBadgeColor("#22c55e");
+      setBadgeText(""); setBadgeColor("#22c55e"); setBadgeMode("default");
       setUseLocalTime(true); setOccurredAt(getNowLocal());
       await load();
       setUserHasManuallySetOverride(false);
@@ -504,8 +582,9 @@ export default function AdminShipmentTrackingPage() {
     setEditState(ev.location?.state || "");
     setEditCountry(ev.location?.country || "");
     setEditBadgeText(ev.badgeText || "");
-    setEditBadgeColor(ev.badgeColor || "#22c55e");
-    setEditBadgeLocked(ev.badgeLocked ?? false);
+setEditBadgeColor(ev.badgeColor || "#22c55e");
+setEditBadgeLocked(ev.badgeLocked ?? false);
+setEditBadgeMode(ev.badgeText ? "custom" : "default");
   };
 
   const saveEdit = async () => {
@@ -523,9 +602,9 @@ export default function AdminShipmentTrackingPage() {
             color: editColor, detailColor: editDetailColor,
             currentLocation: locStr,
             location: { city: editCity, state: editState, country: editCountry, county: "" },
-            badgeText: editBadgeText.trim(),
-            badgeColor: editBadgeText.trim() ? editBadgeColor : "",
-            badgeLocked: editBadgeText.trim() ? editBadgeLocked : false,
+            badgeText: editBadgeMode === "custom" && editBadgeText.trim() ? editBadgeText.trim() : "",
+badgeColor: editBadgeMode === "custom" && editBadgeText.trim() ? editBadgeColor : "",
+badgeLocked: editBadgeMode === "custom" && editBadgeText.trim() ? editBadgeLocked : false,
           },
         }),
       });
@@ -553,8 +632,9 @@ export default function AdminShipmentTrackingPage() {
     setSubState(lastEntry?.location?.state || "");
     setSubCountry(lastEntry?.location?.country || "");
     setSubBadgeText(lastEntry?.badgeText || "");
-    setSubBadgeColor(lastEntry?.badgeColor || "#22c55e");
-    setSubBadgeLocked(lastEntry?.badgeLocked ?? false);
+setSubBadgeColor(lastEntry?.badgeColor || "#22c55e");
+setSubBadgeLocked(lastEntry?.badgeLocked ?? false);
+setSubBadgeMode(lastEntry?.badgeText ? "custom" : "default");
     setAddModal(true);
   };
 
@@ -579,9 +659,9 @@ export default function AdminShipmentTrackingPage() {
             color: addStageOuterColor, detailColor: subColor,
             currentLocation: locStr, occurredAt: subOccurredAt,
             location: { city: subCity, state: subState, country: subCountry, county: "" },
-            badgeText: subBadgeText.trim(),
-            badgeColor: subBadgeText.trim() ? subBadgeColor : "",
-            badgeLocked: subBadgeText.trim() ? subBadgeLocked : false,
+            badgeText: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeText.trim() : "",
+badgeColor: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeColor : "",
+badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked : false,
           },
         }),
       });
@@ -591,7 +671,7 @@ export default function AdminShipmentTrackingPage() {
       setSubDetails(""); setSubNote(""); setSubColor("#f59e0b");
       setAddStageOuterColor("#f59e0b");
       setSubCity(""); setSubState(""); setSubCountry("");
-      setSubBadgeText(""); setSubBadgeColor("#22c55e"); setSubBadgeLocked(false);
+      setSubBadgeText(""); setSubBadgeColor("#22c55e"); setSubBadgeLocked(false); setSubBadgeMode("default");
       setOk("Details added.");
       await load();
       window.setTimeout(() => setOk(""), 3000);
@@ -781,7 +861,11 @@ export default function AdminShipmentTrackingPage() {
               </div>
 
               {/* Badge for this new stage */}
-              <BadgeFields text={badgeText} color={badgeColor} onText={setBadgeText} onColor={setBadgeColor} />
+              <BadgeFields
+  text={badgeText} color={badgeColor} onText={setBadgeText} onColor={setBadgeColor}
+  mode={badgeMode} onMode={setBadgeMode}
+  defaultLabel="Current Stage" defaultColor="#3b82f6"
+/>
 
               {/* Override section */}
               {groupedEvents.length > 0 && (
@@ -1047,8 +1131,12 @@ export default function AdminShipmentTrackingPage() {
 
                 {/* Badge section — only for last entry */}
                 {editIsLastEntry && (
-                  <div className="space-y-3">
-                    <BadgeFields text={editBadgeText} color={editBadgeColor} onText={setEditBadgeText} onColor={setEditBadgeColor} />
+  <div className="space-y-3">
+    <BadgeFields
+      text={editBadgeText} color={editBadgeColor} onText={setEditBadgeText} onColor={setEditBadgeColor}
+      mode={editBadgeMode} onMode={setEditBadgeMode}
+      defaultLabel="Completed" defaultColor="#22c55e"
+    />
                     {editBadgeText.trim() && (
                       <label className="flex items-center gap-2.5 cursor-pointer pl-1">
                         <input type="checkbox" checked={editBadgeLocked} onChange={(e) => setEditBadgeLocked(e.target.checked)}
@@ -1101,7 +1189,11 @@ export default function AdminShipmentTrackingPage() {
                 <label className="text-sm font-semibold text-gray-700 mb-2 block">Inner Dot Color <span className="text-xs font-normal text-gray-400">(this entry dot)</span></label>
                 <ColorDots value={subColor} onChange={setSubColor} />
               </div>
-              <BadgeFields text={subBadgeText} color={subBadgeColor} onText={setSubBadgeText} onColor={setSubBadgeColor} />
+              <BadgeFields
+  text={subBadgeText} color={subBadgeColor} onText={setSubBadgeText} onColor={setSubBadgeColor}
+  mode={subBadgeMode} onMode={setSubBadgeMode}
+  defaultLabel="In Progress" defaultColor="#f59e0b"
+/>
               {subBadgeText.trim() && (
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input type="checkbox" checked={subBadgeLocked} onChange={(e) => setSubBadgeLocked(e.target.checked)}
