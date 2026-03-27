@@ -207,7 +207,7 @@ function makeCreatedEventSubEntry(
     badgeText: "Shipment Cancelled", badgeColor: "#6b7280", badgeLocked: true,
   };
   return { ...base,
-    details: "Excellent news — your invoice has been successfully paid. Your shipment is now confirmed and will be progressing to the next phase shortly. You will be notified as soon as there is an update on your shipment status. Thank you for choosing Exodus Logistics.",
+    details: "Excellent news. Your invoice has been successfully paid. Your shipment is now confirmed and will be progressing to the next phase shortly. You will be notified as soon as there is an update on your shipment status. Thank you for choosing Exodus Logistics.",
     color: "#22c55e", detailColor: "#22c55e",
     badgeText: "Completed", badgeColor: "#22c55e", badgeLocked: false,
   };
