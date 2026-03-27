@@ -199,7 +199,7 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
           badgeText: e.badgeText || "",
 badgeColor: e.badgeColor || "",
 badgeLocked: e.badgeLocked ?? false,
-          entries: e.details || e.note ? [
+          entries: e.details ? [
   {
     occurredAt: e.occurredAt,
     note: e.note,
@@ -217,7 +217,7 @@ badgeLocked: e.badgeLocked ?? false,
         });
       } else {
         const g = groups[idx];
-        if (e.details || e.note) {
+        if (e.details) {
           g.entries.push({
             occurredAt: e.occurredAt,
             note: e.note,
