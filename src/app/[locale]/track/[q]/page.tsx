@@ -256,11 +256,12 @@ export default function TrackResultPage() {
       return new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime();
     });
     evs.forEach((ev: any) => {
-      if (Array.isArray(ev?.entries)) {
-        ev.entries.sort((x: any, y: any) => new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime());
-      } else { ev.entries = []; }
-    });
-    return evs;
+  if (Array.isArray(ev?.entries)) {
+    ev.entries.sort((x: any, y: any) => new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime());
+  } else { ev.entries = []; }
+});
+// Filter out groups that have no entries to display
+return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
   }, [data]);
 
   const currentIndex = Math.max(0, events.length - 1);
@@ -631,7 +632,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                                   <div className="mt-4 border-t border-gray-200 pt-4">
                                     {/* Fix 2 inner line — entries also connect properly */}
                                     <div className="space-y-2">
-                                      {(ev.entries || []).map((en, j) => {
+                                      {(ev.entries || []).length > 0 && (ev.entries || []).map((en, j) => {
                                         const loc = fmtLoc(en.location);
                                         const when = fmtDate(en.occurredAt);
                                         const isLastEntry = j === (ev.entries?.length || 0) - 1;
