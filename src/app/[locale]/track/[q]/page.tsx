@@ -133,6 +133,21 @@ function safeColor(c?: string): string {
   return String(c || "").trim();
 }
 
+function getBadgeStyle(color: string): React.CSSProperties {
+  // Map common hex colors to exact Tailwind equivalents
+  const map: Record<string, { bg: string; border: string; text: string }> = {
+    "#22c55e": { bg: "#dcfce7", border: "#bbf7d0", text: "#15803d" },
+    "#ef4444": { bg: "#fee2e2", border: "#fecaca", text: "#b91c1c" },
+    "#f59e0b": { bg: "#fef3c7", border: "#fde68a", text: "#b45309" },
+    "#3b82f6": { bg: "#dbeafe", border: "#bfdbfe", text: "#1d4ed8" },
+    "#8b5cf6": { bg: "#ede9fe", border: "#ddd6fe", text: "#6d28d9" },
+    "#6b7280": { bg: "#f3f4f6", border: "#e5e7eb", text: "#374151" },
+  };
+  const m = map[color.toLowerCase()];
+  if (m) return { background: m.bg, borderColor: m.border, color: m.text, fontWeight: 700 };
+  return { background: color + "1a", borderColor: color + "33", color, fontWeight: 700 };
+}
+
 function getStageIcon(label?: string, iconKey?: string) {
   const key = String(iconKey || "").toLowerCase();
   if (key === "truck") return Truck;
@@ -522,7 +537,10 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
   >
     {(() => {
   const completedBadges = new Set(["completed", "delivered", "done", "finished"]);
-  const showCheck = isCompleted && (!customBadgeText || completedBadges.has(customBadgeText.toLowerCase()));
+  const badgeIsCompletion = completedBadges.has(customBadgeText.toLowerCase());
+  const showCheck = (isCompleted && (!customBadgeText || badgeIsCompletion))
+    || (!customBadgeText && isDelivered)
+    || badgeIsCompletion;
   return showCheck ? <CheckCircle2 className="w-3 h-3 text-white" /> : null;
 })()}
   </div>
@@ -575,11 +593,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
         : "bg-gray-100 border-gray-200 text-gray-500"
       : ""
   }`}
-  style={customBadgeColor ? {
-    background: customBadgeColor + "1a",
-    borderColor: customBadgeColor + "33",
-    color: customBadgeColor,
-  } : undefined}
+ style={customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
 >
                                       {(() => {
                                         const Icon = getStageIcon(ev.label, ev.icon);
@@ -601,7 +615,7 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
         : "bg-gray-100 text-gray-500 border-gray-200"
       : ""
   }`}
-  style={customBadgeText && customBadgeColor ? { background: customBadgeColor + "1a", borderColor: customBadgeColor + "33", color: customBadgeColor, fontWeight: 700 } : undefined}
+  style={customBadgeText && customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
 >
   {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
 </span>
