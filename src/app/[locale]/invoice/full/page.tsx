@@ -266,15 +266,15 @@ export default function InvoiceFullPage() {
 
               {/* ── HEADER ── gradient: white 0% → blue 40% → cyan 100% */}
               <div style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8">
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+  <div className="flex flex-col items-center md:flex-row md:items-start md:justify-between gap-5">
     {/* Left: logo + company info */}
-    <div className="flex items-center gap-4 min-w-0">
+    <div className="flex flex-col items-center gap-2 min-w-0 w-full sm:w-auto sm:flex-row sm:items-center sm:gap-4">
   <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
     className="h-10 sm:h-14 w-auto object-contain shrink-0" />
-  <div className="min-w-0">
+  <div className="min-w-0 text-center sm:text-left">
     <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
     <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs sm:text-sm">
+    <div className="mt-2 flex flex-col items-center sm:items-start sm:flex-row flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
       <a href={`tel:${cleanTel(companyPhone)}`}
         className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
         <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
