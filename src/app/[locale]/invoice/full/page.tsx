@@ -208,17 +208,49 @@ export default function InvoiceFullPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
         @media print {
-          @page { margin: 0; size: A4 portrait; }
-          body * { visibility: hidden !important; }
-          .print-area, .print-area * { visibility: visible !important; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-          header, nav, footer { display: none !important; }
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-white * { color: white !important; }
-        }
+  @page { margin: 0; size: A4 portrait; }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  header, nav, footer { display: none !important; }
+  .no-print { display: none !important; }
+  body { background: white !important; }
+  .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-white * { color: white !important; }
+
+  /* Force desktop header layout on print regardless of screen size */
+  .print-white > div {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    text-align: left !important;
+  }
+  .print-white > div > div:first-child {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 16px !important;
+  }
+  .print-white > div > div:first-child > div {
+    text-align: left !important;
+  }
+  .print-white > div > div:first-child > div > div {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+  .print-white img {
+    height: 40px !important;
+    width: auto !important;
+  }
+  .print-white > div > div:last-child {
+    text-align: right !important;
+    min-width: 200px !important;
+  }
+}
       `}</style>
 
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
