@@ -278,13 +278,13 @@ export default function InvoiceFullPage() {
               <div style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8">
   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
     {/* Left: logo + company info */}
-    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 min-w-0">
+    <div className="flex flex-row items-center gap-3 min-w-0">
       <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
   className="h-12 sm:h-16 w-auto object-contain shrink-0" />
-      <div className="min-w-0 text-center sm:text-left">
-        <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
-        <p className="text-white/80 text-xs sm:text-sm mt-0.5 break-words">{companyAddress}</p>
-        <div className="mt-2 flex flex-col sm:flex-row flex-wrap gap-y-1 gap-x-4 text-xs sm:text-sm">
+      <div className="min-w-0 text-left">
+  <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
+  <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
+        <div className="mt-2 flex flex-col flex-wrap gap-y-1 text-xs">
           <a href={`tel:${cleanTel(companyPhone)}`}
             className="cursor-pointer inline-flex items-center justify-center sm:justify-start gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
             <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
