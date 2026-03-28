@@ -200,7 +200,17 @@ export default function InvoiceFullPage() {
       : `Due by ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`)
     : status === "paid" ? "Paid in full" : "No due date set";
 
-  const printNow = () => window.print();
+  const printNow = () => {
+  // Force desktop layout for print on all devices
+  const meta = document.querySelector('meta[name="viewport"]');
+  const original = meta?.getAttribute('content') ?? '';
+  if (meta) meta.setAttribute('content', 'width=1024');
+  window.print();
+  // Restore after print dialog closes
+  setTimeout(() => {
+    if (meta) meta.setAttribute('content', original);
+  }, 1000);
+};
   const backToTrackTarget = trackingNumber || shipmentId || (q ? q.toUpperCase() : "");
 
   const card = "rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:border-blue-400 hover:shadow-md transition";
@@ -210,7 +220,7 @@ export default function InvoiceFullPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
         @media print {
-          @page { margin: 0; }
+  @page { margin: 0; size: A4 landscape; }
           body * { visibility: hidden !important; }
           .print-area, .print-area * { visibility: visible !important; }
           .print-area { position: absolute; left: 0; top: 0; width: 100%; }

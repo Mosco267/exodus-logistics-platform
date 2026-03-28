@@ -64,7 +64,7 @@ export default function Header() {
 
             {/* Logo — left aligned on all screens */}
             <Link href={`/${locale}`} className="flex items-center shrink-0">
-              <img src="/logo.svg" alt="Exodus Logistics" className="h-9 sm:h-16 w-auto" />
+              <img src="/logo.svg" alt="Exodus Logistics" className="h-11 sm:h-16 w-auto" />
             </Link>
 
             {/* Desktop Right Section */}
@@ -194,10 +194,11 @@ export default function Header() {
                 style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
                 <img src="/logo.svg" alt="Exodus Logistics" className="h-10 w-auto" />
                 <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-white hover:text-orange-400 transition-colors p-1">
-                  <X className="h-6 w-6" />
-                </button>
+  onClick={() => setIsMenuOpen(!isMenuOpen)}
+  className="inline-flex flex-col items-center gap-0.5 text-white hover:text-orange-400 transition-colors duration-300 p-1">
+  <Menu className="h-5 w-5" />
+  <span className="text-[9px] font-bold tracking-wide">Menu</span>
+</button>
               </div>
 
               {/* Sidebar Content */}
