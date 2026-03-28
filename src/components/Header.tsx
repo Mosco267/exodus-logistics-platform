@@ -64,7 +64,7 @@ export default function Header() {
 
             {/* Logo — left aligned on all screens */}
             <Link href={`/${locale}`} className="flex items-center shrink-0">
-              <img src="/logo.svg" alt="Exodus Logistics" className="h-14 sm:h-16 w-auto" />
+              <img src="/logo.svg" alt="Exodus Logistics" className="h-9 sm:h-16 w-auto" />
             </Link>
 
             {/* Desktop Right Section */}
@@ -147,20 +147,20 @@ export default function Header() {
             </div>
 
             {/* Mobile: Track, Invoice icons + hamburger — all on the right */}
-            <div className="md:hidden flex items-center gap-4">
-              {actions.map((item) => (
-                <Link key={item.name} href={item.href}
-                  className="inline-flex flex-col items-center gap-0.5 text-white">
-                  <span className="[&>svg]:w-6 [&>svg]:h-6">{item.icon}</span>
-                  <span className="text-[10px] font-bold tracking-wide">{translate(item.name)}</span>
-                </Link>
-              ))}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
-                <Menu className="h-7 w-7" />
-              </button>
-            </div>
+            <div className="md:hidden flex items-center gap-3">
+  {actions.map((item) => (
+    <Link key={item.name} href={item.href}
+      className="inline-flex flex-col items-center gap-0.5 text-white">
+      <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
+      <span className="text-[9px] font-bold tracking-wide">{translate(item.name)}</span>
+    </Link>
+  ))}
+  <button
+    onClick={() => setIsMenuOpen(!isMenuOpen)}
+    className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
+    <Menu className="h-6 w-6" />
+  </button>
+</div>
 
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.28, ease: 'easeInOut' }}
-              className="fixed top-0 right-0 h-full w-72 bg-white z-50 shadow-2xl flex flex-col md:hidden"
+              className="fixed top-0 right-0 h-full w-full bg-white z-50 shadow-2xl flex flex-col md:hidden"
             >
               {/* Sidebar Header */}
               <div
