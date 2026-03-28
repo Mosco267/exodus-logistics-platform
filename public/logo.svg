@@ -49,8 +49,8 @@
     .continent-sm { fill: rgba(29,78,216,0.25); }
     .grid-line    { stroke: rgba(29,78,216,0.28); }
     .grid-line-sm { stroke: rgba(29,78,216,0.15); }
-    .exodus-text  { fill: #1e293b; }
-    .logistics-text { fill: #475569; }
+    .exodus-text  { fill: #ffffff }
+    .logistics-text { fill: rgba(255,255,255,0.82); }
     .antarctica   { fill: rgba(29,78,216,0.15); }
 
     /* Dark mode (dark background) */
@@ -129,7 +129,7 @@
     font-size="27" font-weight="bold" letter-spacing="4">EXODUS</text>
 
   <!-- Orange dot -->
-  <circle cx="235" cy="30" r="3.5" fill="#f97316"/>
+  <circle cx="242" cy="30" r="3.5" fill="#f97316"/>
 
   <!-- LOGISTICS -->
   <text class="logistics-text" x="80" y="56"
