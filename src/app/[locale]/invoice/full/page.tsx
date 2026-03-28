@@ -221,6 +221,10 @@ export default function InvoiceFullPage() {
 .print-white .print-header-inner { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; text-align: left !important; }
 .print-white .print-header-left { flex-direction: row !important; align-items: center !important; text-align: left !important; }
 .print-white .print-header-links { align-items: flex-start !important; flex-direction: row !important; }
+.print-header-inner { gap: 16px !important; padding: 20px 24px !important; }
+.print-header-left { gap: 12px !important; }
+.print-header-left img { height: 36px !important; width: auto !important; }
+.print-header-inner > div:last-child { min-width: 220px !important; }
         }
       `}</style>
 
