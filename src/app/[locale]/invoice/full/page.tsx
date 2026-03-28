@@ -480,7 +480,7 @@ export default function InvoiceFullPage() {
                   <p className="text-xs text-gray-500 max-w-lg leading-relaxed">
                     This document is an officially issued, system-generated invoice and is legally valid without a physical signature.
                     To verify the authenticity of this invoice, please reference your{" "}
-                    <span className="font-semibold text-gray-700">Shipment ID</span> or{" "}
+              
                     <span className="font-semibold text-gray-700">Tracking Number</span> on our official platform at{" "}
                     <a href="https://www.goexoduslogistics.com" className="text-blue-600 underline hover:text-blue-800 transition font-semibold" target="_blank" rel="noopener noreferrer">
                       goexoduslogistics.com
