@@ -56,15 +56,18 @@ export default function Header() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="sticky top-0 z-50 shadow-xl"
-      style={{ background: 'linear-gradient(to right, #ffffff 0%, #1d4ed8 40%, #0891b2 100%)' }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="flex justify-between items-center h-20 sm:h-28">
+style={{ background: 'linear-gradient(to bottom, #1d4ed8 0%, #0891b2 100%)' }}
+>
+  <div className="max-w-7xl mx-auto px-4 sm:px-8"
+    style={{ background: 'transparent' }}>
+    <div className="relative flex justify-between items-center h-20 sm:h-28"
+      style={{ background: 'transparent' }}>
 
-          {/* Logo */}
-          <Link href={`/${locale}`} className="flex items-center shrink-0">
-            <img src="/logo.svg" alt="Exodus Logistics" className="h-12 sm:h-16 w-auto" />
-          </Link>
+      {/* Logo — centered on mobile, left-aligned on desktop */}
+      <Link href={`/${locale}`}
+        className="flex items-center shrink-0 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
+        <img src="/logo.svg" alt="Exodus Logistics" className="h-12 sm:h-16 w-auto" />
+      </Link>
 
           {/* Desktop Right Section */}
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">

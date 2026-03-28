@@ -265,7 +265,7 @@ export default function InvoiceFullPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card">
 
               {/* ── HEADER ── gradient: white 0% → blue 40% → cyan 100% */}
-              <div style={{ background: "linear-gradient(to right, #ffffff 0%, #1d4ed8 40%, #0891b2 100%)" }} className="p-6 sm:p-8">
+              <div style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                   {/* Left: logo + company info */}
                   <div className="flex items-start sm:items-center gap-4 min-w-0">
