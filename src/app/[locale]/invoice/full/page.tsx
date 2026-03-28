@@ -151,8 +151,9 @@ export default function InvoiceFullPage() {
   }, [data]);
 
   const pricingUsed = (data as any)?.breakdown?.pricingUsed || {};
-  const fuelRate = pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? 0;
-  const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? 0;
+const rates = (data as any)?.breakdown?.rates || {};
+const fuelRate = pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? pricingUsed?.fuelSurcharge ?? rates?.fuelRate ?? rates?.fuel ?? 0;
+const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pricingUsed?.insuranceSurcharge ?? rates?.insuranceRate ?? rates?.insurance ?? 0;
 
   const paymentMethodRaw = safeStr(data?.paymentMethod);
 
@@ -245,6 +246,7 @@ export default function InvoiceFullPage() {
   .print-white img {
     height: 40px !important;
     width: auto !important;
+    content: url('/logo.svg') !important;
   }
   .print-white > div > div:last-child {
     text-align: right !important;
