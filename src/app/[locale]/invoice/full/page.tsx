@@ -454,7 +454,7 @@ export default function InvoiceFullPage() {
                       </div>
                       {/* Larger total */}
                       <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5 flex items-center justify-between">
-                        <span className="text-blue-900 font-extrabold text-lg">Total Amount Due</span>
+                        <span className="text-blue-900 font-extrabold text-lg">Total Amount</span>
                         <span className="text-blue-900 font-extrabold text-2xl">{fmtMoney(calc.total, currency)}</span>
                       </div>
                     </div>
