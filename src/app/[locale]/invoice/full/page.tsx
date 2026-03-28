@@ -269,7 +269,7 @@ export default function InvoiceFullPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                   {/* Left: logo + company info */}
                   <div className="flex items-start sm:items-center gap-4 min-w-0">
-                    <Image src="/logo.png" alt="Exodus Logistics" width={160} height={50} priority
+                    <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
                       className="h-10 sm:h-14 w-auto object-contain shrink-0" />
                     <div className="min-w-0">
                       <p className="text-blue-900 font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
