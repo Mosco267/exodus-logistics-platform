@@ -209,17 +209,21 @@ export default function InvoiceFullPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
-        @media print {
+       @media print {
   @page { margin: 0; size: A4 portrait; }
-          body * { visibility: hidden !important; }
-          .print-area, .print-area * { visibility: visible !important; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-          header, nav, footer { display: none !important; }
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  header, nav, footer { display: none !important; }
+  .no-print { display: none !important; }
+  body { background: white !important; }
+  .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-area [style*="background"] p,
+  .print-area [style*="background"] a,
+  .print-area [style*="background"] span,
+  .print-area [style*="background"] div { color: white !important; }
+}
       `}</style>
 
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
