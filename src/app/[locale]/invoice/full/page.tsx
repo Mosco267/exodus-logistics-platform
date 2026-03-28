@@ -200,17 +200,7 @@ export default function InvoiceFullPage() {
       : `Due by ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`)
     : status === "paid" ? "Paid in full" : "No due date set";
 
-  const printNow = () => {
-  // Force desktop layout for print on all devices
-  const meta = document.querySelector('meta[name="viewport"]');
-  const original = meta?.getAttribute('content') ?? '';
-  if (meta) meta.setAttribute('content', 'width=1024');
-  window.print();
-  // Restore after print dialog closes
-  setTimeout(() => {
-    if (meta) meta.setAttribute('content', original);
-  }, 1000);
-};
+  const printNow = () => window.print();
   const backToTrackTarget = trackingNumber || shipmentId || (q ? q.toUpperCase() : "");
 
   const card = "rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:border-blue-400 hover:shadow-md transition";
@@ -220,7 +210,7 @@ export default function InvoiceFullPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
         @media print {
-  @page { margin: 0; size: A4 landscape; }
+  @page { margin: 0; size: A4 portrait; }
           body * { visibility: hidden !important; }
           .print-area, .print-area * { visibility: visible !important; }
           .print-area { position: absolute; left: 0; top: 0; width: 100%; }
@@ -278,24 +268,24 @@ export default function InvoiceFullPage() {
               <div style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8">
   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
     {/* Left: logo + company info */}
-    <div className="flex flex-row items-center gap-3 min-w-0">
-      <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
-  className="h-12 sm:h-16 w-auto object-contain shrink-0" />
-      <div className="min-w-0 text-left">
-  <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
-  <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
-        <div className="mt-2 flex flex-col flex-wrap gap-y-1 text-xs">
-          <a href={`tel:${cleanTel(companyPhone)}`}
-            className="cursor-pointer inline-flex items-center justify-center sm:justify-start gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
-            <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
-          </a>
-          <a href={`mailto:${companyEmail}`}
-            className="cursor-pointer inline-flex items-center justify-center sm:justify-start gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
-            <Mail className="w-3.5 h-3.5 shrink-0" /> {companyEmail}
-          </a>
-        </div>
-      </div>
+    <div className="flex items-center gap-4 min-w-0">
+  <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
+    className="h-10 sm:h-14 w-auto object-contain shrink-0" />
+  <div className="min-w-0">
+    <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
+    <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs sm:text-sm">
+      <a href={`tel:${cleanTel(companyPhone)}`}
+        className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
+        <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
+      </a>
+      <a href={`mailto:${companyEmail}`}
+        className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
+        <Mail className="w-3.5 h-3.5 shrink-0" /> {companyEmail}
+      </a>
     </div>
+  </div>
+</div>
                   {/* Right: invoice number + status */}
                   <div className="md:text-right shrink-0">
                     <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Invoice</p>
