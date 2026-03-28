@@ -104,9 +104,9 @@ const logoUrl = `https://www.goexoduslogistics.com/logo.png`;
                             <img
                               src="${logoUrl}"
                               alt="Exodus Logistics"
-                              width="140"
-                              height="38"
-                              style="display:block;width:140px;height:38px;border:0;outline:none;text-decoration:none;"
+                              width="220"
+                              height="50"
+                              style="display:block;width:220px;height:50px;border:0;outline:none;text-decoration:none;"
                             />
                           </td>
                         </tr>
