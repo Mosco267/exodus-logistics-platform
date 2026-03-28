@@ -1,57 +1,80 @@
-<svg width="260" height="68" viewBox="0 0 260 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="320" height="90" viewBox="0 0 320 90" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1d4ed8;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
+    <radialGradient id="gBody" cx="35%" cy="28%" r="72%">
+      <stop offset="0%"   stop-color="#dbeafe" stop-opacity="0.95"/>
+      <stop offset="55%"  stop-color="#bfdbfe" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#e0f2fe" stop-opacity="0.2"/>
+    </radialGradient>
+    <radialGradient id="gShine" cx="30%" cy="25%" r="45%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0891b2"/>
     </linearGradient>
-    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
+    <linearGradient id="gRing" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0.25"/>
+      <stop offset="35%"  stop-color="#f97316" stop-opacity="1"/>
+      <stop offset="65%"  stop-color="#ea580c" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.25"/>
     </linearGradient>
-    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#dbeafe;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#cffafe;stop-opacity:1" />
+    <linearGradient id="gRingBack" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#c2410c" stop-opacity="0.08"/>
+      <stop offset="50%"  stop-color="#c2410c" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#c2410c" stop-opacity="0.08"/>
     </linearGradient>
+    <linearGradient id="gOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <clipPath id="gClip"><circle cx="44" cy="45" r="29"/></clipPath>
+    <clipPath id="gRingBehind"><rect x="0" y="52" width="88" height="30"/></clipPath>
+    <clipPath id="gRingFront"><rect x="0" y="0" width="88" height="52"/></clipPath>
   </defs>
 
-  <!-- Hexagon background -->
-  <polygon points="34,2 60,17 60,47 34,62 8,47 8,17"
-    fill="url(#hexGrad)" stroke="#bfdbfe" stroke-width="1.5"/>
+  <!-- Globe body -->
+  <circle cx="44" cy="45" r="29" fill="url(#gBody)" stroke="url(#gStroke)" stroke-width="1.8"/>
 
-  <!-- Globe circle -->
-  <circle cx="34" cy="32" r="20" fill="none" stroke="url(#globeGrad)" stroke-width="2"/>
+  <!-- Continent patches -->
+  <g clip-path="url(#gClip)">
+    <ellipse cx="40" cy="35" rx="6"   ry="9"   fill="rgba(59,130,246,0.28)"/>
+    <ellipse cx="29" cy="40" rx="5"   ry="10"  fill="rgba(59,130,246,0.22)"/>
+    <ellipse cx="53" cy="33" rx="8"   ry="7"   fill="rgba(59,130,246,0.28)"/>
+    <ellipse cx="57" cy="50" rx="4.5" ry="3.5" fill="rgba(59,130,246,0.22)"/>
+    <ellipse cx="35" cy="24" rx="3"   ry="2.5" fill="rgba(59,130,246,0.18)"/>
+    <ellipse cx="44" cy="70" rx="8"   ry="2.5" fill="rgba(59,130,246,0.15)"/>
+  </g>
 
-  <!-- Globe meridian lines -->
-  <ellipse cx="34" cy="32" rx="20" ry="9" fill="none" stroke="url(#globeGrad)" stroke-width="1.2" opacity="0.55"/>
-  <ellipse cx="34" cy="32" rx="9" ry="20" fill="none" stroke="url(#globeGrad)" stroke-width="1.2" opacity="0.55"/>
-  <line x1="14" y1="32" x2="54" y2="32" stroke="url(#globeGrad)" stroke-width="1.2" opacity="0.55"/>
+  <!-- Latitude lines -->
+  <ellipse cx="44" cy="45" rx="29" ry="10"  fill="none" stroke="url(#gStroke)" stroke-width="0.9" opacity="0.45"/>
+  <ellipse cx="44" cy="45" rx="29" ry="20"  fill="none" stroke="url(#gStroke)" stroke-width="0.7" opacity="0.22"/>
+  <!-- Longitude lines -->
+  <ellipse cx="44" cy="45" rx="11" ry="29"  fill="none" stroke="url(#gStroke)" stroke-width="0.9" opacity="0.45"/>
+  <ellipse cx="44" cy="45" rx="21" ry="29"  fill="none" stroke="url(#gStroke)" stroke-width="0.7" opacity="0.22"/>
+  <!-- Equator & meridian -->
+  <line x1="15" y1="45" x2="73" y2="45" stroke="url(#gStroke)" stroke-width="1" opacity="0.45"/>
+  <line x1="44" y1="16" x2="44" y2="74" stroke="url(#gStroke)" stroke-width="1" opacity="0.45"/>
 
-  <!-- Orange arrow cutting through globe -->
-  <path d="M24 32 L33 23 L33 28 L43 28 L43 36 L33 36 L33 41 Z"
-    fill="url(#arrowGrad)"/>
-  <!-- Arrow highlight -->
-  <path d="M24 32 L33 23 L33 28 L43 28 L43 30 L33 30 L33 23 Z"
-    fill="#fed7aa" opacity="0.45"/>
+  <!-- Saturn ring — back half -->
+  <g clip-path="url(#gRingBehind)">
+    <ellipse cx="44" cy="45" rx="40" ry="13" fill="none" stroke="url(#gRingBack)" stroke-width="4.5" transform="rotate(-18,44,45)"/>
+  </g>
 
-  <!-- EXODUS wordmark -->
-  <text x="74" y="36"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="26"
-    font-weight="700"
-    letter-spacing="2.5"
-    fill="#1e293b">EXODUS</text>
+  <!-- Globe shine overlay -->
+  <circle cx="44" cy="45" r="29" fill="url(#gShine)"/>
 
-  <!-- Orange dot accent -->
-  <circle cx="222" cy="29" r="3.5" fill="#f97316"/>
+  <!-- Saturn ring — front half -->
+  <g clip-path="url(#gRingFront)">
+    <ellipse cx="44" cy="45" rx="40" ry="13" fill="none" stroke="url(#gRing)" stroke-width="4.5" transform="rotate(-18,44,45)"/>
+  </g>
 
-  <!-- LOGISTICS subtext -->
-  <text x="74" y="54"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="11.5"
-    font-weight="400"
-    letter-spacing="7"
-    fill="#475569">LOGISTICS</text>
-
+  <!-- EXODUS -->
+  <text x="90" y="44" font-family="Georgia, Times New Roman, serif" font-size="29" font-weight="700" letter-spacing="4" fill="#1e293b">EXODUS</text>
+  <!-- Orange dot -->
+  <circle cx="270" cy="37" r="4" fill="url(#gOrange)"/>
+  <!-- LOGISTICS -->
+  <text x="90" y="63" font-family="Georgia, Times New Roman, serif" font-size="11.5" font-weight="400" letter-spacing="9" fill="#64748b">LOGISTICS</text>
   <!-- Orange underline -->
-  <line x1="74" y1="59" x2="236" y2="59" stroke="#f97316" stroke-width="1.8" opacity="0.75"/>
+  <line x1="90" y1="69" x2="274" y2="69" stroke="url(#gOrange)" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
 </svg>
