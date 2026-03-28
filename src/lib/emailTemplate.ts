@@ -13,7 +13,7 @@ type EmailTemplateParams = {
 
   // Branding
   appUrl: string; // e.g. https://goexoduslogistics.com
-  logoPath?: string; // default /logo.svg
+  logoPath?: string; // default /logo.png
   supportEmail: string;
   sentTo?: string; // optional footer line
 };
@@ -31,7 +31,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
   const year = new Date().getFullYear();
 
   const appUrl = params.appUrl.replace(/\/$/, "");
-  const logoPath = params.logoPath || "/logo.svg";
+  const logoPath = params.logoPath || "/logo.png";
   const logoUrl = `${appUrl}${logoPath}`;
 
   const preheader =

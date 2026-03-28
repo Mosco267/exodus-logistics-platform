@@ -135,7 +135,7 @@ export default function AdminHeader() {
       <div className="h-16 px-6 flex items-center justify-between gap-4">
         {/* Left */}
         <div className="flex items-center gap-3 min-w-[220px]">
-          <img src="/logo.svg" alt="Logo" className="h-10 w-auto" />
+          <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
         </div>
 
         {/* Center search */}
