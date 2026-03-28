@@ -290,7 +290,7 @@ export default function InvoiceFullPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card">
 
               {/* ── HEADER with white-to-blue gradient ── */}
-              <div className="bg-gradient-to-r from-white via-blue-600 to-cyan-600 p-6 sm:p-8">
+              <div className="bg-gradient-to-r from-white-0 via-blue-700 to-cyan-600 p-6 sm:p-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                   <div className="flex items-center gap-4 min-w-0">
                     <Image src="/logo.png" alt="Exodus Logistics" width={160} height={50} priority className="h-10 sm:h-14 w-auto object-contain shrink-0" />
