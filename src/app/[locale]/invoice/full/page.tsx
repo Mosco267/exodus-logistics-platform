@@ -218,6 +218,9 @@ export default function InvoiceFullPage() {
           .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
           * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-white * { color: white !important; }
+.print-white .print-header-inner { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; text-align: left !important; }
+.print-white .print-header-left { flex-direction: row !important; align-items: center !important; text-align: left !important; }
+.print-white .print-header-links { align-items: flex-start !important; flex-direction: row !important; }
         }
       `}</style>
 
@@ -269,10 +272,10 @@ export default function InvoiceFullPage() {
                 className="p-6 sm:p-8 print-white"
               >
                 {/* Mobile: centered stack | Desktop: logo+info left, invoice right */}
-                <div className="flex flex-col items-center text-center md:flex-row md:items-center md:justify-between md:text-left gap-5">
+                <div className="print-header-inner flex flex-col items-center text-center md:flex-row md:items-center md:justify-between md:text-left gap-5">
 
                   {/* LEFT — logo + company info */}
-                  <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
+                  <div className="print-header-left flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
                     {/* Logo */}
                     <Image
                       src="/logo.svg"
@@ -290,7 +293,7 @@ export default function InvoiceFullPage() {
                       <p className="text-white/80 text-xs sm:text-sm mt-0.5">
                         {companyAddress}
                       </p>
-                      <div className="mt-2 flex flex-col items-center md:items-start md:flex-row flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
+                    <div className="print-header-links mt-2 flex flex-col items-center md:items-start md:flex-row flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
                         <a
                           href={`tel:${cleanTel(companyPhone)}`}
                           className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2"
