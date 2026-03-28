@@ -71,29 +71,36 @@ const ACCEPTED_METHODS = ["Cryptocurrency", "Bank transfer", "PayPal", "Zelle", 
 
 function safeStr(v: any) { return String(v ?? "").trim(); }
 
-// ─── Use viewer's browser timezone ─────────────────────────────────────────
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
+    month: "short", day: "numeric", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: true,
   }).format(d);
 }
 
 function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
+// Fix: use "en-US" locale + narrowSymbol to always show "$" not "US$"
 function fmtMoney(amount: number, currency: string) {
   const c = (currency || "USD").toUpperCase();
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: c, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num(amount));
+    return new Intl.NumberFormat("en-US", {
+      style: "currency", currency: c,
+      currencyDisplay: "narrowSymbol",
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format(num(amount));
   } catch {
-    return `${num(amount).toFixed(2)} ${c}`;
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency", currency: c,
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+      }).format(num(amount));
+    } catch {
+      return `${num(amount).toFixed(2)} ${c}`;
+    }
   }
 }
 
@@ -145,9 +152,7 @@ export default function InvoiceFullPage() {
         setData(json);
       } catch (e: any) {
         setErr(e?.message || "Invoice unavailable. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
     void load();
   }, [q, invoice, email]);
@@ -215,6 +220,10 @@ export default function InvoiceFullPage() {
   const printNow = () => window.print();
   const backToTrackTarget = trackingNumber || shipmentId || (q ? q.toUpperCase() : "");
 
+  // Reusable card class
+  const card = "rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:border-blue-400 hover:shadow-md transition";
+  const card5 = "rounded-2xl border border-gray-200 bg-white shadow-sm p-5 hover:border-blue-400 hover:shadow-md transition";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
@@ -233,17 +242,27 @@ export default function InvoiceFullPage() {
 
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
 
-        {/* Top nav */}
-        <div className="no-print mb-6 flex flex-wrap gap-2">
-          <Link href={`/${locale}/invoice`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+        {/* ── TOP NAV ── */}
+        <div className="no-print mb-6 flex flex-col sm:flex-row gap-2">
+          <Link
+            href={`/${locale}/invoice`}
+            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
+          >
             <ArrowLeft className="w-4 h-4" /> Back to Invoice Search
           </Link>
           {backToTrackTarget && (
-            <Link href={`/${locale}/track/${encodeURIComponent(backToTrackTarget)}`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+            <Link
+              href={`/${locale}/track/${encodeURIComponent(backToTrackTarget)}`}
+              className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
+            >
               <Truck className="w-4 h-4" /> Track Shipment
             </Link>
           )}
-          <button type="button" onClick={printNow} className="cursor-pointer sm:ml-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition shadow-sm">
+          <button
+            type="button"
+            onClick={printNow}
+            className="cursor-pointer w-full sm:w-auto sm:ml-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition shadow-sm"
+          >
             <Printer className="w-4 h-4" /> Print Invoice
           </button>
         </div>
@@ -270,28 +289,28 @@ export default function InvoiceFullPage() {
           <div className="print-area">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card">
 
-              {/* ── HEADER ── */}
-              <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 p-6 sm:p-8">
+              {/* ── HEADER with white-to-blue gradient ── */}
+              <div className="bg-gradient-to-r from-white via-blue-600 to-cyan-600 p-6 sm:p-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                   <div className="flex items-center gap-4 min-w-0">
                     <Image src="/logo.png" alt="Exodus Logistics" width={160} height={50} priority className="h-10 sm:h-14 w-auto object-contain shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
-                      <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
+                      <p className="text-blue-900 font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
+                      <p className="text-blue-900/70 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs sm:text-sm">
-                        <a href={`tel:${cleanTel(companyPhone)}`} className="cursor-pointer inline-flex items-center gap-1.5 text-white/90 hover:text-white transition underline underline-offset-2">
+                        <a href={`tel:${cleanTel(companyPhone)}`} className="cursor-pointer inline-flex items-center gap-1.5 text-blue-900/80 hover:text-blue-900 transition underline underline-offset-2">
                           <Phone className="w-3.5 h-3.5" /> {companyPhone}
                         </a>
-                        <a href={`mailto:${companyEmail}`} className="cursor-pointer inline-flex items-center gap-1.5 text-white/90 hover:text-white transition underline underline-offset-2">
+                        <a href={`mailto:${companyEmail}`} className="cursor-pointer inline-flex items-center gap-1.5 text-blue-900/80 hover:text-blue-900 transition underline underline-offset-2">
                           <Mail className="w-3.5 h-3.5" /> {companyEmail}
                         </a>
                       </div>
                     </div>
                   </div>
                   <div className="md:text-right shrink-0">
-                    <p className="text-white/70 text-xs font-bold uppercase tracking-widest">Invoice</p>
+                    <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Invoice</p>
                     <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide whitespace-nowrap">{invoiceNumber || "—"}</p>
-                    <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold bg-white/10 border-white/30 text-white`}>
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold bg-white/10 border-white/30 text-white">
                       <span className={`w-2 h-2 rounded-full ${statusDot}`} />
                       {statusBadge}
                     </div>
@@ -304,8 +323,7 @@ export default function InvoiceFullPage() {
 
                 {/* Top 3 summary cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className={card}>
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Dates</p>
@@ -317,7 +335,7 @@ export default function InvoiceFullPage() {
                     <p className="mt-2 text-[10px] text-gray-400">Times in your local timezone</p>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className={card}>
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Shipment IDs</p>
@@ -330,7 +348,7 @@ export default function InvoiceFullPage() {
                     <p className="text-sm font-extrabold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{invoiceNumber || "—"}</p>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className={card}>
                     <div className="flex items-center gap-2 mb-2">
                       <CreditCard className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Amount Due</p>
@@ -348,7 +366,7 @@ export default function InvoiceFullPage() {
 
                 {/* Route + Declaration */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className={card}>
                     <div className="flex items-center gap-2 mb-3">
                       <MapPin className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Route</p>
@@ -366,7 +384,7 @@ export default function InvoiceFullPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 hover:border-blue-200 transition">
+                  <div className={card}>
                     <div className="flex items-center gap-2 mb-3">
                       <FileText className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Declaration</p>
@@ -382,18 +400,18 @@ export default function InvoiceFullPage() {
                 </div>
 
                 {/* Parties */}
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5 hover:border-blue-200 transition">
+                <div className={card5}>
                   <div className="flex items-center gap-2 mb-4">
                     <FileText className="w-4 h-4 text-blue-600" />
                     <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Parties</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Sender</p>
                       <p className="font-semibold text-gray-900 text-sm">{safeStr(data?.parties?.senderName) || "—"}</p>
                       <p className="text-gray-600 text-sm break-all">{safeStr(data?.parties?.senderEmail) || "—"}</p>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Receiver</p>
                       <p className="font-semibold text-gray-900 text-sm">{safeStr(data?.parties?.receiverName) || "—"}</p>
                       <p className="text-gray-600 text-sm break-all">{safeStr(data?.parties?.receiverEmail) || "—"}</p>
@@ -403,9 +421,7 @@ export default function InvoiceFullPage() {
 
                 {/* Payment + Charges */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-                  {/* Payment */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5 hover:border-blue-200 transition">
+                  <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
                       <CreditCard className="w-4 h-4 text-blue-600" />
                       <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Payment</h2>
@@ -416,7 +432,7 @@ export default function InvoiceFullPage() {
                         <span key={m} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">{m}</span>
                       ))}
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Status</p>
                         <p className="text-sm font-extrabold text-gray-900 mt-0.5">{paymentStatusText}</p>
@@ -429,8 +445,7 @@ export default function InvoiceFullPage() {
                     </div>
                   </div>
 
-                  {/* Charges */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5 hover:border-blue-200 transition">
+                  <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
                       <FileText className="w-4 h-4 text-blue-600" />
                       <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Charges</h2>
@@ -456,13 +471,28 @@ export default function InvoiceFullPage() {
                   </div>
                 </div>
 
-                {/* Footer verification note */}
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 flex items-start gap-3">
-                  <ShieldCheck className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700">This invoice is system-generated and valid without a signature.</p>
-                    <p className="mt-0.5 text-xs text-gray-500">For verification, use your <span className="font-semibold text-gray-700">shipment ID</span> on our official website.</p>
-                  </div>
+                {/* Footer — centered, no border, professional */}
+                <div className="px-4 py-8 flex flex-col items-center text-center gap-3">
+                  <ShieldCheck className="w-7 h-7 text-blue-400" />
+                  <p className="text-sm font-extrabold text-gray-800 tracking-wide uppercase">
+                    Officially Issued by Exodus Logistics Ltd.
+                  </p>
+                  <p className="text-xs text-gray-500 max-w-lg leading-relaxed">
+                    This document is an officially issued, system-generated invoice and is legally valid without a physical signature.
+                    To verify the authenticity of this invoice, please reference your{" "}
+                    <span className="font-semibold text-gray-700">Shipment ID</span> or{" "}
+                    <span className="font-semibold text-gray-700">Tracking Number</span> on our official platform at{" "}
+                    <a href="https://www.goexoduslogistics.com" className="text-blue-600 underline hover:text-blue-800 transition font-semibold" target="_blank" rel="noopener noreferrer">
+                      goexoduslogistics.com
+                    </a>.
+                    For billing inquiries, disputes, or assistance, please contact our support team at{" "}
+                    <a href="mailto:support@goexoduslogistics.com" className="text-blue-600 underline hover:text-blue-800 transition font-semibold">
+                      support@goexoduslogistics.com
+                    </a>.
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    © {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved. Unauthorized reproduction of this document is strictly prohibited.
+                  </p>
                 </div>
 
               </div>
@@ -478,7 +508,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
       <span className="text-gray-600 text-sm">{label}</span>
-      <span className="font-semibold text-gray-900 text-sm">{value}</span>
+      <span className="font-semibold text-gray-900 text-sm whitespace-nowrap ml-2">{value}</span>
     </div>
   );
 }
