@@ -276,7 +276,7 @@ export default function InvoiceFullPage() {
   {/* SVG for screen, PNG for print */}
   <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
     className="h-10 sm:h-14 w-auto object-contain shrink-0 print:hidden" />
-  <Image src="/logo.png" alt="Exodus Logistics" width={160} height={50} priority
+  <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
     className="h-10 sm:h-14 w-auto object-contain shrink-0 hidden print:block" />
 </>
   <div className="min-w-0 text-center sm:text-left">
