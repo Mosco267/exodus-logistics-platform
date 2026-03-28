@@ -219,10 +219,9 @@ export default function InvoiceFullPage() {
   body { background: white !important; }
   .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .print-area [style*="background"] p,
-  .print-area [style*="background"] a,
-  .print-area [style*="background"] span,
-  .print-area [style*="background"] div { color: white !important; }
+  .print-area p { color: inherit !important; }
+  .print-area a { color: inherit !important; }
+  .print-white * { color: white !important; }
 }
       `}</style>
 
@@ -269,7 +268,7 @@ export default function InvoiceFullPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card">
 
               {/* ── HEADER ── gradient: white 0% → blue 40% → cyan 100% */}
-              <div style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8">
+              <div style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8 print-white">
   <div className="flex flex-col items-center md:flex-row md:items-start md:justify-between gap-5">
     {/* Left: logo + company info */}
     <div className="flex flex-col items-center gap-2 min-w-0 w-full sm:w-auto sm:flex-row sm:items-center sm:gap-4">
