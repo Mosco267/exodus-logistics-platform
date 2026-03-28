@@ -56,7 +56,7 @@ export default function Header() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="sticky top-0 z-50 shadow-xl"
-style={{ background: 'linear-gradient(to bottom, #1d4ed8 0%, #0891b2 100%)' }}
+style={{ background: 'linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)' }}
 >
   <div className="max-w-7xl mx-auto px-4 sm:px-8"
     style={{ background: 'transparent' }}>
