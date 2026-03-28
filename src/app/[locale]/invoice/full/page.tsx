@@ -74,7 +74,6 @@ function fmtMoney(amount: number, currency: string) {
 function fmtPercent(v: any) {
   const n = Number(v);
   if (!Number.isFinite(n) || n === 0) return "0%";
-  // Handle both decimal (0.05) and whole (5) formats
   const pct = n < 1 ? n * 100 : n;
   return `${pct % 1 === 0 ? String(pct) : pct.toFixed(2).replace(/\.?0+$/, "")}%`;
 }
@@ -176,7 +175,6 @@ export default function InvoiceFullPage() {
   const statusColor = status === "paid" ? "bg-green-50 border-green-200 text-green-800" : status === "overdue" ? "bg-red-50 border-red-200 text-red-800" : status === "cancelled" ? "bg-gray-50 border-gray-200 text-gray-700" : "bg-amber-50 border-amber-200 text-amber-800";
   const statusDot = status === "paid" ? "bg-green-500" : status === "overdue" ? "bg-red-500" : status === "cancelled" ? "bg-gray-400" : "bg-amber-500";
 
-  // Professional payment messages — no dashes
   const paymentMethodLine = paymentMethodRaw
     ? `Completed via ${paymentMethodRaw}`
     : status === "paid" ? "Payment method not recorded"
@@ -209,20 +207,18 @@ export default function InvoiceFullPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
-       @media print {
-  @page { margin: 0; size: A4 portrait; }
-  body * { visibility: hidden !important; }
-  .print-area, .print-area * { visibility: visible !important; }
-  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-  header, nav, footer { display: none !important; }
-  .no-print { display: none !important; }
-  body { background: white !important; }
-  .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .print-area p { color: inherit !important; }
-  .print-area a { color: inherit !important; }
-  .print-white * { color: white !important; }
-}
+        @media print {
+          @page { margin: 0; size: A4 portrait; }
+          body * { visibility: hidden !important; }
+          .print-area, .print-area * { visibility: visible !important; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          header, nav, footer { display: none !important; }
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-white * { color: white !important; }
+        }
       `}</style>
 
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
@@ -267,42 +263,62 @@ export default function InvoiceFullPage() {
           <div className="print-area">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card">
 
-              {/* ── HEADER ── gradient: white 0% → blue 40% → cyan 100% */}
-              <div style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }} className="p-6 sm:p-8 print-white">
-  <div className="flex flex-col items-center md:flex-row md:items-start md:justify-between gap-5">
-    {/* Left: logo + company info */}
-    <div className="flex flex-col items-center gap-2 min-w-0 w-full sm:w-auto sm:flex-row sm:items-center sm:gap-4">
-  <>
-  {/* SVG for screen, PNG for print */}
-  <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
-    className="h-10 sm:h-14 w-auto object-contain shrink-0 print:hidden" />
-  <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} priority
-    className="h-10 sm:h-14 w-auto object-contain shrink-0 hidden print:block" />
-</>
-  <div className="min-w-0 text-center sm:text-left">
-    <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
-    <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
-    <div className="mt-2 flex flex-col items-center sm:items-start sm:flex-row flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
-      <a href={`tel:${cleanTel(companyPhone)}`}
-        className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
-        <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
-      </a>
-      <a href={`mailto:${companyEmail}`}
-        className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
-        <Mail className="w-3.5 h-3.5 shrink-0" /> {companyEmail}
-      </a>
-    </div>
-  </div>
-</div>
-                  {/* Right: invoice number + status */}
-                  <div className="md:text-right shrink-0">
+              {/* ── INVOICE HEADER ── */}
+              <div
+                style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }}
+                className="p-6 sm:p-8 print-white"
+              >
+                {/* Mobile: centered stack | Desktop: logo+info left, invoice right */}
+                <div className="flex flex-col items-center text-center md:flex-row md:items-center md:justify-between md:text-left gap-5">
+
+                  {/* LEFT — logo + company info */}
+                  <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
+                    {/* Logo */}
+                    <Image
+                      src="/logo.svg"
+                      alt="Exodus Logistics"
+                      width={160}
+                      height={50}
+                      priority
+                      className="h-10 sm:h-14 w-auto object-contain shrink-0"
+                    />
+                    {/* Company info */}
+                    <div className="min-w-0">
+                      <p className="text-white font-extrabold text-base sm:text-lg leading-tight">
+                        {companyName}
+                      </p>
+                      <p className="text-white/80 text-xs sm:text-sm mt-0.5">
+                        {companyAddress}
+                      </p>
+                      <div className="mt-2 flex flex-col items-center md:items-start md:flex-row flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
+                        <a
+                          href={`tel:${cleanTel(companyPhone)}`}
+                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2"
+                        >
+                          <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
+                        </a>
+                        <a
+                          href={`mailto:${companyEmail}`}
+                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2"
+                        >
+                          <Mail className="w-3.5 h-3.5 shrink-0" /> {companyEmail}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RIGHT — invoice number + status */}
+                  <div className="shrink-0 md:text-right">
                     <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Invoice</p>
-                    <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide">{invoiceNumber || "—"}</p>
+                    <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide">
+                      {invoiceNumber || "—"}
+                    </p>
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold bg-white/10 border-white/30 text-white">
                       <span className={`w-2 h-2 rounded-full ${statusDot}`} />
                       {statusBadge}
                     </div>
                   </div>
+
                 </div>
               </div>
 
@@ -311,7 +327,6 @@ export default function InvoiceFullPage() {
 
                 {/* Top 3 summary cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
                   <div className={card}>
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
@@ -342,7 +357,6 @@ export default function InvoiceFullPage() {
                       <CreditCard className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Amount Due</p>
                     </div>
-                    {/* Larger total font */}
                     <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{fmtMoney(calc.total, currency)}</p>
                     <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-extrabold ${statusColor}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />{statusBadge}
@@ -409,7 +423,6 @@ export default function InvoiceFullPage() {
 
                 {/* Payment + Charges */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
                   <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
                       <CreditCard className="w-4 h-4 text-blue-600" />
@@ -455,12 +468,10 @@ export default function InvoiceFullPage() {
                       <Row label={`Insurance (${fmtPercent(insuranceRate)})`} value={fmtMoney(calc.insurance, currency)} />
                       <Row label="Tax" value={fmtMoney(calc.tax, currency)} />
                       <Row label="Discount" value={fmtMoney(calc.discount, currency)} />
-                      {/* Larger subtotal */}
                       <div className="pt-3 mt-1 border-t border-gray-200 flex items-center justify-between">
                         <span className="font-bold text-gray-900 text-base">Subtotal</span>
                         <span className="font-bold text-gray-900 text-base">{fmtMoney(calc.subtotal, currency)}</span>
                       </div>
-                      {/* Larger total */}
                       <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5 flex items-center justify-between">
                         <span className="text-blue-900 font-extrabold text-lg">Total Amount</span>
                         <span className="text-blue-900 font-extrabold text-2xl">{fmtMoney(calc.total, currency)}</span>
@@ -469,7 +480,7 @@ export default function InvoiceFullPage() {
                   </div>
                 </div>
 
-                {/* Footer — centered, no border */}
+                {/* Footer */}
                 <div className="px-4 py-8 flex flex-col items-center text-center gap-3">
                   <ShieldCheck className="w-7 h-7 text-blue-400" />
                   <p className="text-sm font-extrabold text-gray-800 tracking-wide uppercase">
@@ -478,7 +489,6 @@ export default function InvoiceFullPage() {
                   <p className="text-xs text-gray-500 max-w-lg leading-relaxed">
                     This document is an officially issued, system-generated invoice and is legally valid without a physical signature.
                     To verify the authenticity of this invoice, please reference your{" "}
-                    
                     <span className="font-semibold text-gray-700">Tracking Number</span> on our official platform at{" "}
                     <a href="https://www.goexoduslogistics.com" target="_blank" rel="noopener noreferrer"
                       className="text-blue-600 underline hover:text-blue-800 transition font-semibold">goexoduslogistics.com</a>.
@@ -487,7 +497,7 @@ export default function InvoiceFullPage() {
                       className="text-blue-600 underline hover:text-blue-800 transition font-semibold">support@goexoduslogistics.com</a>.
                   </p>
                   <p className="text-[10px] text-gray-400 mt-1">
-                    © {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved. Unauthorized reproduction of this document is strictly prohibited.
+                    ©️ {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved. Unauthorized reproduction of this document is strictly prohibited.
                   </p>
                 </div>
 
