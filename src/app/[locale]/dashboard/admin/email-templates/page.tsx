@@ -53,7 +53,7 @@ function renderSimpleInfoCardHtml(rows: Array<{ label: string; value: string }>)
 function buildPreviewEmailHtml(args: { subject: string; title: string; preheader?: string; bodyHtml: string; button?: { text: string; href: string } }) {
   const year = new Date().getFullYear();
   const appUrl = "https://www.goexoduslogistics.com";
-  const logoUrl = `${appUrl}/logo.png`;
+  const logoUrl = `${appUrl}/logo.svg`;
   const outerPad = 24;
   const innerPad = 20;
   const buttonHtml = args.button ? `<div style="padding:18px 0 6px 0;"><a href="${args.button.href}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-size:15px;font-weight:800;">${esc(args.button.text)}</a></div>` : "";
