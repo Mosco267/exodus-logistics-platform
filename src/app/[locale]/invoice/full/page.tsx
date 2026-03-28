@@ -6,18 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
-  AlertCircle,
-  ArrowLeft,
-  Calendar,
-  Mail,
-  MapPin,
-  Package,
-  Phone,
-  Printer,
-  FileText,
-  Truck,
-  CreditCard,
-  ShieldCheck,
+  AlertCircle, ArrowLeft, Calendar, Mail, MapPin, Package,
+  Phone, Printer, FileText, Truck, CreditCard, ShieldCheck,
 } from "lucide-react";
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
@@ -32,37 +22,18 @@ type ApiResponse = {
   dueDate?: string | null;
   paymentMethod?: string | null;
   breakdown?: {
-    declaredValue?: number;
-    shipping?: number;
-    fuel?: number;
-    handling?: number;
-    customs?: number;
-    insurance?: number;
-    subtotal?: number;
-    tax?: number;
-    discount?: number;
-    total?: number;
-    rates?: any;
-    pricingUsed?: any;
+    declaredValue?: number; shipping?: number; fuel?: number; handling?: number;
+    customs?: number; insurance?: number; subtotal?: number; tax?: number;
+    discount?: number; total?: number; rates?: any; pricingUsed?: any;
   };
   declaredValue?: number;
   shipment?: {
-    shipmentId?: string;
-    trackingNumber?: string;
-    originFull?: string;
-    destinationFull?: string;
-    status?: string;
-    shipmentType?: string | null;
-    serviceLevel?: string | null;
-    weightKg?: number | string | null;
+    shipmentId?: string; trackingNumber?: string; originFull?: string;
+    destinationFull?: string; status?: string; shipmentType?: string | null;
+    serviceLevel?: string | null; weightKg?: number | string | null;
     dimensionsCm?: { length?: any; width?: any; height?: any; unit?: string } | null;
   };
-  parties?: {
-    senderName?: string;
-    senderEmail?: string;
-    receiverName?: string;
-    receiverEmail?: string;
-  };
+  parties?: { senderName?: string; senderEmail?: string; receiverName?: string; receiverEmail?: string };
   dates?: { createdAt?: string | null; updatedAt?: string | null };
   error?: string;
 };
@@ -76,27 +47,23 @@ function fmtDate(iso?: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return new Intl.DateTimeFormat(undefined, {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: true,
+    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
   }).format(d);
 }
 
 function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
-// Fix: use "en-US" locale + narrowSymbol to always show "$" not "US$"
 function fmtMoney(amount: number, currency: string) {
   const c = (currency || "USD").toUpperCase();
   try {
     return new Intl.NumberFormat("en-US", {
-      style: "currency", currency: c,
-      currencyDisplay: "narrowSymbol",
+      style: "currency", currency: c, currencyDisplay: "narrowSymbol",
       minimumFractionDigits: 2, maximumFractionDigits: 2,
     }).format(num(amount));
   } catch {
     try {
       return new Intl.NumberFormat("en-US", {
-        style: "currency", currency: c,
-        minimumFractionDigits: 2, maximumFractionDigits: 2,
+        style: "currency", currency: c, minimumFractionDigits: 2, maximumFractionDigits: 2,
       }).format(num(amount));
     } catch {
       return `${num(amount).toFixed(2)} ${c}`;
@@ -104,10 +71,11 @@ function fmtMoney(amount: number, currency: string) {
   }
 }
 
-function fmtPercentFromDecimal(v: any) {
+function fmtPercent(v: any) {
   const n = Number(v);
-  if (!Number.isFinite(n)) return "0%";
-  const pct = n * 100;
+  if (!Number.isFinite(n) || n === 0) return "0%";
+  // Handle both decimal (0.05) and whole (5) formats
+  const pct = n < 1 ? n * 100 : n;
   return `${pct % 1 === 0 ? String(pct) : pct.toFixed(2).replace(/\.?0+$/, "")}%`;
 }
 
@@ -140,9 +108,8 @@ export default function InvoiceFullPage() {
       if (q) url.searchParams.set("q", q.toUpperCase());
       if (invoice) url.searchParams.set("invoice", invoice.toUpperCase());
       if (email) url.searchParams.set("email", email);
-
       if (!q && !(invoice && email)) {
-        setErr("Invoice details are missing. Please open the invoice from the email link or search again.");
+        setErr("Invoice details are missing. Please open the invoice from your email or search again.");
         setLoading(false); return;
       }
       try {
@@ -175,20 +142,20 @@ export default function InvoiceFullPage() {
 
   const calc = useMemo(() => {
     const b = data?.breakdown || {};
-    const shipping = num(b.shipping);
-    const fuel = num(b.fuel);
-    const handling = num(b.handling);
-    const customs = num(b.customs);
-    const insurance = num(b.insurance);
-    const discount = num(b.discount);
+    const shipping = num(b.shipping); const fuel = num(b.fuel);
+    const handling = num(b.handling); const customs = num(b.customs);
+    const insurance = num(b.insurance); const discount = num(b.discount);
     const tax = num(b.tax);
     const subtotal = num(b.subtotal) || (shipping + fuel + handling + customs + insurance - discount);
     const total = num(b.total) || (subtotal + tax);
     return { shipping, fuel, handling, customs, insurance, discount, tax, subtotal, total };
   }, [data]);
 
+  const pricingUsed = (data as any)?.breakdown?.pricingUsed || {};
+  const fuelRate = pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? 0;
+  const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? 0;
+
   const paymentMethodRaw = safeStr(data?.paymentMethod);
-  const paymentStatusText = status === "paid" ? "Payment confirmed" : status === "cancelled" ? "Not payable" : status === "overdue" ? "Payment required (Overdue)" : "Payment required";
 
   const companyName = safeStr(data?.company?.name) || "Exodus Logistics Ltd.";
   const companyAddress = safeStr(data?.company?.address) || "1199 E Calaveras Blvd, California, USA 90201";
@@ -209,18 +176,33 @@ export default function InvoiceFullPage() {
   const statusColor = status === "paid" ? "bg-green-50 border-green-200 text-green-800" : status === "overdue" ? "bg-red-50 border-red-200 text-red-800" : status === "cancelled" ? "bg-gray-50 border-gray-200 text-gray-700" : "bg-amber-50 border-amber-200 text-amber-800";
   const statusDot = status === "paid" ? "bg-green-500" : status === "overdue" ? "bg-red-500" : status === "cancelled" ? "bg-gray-400" : "bg-amber-500";
 
+  // Professional payment messages — no dashes
+  const paymentMethodLine = paymentMethodRaw
+    ? `Completed via ${paymentMethodRaw}`
+    : status === "paid" ? "Payment method not recorded"
+    : status === "cancelled" ? "Not applicable"
+    : status === "overdue" ? "Awaiting payment — please remit immediately"
+    : "Awaiting payment — choose a method above";
+
   const paymentMessage = status === "paid"
-    ? "This invoice has been paid. Payment has been confirmed in our system."
+    ? "Payment has been received and confirmed in our system. No further action is required. A receipt has been issued for your records."
     : status === "overdue"
-    ? "This invoice is overdue. Please complete payment as soon as possible to avoid delays."
+    ? "This invoice is past its due date. Immediate payment is required to avoid shipment delays or cancellation. Please contact our support team if you need assistance."
     : status === "cancelled"
-    ? "This invoice has been cancelled. Contact support if you believe this is an error."
-    : "This invoice is unpaid. Please complete payment using one of the accepted methods below.";
+    ? "This invoice has been cancelled and is no longer payable. If you wish to reinstate your shipment or believe this is an error, please reach out to our support team."
+    : "This invoice is currently outstanding. Please complete your payment at the earliest opportunity to ensure your shipment is processed and dispatched without delay.";
+
+  const dueDateLine = dueDate
+    ? (status === "overdue"
+      ? `Overdue since ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+      : status === "paid"
+      ? `Was due ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+      : `Due by ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`)
+    : status === "paid" ? "Paid in full" : "No due date set";
 
   const printNow = () => window.print();
   const backToTrackTarget = trackingNumber || shipmentId || (q ? q.toUpperCase() : "");
 
-  // Reusable card class
   const card = "rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:border-blue-400 hover:shadow-md transition";
   const card5 = "rounded-2xl border border-gray-200 bg-white shadow-sm p-5 hover:border-blue-400 hover:shadow-md transition";
 
@@ -244,25 +226,18 @@ export default function InvoiceFullPage() {
 
         {/* ── TOP NAV ── */}
         <div className="no-print mb-6 flex flex-col sm:flex-row gap-2">
-          <Link
-            href={`/${locale}/invoice`}
-            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
-          >
+          <Link href={`/${locale}/invoice`}
+            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
             <ArrowLeft className="w-4 h-4" /> Back to Invoice Search
           </Link>
           {backToTrackTarget && (
-            <Link
-              href={`/${locale}/track/${encodeURIComponent(backToTrackTarget)}`}
-              className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm"
-            >
+            <Link href={`/${locale}/track/${encodeURIComponent(backToTrackTarget)}`}
+              className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
               <Truck className="w-4 h-4" /> Track Shipment
             </Link>
           )}
-          <button
-            type="button"
-            onClick={printNow}
-            className="cursor-pointer w-full sm:w-auto sm:ml-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition shadow-sm"
-          >
+          <button type="button" onClick={printNow}
+            className="cursor-pointer w-full sm:w-auto sm:ml-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition shadow-sm">
             <Printer className="w-4 h-4" /> Print Invoice
           </button>
         </div>
@@ -280,7 +255,7 @@ export default function InvoiceFullPage() {
               <AlertCircle className="w-5 h-5 shrink-0" /> {err}
             </div>
             <p className="mt-2 text-sm text-gray-500 pl-8">
-              If you opened this from an email, confirm the invoice number and the email linked to the shipment.
+              If you opened this from an email, confirm the invoice number and the email address linked to the shipment.
             </p>
           </div>
         )}
@@ -289,27 +264,32 @@ export default function InvoiceFullPage() {
           <div className="print-area">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden print-card">
 
-              {/* ── HEADER with white-to-blue gradient ── */}
-              <div className="bg-gradient-to-r from-white-0 via-blue-700 to-cyan-600 p-6 sm:p-8">
+              {/* ── HEADER ── gradient: white 0% → blue 40% → cyan 100% */}
+              <div style={{ background: "linear-gradient(to right, #ffffff 0%, #1d4ed8 40%, #0891b2 100%)" }} className="p-6 sm:p-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <Image src="/logo.png" alt="Exodus Logistics" width={160} height={50} priority className="h-10 sm:h-14 w-auto object-contain shrink-0" />
+                  {/* Left: logo + company info */}
+                  <div className="flex items-start sm:items-center gap-4 min-w-0">
+                    <Image src="/logo.png" alt="Exodus Logistics" width={160} height={50} priority
+                      className="h-10 sm:h-14 w-auto object-contain shrink-0" />
                     <div className="min-w-0">
                       <p className="text-blue-900 font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
-                      <p className="text-blue-900/70 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
+                      <p className="text-white text-xs sm:text-sm mt-0.5">{companyAddress}</p>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs sm:text-sm">
-                        <a href={`tel:${cleanTel(companyPhone)}`} className="cursor-pointer inline-flex items-center gap-1.5 text-blue-900/80 hover:text-blue-900 transition underline underline-offset-2">
+                        <a href={`tel:${cleanTel(companyPhone)}`}
+                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
                           <Phone className="w-3.5 h-3.5" /> {companyPhone}
                         </a>
-                        <a href={`mailto:${companyEmail}`} className="cursor-pointer inline-flex items-center gap-1.5 text-blue-900/80 hover:text-blue-900 transition underline underline-offset-2">
+                        <a href={`mailto:${companyEmail}`}
+                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
                           <Mail className="w-3.5 h-3.5" /> {companyEmail}
                         </a>
                       </div>
                     </div>
                   </div>
+                  {/* Right: invoice number + status */}
                   <div className="md:text-right shrink-0">
                     <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Invoice</p>
-                    <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide whitespace-nowrap">{invoiceNumber || "—"}</p>
+                    <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide">{invoiceNumber || "—"}</p>
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold bg-white/10 border-white/30 text-white">
                       <span className={`w-2 h-2 rounded-full ${statusDot}`} />
                       {statusBadge}
@@ -323,6 +303,7 @@ export default function InvoiceFullPage() {
 
                 {/* Top 3 summary cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
                   <div className={card}>
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
@@ -332,7 +313,7 @@ export default function InvoiceFullPage() {
                     <p className="text-sm font-bold text-gray-900">{fmtDate(data?.dates?.createdAt || null)}</p>
                     <p className="text-xs text-gray-500 mt-2 mb-0.5">Last updated</p>
                     <p className="text-sm font-bold text-gray-900">{fmtDate(data?.dates?.updatedAt || null)}</p>
-                    <p className="mt-2 text-[10px] text-gray-400">Times in your local timezone</p>
+                    <p className="mt-2 text-[10px] text-gray-400">Times shown in your local timezone</p>
                   </div>
 
                   <div className={card}>
@@ -353,14 +334,13 @@ export default function InvoiceFullPage() {
                       <CreditCard className="w-4 h-4 text-blue-600" />
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Amount Due</p>
                     </div>
-                    <p className="text-2xl font-extrabold text-gray-900">{fmtMoney(calc.total, currency)}</p>
+                    {/* Larger total font */}
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{fmtMoney(calc.total, currency)}</p>
                     <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-extrabold ${statusColor}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />{statusBadge}
                     </div>
-                    {dueDate && (
-                      <p className="mt-2 text-xs text-gray-500">Due: <span className="font-semibold text-gray-700">{new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span></p>
-                    )}
-                    <p className="mt-2 text-xs text-gray-600">{status === "paid" ? "Payment confirmed." : status === "cancelled" ? "Not payable." : status === "overdue" ? "Overdue — pay now." : "Payment required."}</p>
+                    <p className="mt-2 text-xs text-gray-600 font-medium">{dueDateLine}</p>
+                    <p className="mt-1 text-xs text-gray-500">{status === "paid" ? "Thank you for your payment." : status === "cancelled" ? "This invoice is no longer active." : status === "overdue" ? "Immediate payment required." : "Please complete payment promptly."}</p>
                   </div>
                 </div>
 
@@ -421,57 +401,67 @@ export default function InvoiceFullPage() {
 
                 {/* Payment + Charges */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
                   <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
                       <CreditCard className="w-4 h-4 text-blue-600" />
                       <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Payment</h2>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">Accepted methods:</p>
+                    <p className="text-xs text-gray-500 mb-3">Accepted payment methods:</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {ACCEPTED_METHODS.map((m) => (
                         <span key={m} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">{m}</span>
                       ))}
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Status</p>
-                        <p className="text-sm font-extrabold text-gray-900 mt-0.5">{paymentStatusText}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Payment Status</p>
+                        <p className="text-sm font-extrabold text-gray-900 mt-0.5">
+                          {status === "paid" ? "Confirmed and Received"
+                            : status === "overdue" ? "Overdue — Action Required"
+                            : status === "cancelled" ? "Invoice Cancelled"
+                            : "Outstanding — Awaiting Payment"}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Recorded Method</p>
-                        <p className="text-sm font-extrabold text-gray-900 mt-0.5">{paymentMethodRaw || "NULL"}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Recorded Payment Method</p>
+                        <p className="text-sm font-extrabold text-gray-900 mt-0.5">{paymentMethodLine}</p>
                       </div>
-                      <p className="text-xs text-gray-600 pt-1 border-t border-gray-100">{paymentMessage}</p>
+                      <p className="text-xs text-gray-600 pt-2 border-t border-gray-100 leading-relaxed">{paymentMessage}</p>
                     </div>
                   </div>
 
                   <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
                       <FileText className="w-4 h-4 text-blue-600" />
-                      <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Charges</h2>
+                      <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Charges Breakdown</h2>
                     </div>
-                    <p className="text-xs text-gray-500 mb-4">Calculated from declared value.</p>
+                    <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                      All charges are computed based on the applicable service rates for this shipment. Fees are inclusive of applicable surcharges and standard service provisions.
+                    </p>
                     <div className="space-y-2 text-sm">
                       <Row label="Shipping fee" value={fmtMoney(calc.shipping, currency)} />
-                      <Row label={`Fuel surcharge (${fmtPercentFromDecimal((data as any)?.breakdown?.pricingUsed?.fuelRate ?? 0)})`} value={fmtMoney(calc.fuel, currency)} />
+                      <Row label={`Fuel surcharge (${fmtPercent(fuelRate)})`} value={fmtMoney(calc.fuel, currency)} />
                       <Row label="Handling fee" value={fmtMoney(calc.handling, currency)} />
                       <Row label="Customs fee" value={fmtMoney(calc.customs, currency)} />
-                      <Row label={`Insurance (${fmtPercentFromDecimal((data as any)?.breakdown?.pricingUsed?.insuranceRate ?? 0)})`} value={fmtMoney(calc.insurance, currency)} />
+                      <Row label={`Insurance (${fmtPercent(insuranceRate)})`} value={fmtMoney(calc.insurance, currency)} />
                       <Row label="Tax" value={fmtMoney(calc.tax, currency)} />
                       <Row label="Discount" value={fmtMoney(calc.discount, currency)} />
+                      {/* Larger subtotal */}
                       <div className="pt-3 mt-1 border-t border-gray-200 flex items-center justify-between">
-                        <span className="font-semibold text-gray-900">Subtotal</span>
-                        <span className="font-semibold text-gray-900">{fmtMoney(calc.subtotal, currency)}</span>
+                        <span className="font-bold text-gray-900 text-base">Subtotal</span>
+                        <span className="font-bold text-gray-900 text-base">{fmtMoney(calc.subtotal, currency)}</span>
                       </div>
-                      <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 flex items-center justify-between">
-                        <span className="text-blue-900 font-extrabold text-base">Total</span>
-                        <span className="text-blue-900 font-extrabold text-xl">{fmtMoney(calc.total, currency)}</span>
+                      {/* Larger total */}
+                      <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5 flex items-center justify-between">
+                        <span className="text-blue-900 font-extrabold text-lg">Total Amount Due</span>
+                        <span className="text-blue-900 font-extrabold text-2xl">{fmtMoney(calc.total, currency)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer — centered, no border, professional */}
+                {/* Footer — centered, no border */}
                 <div className="px-4 py-8 flex flex-col items-center text-center gap-3">
                   <ShieldCheck className="w-7 h-7 text-blue-400" />
                   <p className="text-sm font-extrabold text-gray-800 tracking-wide uppercase">
@@ -480,15 +470,13 @@ export default function InvoiceFullPage() {
                   <p className="text-xs text-gray-500 max-w-lg leading-relaxed">
                     This document is an officially issued, system-generated invoice and is legally valid without a physical signature.
                     To verify the authenticity of this invoice, please reference your{" "}
-              
+                    
                     <span className="font-semibold text-gray-700">Tracking Number</span> on our official platform at{" "}
-                    <a href="https://www.goexoduslogistics.com" className="text-blue-600 underline hover:text-blue-800 transition font-semibold" target="_blank" rel="noopener noreferrer">
-                      goexoduslogistics.com
-                    </a>.
-                    For billing inquiries, disputes, or assistance, please contact our support team at{" "}
-                    <a href="mailto:support@goexoduslogistics.com" className="text-blue-600 underline hover:text-blue-800 transition font-semibold">
-                      support@goexoduslogistics.com
-                    </a>.
+                    <a href="https://www.goexoduslogistics.com" target="_blank" rel="noopener noreferrer"
+                      className="text-blue-600 underline hover:text-blue-800 transition font-semibold">goexoduslogistics.com</a>.
+                    For billing inquiries, disputes, or any assistance, please contact our support team at{" "}
+                    <a href="mailto:support@goexoduslogistics.com"
+                      className="text-blue-600 underline hover:text-blue-800 transition font-semibold">support@goexoduslogistics.com</a>.
                   </p>
                   <p className="text-[10px] text-gray-400 mt-1">
                     © {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved. Unauthorized reproduction of this document is strictly prohibited.
@@ -506,9 +494,9 @@ export default function InvoiceFullPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+    <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-3">
       <span className="text-gray-600 text-sm">{label}</span>
-      <span className="font-semibold text-gray-900 text-sm whitespace-nowrap ml-2">{value}</span>
+      <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">{value}</span>
     </div>
   );
 }
