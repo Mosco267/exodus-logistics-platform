@@ -150,10 +150,9 @@ export default function InvoiceFullPage() {
     return { shipping, fuel, handling, customs, insurance, discount, tax, subtotal, total };
   }, [data]);
 
-  const pricingUsed = (data as any)?.breakdown?.pricingUsed || {};
-const rates = (data as any)?.breakdown?.rates || {};
-const fuelRate = pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? pricingUsed?.fuelSurcharge ?? rates?.fuelRate ?? rates?.fuel ?? 0;
-const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pricingUsed?.insuranceSurcharge ?? rates?.insuranceRate ?? rates?.insurance ?? 0;
+ const pricingUsed = (data as any)?.pricingUsed || (data as any)?.breakdown?.pricingUsed || {};
+const fuelRate = pricingUsed?.fuelSurchargeRate ?? pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? 0;
+const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pricingUsed?.insurancePercent ?? 0;
 
   const paymentMethodRaw = safeStr(data?.paymentMethod);
 
