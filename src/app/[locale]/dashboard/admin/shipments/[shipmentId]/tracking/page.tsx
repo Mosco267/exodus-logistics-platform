@@ -447,6 +447,27 @@ const [editBadgeMode, setEditBadgeMode] = useState<"default" | "custom">("defaul
     };
   }, [groupedEvents]);
 
+  const prevStageInfo = useMemo(() => {
+    if (groupedEvents.length === 0) return null;
+    const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
+    const groupsBefore = groupedEvents.filter(g =>
+      new Date(g.occurredAt || 0).getTime() < newStageTime
+    );
+    const prevGroup = groupsBefore.length > 0
+      ? groupsBefore[groupsBefore.length - 1]
+      : groupedEvents[groupedEvents.length - 1];
+    if (!prevGroup) return null;
+    const lastEntry = prevGroup.entries[prevGroup.entries.length - 1];
+    return {
+      outerColor: prevGroup.color || "#f59e0b",
+      innerColor: lastEntry?.ev?.detailColor || lastEntry?.ev?.color || "#f59e0b",
+      lastEntryRawIdx: lastEntry?.idx ?? null,
+      allEntryIndices: prevGroup.entries.map(e => e.idx),
+      lastEntryBadgeLocked: lastEntry?.ev?.badgeLocked ?? false,
+      label: prevGroup.label,
+    };
+  }, [groupedEvents, useLocalTime, occurredAt]);
+
   const load = async () => {
     setErr(""); setOk(""); setLoading(true);
     try {
@@ -514,19 +535,36 @@ const [editBadgeMode, setEditBadgeMode] = useState<"default" | "custom">("defaul
     const locStr = [locCity, locState, locCountry].filter(Boolean).join(", ");
 
     const shouldOverrideOuter = overrideOuterDot;
-    const shouldOverrideInner = overrideInnerDot;
-    const shouldOverrideBadgeToCompleted = overrideBadge;
-    const outerColorToApply = overrideOuterColor;
-    const innerColorToApply = overrideInnerColor;
-    const lastInfo = lastStageInfo;
+const shouldOverrideInner = overrideInnerDot;
+const shouldOverrideBadgeToCompleted = overrideBadge;
+const outerColorToApply = overrideOuterColor;
+const innerColorToApply = overrideInnerColor;
+
+// Find the group directly BEFORE the new stage's time, not just the last group
+const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
+const groupsBefore = groupedEvents.filter(g =>
+  new Date(g.occurredAt || 0).getTime() < newStageTime
+);
+const prevGroup = groupsBefore.length > 0
+  ? groupsBefore[groupsBefore.length - 1]
+  : groupedEvents[groupedEvents.length - 1];
+
+const lastInfo = prevGroup ? {
+  outerColor: prevGroup.color || "#f59e0b",
+  innerColor: prevGroup.entries[prevGroup.entries.length - 1]?.ev?.detailColor
+    || prevGroup.entries[prevGroup.entries.length - 1]?.ev?.color || "#f59e0b",
+  lastEntryRawIdx: prevGroup.entries[prevGroup.entries.length - 1]?.idx ?? null,
+  allEntryIndices: prevGroup.entries.map(e => e.idx),
+  lastEntryBadgeLocked: prevGroup.entries[prevGroup.entries.length - 1]?.ev?.badgeLocked ?? false,
+} : null;
 
     setSaving(true);
     try {
       if (lastInfo && (shouldOverrideOuter || shouldOverrideInner || shouldOverrideBadgeToCompleted)) {
-        const lastGroup = groupedEvents[groupedEvents.length - 1];
+        const lastGroup = prevGroup;
 
-        if (shouldOverrideOuter && lastGroup) {
-          for (const { idx: rawIdx } of lastGroup.entries) {
+if (shouldOverrideOuter && lastGroup) {
+  for (const { idx: rawIdx } of lastGroup.entries) {
             await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
