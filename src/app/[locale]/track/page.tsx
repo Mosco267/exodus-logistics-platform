@@ -67,7 +67,7 @@ export default function TrackSearchPage() {
           <div className="p-6 sm:p-8">
             <form onSubmit={submit}>
               <label className="text-sm font-semibold text-gray-700">
-                Shipment ID / Tracking Number
+                Tracking Number
               </label>
 
               <div className="mt-2 relative">
@@ -78,7 +78,7 @@ export default function TrackSearchPage() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value.toUpperCase())}
-                  placeholder="example: EXS-260222-9BC87D or EX24US1234567W"
+                  placeholder="example: EX24US1234567W"
                   className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
                              focus:outline-none focus:ring-2 focus:ring-blue-500/40
                              uppercase placeholder:normal-case placeholder:text-sm"
@@ -90,7 +90,7 @@ export default function TrackSearchPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 font-semibold
+                className="cursor-pointer mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 font-semibold
                            hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center
                            disabled:opacity-60 disabled:cursor-not-allowed"
               >
@@ -109,8 +109,7 @@ export default function TrackSearchPage() {
 
           {/* Footer hint strip (makes it feel different from Invoice) */}
           <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: You can paste your tracking number here from emails. Look for the unique ID we provided when shipment was created. It usually starts with "EX". That's your key to unlock the
-            <span className="font-semibold">Live Tracking Details!</span>.
+            Tip: You can paste your tracking number here from emails. Look for the unique ID we provided when shipment was created. It usually starts with "EX". That's your key to unlock the <span className="font-semibold">Live Tracking Details!</span>.
           </div>
         </motion.div>
       </div>

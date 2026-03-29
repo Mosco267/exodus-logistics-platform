@@ -179,7 +179,7 @@ export default function InvoicePage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-2 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 font-semibold
+                className="cursor-pointer mt-2 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 font-semibold
                            hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center
                            disabled:opacity-60 disabled:cursor-not-allowed"
               >
