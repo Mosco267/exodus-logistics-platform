@@ -264,7 +264,16 @@ export default function TrackResultPage() {
 return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
   }, [data]);
 
-  const currentIndex = Math.max(0, events.length - 1);
+  const currentIndex = useMemo(() => {
+  if (events.length === 0) return 0;
+  let maxIdx = 0;
+  let maxTime = new Date(events[0]?.occurredAt || 0).getTime();
+  events.forEach((ev, idx) => {
+    const t = new Date(ev?.occurredAt || 0).getTime();
+    if (t > maxTime) { maxTime = t; maxIdx = idx; }
+  });
+  return maxIdx;
+}, [events]);
 
   const invoicePaid = Boolean(data?.invoice?.paid);
   const invoiceStatus = String(data?.invoice?.status || (invoicePaid ? "paid" : "unpaid")).toLowerCase();
@@ -313,9 +322,11 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
             <MapPin className="w-4 h-4" /><span>Back to Track</span>
           </Link>
           {invoiceQ && (
-            <Link href={`/${locale}/invoice`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-              <FileText className="w-4 h-4" /><span>View Invoice</span>
-            </Link>
+            <Link
+  href={`/${locale}/invoice${invoiceNumber ? `?invoice=${encodeURIComponent(invoiceNumber)}` : ""}`}
+  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+  <FileText className="w-4 h-4" /><span>View Invoice</span>
+</Link>
           )}
         </div>
 

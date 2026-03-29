@@ -72,12 +72,12 @@ export default function Header() {
 
               {/* Track & Invoice */}
               {actions.map((item) => (
-                <Link key={item.name} href={item.href}
-                  className="group flex items-center gap-1.5 text-white text-sm font-medium transition-all duration-300 group-hover:text-base group-hover:font-semibold group-hover:scale-105">
-                  {item.icon}
-                  <span>{translate(item.name)}</span>
-                </Link>
-              ))}
+  <Link key={item.name} href={item.href}
+    className="flex items-center gap-1.5 text-white text-sm font-medium transition-all duration-300 hover:scale-110 hover:font-bold hover:text-base">
+    <span className="transition-all duration-300">{item.icon}</span>
+    <span className="transition-all duration-300">{translate(item.name)}</span>
+  </Link>
+))}
 
               {/* Language Dropdown */}
               <div className="relative">
