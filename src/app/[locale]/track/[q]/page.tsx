@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -212,6 +212,7 @@ async function copyToClipboard(text: string) {
 }
 
 export default function TrackResultPage() {
+  const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
@@ -318,9 +319,10 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
       <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
 
         <div className="mb-6 flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
-          <Link href={`/${locale}/track`} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-            <MapPin className="w-4 h-4" /><span>Back to Track</span>
-          </Link>
+          <button type="button" onClick={() => router.replace(`/${locale}/track`)}
+  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+  <MapPin className="w-4 h-4" /><span>Back to Track</span>
+</button>
           {invoiceQ && (
             <Link
   href={`/${locale}/invoice${invoiceNumber ? `?invoice=${encodeURIComponent(invoiceNumber)}` : ""}`}

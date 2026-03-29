@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -90,6 +90,7 @@ function isOverdue(dueDate?: string | null) {
 }
 
 export default function InvoiceFullPage() {
+  const router = useRouter();
   const params = useParams();
   const sp = useSearchParams();
   const locale = (params?.locale as string) || "en";
@@ -260,10 +261,10 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
 
         {/* ── TOP NAV ── */}
         <div className="no-print mb-6 flex flex-col sm:flex-row gap-2">
-          <Link href={`/${locale}/invoice`}
-            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-            <ArrowLeft className="w-4 h-4" /> Back to Invoice Search
-          </Link>
+          <button type="button" onClick={() => router.replace(`/${locale}/invoice`)}
+  className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+  <ArrowLeft className="w-4 h-4" /> Back to Invoice Search
+</button>
           {backToTrackTarget && (
             <Link href={`/${locale}/track/${encodeURIComponent(backToTrackTarget)}`}
               className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
