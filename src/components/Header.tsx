@@ -81,11 +81,11 @@ export default function Header() {
 
               {/* Language Dropdown */}
               <div className="relative">
-                <button
-                  onClick={() => { setLanguageDropdownOpen(!languageDropdownOpen); setNavDropdownOpen(false); }}
-                  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300 cursor-pointer">
-                  {codeToLang[locale]}
-                </button>
+                <button onClick={() => { setLanguageDropdownOpen(!languageDropdownOpen); setNavDropdownOpen(false); }}
+  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300 cursor-pointer">
+  <Globe className="w-4 h-4" />
+  {codeToLang[locale]}
+</button>
                 <AnimatePresence>
                   {languageDropdownOpen && (
                     <motion.div

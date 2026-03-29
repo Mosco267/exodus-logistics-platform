@@ -42,7 +42,7 @@ export default function InvoicePage() {
   const locale = (params?.locale as string) || "en";
 
   // If someone visits /invoice?q=XXXX, prefill invoice field only.
-  const qFromUrl = useMemo(() => String(sp.get("q") || "").trim(), [sp]);
+  const qFromUrl = useMemo(() => String(sp.get("invoice") || sp.get("q") || "").trim(), [sp]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [email, setEmail] = useState("");

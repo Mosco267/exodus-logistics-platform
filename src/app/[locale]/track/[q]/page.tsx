@@ -378,10 +378,10 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
                   <div className="sm:text-right shrink-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
                     <p className="text-lg sm:text-xl font-extrabold text-blue-700 leading-tight">
-                      {data.currentStatus || events[currentIndex]?.label || "—"}
-                    </p>
+  {events[currentIndex]?.label || data.currentStatus || "—"}
+</p>
                     <p className="mt-1 text-xs text-gray-500">
-                      Last updated: <span className="font-semibold text-gray-700">{fmtDate(data.updatedAt || events[currentIndex]?.occurredAt)}</span>
+                     Last updated: <span className="font-semibold text-gray-700">{fmtDate(events[currentIndex]?.occurredAt || data.updatedAt)}</span>
                     </p>
                     {data.estimatedDelivery && (
                       <p className="mt-1 text-xs text-gray-500">
