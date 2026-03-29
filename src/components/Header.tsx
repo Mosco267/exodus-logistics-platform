@@ -73,7 +73,7 @@ export default function Header() {
               {/* Track & Invoice */}
               {actions.map((item) => (
                 <Link key={item.name} href={item.href}
-                  className="group flex items-center gap-1.5 text-white text-sm font-medium transition-all duration-300 hover:font-semibold">
+                  className="group flex items-center gap-1.5 text-white text-sm font-medium transition-all duration-300 group-hover:text-base group-hover:font-semibold group-hover:scale-105">
                   {item.icon}
                   <span>{translate(item.name)}</span>
                 </Link>
@@ -83,8 +83,7 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => { setLanguageDropdownOpen(!languageDropdownOpen); setNavDropdownOpen(false); }}
-                  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-300 cursor-pointer">
-                  <Globe className="w-4 h-4" />
+                  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300 cursor-pointer">
                   {codeToLang[locale]}
                 </button>
                 <AnimatePresence>
@@ -112,7 +111,7 @@ export default function Header() {
 
               {/* Quote Button */}
               <Link href={`/${locale}/quote`}
-                className="flex items-center gap-2 px-5 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg shadow-lg hover:bg-white/20 transition-all duration-300">
+                className="flex items-center gap-2 px-6 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300">
                 <Calculator className="w-4 h-4" />
                 {translate('Quote')}
               </Link>
@@ -121,7 +120,7 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => { setNavDropdownOpen(!navDropdownOpen); setLanguageDropdownOpen(false); }}
-                  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-300 cursor-pointer">
+                  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300 cursor-pointer">
                   <Menu className="w-4 h-4" />
                   {translate('Menu')}
                 </button>
