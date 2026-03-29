@@ -262,6 +262,21 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
       cleanStr(s?.destination) ||
       "—";
 
+      // Find the most recent tracking event occurredAt
+    const trackingEvents = Array.isArray(s?.trackingEvents) ? s.trackingEvents : [];
+    const lastEventAt = trackingEvents.length > 0
+      ? trackingEvents.reduce((latest: any, ev: any) =>
+          new Date(ev?.occurredAt || 0).getTime() > new Date(latest?.occurredAt || 0).getTime() ? ev : latest
+        , trackingEvents[0])?.occurredAt || null
+      : null;
+
+    // Most recent status = label of the tracking event with the latest occurredAt
+    const lastEventLabel = trackingEvents.length > 0
+      ? trackingEvents.reduce((latest: any, ev: any) =>
+          new Date(ev?.occurredAt || 0).getTime() > new Date(latest?.occurredAt || 0).getTime() ? ev : latest
+        , trackingEvents[0])?.label || null
+      : null;
+
     return NextResponse.json({
       company,
 
@@ -285,7 +300,7 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
         originFull: fromFull,
         destinationFull: toFull,
 
-        status: cleanStr(s?.status) || "—",
+        status: lastEventLabel || cleanStr(s?.status) || "—",
 
         shipmentType: s?.shipmentType || s?.packageType || null,
         serviceLevel: s?.serviceLevel || s?.serviceType || s?.speed || null,
@@ -299,6 +314,9 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
         receiverName: cleanStr(s?.receiverName) || "Receiver",
         receiverEmail: cleanStr(s?.receiverEmail) || "",
       },
+
+      currentStatus: lastEventLabel || cleanStr(s?.status) || "—",
+      lastEventAt: lastEventAt || null,
 
       dates: {
         createdAt: s?.createdAt || null,

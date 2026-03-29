@@ -34,6 +34,8 @@ type ApiResponse = {
     dimensionsCm?: { length?: any; width?: any; height?: any; unit?: string } | null;
   };
   parties?: { senderName?: string; senderEmail?: string; receiverName?: string; receiverEmail?: string };
+ currentStatus?: string;
+  lastEventAt?: string | null;
   dates?: { createdAt?: string | null; updatedAt?: string | null };
   error?: string;
 };
@@ -368,7 +370,7 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                     <p className="text-xs text-gray-500 mb-0.5">Created</p>
                     <p className="text-sm font-bold text-gray-900">{fmtDate(data?.dates?.createdAt || null)}</p>
                     <p className="text-xs text-gray-500 mt-2 mb-0.5">Last updated</p>
-                    <p className="text-sm font-bold text-gray-900">{fmtDate(data?.dates?.updatedAt || null)}</p>
+                    <p className="text-sm font-bold text-gray-900">{fmtDate(data?.lastEventAt || data?.dates?.updatedAt || null)}</p>
                     <p className="mt-2 text-[10px] text-gray-400">Times shown in your local timezone</p>
                   </div>
 
@@ -415,7 +417,7 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">To</p>
                         <p className="font-semibold text-gray-900">{destinationFull}</p>
                       </div>
-                      <p className="text-xs text-gray-500">Status: <span className="font-semibold text-gray-700">{safeStr(data?.shipment?.status) || "—"}</span></p>
+                      <p className="text-xs text-gray-500">Status: <span className="font-semibold text-gray-700">{safeStr(data?.currentStatus || data?.shipment?.status) || "—"}</span></p>
                     </div>
                   </div>
 
