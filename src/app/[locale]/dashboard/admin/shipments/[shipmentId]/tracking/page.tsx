@@ -447,6 +447,31 @@ const [editBadgeMode, setEditBadgeMode] = useState<"default" | "custom">("defaul
     };
   }, [groupedEvents]);
 
+  const contextualPrevGroup = useMemo(() => {
+  if (groupedEvents.length === 0) return null;
+  const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
+  const sorted = [...groupedEvents].sort((a, b) =>
+    new Date(a.occurredAt || 0).getTime() - new Date(b.occurredAt || 0).getTime()
+  );
+  const before = sorted.filter(g =>
+    new Date(g.occurredAt || 0).getTime() < newStageTime
+  );
+  return before.length > 0 ? before[before.length - 1] : null;
+}, [groupedEvents, useLocalTime, occurredAt]);
+
+const contextualPrevLocation = useMemo(() => {
+  if (!contextualPrevGroup) return "";
+  const lastEv = contextualPrevGroup.entries[contextualPrevGroup.entries.length - 1]?.ev;
+  return [lastEv?.location?.city, lastEv?.location?.state, lastEv?.location?.country]
+    .filter(Boolean).join(", ") || "";
+}, [contextualPrevGroup]);
+
+const contextualPrevColor = useMemo(() => {
+  if (!contextualPrevGroup) return "#f59e0b";
+  const lastEv = contextualPrevGroup.entries[contextualPrevGroup.entries.length - 1]?.ev;
+  return lastEv?.detailColor || lastEv?.color || contextualPrevGroup.color || "#f59e0b";
+}, [contextualPrevGroup]);
+
   const prevStageInfo = useMemo(() => {
     if (groupedEvents.length === 0) return null;
     const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
@@ -879,12 +904,21 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
 
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
                 <div className="grid grid-cols-1 gap-2">
-                  {[["Destination", destination], ["Origin", origin], ["Previous Location", previousLocation]].map(([lbl, val]) => (
-                    <div key={lbl}>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{lbl}</p>
-                      <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">{val || "—"}</div>
-                    </div>
-                  ))}
+                  {[["Destination", destination], ["Origin", origin]].map(([lbl, val]) => (
+  <div key={lbl}>
+    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{lbl}</p>
+    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">{val || "—"}</div>
+  </div>
+))}
+<div>
+  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Previous Location</p>
+  <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 flex items-center gap-2">
+    {contextualPrevColor && (
+      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: contextualPrevColor }} />
+    )}
+    {(useLocalTime ? previousLocation : contextualPrevLocation) || "—"}
+  </div>
+</div>
                 </div>
                 <div className="border-t border-gray-200 pt-4">
                   <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">Current Location <span className="text-red-500">*</span></p>
@@ -943,7 +977,18 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
               <BadgeFields
   text={badgeText} color={badgeColor} onText={setBadgeText} onColor={setBadgeColor}
   mode={badgeMode} onMode={setBadgeMode}
-  defaultLabel="Current Stage" defaultColor="#3b82f6"
+  defaultLabel={
+    !useLocalTime && contextualPrevGroup !== null &&
+    new Date(occurredAt).getTime() < new Date(groupedEvents[groupedEvents.length - 1]?.occurredAt || 0).getTime()
+      ? "Completed"
+      : "Current Stage"
+  }
+  defaultColor={
+    !useLocalTime && contextualPrevGroup !== null &&
+    new Date(occurredAt).getTime() < new Date(groupedEvents[groupedEvents.length - 1]?.occurredAt || 0).getTime()
+      ? "#22c55e"
+      : "#3b82f6"
+  }
 />
 
               {/* Override section */}
@@ -953,19 +998,19 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
                     <p className="text-sm font-extrabold text-gray-800">Override Previous Stage</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Update the previous stage when this new stage is added.
-                      {lastStageInfo && (
-                        <span className="ml-1">
-                          Previous: <span className="inline-flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-full inline-block border border-white shadow-sm" style={{ background: lastStageInfo.outerColor }} />
-                            outer
-                          </span>
-                          {" · "}
-                          <span className="inline-flex items-center gap-1">
-                            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: lastStageInfo.innerColor }} />
-                            inner
-                          </span>
-                        </span>
-                      )}
+                     {prevStageInfo && (
+  <span className="ml-1">
+    Previous ({prevStageInfo.label}): <span className="inline-flex items-center gap-1">
+      <span className="w-3 h-3 rounded-full inline-block border border-white shadow-sm" style={{ background: prevStageInfo.outerColor }} />
+      outer
+    </span>
+    {" · "}
+    <span className="inline-flex items-center gap-1">
+      <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: prevStageInfo.innerColor }} />
+      inner
+    </span>
+  </span>
+)}
                     </p>
                   </div>
 
@@ -975,12 +1020,12 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
                       <input type="checkbox" checked={overrideOuterDot} onChange={(e) => { setOverrideOuterDot(e.target.checked); setUserHasManuallySetOverride(true); }}
                         className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override outer dot color</span>
-                      {lastStageInfo && (
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <span className="w-3 h-3 rounded-full" style={{ background: lastStageInfo.outerColor }} />→
-                          <span className="w-3 h-3 rounded-full" style={{ background: overrideOuterColor }} />
-                        </span>
-                      )}
+                      {prevStageInfo && (
+  <span className="flex items-center gap-1 text-xs text-gray-400">
+    <span className="w-3 h-3 rounded-full" style={{ background: prevStageInfo.outerColor }} />→
+    <span className="w-3 h-3 rounded-full" style={{ background: overrideOuterColor }} />
+  </span>
+)}
                     </label>
                     {overrideOuterDot && <div className="pl-6"><ColorDots value={overrideOuterColor} onChange={setOverrideOuterColor} /></div>}
                   </div>
@@ -991,12 +1036,12 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
                       <input type="checkbox" checked={overrideInnerDot} onChange={(e) => { setOverrideInnerDot(e.target.checked); setUserHasManuallySetOverride(true); }}
                         className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                       <span className="text-sm font-semibold text-gray-700">Override last entry inner dot color</span>
-                      {lastStageInfo && (
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: lastStageInfo.innerColor }} />→
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: overrideInnerColor }} />
-                        </span>
-                      )}
+                      {prevStageInfo && (
+  <span className="flex items-center gap-1 text-xs text-gray-400">
+    <span className="w-2.5 h-2.5 rounded-full" style={{ background: prevStageInfo.innerColor }} />→
+    <span className="w-2.5 h-2.5 rounded-full" style={{ background: overrideInnerColor }} />
+  </span>
+)}
                     </label>
                     {overrideInnerDot && <div className="pl-6"><ColorDots value={overrideInnerColor} onChange={setOverrideInnerColor} /></div>}
                   </div>
