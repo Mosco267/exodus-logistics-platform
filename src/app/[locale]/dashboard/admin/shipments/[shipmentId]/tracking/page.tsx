@@ -451,11 +451,13 @@ const [editBadgeMode, setEditBadgeMode] = useState<"default" | "custom">("defaul
     if (groupedEvents.length === 0) return null;
     const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
     const groupsBefore = groupedEvents.filter(g =>
-      new Date(g.occurredAt || 0).getTime() < newStageTime
-    );
-    const prevGroup = groupsBefore.length > 0
-      ? groupsBefore[groupsBefore.length - 1]
-      : groupedEvents[groupedEvents.length - 1];
+  new Date(g.occurredAt || 0).getTime() <= newStageTime
+);
+const prevGroup = groupsBefore.length > 0
+  ? groupsBefore[groupsBefore.length - 1]
+  : groupedEvents.length > 0
+  ? groupedEvents[groupedEvents.length - 1]
+  : null;
     if (!prevGroup) return null;
     const lastEntry = prevGroup.entries[prevGroup.entries.length - 1];
     return {
@@ -543,11 +545,13 @@ const innerColorToApply = overrideInnerColor;
 // Find the group directly BEFORE the new stage's time, not just the last group
 const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
 const groupsBefore = groupedEvents.filter(g =>
-  new Date(g.occurredAt || 0).getTime() < newStageTime
+  new Date(g.occurredAt || 0).getTime() <= newStageTime
 );
 const prevGroup = groupsBefore.length > 0
   ? groupsBefore[groupsBefore.length - 1]
-  : groupedEvents[groupedEvents.length - 1];
+  : groupedEvents.length > 0
+  ? groupedEvents[groupedEvents.length - 1]
+  : null;
 
 const lastInfo = prevGroup ? {
   outerColor: prevGroup.color || "#f59e0b",
