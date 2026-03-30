@@ -453,10 +453,13 @@ const [editBadgeMode, setEditBadgeMode] = useState<"default" | "custom">("defaul
   const sorted = [...groupedEvents].sort((a, b) =>
     new Date(a.occurredAt || 0).getTime() - new Date(b.occurredAt || 0).getTime()
   );
-  const before = sorted.filter(g =>
-    new Date(g.occurredAt || 0).getTime() < newStageTime
-  );
-  return before.length > 0 ? before[before.length - 1] : null;
+  if (useLocalTime) {
+  return sorted.length > 0 ? sorted[sorted.length - 1] : null;
+}
+const before = sorted.filter(g =>
+  new Date(g.occurredAt || 0).getTime() < newStageTime
+);
+return before.length > 0 ? before[before.length - 1] : null;
 }, [groupedEvents, useLocalTime, occurredAt]);
 
 const contextualPrevLocation = useMemo(() => {
@@ -475,14 +478,18 @@ const contextualPrevColor = useMemo(() => {
   const prevStageInfo = useMemo(() => {
     if (groupedEvents.length === 0) return null;
     const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
-    const groupsBefore = groupedEvents.filter(g =>
-  new Date(g.occurredAt || 0).getTime() <= newStageTime
-);
-const prevGroup = groupsBefore.length > 0
-  ? groupsBefore[groupsBefore.length - 1]
-  : groupedEvents.length > 0
-  ? groupedEvents[groupedEvents.length - 1]
-  : null;
+   const prevGroup = useLocalTime
+  ? (groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null)
+  : (() => {
+      const groupsBefore = groupedEvents.filter(g =>
+        new Date(g.occurredAt || 0).getTime() < newStageTime
+      );
+      return groupsBefore.length > 0
+        ? groupsBefore[groupsBefore.length - 1]
+        : groupedEvents.length > 0
+        ? groupedEvents[groupedEvents.length - 1]
+        : null;
+    })();
     if (!prevGroup) return null;
     const lastEntry = prevGroup.entries[prevGroup.entries.length - 1];
     return {
@@ -569,14 +576,18 @@ const innerColorToApply = overrideInnerColor;
 
 // Find the group directly BEFORE the new stage's time, not just the last group
 const newStageTime = useLocalTime ? Date.now() : new Date(occurredAt).getTime();
-const groupsBefore = groupedEvents.filter(g =>
-  new Date(g.occurredAt || 0).getTime() <= newStageTime
-);
-const prevGroup = groupsBefore.length > 0
-  ? groupsBefore[groupsBefore.length - 1]
-  : groupedEvents.length > 0
-  ? groupedEvents[groupedEvents.length - 1]
-  : null;
+const prevGroup = useLocalTime
+  ? (groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null)
+  : (() => {
+      const groupsBefore = groupedEvents.filter(g =>
+        new Date(g.occurredAt || 0).getTime() < newStageTime
+      );
+      return groupsBefore.length > 0
+        ? groupsBefore[groupsBefore.length - 1]
+        : groupedEvents.length > 0
+        ? groupedEvents[groupedEvents.length - 1]
+        : null;
+    })();
 
 const lastInfo = prevGroup ? {
   outerColor: prevGroup.color || "#f59e0b",
