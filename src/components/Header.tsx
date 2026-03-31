@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Globe, Home, Info, Briefcase, Mail, MapPin, FileText, Calculator, LogIn } from 'lucide-react';
+import { Menu, X, Globe, Home, Info, Briefcase, Mail, MapPin, FileText, Calculator, Rocket } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import { useIntl } from 'react-intl';
 
@@ -36,7 +36,7 @@ export default function Header() {
     { name: 'About', href: `/${locale}/about`, icon: <Info className="w-4 h-4" /> },
     { name: 'Services', href: `/${locale}/services`, icon: <Briefcase className="w-4 h-4" /> },
     { name: 'Contact', href: `/${locale}/contact`, icon: <Mail className="w-4 h-4" /> },
-    { name: 'Sign-in', href: `/${locale}/sign-in`, icon: <LogIn className="w-4 h-4" /> },
+    { name: 'Get Started', href: `/${locale}/sign-in`, icon: <Rocket className="w-4 h-4" /> },
   ] as const;
 
   const actions = [
@@ -45,10 +45,12 @@ export default function Header() {
   ] as const;
 
   const isActive = (href: string) => {
-    const pathWithoutLocale = pathname.split('/').slice(2).join('/');
-    const itemPathWithoutLocale = href.split('/').slice(2).join('/');
-    return pathWithoutLocale === itemPathWithoutLocale;
-  };
+  const pathWithoutLocale = pathname.split('/').slice(2).join('/');
+  const itemPathWithoutLocale = href.split('/').slice(2).join('/');
+  if (!itemPathWithoutLocale) return pathWithoutLocale === '';
+  return pathWithoutLocale === itemPathWithoutLocale ||
+    pathWithoutLocale.startsWith(itemPathWithoutLocale + '/');
+};
 
   return (
     <>
