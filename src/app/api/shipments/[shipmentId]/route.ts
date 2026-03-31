@@ -148,10 +148,17 @@ export async function PATCH(
     // ── Fix 3: Handle special tracking event operations ──────────────────────
     // DELETE a specific tracking event by index
     if (body?.deleteTrackingEventIndex !== undefined) {
-      const idx = Number(body.deleteTrackingEventIndex);
-      const events = Array.isArray((existing as any)?.trackingEvents) ? [...(existing as any).trackingEvents] : [];
-      if (idx >= 0 && idx < events.length) {
-        events.splice(idx, 1);
+  const idx = Number(body.deleteTrackingEventIndex);
+  const rawEvents = Array.isArray((existing as any)?.trackingEvents) ? [...(existing as any).trackingEvents] : [];
+  const sortedWithOriginalIdx = rawEvents
+    .map((ev: any, originalIdx: number) => ({ ev, originalIdx }))
+    .sort((a: any, b: any) => new Date(a.ev?.occurredAt || 0).getTime() - new Date(b.ev?.occurredAt || 0).getTime());
+  const target = sortedWithOriginalIdx[idx];
+  if (!target) return NextResponse.json({ error: "Invalid event index" }, { status: 400 });
+  const mongoIdx = target.originalIdx;
+  const events = rawEvents;
+  if (mongoIdx >= 0 && mongoIdx < events.length) {
+    events.splice(mongoIdx, 1);
         await db.collection("shipments").updateOne(
           shipmentIdQuery(shipmentId),
           { $set: { trackingEvents: events, updatedAt: new Date() } }
@@ -164,28 +171,36 @@ export async function PATCH(
 
     // EDIT a specific tracking event by index
     if (body?.editTrackingEventIndex !== undefined && body?.editTrackingEventData !== undefined) {
-      const idx = Number(body.editTrackingEventIndex);
-      const events = Array.isArray((existing as any)?.trackingEvents) ? [...(existing as any).trackingEvents] : [];
-      if (idx >= 0 && idx < events.length) {
-        const ev = body.editTrackingEventData;
-        events[idx] = {
-          ...events[idx],
-          label: ev.label !== undefined ? String(ev.label).trim() : events[idx].label,
-          details: ev.details !== undefined ? String(ev.details).trim() : events[idx].details,
-          note: ev.note !== undefined ? String(ev.note).trim() : events[idx].note,
-          additionalNote: ev.additionalNote !== undefined ? String(ev.additionalNote).trim() : events[idx].additionalNote,
-          color: ev.color !== undefined ? String(ev.color).trim() : events[idx].color,
-          detailColor: ev.detailColor !== undefined ? String(ev.detailColor).trim() : events[idx].detailColor,
-          badgeText: ev.badgeText !== undefined ? String(ev.badgeText).trim() : events[idx].badgeText,
-badgeColor: ev.badgeColor !== undefined ? String(ev.badgeColor).trim() : events[idx].badgeColor,
-badgeLocked: ev.badgeLocked !== undefined ? Boolean(ev.badgeLocked) : events[idx].badgeLocked,
-          currentLocation: ev.currentLocation !== undefined ? String(ev.currentLocation).trim() : events[idx].currentLocation,
+  const idx = Number(body.editTrackingEventIndex);
+  const rawEvents = Array.isArray((existing as any)?.trackingEvents) ? [...(existing as any).trackingEvents] : [];
+  // Sort by occurredAt to match what the frontend sees, find the MongoDB index
+  const sortedWithOriginalIdx = rawEvents
+    .map((ev: any, originalIdx: number) => ({ ev, originalIdx }))
+    .sort((a: any, b: any) => new Date(a.ev?.occurredAt || 0).getTime() - new Date(b.ev?.occurredAt || 0).getTime());
+  const target = sortedWithOriginalIdx[idx];
+  if (!target) return NextResponse.json({ error: "Invalid event index" }, { status: 400 });
+  const mongoIdx = target.originalIdx;
+  const events = rawEvents;
+  if (mongoIdx >= 0 && mongoIdx < events.length) {
+    const ev = body.editTrackingEventData;
+    events[mongoIdx] = {
+          ...events[mongoIdx],
+          label: ev.label !== undefined ? String(ev.label).trim() : events[mongoIdx].label,
+          details: ev.details !== undefined ? String(ev.details).trim() : events[mongoIdx].details,
+          note: ev.note !== undefined ? String(ev.note).trim() : events[mongoIdx].note,
+          additionalNote: ev.additionalNote !== undefined ? String(ev.additionalNote).trim() : events[mongoIdx].additionalNote,
+          color: ev.color !== undefined ? String(ev.color).trim() : events[mongoIdx].color,
+          detailColor: ev.detailColor !== undefined ? String(ev.detailColor).trim() : events[mongoIdx].detailColor,
+          badgeText: ev.badgeText !== undefined ? String(ev.badgeText).trim() : events[mongoIdx].badgeText,
+badgeColor: ev.badgeColor !== undefined ? String(ev.badgeColor).trim() : events[mongoIdx].badgeColor,
+badgeLocked: ev.badgeLocked !== undefined ? Boolean(ev.badgeLocked) : events[mongoIdx].badgeLocked,
+          currentLocation: ev.currentLocation !== undefined ? String(ev.currentLocation).trim() : events[mongoIdx].currentLocation,
           location: ev.location !== undefined ? {
             country: String(ev.location?.country || "").trim(),
             state: String(ev.location?.state || "").trim(),
             city: String(ev.location?.city || "").trim(),
             county: String(ev.location?.county || "").trim(),
-          } : events[idx].location,
+          } : events[mongoIdx].location,
         };
         await db.collection("shipments").updateOne(
           shipmentIdQuery(shipmentId),
@@ -198,13 +213,20 @@ badgeLocked: ev.badgeLocked !== undefined ? Boolean(ev.badgeLocked) : events[idx
     }
 
     // ADD a sub-entry to an existing tracking event by index
-    if (body?.addSubEntryToEventIndex !== undefined && body?.subEntry !== undefined) {
+   if (body?.addSubEntryToEventIndex !== undefined && body?.subEntry !== undefined) {
   const idx = Number(body.addSubEntryToEventIndex);
-  const events = Array.isArray((existing as any)?.trackingEvents)
+  const rawEvents = Array.isArray((existing as any)?.trackingEvents)
     ? [...(existing as any).trackingEvents]
     : [];
-  if (idx >= 0 && idx < events.length) {
-    const parentEvent = events[idx];
+  const sortedWithOriginalIdx = rawEvents
+    .map((ev: any, originalIdx: number) => ({ ev, originalIdx }))
+    .sort((a: any, b: any) => new Date(a.ev?.occurredAt || 0).getTime() - new Date(b.ev?.occurredAt || 0).getTime());
+  const target = sortedWithOriginalIdx[idx];
+  if (!target) return NextResponse.json({ error: "Invalid event index" }, { status: 400 });
+  const mongoIdx = target.originalIdx;
+  const events = rawEvents;
+  if (mongoIdx >= 0 && mongoIdx < events.length) {
+    const parentEvent = events[mongoIdx];
     const sub = body.subEntry;
     // Save as a new trackingEvent with the SAME key as parent
     // so the track API groups it under the same stage
