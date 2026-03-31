@@ -36,7 +36,7 @@ export default function Header() {
     { name: 'About', href: `/${locale}/about`, icon: <Info className="w-4 h-4" /> },
     { name: 'Services', href: `/${locale}/services`, icon: <Briefcase className="w-4 h-4" /> },
     { name: 'Contact', href: `/${locale}/contact`, icon: <Mail className="w-4 h-4" /> },
-    { name: 'Get Started', href: `/${locale}/sign-in`, icon: <Rocket className="w-4 h-4" /> },
+    { name: 'Sign-in', href: `/${locale}/sign-in`, icon: <Rocket className="w-4 h-4" /> },
   ] as const;
 
   const actions = [
@@ -137,7 +137,7 @@ export default function Header() {
                           <Link key={item.name} href={item.href} onClick={() => setNavDropdownOpen(false)}
                             className={`flex items-center gap-3 px-5 py-3 text-sm font-bold transition-all duration-200 ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'}`}>
                             {item.icon}
-                            <span>{translate(item.name)}</span>
+                            <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                           </Link>
                         ))}
                       </div>
@@ -210,19 +210,19 @@ export default function Header() {
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
                     <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-                    <span>{translate(item.name)}</span>
+                    <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                   </Link>
                 ))}
 
                 {/* Track, Invoice & Quote */}
                 <div className="border-t border-gray-100 pt-3 mt-3 space-y-1">
                   {actions.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-blue-700 hover:text-orange-500 hover:bg-orange-50 transition-all">
-                      <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-                      <span>{translate(item.name)}</span>
-                    </Link>
-                  ))}
+  <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
+    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+    <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
+    <span>{translate(item.name)}</span>
+  </Link>
+))}
 
                   <Link href={`/${locale}/quote`} onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-blue-700 hover:text-orange-500 hover:bg-orange-50 transition-all">
