@@ -225,10 +225,10 @@ export default function Header() {
 ))}
 
                   <Link href={`/${locale}/quote`} onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-blue-700 hover:text-orange-500 hover:bg-orange-50 transition-all">
-                    <Calculator className="w-5 h-5" />
-                    <span>{translate('Quote')}</span>
-                  </Link>
+  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(`/${locale}/quote`) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+  <Calculator className="w-5 h-5" />
+  <span>{translate('Quote')}</span>
+</Link>
                 </div>
 
                 {/* Language selector */}
