@@ -11,96 +11,104 @@ function buildPreviewHtml(args: {
   bodyHtml: string;
   buttonText?: string;
   buttonHref?: string;
-  appUrl: string;
   supportEmail: string;
   sentTo: string;
 }) {
-  const { title, bodyHtml, buttonText, buttonHref, appUrl, supportEmail, sentTo } = args;
+  const { title, bodyHtml, buttonText, buttonHref, supportEmail, sentTo } = args;
+  const year = new Date().getFullYear();
+  const logoUrl = "https://www.goexoduslogistics.com/logo.png";
+  const outerPad = 24;
+  const innerPad = 20;
 
-  const buttonHtml =
-    buttonText && buttonHref
-      ? `
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 0 0;">
-          <tr>
-            <td style="border-radius:10px;background:#2563eb;">
-              <a href="${buttonHref}" style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:.2px;">
-                ${buttonText}
-              </a>
-            </td>
-          </tr>
-        </table>
-      `
-      : "";
+  const buttonHtml = buttonText && buttonHref
+    ? `<div style="padding:18px 0 6px 0;">
+         <a href="${buttonHref}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-size:15px;font-weight:800;">
+           ${buttonText}
+         </a>
+       </div>`
+    : "";
 
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8"/>
-      <meta name="viewport" content="width=device-width,initial-scale=1"/>
-      <title>${title}</title>
-    </head>
-    <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f4f6;padding:32px 0;">
-        <tr>
-          <td align="center">
-            <table role="presentation" width="600" cellspacing="0" cellpadding="0"
-              style="max-width:600px;width:100%;border-radius:20px;overflow:hidden;background:#ffffff;box-shadow:0 4px 24px rgba(0,0,0,.08);">
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>${title}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f3f4f6;">
+      <tr>
+        <td style="background:#0b3aa4;height:6px;line-height:6px;font-size:0;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td align="center" style="padding:28px 16px;">
+          <table role="presentation" width="100%" style="max-width:600px;margin:0 auto;" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding:0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                  style="background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
 
-              <!-- HEADER GRADIENT -->
-              <tr>
-                <td style="background:linear-gradient(to right,#ffffff 0%,#1d4ed8 40%,#0891b2 100%);padding:28px 32px;">
-                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                      <td>
-                        <p style="margin:0;font-size:20px;font-weight:900;color:#1e3a8a;letter-spacing:-.3px;">EXODUS</p>
-                        <p style="margin:2px 0 0 0;font-size:11px;font-weight:700;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">LOGISTICS</p>
-                      </td>
-                      <td align="right">
-                        <p style="margin:0;font-size:13px;font-weight:700;color:#ffffff;opacity:.8;text-transform:uppercase;letter-spacing:.5px;">
-                          ${title}
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
+                  <tr>
+                    <td style="padding:${outerPad}px ${outerPad}px 14px ${outerPad}px;">
+                      <img src="${logoUrl}" alt="Exodus Logistics" width="220" height="50"
+                        style="display:block;width:220px;height:50px;border:0;outline:none;text-decoration:none;"/>
+                    </td>
+                  </tr>
 
-              <!-- BODY -->
-              <tr>
-                <td style="padding:36px 36px 28px 36px;">
-                  ${bodyHtml}
-                  ${buttonHtml}
-                </td>
-              </tr>
+                  <tr>
+                    <td style="padding:0 ${outerPad}px;">
+                      <div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>
+                    </td>
+                  </tr>
 
-              <!-- DIVIDER -->
-              <tr>
-                <td style="padding:0 36px;">
-                  <div style="height:1px;background:#e5e7eb;"></div>
-                </td>
-              </tr>
+                  <tr>
+                    <td style="padding:${innerPad}px ${outerPad}px;">
+                      <h1 style="margin:0 0 12px 0;font-size:24px;line-height:30px;font-weight:800;color:#0f172a;">
+                        ${title || '<span style="color:#9ca3af;font-style:italic;">Subject will appear here…</span>'}
+                      </h1>
 
-              <!-- FOOTER -->
-              <tr>
-                <td style="padding:24px 36px 28px 36px;text-align:center;">
-                  <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#1d4ed8;">Exodus Logistics</p>
-                  <p style="margin:0 0 4px 0;font-size:12px;color:#9ca3af;">
-                    <a href="mailto:${supportEmail}" style="color:#6b7280;text-decoration:none;">${supportEmail}</a>
-                  </p>
-                  <p style="margin:0;font-size:11px;color:#d1d5db;">
-                    This email was sent to ${sentTo}
-                  </p>
-                </td>
-              </tr>
+                      ${bodyHtml}
 
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
+                      ${buttonHtml}
+
+                      <p style="margin:14px 0 0 0;font-size:16px;line-height:24px;color:#111827;">
+                        Regards,<br/>
+                        <strong>Exodus Logistics Support</strong>
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:0 ${outerPad}px;">
+                      <div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:14px ${outerPad}px ${outerPad}px ${outerPad}px;">
+                      <p style="margin:0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
+                        Support: <a href="mailto:${supportEmail}" style="color:#2563eb;text-decoration:none;">${supportEmail}</a>
+                      </p>
+                      <p style="margin:6px 0 0 0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
+                        © ${year} Exodus Logistics. All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 10px 0 10px;font-size:11px;line-height:16px;color:#9ca3af;text-align:center;">
+                This message was sent to ${sentTo || "recipient@email.com"}.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 export default function AdminShipmentSendEmailPage() {
@@ -209,13 +217,14 @@ export default function AdminShipmentSendEmailPage() {
     `;
 
     return buildPreviewHtml({
-      subject: subject || "Email subject",
-      title: subject || "Email subject",
-      bodyHtml,
-      appUrl,
-      supportEmail: "support@goexoduslogistics.com",
-      sentTo: resolvedTo || "recipient@email.com",
-    });
+  subject: subject || "Email subject",
+  title: subject || "Email subject",
+  bodyHtml,
+  buttonText: "Track Shipment",
+  buttonHref: trackingNumber ? `${appUrl}/${locale}/track/${encodeURIComponent(trackingNumber)}` : "",
+  supportEmail: "support@goexoduslogistics.com",
+  sentTo: resolvedTo || "recipient@email.com",
+});
   }, [message, subject, resolvedName, resolvedTo, shipmentId, trackingNumber, invoiceNumber, appUrl, locale]);
 
   const submit = async () => {
