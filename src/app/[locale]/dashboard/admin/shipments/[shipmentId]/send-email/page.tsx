@@ -122,6 +122,7 @@ export default function AdminShipmentSendEmailPage() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [title, setTitle] = useState("");
   const [sending, setSending] = useState(false);
   const [ok, setOk] = useState("");
   const [err, setErr] = useState("");
@@ -174,54 +175,51 @@ export default function AdminShipmentSendEmailPage() {
       : `${appUrl}/${locale}/invoice`;
 
     const bodyHtml = `
-      <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-        Hello ${resolvedName || "Customer"},
-      </p>
+  <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+    Hello ${resolvedName || "Customer"},
+  </p>
 
-      <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;white-space:pre-wrap;">${
-        message
-          ? message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-          : '<span style="color:#9ca3af;font-style:italic;">Your message will appear here…</span>'
-      }</p>
+  <p style="margin:0 0 18px 0;font-size:16px;line-height:26px;color:#111827;white-space:pre-wrap;">${
+    message
+      ? message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      : '<span style="color:#9ca3af;font-style:italic;">Your message will appear here…</span>'
+  }</p>
 
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-        style="margin:20px 0 0 0;border-collapse:separate;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;">
-        <tr>
-          <td style="padding:14px 20px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-              <tr>
-                <td style="padding:6px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Shipment ID:</td>
-                <td align="right" style="padding:6px 0;font-size:12px;color:#1d4ed8;font-weight:800;">${shipmentId || "—"}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0;font-size:12px;color:#6b7280;font-weight:600;">Tracking Number:</td>
-                <td align="right" style="padding:6px 0;font-size:12px;color:#1d4ed8;font-weight:800;">${trackingNumber || "—"}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0;font-size:12px;color:#6b7280;font-weight:600;">Invoice Number:</td>
-                <td align="right" style="padding:6px 0;font-size:12px;color:#1d4ed8;font-weight:800;">${invoiceNumber || "—"}</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+    style="margin:20px 0 0 0;border-collapse:separate;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;">
+    <tr>
+      <td style="padding:14px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+          <tr>
+            <td style="padding:6px 0;font-size:12px;color:#6b7280;font-weight:600;width:45%;">Shipment Number:</td>
+            <td align="right" style="padding:6px 0;font-size:12px;color:#1d4ed8;font-weight:800;">${shipmentId || "—"}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:12px;color:#6b7280;font-weight:600;">Tracking Number:</td>
+            <td align="right" style="padding:6px 0;font-size:12px;color:#1d4ed8;font-weight:800;">${trackingNumber || "—"}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:12px;color:#6b7280;font-weight:600;">Invoice Number:</td>
+            <td align="right" style="padding:6px 0;font-size:12px;color:#1d4ed8;font-weight:800;">${invoiceNumber || "—"}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="${trackUrl}" style="display:inline-block;padding:10px 18px;background:#2563eb;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;">
-          Track Shipment
-        </a>
-        <a href="${invoiceUrl}" style="display:inline-block;padding:10px 18px;background:#111827;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;">
-          View Invoice
-        </a>
-      </div>
-    `;
+  <p style="margin:20px 0 6px 0;font-size:15px;line-height:24px;color:#6b7280;">
+    You can use the button below to open the shipment tracking page. You can also use the invoice link to review billing details.
+  </p>
 
-    return buildPreviewHtml({
+  ${invoiceUrl ? `<div style="margin-bottom:4px;"><a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;font-size:14px;">View Invoice</a></div>` : ""}
+
+  ${trackingNumber ? `<div style="padding:18px 0 6px 0;"><a href="${appUrl}/${locale}/track/${encodeURIComponent(trackingNumber)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-size:15px;font-weight:800;">Track Shipment</a></div>` : ""}
+`;
+
+  return buildPreviewHtml({
   subject: subject || "Email subject",
-  title: subject || "Email subject",
+  title: title || subject || "Email subject",
   bodyHtml,
-  buttonText: "Track Shipment",
-  buttonHref: trackingNumber ? `${appUrl}/${locale}/track/${encodeURIComponent(trackingNumber)}` : "",
   supportEmail: "support@goexoduslogistics.com",
   sentTo: resolvedTo || "recipient@email.com",
 });
@@ -236,12 +234,12 @@ export default function AdminShipmentSendEmailPage() {
       const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}/send-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipientType, email: email.trim(), subject: subject.trim(), message: message.trim() }),
+        body: JSON.stringify({ recipientType, email: email.trim(), subject: subject.trim(), title: title.trim(), message: message.trim() }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) throw new Error(json?.error || "Failed to send email.");
       setOk("Email sent successfully.");
-      setMessage(""); setSubject(""); setEmail("");
+      setMessage(""); setSubject(""); setEmail(""); setTitle("");
     } catch (e: any) {
       setErr(e?.message || "Failed to send email.");
     } finally {
@@ -299,6 +297,13 @@ export default function AdminShipmentSendEmailPage() {
                 placeholder="Email subject…"
                 className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400" />
             </div>
+
+            <div>
+  <label className="text-sm font-semibold text-gray-700 block mb-1.5">Title <span className="text-xs font-normal text-gray-400">(shown as heading in email)</span></label>
+  <input value={title} onChange={(e) => setTitle(e.target.value)}
+    placeholder="Email heading…"
+    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-blue-400" />
+</div>
 
             <div>
               <label className="text-sm font-semibold text-gray-700 block mb-1.5">Message</label>

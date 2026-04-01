@@ -75,6 +75,7 @@ export async function POST(
     const customEmail = cleanStr(body?.email).toLowerCase();
     const subject = cleanStr(body?.subject);
     const message = cleanStr(body?.message);
+    const emailTitle = cleanStr(body?.title) || subject;
 
     if (!subject) return NextResponse.json({ error: "Subject is required." }, { status: 400 });
     if (!message) return NextResponse.json({ error: "Message is required." }, { status: 400 });
@@ -201,7 +202,7 @@ export async function POST(
 
     const html = renderEmailTemplate({
       subject,
-      title: subject,
+      title: emailTitle,
       preheader: `${subject} — Shipment ${shipmentId}`,
       bodyHtml,
       button: trackUrl
