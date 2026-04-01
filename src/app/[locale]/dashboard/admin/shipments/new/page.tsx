@@ -438,15 +438,15 @@ export default function AdminCreateShipmentPage() {
   const [senderPostalCode, setSenderPostalCode] = useState("");
   const [senderPhone, setSenderPhone] = useState("+1");
 
-  const [receiverName, setReceiverName] = useState("+1");
+  const [receiverName, setReceiverName] = useState("");
   const [receiverEmail, setReceiverEmail] = useState("");
-  const [destinationCountryCode, setDestinationCountryCode] = useState("NG");
-  const [receiverCountry, setReceiverCountry] = useState("Nigeria");
+  const [destinationCountryCode, setDestinationCountryCode] = useState("US");
+  const [receiverCountry, setReceiverCountry] = useState("United States");
   const [receiverState, setReceiverState] = useState("");
   const [receiverCity, setReceiverCity] = useState("");
   const [receiverAddress, setReceiverAddress] = useState("");
   const [receiverPostalCode, setReceiverPostalCode] = useState("");
-  const [receiverPhone, setReceiverPhone] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("+1");
 
 const [packageDescription, setPackageDescription] = useState("");
 
