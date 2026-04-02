@@ -396,7 +396,7 @@ export default function AdminShipmentsPage() {
                             </button>
 
                             {openMenuId === s.shipmentId && (
-                              <div className="absolute right-0 top-10 z-50 w-52 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden" data-menu>
+                              <div className="absolute right-0 z-50 w-52 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden" style={{ bottom: 'calc(100% + 8px)' }} data-menu>
                                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide truncate">{s.shipmentId}</p>
                                 </div>
