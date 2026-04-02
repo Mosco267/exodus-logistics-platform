@@ -98,7 +98,8 @@ export default function AdminShipmentsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState('');
   const [deletingId, setDeletingId] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showAll, setShowAll] = useState(false);
+ const [showAll, setShowAll] = useState(false);
+const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -387,16 +388,21 @@ export default function AdminShipmentsPage() {
                         </td>
 
                         {/* Actions */}
-                        <td className="py-4 px-4 whitespace-nowrap text-right">
-                          <div className="relative inline-block" data-menu>
-                            <button type="button"
-                              onClick={() => setOpenMenuId(prev => prev === s.shipmentId ? '' : s.shipmentId)}
-                              className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
+<td className="py-4 px-4 whitespace-nowrap text-right">
+  <div className="relative inline-block" data-menu>
+    <button type="button"
+      onClick={(e) => {
+        if (openMenuId === s.shipmentId) { setOpenMenuId(''); return; }
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMenuFlip(prev => ({ ...prev, [s.shipmentId]: window.innerHeight - rect.bottom < 260 }));
+        setOpenMenuId(s.shipmentId);
+      }}
+      className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm">
+      <MoreVertical className="w-4 h-4" />
+    </button>
 
-                            {openMenuId === s.shipmentId && (
-                              <div className="absolute right-0 z-50 w-52 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden" style={{ bottom: 'calc(100% + 8px)' }} data-menu>
+    {openMenuId === s.shipmentId && (
+      <div className={`absolute right-0 z-50 w-52 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden ${menuFlip[s.shipmentId] ? 'bottom-10' : 'top-10'}`} data-menu>
                                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide truncate">{s.shipmentId}</p>
                                 </div>
