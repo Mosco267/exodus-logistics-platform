@@ -57,20 +57,7 @@ function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
 function fmtMoney(amount: number, currency: string) {
   const c = (currency || "USD").toUpperCase();
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency", currency: c, currencyDisplay: "narrowSymbol",
-      minimumFractionDigits: 2, maximumFractionDigits: 2,
-    }).format(num(amount));
-  } catch {
-    try {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency", currency: c, minimumFractionDigits: 2, maximumFractionDigits: 2,
-      }).format(num(amount));
-    } catch {
-      return `${num(amount).toFixed(2)} ${c}`;
-    }
-  }
+  return `${c} ${num(amount).toFixed(2)}`;
 }
 
 function fmtPercent(v: any) {
@@ -503,13 +490,13 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                       <Row label="Customs fee" value={fmtMoney(calc.customs, currency)} />
                       <Row label={`Insurance (${fmtPercent(insuranceRate)})`} value={fmtMoney(calc.insurance, currency)} />
                       <Row label="Tax" value={fmtMoney(calc.tax, currency)} />
-                      <Row label="Discount" value={fmtMoney(calc.discount, currency)} />
+                      <Row label="Discount" value={calc.discount > 0 ? `-${fmtMoney(calc.discount, currency)}` : fmtMoney(calc.discount, currency)} />
                       <div className="pt-3 mt-1 border-t border-gray-200 flex items-center justify-between">
                         <span className="font-bold text-gray-900 text-base">Subtotal</span>
                         <span className="font-bold text-gray-900 text-base">{fmtMoney(calc.subtotal, currency)}</span>
                       </div>
                       <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5 flex items-center justify-between">
-                        <span className="text-blue-900 font-extrabold text-lg">Total Amount</span>
+                        <span className="text-blue-900 font-extrabold text-lg">Total </span>
                         <span className="text-blue-900 font-extrabold text-2xl">{fmtMoney(calc.total, currency)}</span>
                       </div>
                     </div>
