@@ -434,7 +434,7 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Invoice</p>
                     </div>
                     <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>{invoiceStatusLabel}</div>
-                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
+                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceCurrency} {invoiceAmount.toFixed(2)}</p>
                     {invoiceNumber && <p className="mt-1 text-xs text-gray-500 font-medium">{invoiceNumber}</p>}
                   </div>
 
