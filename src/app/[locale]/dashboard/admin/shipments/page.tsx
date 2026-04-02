@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Copy, Check, MoreVertical, RefreshCw, Plus,
   ChevronLeft, ChevronRight, Package,
@@ -98,8 +98,9 @@ export default function AdminShipmentsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState('');
   const [deletingId, setDeletingId] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
- const [showAll, setShowAll] = useState(false);
-const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
+  const [showAll, setShowAll] = useState(false);
+  const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -233,7 +234,7 @@ const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
         )}
 
         {/* Table card */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div ref={tableRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
 
           {/* Toolbar */}
           <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -394,7 +395,8 @@ const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
       onClick={(e) => {
         if (openMenuId === s.shipmentId) { setOpenMenuId(''); return; }
         const rect = e.currentTarget.getBoundingClientRect();
-        setMenuFlip(prev => ({ ...prev, [s.shipmentId]: window.innerHeight - rect.bottom < 260 }));
+const tableBottom = tableRef.current?.getBoundingClientRect().bottom ?? window.innerHeight;
+setMenuFlip(prev => ({ ...prev, [s.shipmentId]: tableBottom - rect.bottom < 260 }));
         setOpenMenuId(s.shipmentId);
       }}
       className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm">
