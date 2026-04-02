@@ -43,10 +43,10 @@ export async function GET() {
   shipmentMeans: 1,
   estimatedDeliveryDate: 1,
   invoice: 1,
+  invoiceNumber: 1,
 })
     .sort({ updatedAt: -1 })
-    .limit(10)
-    .toArray();
+        .toArray();
 
   return NextResponse.json({ results });
 }
