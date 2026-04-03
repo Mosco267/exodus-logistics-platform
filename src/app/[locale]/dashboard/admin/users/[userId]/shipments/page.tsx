@@ -257,18 +257,18 @@ export default function UserShipmentsPage() {
                         </td>
 
                         {/* Invoice No */}
-                        <td className="py-4 px-4 whitespace-nowrap">
-                          {invNo ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-semibold text-gray-700 font-mono">{invNo}</span>
-                              <button type="button"
-                                onClick={async () => { await copyToClipboard(invNo); setCopiedKey(`inv-${s.shipmentId}`); setTimeout(() => setCopiedKey(""), 1200); }}
-                                className="cursor-pointer opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-6 h-6 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition">
-                                {copiedKey === `inv-${s.shipmentId}` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-gray-400" />}
-                              </button>
-                            </div>
-                          ) : <span className="text-xs text-gray-300">—</span>}
-                        </td>
+<td className="py-4 px-4 whitespace-nowrap">
+  <div className="flex items-center gap-1.5">
+    <span className="text-xs font-semibold text-gray-700 font-mono">{invNo || "—"}</span>
+    {invNo && (
+      <button type="button"
+        onClick={async () => { await copyToClipboard(invNo); setCopiedKey(`inv-${s.shipmentId}`); setTimeout(() => setCopiedKey(""), 1200); }}
+        className="cursor-pointer opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-6 h-6 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition">
+        {copiedKey === `inv-${s.shipmentId}` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-gray-400" />}
+      </button>
+    )}
+  </div>
+</td>
 
                         {/* Sender */}
                         <td className="py-4 px-4 whitespace-nowrap max-w-[140px]">
