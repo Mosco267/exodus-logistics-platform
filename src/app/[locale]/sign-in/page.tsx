@@ -31,7 +31,6 @@ export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
 
-  const [passwordValue, setPasswordValue] = useState('');
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -61,7 +60,7 @@ export default function SignInPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
-    const rawPassword = passwordValue;
+    const rawPassword = passwordRef.current?.value || '';
 
     const newErrors = { email: '', password: '', general: '' };
     if (!rawEmail) newErrors.email = 'Email address is required.';
@@ -318,21 +317,20 @@ export default function SignInPage() {
                 </div>
                 <div className="relative">
                   <input
+  ref={passwordRef}
   id="password"
   name="password"
   type={showPassword ? 'text' : 'password'}
   autoComplete="current-password"
   placeholder="Enter your password"
-  value={passwordValue}
-  onChange={e => {
-    const val = e.target.value;
-    setPasswordValue(val);
-    setHasPassword(!!val);
-    setErrors(p => ({ ...p, password: '', general: '' }));
-  }}
   autoCorrect="off"
   autoCapitalize="off"
   spellCheck={false}
+  onInput={() => {
+    const val = passwordRef.current?.value || '';
+    setHasPassword(!!val);
+    setErrors(p => ({ ...p, password: '', general: '' }));
+  }}
   className={inputCls(!!errors.password) + ' pr-11'}
 />
                   {hasPassword && (
