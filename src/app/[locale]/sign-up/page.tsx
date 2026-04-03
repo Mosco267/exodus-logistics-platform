@@ -112,7 +112,7 @@ export default function SignUpPage() {
   const handleGoogleSignUp = async () => {
   setGoogleLoading(true);
   try {
-    await signIn('google', { callbackUrl: `http://localhost:3000/${locale}/dashboard` });
+    await signIn('google', { callbackUrl: `/${locale}/dashboard` });
   } catch {
     setGoogleLoading(false);
   }
