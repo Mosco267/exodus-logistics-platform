@@ -116,19 +116,23 @@ export default function AdminUsersPage() {
   }, [users, currentPage, showAll]);
 
   const deleteUser = async (userId: string) => {
-    setDeletingId(userId);
-    try {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
-      const j = await res.json().catch(() => null);
-      if (!res.ok) { showMsg(j?.error || "Failed to delete user.", "error"); return; }
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      showMsg("User deleted successfully.");
-    } catch {
-      showMsg("Network error.", "error");
-    } finally {
-      setDeletingId(""); setConfirmDeleteId("");
-    }
-  };
+  setDeletingId(userId);
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ banned: true }),
+    });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: true, status: "banned" } : u));
+    showMsg("User banned successfully.");
+  } catch {
+    showMsg("Network error.", "error");
+  } finally {
+    setDeletingId(""); setConfirmDeleteId("");
+  }
+};
 
   const btnCls = "cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition";
 
@@ -337,7 +341,7 @@ export default function AdminUsersPage() {
                                     disabled={deletingId === u.id}
                                     className="cursor-pointer flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition disabled:opacity-50">
                                     <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                                    {deletingId === u.id ? "Deleting…" : "Delete User"}
+                                    {deletingId === u.id ? "Banning…" : "Ban User"}
                                   </button>
                                 </div>
                               </div>
@@ -383,10 +387,9 @@ export default function AdminUsersPage() {
             <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
-            <h3 className="text-xl font-extrabold text-gray-900">Delete user?</h3>
+            <h3 className="text-xl font-extrabold text-gray-900">Ban user?</h3>
             <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-              You are about to permanently delete this user account.
-              This cannot be undone and will remove all associated access.
+              You are about to ban this user. This action cannot be undone, and the user will lose access to their account and shipments. Are you sure you want to proceed?
             </p>
             <div className="mt-6 flex items-center justify-end gap-3">
               <button type="button" onClick={() => setConfirmDeleteId("")}
@@ -397,8 +400,8 @@ export default function AdminUsersPage() {
                 disabled={deletingId === confirmDeleteId}
                 className="cursor-pointer px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition flex items-center gap-2">
                 {deletingId === confirmDeleteId
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</>
-                  : "Yes, Delete"}
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Banning…</>
+                  : "Yes, Ban User"}
               </button>
             </div>
           </div>
