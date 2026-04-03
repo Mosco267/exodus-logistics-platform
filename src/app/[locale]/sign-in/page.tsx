@@ -320,12 +320,30 @@ export default function SignInPage() {
                   </button>
                 </div>
                 <div className="relative">
-                  <input ref={passwordRef} id="password" name="password"
-                    type={showPassword ? 'text' : 'password'} autoComplete="current-password"
-                    placeholder="Enter your password"
-                    onChange={e => { setHasPassword(!!e.target.value); setErrors(p => ({ ...p, password: '', general: '' })); }}
-                    onFocus={() => { setTimeout(() => { if (passwordRef.current?.value) setHasPassword(true); }, 50); }}
-                    className={inputCls(!!errors.password) + ' pr-11'} />
+                  <input
+  ref={passwordRef}
+  id="password"
+  name="password"
+  type={showPassword ? 'text' : 'password'}
+  autoComplete="current-password"
+  placeholder="Enter your password"
+  onChange={e => {
+    setHasPassword(!!e.target.value);
+    setErrors(p => ({ ...p, password: '', general: '' }));
+  }}
+  onInput={e => {
+    setHasPassword(!!(e.target as HTMLInputElement).value);
+  }}
+  onFocus={() => {
+    setTimeout(() => {
+      if (passwordRef.current?.value) setHasPassword(true);
+    }, 50);
+  }}
+  autoCorrect="off"
+  autoCapitalize="off"
+  spellCheck={false}
+  className={inputCls(!!errors.password) + ' pr-11'}
+/>
                   {hasPassword && (
                     <button type="button" tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={toggleShowPassword}
                       className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
