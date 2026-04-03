@@ -1,528 +1,426 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import {
+  RefreshCw, Users, UserCheck, UserX, MoreVertical,
+  Loader2, AlertCircle, CheckCircle2, XCircle, ChevronLeft, ChevronRight,
+} from "lucide-react";
 
-type Shipment = {
-  shipmentId: string;
-  trackingNumber: string;
+type UserRow = {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: string;
   status?: string;
-  invoice?: { amount?: number; currency?: string; paid?: boolean; paidAt?: string | null };
+  banned?: boolean;
+  isDeleted?: boolean;
   createdAt?: string;
 };
 
-type UserDetail = { id: string; name?: string; email?: string };
+function initials(name?: string, email?: string) {
+  const base = (name || email || "U").trim();
+  const parts = base.split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || "U";
+  const second = parts[1]?.[0] || (parts[0]?.[1] ?? "");
+  return (first + second).toUpperCase();
+}
 
-type StatusDoc = {
-  key: string;
-  label: string;
-  color?: string;
-  defaultUpdate?: string;
-  nextStep?: string;
+function fmtDate(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(d);
+}
+
+const AVATAR_COLORS = [
+  "bg-blue-500", "bg-violet-500", "bg-emerald-500", "bg-amber-500",
+  "bg-rose-500", "bg-cyan-500", "bg-indigo-500", "bg-pink-500",
+];
+
+function avatarColor(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+const PAGE_SIZE = 10;
+
+export default function AdminUsersPage() {
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number; rectBottom: number } | null>(null);
+  const [deletingId, setDeletingId] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState("");
+  const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState<"success" | "error">("success");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
+  const [bannedCount, setBannedCount] = useState(0);
+
+  const showMsg = (text: string, type: "success" | "error" = "success") => {
+    setMsg(text); setMsgType(type);
+    window.setTimeout(() => setMsg(""), 3500);
+  };
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!openMenu) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest("[data-menu]")) setOpenMenu(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openMenu]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenMenu(null); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const fetchUsers = async (silent = false) => {
+  if (silent) setRefreshing(true); else setLoading(true);
+  try {
+    const [usersRes, bannedRes] = await Promise.all([
+      fetch("/api/admin/users", { cache: "no-store" }),
+      fetch("/api/admin/deleted-users", { cache: "no-store" }),
+    ]);
+    const usersJson = await usersRes.json();
+    const bannedJson = bannedRes.ok ? await bannedRes.json() : { users: [] };
+    setUsers(Array.isArray(usersJson?.users) ? usersJson.users : []);
+    setBannedCount(Array.isArray(bannedJson?.users) ? bannedJson.users.length : 0);
+  } catch {
+    showMsg("Failed to load users.", "error");
+  } finally {
+    setLoading(false); setRefreshing(false);
+  }
 };
 
-const normalizeKey = (v: string) =>
-  (v ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
+  
 
-export default function AdminUserDetailPage() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  useEffect(() => { fetchUsers(); }, []); // eslint-disable-line
 
-  const locale = (params?.locale as string) || "en";
-  const userId = decodeURIComponent((params?.userId as string) || "");
+  const stats = useMemo(() => ({
+  total: users.length,
+  active: users.length,
+  banned: bannedCount,
+}), [users, bannedCount]);
 
-  // ✅ focusShipment support (from AdminHeader search suggestion)
-  const focusShipment = useMemo(() => {
-    return String(searchParams?.get("focusShipment") || "").trim();
-  }, [searchParams]);
+  const totalPages = Math.ceil(users.length / PAGE_SIZE);
 
-  // ✅ Create Notification states
-  const [nTitle, setNTitle] = useState("");
-  const [nMessage, setNMessage] = useState("");
-  const [nShipmentId, setNShipmentId] = useState("");
-  const [nSending, setNSending] = useState(false);
+  const displayed = useMemo(() => {
+    if (showAll) return users;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return users.slice(start, start + PAGE_SIZE);
+  }, [users, currentPage, showAll]);
 
-  const [user, setUser] = useState<UserDetail | null>(null);
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [statuses, setStatuses] = useState<StatusDoc[]>([]);
-  const [loading, setLoading] = useState(true);
+  const deleteUser = async (userId: string) => {
+  setDeletingId(userId);
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+  method: "DELETE",
+});
+const j = await res.json().catch(() => null);
+if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
+setUsers(prev => prev.filter(u => u.id !== userId));
+setBannedCount(prev => prev + 1);
+showMsg("User banned successfully.");
+  } finally {
+    setDeletingId(""); setConfirmDeleteId("");
+  }
+};
 
-  // per shipment selected status KEY (e.g. "customclearance")
-  const [draftKey, setDraftKey] = useState<Record<string, string>>({});
-  const [savingId, setSavingId] = useState<string>("");
-  const [msg, setMsg] = useState<string>("");
+  const btnCls = "cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition";
 
-  // focused row UI highlight
-  const [focusedRow, setFocusedRow] = useState<string>("");
-
-  const statusByKey = useMemo(() => {
-    const m: Record<string, StatusDoc> = {};
-    for (const s of statuses) m[normalizeKey(s.key)] = s;
-    return m;
-  }, [statuses]);
-
-  const sortedStatuses = useMemo(() => {
-    return [...statuses].sort((a, b) => String(a.label).localeCompare(String(b.label)));
-  }, [statuses]);
-
-  const sendNotification = async () => {
-    if (!user) return;
-
-    if (!nTitle.trim() || !nMessage.trim()) {
-      alert("Please enter title and message.");
-      return;
-    }
-
-    setNSending(true);
-    setMsg("");
-
-    try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          userEmail: user.email,
-          title: nTitle.trim(),
-          message: nMessage.trim(),
-          shipmentId: nShipmentId.trim() || undefined,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        alert(json?.error || "Failed to send notification");
-        return;
-      }
-
-      setNTitle("");
-      setNMessage("");
-      setNShipmentId("");
-
-      setMsg("Notification sent ✅");
-      window.setTimeout(() => setMsg(""), 2000);
-    } finally {
-      setNSending(false);
-    }
-  };
-
-  const fetchAll = async () => {
-    setLoading(true);
-    setMsg("");
-
-    try {
-      const [uRes, sRes, stRes] = await Promise.all([
-        fetch(`/api/admin/users?userId=${encodeURIComponent(userId)}`, { cache: "no-store" }),
-        fetch(`/api/admin/users/${encodeURIComponent(userId)}/shipments`, { cache: "no-store" }),
-        fetch(`/api/statuses`, { cache: "no-store" }),
-      ]);
-
-      const uj = await uRes.json();
-      const sj = await sRes.json();
-      const stj = await stRes.json();
-
-      const userData: UserDetail | null = uj?.user ?? null;
-      const shipmentList: Shipment[] = Array.isArray(sj?.shipments) ? sj.shipments : [];
-      const statusList: StatusDoc[] = Array.isArray(stj?.statuses) ? stj.statuses : [];
-
-      setUser(userData);
-      setShipments(shipmentList);
-      setStatuses(statusList);
-
-      // Build draft based on fetched statuses (avoid stale state)
-      const localStatusByKey: Record<string, StatusDoc> = {};
-      const localKeyByLabel: Record<string, string> = {};
-      for (const st of statusList) {
-        localStatusByKey[normalizeKey(st.key)] = st;
-        localKeyByLabel[String(st.label || "").toLowerCase()] = normalizeKey(st.key);
-      }
-
-      const nextDraft: Record<string, string> = {};
-      for (const sh of shipmentList) {
-        const raw = String(sh.status || "").trim(); // label or key
-        const asKey = normalizeKey(raw);
-
-        if (localStatusByKey[asKey]) {
-          nextDraft[sh.shipmentId] = asKey;
-          continue;
-        }
-
-        const fromLabel = localKeyByLabel[raw.toLowerCase()];
-        if (fromLabel) {
-          nextDraft[sh.shipmentId] = fromLabel;
-          continue;
-        }
-
-        nextDraft[sh.shipmentId] = "";
-      }
-
-      setDraftKey(nextDraft);
-    } catch {
-      setUser(null);
-      setShipments([]);
-      setStatuses([]);
-      setDraftKey({});
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
-  // ✅ Auto-fill notification shipmentId when opened via search suggestion
-  useEffect(() => {
-    if (!focusShipment) return;
-    setNShipmentId((prev) => (prev ? prev : focusShipment));
-  }, [focusShipment]);
-
-  // ✅ Auto-scroll + highlight focused shipment after data loads
-  useEffect(() => {
-    if (loading) return;
-    if (!focusShipment) return;
-
-    const id = `shipment-row-${focusShipment}`;
-    const el = document.getElementById(id);
-
-    if (!el) return;
-
-    setFocusedRow(focusShipment);
-
-    // scroll smoothly
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-
-    // remove highlight after a few seconds
-    const t = window.setTimeout(() => setFocusedRow(""), 4500);
-    return () => window.clearTimeout(t);
-  }, [loading, focusShipment]);
-
-  const togglePaid = async (shipmentId: string, currentPaid: boolean) => {
-    setMsg("");
-
-    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoice: { paid: !currentPaid } }),
-    });
-
-    const json = await res.json();
-    if (!res.ok) {
-      alert(json?.error || "Failed to update invoice");
-      return;
-    }
-
-    setShipments((prev) =>
-      prev.map((s) => (s.shipmentId === shipmentId ? (json?.shipment as Shipment) : s))
-    );
-
-    setMsg("Invoice updated ✅");
-    window.setTimeout(() => setMsg(""), 2000);
-  };
-
-  const updateStatus = async (shipmentId: string) => {
-    setMsg("");
-    setSavingId(shipmentId);
-
-    try {
-      const key = normalizeKey(draftKey[shipmentId] || "");
-      if (!key) {
-        alert("Please choose a status.");
-        return;
-      }
-
-      const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        // ✅ send KEY, API converts to label + defaults
-        body: JSON.stringify({ status: key }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        alert(json?.error || "Failed to update status");
-        return;
-      }
-
-      setShipments((prev) =>
-        prev.map((x) => (x.shipmentId === shipmentId ? (json?.shipment as Shipment) : x))
-      );
-
-      const label = statusByKey[key]?.label || "Status";
-      setMsg(`Shipment updated to “${label}” ✅`);
-      window.setTimeout(() => setMsg(""), 2200);
-    } finally {
-      setSavingId("");
-    }
-  };
-
-  const goToAdminShipment = (shipmentId: string) => {
-    // ✅ Admin-only route (NOT /dashboard/status)
-    router.push(`/${locale}/dashboard/admin/shipments?focusShipment=${encodeURIComponent(shipmentId)}`);
-  };
+  const PageNumbers = () => (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+        .reduce<(number | string)[]>((acc, p, i, arr) => {
+          if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push("…");
+          acc.push(p); return acc;
+        }, [])
+        .map((p, i) => typeof p === "string"
+          ? <span key={`e${i}`} className="px-1 text-gray-300 text-xs">…</span>
+          : <button key={p} type="button" onClick={() => setCurrentPage(p as number)}
+              className={`cursor-pointer w-8 h-8 rounded-xl text-xs font-bold transition ${
+                p === currentPage ? "bg-blue-600 text-white shadow-sm" : "border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
+              }`}>{p}</button>
+        )}
+    </div>
+  );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-md">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-              Admin • User
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              Update shipment status, invoice status, and send notifications.
-            </p>
-            {msg && (
-              <p className="mt-2 text-sm font-semibold text-green-700 dark:text-green-300">
-                {msg}
-              </p>
-            )}
-          </div>
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-[1200px] mx-auto px-4 py-8">
 
-          <Link
-            href={`/${locale}/dashboard/admin/users`}
-            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10
-                       bg-white/70 dark:bg-white/5 text-gray-900 dark:text-gray-100 font-semibold
-                       hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-cyan-500 dark:hover:border-cyan-500
-                       transition cursor-pointer"
-          >
-            Back to users
-          </Link>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Users</h1>
+            <p className="mt-0.5 text-sm text-gray-500">Manage user accounts, shipments and access.</p>
+          </div>
+          <button type="button" onClick={() => fetchUsers(true)} disabled={refreshing}
+            className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
         </div>
 
-        {loading ? (
-          <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">Loading…</p>
-        ) : !user ? (
-          <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">User not found.</p>
-        ) : (
-          <>
-            {/* User card */}
-            <div className="mt-5 rounded-2xl border border-gray-100 dark:border-white/10 p-4">
-              <p className="font-bold text-gray-900 dark:text-gray-100">
-                {user.name || "Unnamed user"}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{user.email || "—"}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{user.id}</p>
-            </div>
-
-            {/* ✅ Create Notification */}
-            <div
-              id="notify"
-              className="mt-6 rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100">
-                  Create Notification
-                </h2>
-
-                <button
-                  onClick={sendNotification}
-                  disabled={nSending}
-                  className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold
-                             hover:bg-blue-700 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {nSending ? "Sending…" : "Send"}
-                </button>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: "Total Users", value: stats.total, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100", Icon: Users },
+            { label: "Active", value: stats.active, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", Icon: UserCheck },
+            { label: "Banned", value: stats.banned, color: "text-red-600", bg: "bg-red-50", border: "border-red-100", Icon: UserX },
+          ].map(({ label, value, color, bg, border, Icon }) => (
+            <div key={label} className={`rounded-2xl border ${border} ${bg} p-4 hover:shadow-sm transition`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</p>
+                <Icon className={`w-4 h-4 ${color}`} />
               </div>
-
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                    Title
-                  </label>
-                  <input
-                    value={nTitle}
-                    onChange={(e) => setNTitle(e.target.value)}
-                    placeholder="e.g. Shipment delayed"
-                    className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10
-                               bg-white dark:bg-white/5 px-4 py-3 text-sm text-gray-900 dark:text-gray-100
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                    Message
-                  </label>
-                  <textarea
-                    value={nMessage}
-                    onChange={(e) => setNMessage(e.target.value)}
-                    placeholder="Write the notification message to the user…"
-                    rows={3}
-                    className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10
-                               bg-white dark:bg-white/5 px-4 py-3 text-sm text-gray-900 dark:text-gray-100
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                    Shipment ID (optional)
-                  </label>
-                  <input
-                    value={nShipmentId}
-                    onChange={(e) => setNShipmentId(e.target.value)}
-                    placeholder="e.g. EXS-260222-9BC87D"
-                    className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10
-                               bg-white dark:bg-white/5 px-4 py-3 text-sm text-gray-900 dark:text-gray-100
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                  />
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    Optional: attach a shipment ID to give context.
-                  </p>
-                </div>
-              </div>
+              <p className={`text-3xl font-extrabold ${color}`}>{value}</p>
             </div>
+          ))}
+        </div>
 
-            {/* Shipments */}
-            <div className="mt-6">
-              <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100">
-                Shipment history
-              </h2>
-
-              {shipments.length === 0 ? (
-                <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-                  No shipments linked to this user yet.
-                </p>
-              ) : (
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-sm min-w-[980px] border-collapse">
-                    <thead className="border-b border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200">
-                      <tr>
-                        <th className="py-3 px-3 text-left font-semibold">Shipment ID</th>
-                        <th className="py-3 px-3 text-left font-semibold">Tracking</th>
-                        <th className="py-3 px-3 text-left font-semibold">Status</th>
-                        <th className="py-3 px-3 text-left font-semibold">Invoice</th>
-                        <th className="py-3 px-3 text-left font-semibold">Action</th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="text-gray-800 dark:text-gray-100">
-                      {shipments.map((s) => {
-                        const paid = Boolean(s?.invoice?.paid);
-                        const amount = Number(s?.invoice?.amount ?? 0);
-                        const currency = String(s?.invoice?.currency || "USD").toUpperCase();
-
-                        const currentDraft = draftKey[s.shipmentId] || "";
-                        const draftLabel = currentDraft
-                          ? statusByKey[normalizeKey(currentDraft)]?.label
-                          : "";
-
-                        const isFocused = focusedRow && focusedRow === s.shipmentId;
-
-                        return (
-                          <tr
-                            id={`shipment-row-${s.shipmentId}`}
-                            key={s.shipmentId}
-                            className={[
-                              "border-b border-gray-100 dark:border-white/10 transition",
-                              "hover:bg-blue-50/60 dark:hover:bg-white/5",
-                              isFocused ? "bg-blue-50/70 dark:bg-cyan-500/10 ring-2 ring-blue-500/40" : "",
-                            ].join(" ")}
-                          >
-                            <td className="py-3 px-3 font-semibold whitespace-nowrap">{s.shipmentId}</td>
-                            <td className="py-3 px-3 whitespace-nowrap">{s.trackingNumber}</td>
-
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <select
-                                  value={currentDraft}
-                                  onChange={(e) =>
-                                    setDraftKey((prev) => ({
-                                      ...prev,
-                                      [s.shipmentId]: e.target.value,
-                                    }))
-                                  }
-                                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10
-                                             bg-white dark:bg-white/5 text-sm cursor-pointer"
-                                >
-                                  <option value="">Select status…</option>
-                                  {sortedStatuses.map((st) => (
-                                    <option key={st.key} value={normalizeKey(st.key)}>
-                                      {st.label}
-                                    </option>
-                                  ))}
-                                </select>
-
-                                <button
-                                  onClick={() => updateStatus(s.shipmentId)}
-                                  disabled={savingId === s.shipmentId}
-                                  className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold
-                                             hover:bg-blue-700 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                  {savingId === s.shipmentId ? "Updating…" : "Update"}
-                                </button>
-                              </div>
-
-                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Current: <span className="font-semibold">{s.status || "—"}</span>
-                                {draftLabel ? (
-                                  <>
-                                    {" "}
-                                    • Selected: <span className="font-semibold">{draftLabel}</span>
-                                  </>
-                                ) : null}
-                              </p>
-                            </td>
-
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <span className="font-semibold">
-                                {currency} {amount.toLocaleString()}
-                              </span>
-                              <span
-                                className={`ml-2 text-xs font-bold px-2 py-1 rounded-full border ${
-                                  paid
-                                    ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/20"
-                                    : "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/20"
-                                }`}
-                              >
-                                {paid ? "PAID" : "UNPAID"}
-                              </span>
-                            </td>
-
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <button
-                                onClick={() => togglePaid(s.shipmentId, paid)}
-                                className={`px-4 py-2 rounded-xl font-semibold border transition cursor-pointer ${
-                                  paid
-                                    ? "bg-green-600 text-white border-green-600 hover:bg-green-700"
-                                    : "bg-white dark:bg-white/5 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-white/10 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-cyan-500 dark:hover:border-cyan-500"
-                                }`}
-                              >
-                                Mark as {paid ? "Unpaid" : "Paid"}
-                              </button>
-
-                              {/* ✅ Admin-only view (no user dashboard/status) */}
-                              <button
-                                type="button"
-                                onClick={() => goToAdminShipment(s.shipmentId)}
-                                className="ml-3 text-sm font-semibold text-blue-700 dark:text-cyan-300 hover:underline cursor-pointer"
-                              >
-                                View →
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-
-                  {statuses.length === 0 && (
-                    <p className="mt-4 text-sm text-orange-700 dark:text-orange-300">
-                      No statuses found. Create statuses in Admin → Statuses first.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
+        {/* Message */}
+        {msg && (
+          <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2 ${
+            msgType === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
+          }`}>
+            {msgType === "error" ? <XCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+            {msg}
+          </div>
         )}
+
+        {/* Table card */}
+       <div ref={tableRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
+
+          {/* Toolbar */}
+          <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-gray-500">
+              {loading ? "Loading…"
+                : showAll ? `All ${users.length} users`
+                : users.length === 0 ? "No users"
+                : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, users.length)} of ${users.length} users`}
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+  {!showAll && (
+    <>
+      <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+        disabled={currentPage === 1} className={btnCls}>
+        <ChevronLeft className="w-3.5 h-3.5" /> Prev
+      </button>
+      {totalPages > 1 && <PageNumbers />}
+      <button type="button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+        disabled={currentPage >= totalPages} className={btnCls}>
+        Next <ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </>
+  )}
+  <button type="button" onClick={() => { setShowAll(v => !v); setCurrentPage(1); }}
+    className={`${btnCls} ${showAll ? "!bg-blue-50 !border-blue-300 !text-blue-700" : ""}`}>
+    {showAll ? "Show Pages" : "View All"}
+  </button>
+</div>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+              <span className="text-sm font-medium">Loading users…</span>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
+              <Users className="w-10 h-10 text-gray-200" />
+              <p className="text-sm font-semibold">No users found.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto overflow-y-visible">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/80">
+                    {["#", "User", "Email", "Role", "Created", "Actions"].map(h => (
+                      <th key={h} className={`py-3 px-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider ${h === "Actions" ? "text-right" : "text-left"} ${h === "#" ? "w-10" : ""}`}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {displayed.map((u, idx) => {
+                    const sn = showAll ? idx + 1 : (currentPage - 1) * PAGE_SIZE + idx + 1;
+                    const userHref = `/${locale}/dashboard/admin/users/${encodeURIComponent(u.id)}`;
+                    const isBanned = u.banned || u.status === "banned" || (u as any).isDeleted;
+
+                    return (
+                      <tr key={u.id} className="group hover:bg-slate-50/80 transition">
+                        {/* # */}
+                        <td className="py-4 px-4 text-xs font-semibold text-gray-300">{sn}</td>
+
+                        {/* User */}
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-9 w-9 rounded-full ${avatarColor(u.id)} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                              {initials(u.name, u.email)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{u.name || "Unnamed user"}</p>
+                              <p className="text-[11px] text-gray-400 font-mono truncate max-w-[160px]">{u.id}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Email */}
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-600">
+                          {u.email || "—"}
+                        </td>
+
+                        {/* Role / Status */}
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          {isBanned ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-red-50 text-red-700 border-red-200">
+                              Banned
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                              {u.role === "ADMIN" ? "Admin" : "Active"}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Created */}
+                        <td className="py-4 px-4 whitespace-nowrap text-xs text-gray-400 font-medium">
+                          {fmtDate(u.createdAt)}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-4 px-4 whitespace-nowrap text-right">
+                          <div className="relative inline-block" data-menu>
+                            <button type="button"
+                              onClick={(e) => {
+  if (openMenu === u.id) { setOpenMenu(null); return; }
+  const rect = e.currentTarget.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  setMenuFlip(prev => ({ ...prev, [u.id]: spaceBelow < 220 }));
+  setMenuPos({ top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right, rectBottom: rect.bottom });
+  setOpenMenu(u.id);
+}}
+                              className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm"
+                              data-menu>
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+
+                            {openMenu === u.id && (
+                              <div
+  className="fixed z-50 w-56 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden"
+  style={menuPos ? {
+    top: menuFlip[u.id]
+      ? menuPos.rectBottom - 220 + window.scrollY
+      : menuPos.top + 8,
+    right: menuPos.right,
+  } : {}}
+  data-menu>
+                                <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100">
+                                  <p className="text-xs font-bold text-gray-800 truncate">{u.name || "Unnamed user"}</p>
+                                  <p className="text-[11px] text-gray-400 truncate">{u.email || "—"}</p>
+                                </div>
+                                <div className="py-1">
+                                  <Link href={userHref} onClick={() => setOpenMenu(null)}
+                                    className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                                    View User & Shipments
+                                  </Link>
+                                  <Link href={`${userHref}#notify`} onClick={() => setOpenMenu(null)}
+                                    className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                                    Create Notification
+                                  </Link>
+                                </div>
+                                <div className="py-1 border-t border-gray-100">
+                                  <button type="button"
+                                    onClick={() => { setOpenMenu(null); setConfirmDeleteId(u.id); }}
+                                    disabled={deletingId === u.id}
+                                    className="cursor-pointer flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition disabled:opacity-50">
+                                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                    {deletingId === u.id ? "Banning…" : "Ban User"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Bottom pagination */}
+          {!loading && !showAll && totalPages > 1 && (
+            <div className="px-5 py-3.5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs text-gray-400 font-medium">
+                Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span>
+                <span className="mx-2 text-gray-200">·</span>
+                <span className="font-bold text-gray-700">{users.length}</span> total users
+              </p>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className={btnCls}>First</button>
+                <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className={btnCls}>
+                  <ChevronLeft className="w-3.5 h-3.5" /> Previous
+                </button>
+                <PageNumbers />
+                <button type="button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className={btnCls}>
+                  Next <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className={btnCls}>Last</button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Delete modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-200 p-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-xl font-extrabold text-gray-900">Ban user?</h3>
+            <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              You are about to ban this user. This action cannot be undone, and the user will lose access to their account and shipments. Are you sure you want to proceed?
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button type="button" onClick={() => setConfirmDeleteId("")}
+                className="cursor-pointer px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button type="button" onClick={() => deleteUser(confirmDeleteId)}
+                disabled={deletingId === confirmDeleteId}
+                className="cursor-pointer px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition flex items-center gap-2">
+                {deletingId === confirmDeleteId
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Banning…</>
+                  : "Yes, Ban User"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
