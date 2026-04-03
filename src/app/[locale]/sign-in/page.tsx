@@ -334,11 +334,11 @@ export default function SignInPage() {
   className={inputCls(!!errors.password) + ' pr-11'}
 />
                   {hasPassword && (
-                    <button type="button" tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={toggleShowPassword}
-                      className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  )}
+  <button type="button" tabIndex={-1} onClick={toggleShowPassword}
+    className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+  </button>
+)}
                 </div>
                 <AnimatePresence>
                   {errors.password && (
