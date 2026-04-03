@@ -119,16 +119,12 @@ export default function AdminUsersPage() {
   setDeletingId(userId);
   try {
     const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ banned: true }),
-    });
-    const j = await res.json().catch(() => null);
-    if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: true, status: "banned" } : u));
-    showMsg("User banned successfully.");
-  } catch {
-    showMsg("Network error.", "error");
+  method: "DELETE",
+});
+const j = await res.json().catch(() => null);
+if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
+setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: true, status: "banned" } : u));
+showMsg("User banned successfully.");
   } finally {
     setDeletingId(""); setConfirmDeleteId("");
   }
