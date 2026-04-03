@@ -15,6 +15,7 @@ type UserRow = {
   role?: string;
   status?: string;
   banned?: boolean;
+  isDeleted?: boolean;
   createdAt?: string;
 };
 
@@ -56,6 +57,7 @@ export default function AdminUsersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number; rectBottom: number } | null>(null);
   const [deletingId, setDeletingId] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState("");
   const [msg, setMsg] = useState("");
@@ -104,7 +106,7 @@ export default function AdminUsersPage() {
   const stats = useMemo(() => ({
     total: users.length,
     active: users.filter(u => !u.banned && u.status !== "banned").length,
-    banned: users.filter(u => u.banned || u.status === "banned").length,
+    banned: users.filter(u => u.banned || u.status === "banned" || (u as any).isDeleted).length,
   }), [users]);
 
   const totalPages = Math.ceil(users.length / PAGE_SIZE);
@@ -195,7 +197,7 @@ showMsg("User banned successfully.");
         )}
 
         {/* Table card */}
-        <div ref={tableRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+       <div ref={tableRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
 
           {/* Toolbar */}
           <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -237,7 +239,7 @@ showMsg("User banned successfully.");
               <p className="text-sm font-semibold">No users found.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/80">
@@ -252,7 +254,7 @@ showMsg("User banned successfully.");
                   {displayed.map((u, idx) => {
                     const sn = showAll ? idx + 1 : (currentPage - 1) * PAGE_SIZE + idx + 1;
                     const userHref = `/${locale}/dashboard/admin/users/${encodeURIComponent(u.id)}`;
-                    const isBanned = u.banned || u.status === "banned";
+                    const isBanned = u.banned || u.status === "banned" || (u as any).isDeleted;
 
                     return (
                       <tr key={u.id} className="group hover:bg-slate-50/80 transition">
@@ -300,12 +302,13 @@ showMsg("User banned successfully.");
                           <div className="relative inline-block" data-menu>
                             <button type="button"
                               onClick={(e) => {
-                                if (openMenu === u.id) { setOpenMenu(null); return; }
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                const tableBottom = tableRef.current?.getBoundingClientRect().bottom ?? window.innerHeight;
-                                setMenuFlip(prev => ({ ...prev, [u.id]: tableBottom - rect.bottom < 220 }));
-                                setOpenMenu(u.id);
-                              }}
+  if (openMenu === u.id) { setOpenMenu(null); return; }
+  const rect = e.currentTarget.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  setMenuFlip(prev => ({ ...prev, [u.id]: spaceBelow < 220 }));
+  setMenuPos({ top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right, rectBottom: rect.bottom });
+  setOpenMenu(u.id);
+}}
                               className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm"
                               data-menu>
                               <MoreVertical className="w-4 h-4" />
@@ -313,8 +316,14 @@ showMsg("User banned successfully.");
 
                             {openMenu === u.id && (
                               <div
-                                className={`absolute right-0 z-50 w-56 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden ${menuFlip[u.id] ? "bottom-10" : "top-10"}`}
-                                data-menu>
+  className="fixed z-50 w-56 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden"
+  style={menuPos ? {
+    top: menuFlip[u.id]
+      ? menuPos.rectBottom - 220 + window.scrollY
+      : menuPos.top + 8,
+    right: menuPos.right,
+  } : {}}
+  data-menu>
                                 <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100">
                                   <p className="text-xs font-bold text-gray-800 truncate">{u.name || "Unnamed user"}</p>
                                   <p className="text-[11px] text-gray-400 truncate">{u.email || "—"}</p>
