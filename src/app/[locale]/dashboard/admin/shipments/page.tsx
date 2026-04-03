@@ -100,7 +100,8 @@ export default function AdminShipmentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
   const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
-  const tableRef = useRef<HTMLDivElement>(null);
+const [menuPos, setMenuPos] = useState<{ top: number; right: number; rectBottom: number } | null>(null);
+const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -393,18 +394,27 @@ export default function AdminShipmentsPage() {
   <div className="relative inline-block" data-menu>
     <button type="button"
       onClick={(e) => {
-        if (openMenuId === s.shipmentId) { setOpenMenuId(''); return; }
-        const rect = e.currentTarget.getBoundingClientRect();
-const tableBottom = tableRef.current?.getBoundingClientRect().bottom ?? window.innerHeight;
-setMenuFlip(prev => ({ ...prev, [s.shipmentId]: tableBottom - rect.bottom < 260 }));
-        setOpenMenuId(s.shipmentId);
-      }}
+  if (openMenuId === s.shipmentId) { setOpenMenuId(''); return; }
+  const rect = e.currentTarget.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  setMenuFlip(prev => ({ ...prev, [s.shipmentId]: spaceBelow < 260 }));
+  setMenuPos({ top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right, rectBottom: rect.bottom });
+  setOpenMenuId(s.shipmentId);
+}}
       className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm">
       <MoreVertical className="w-4 h-4" />
     </button>
 
     {openMenuId === s.shipmentId && (
-      <div className={`absolute right-0 z-50 w-52 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden ${menuFlip[s.shipmentId] ? 'bottom-10' : 'top-10'}`} data-menu>
+      <div
+  className="fixed z-50 w-52 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden"
+  style={menuPos ? {
+    top: menuFlip[s.shipmentId]
+      ? menuPos.rectBottom - 260 + window.scrollY
+      : menuPos.top + 8,
+    right: menuPos.right,
+  } : {}}
+  data-menu>
                                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide truncate">{s.shipmentId}</p>
                                 </div>
