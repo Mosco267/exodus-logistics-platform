@@ -229,7 +229,7 @@ export default function SignInPage() {
         {/* Footer */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-white/40">
           <Globe className="w-3 h-3" />
-          <span> Exodus Logistics Ltd. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</span>
         </div>
       </div>
     </div>
