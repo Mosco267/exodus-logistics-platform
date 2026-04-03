@@ -217,24 +217,24 @@ showMsg("User banned successfully.");
                 : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, users.length)} of ${users.length} users`}
             </p>
             <div className="flex items-center gap-2 flex-wrap">
-              {!showAll && totalPages > 1 && (
-                <>
-                  <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1} className={btnCls}>
-                    <ChevronLeft className="w-3.5 h-3.5" /> Prev
-                  </button>
-                  <PageNumbers />
-                  <button type="button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages} className={btnCls}>
-                    Next <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              )}
-              <button type="button" onClick={() => { setShowAll(v => !v); setCurrentPage(1); }}
-                className={`${btnCls} ${showAll ? "!bg-blue-50 !border-blue-300 !text-blue-700" : ""}`}>
-                {showAll ? "Show Pages" : "View All"}
-              </button>
-            </div>
+  {!showAll && (
+    <>
+      <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+        disabled={currentPage === 1} className={btnCls}>
+        <ChevronLeft className="w-3.5 h-3.5" /> Prev
+      </button>
+      {totalPages > 1 && <PageNumbers />}
+      <button type="button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+        disabled={currentPage >= totalPages} className={btnCls}>
+        Next <ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </>
+  )}
+  <button type="button" onClick={() => { setShowAll(v => !v); setCurrentPage(1); }}
+    className={`${btnCls} ${showAll ? "!bg-blue-50 !border-blue-300 !text-blue-700" : ""}`}>
+    {showAll ? "Show Pages" : "View All"}
+  </button>
+</div>
           </div>
 
           {loading ? (
