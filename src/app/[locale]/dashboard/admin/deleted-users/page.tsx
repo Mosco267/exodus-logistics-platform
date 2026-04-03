@@ -89,8 +89,8 @@ export default function BannedUsersPage() {
     setBusyId(id);
     try {
       const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
-        method: "DELETE", cache: "no-store",
-      });
+  method: "POST", cache: "no-store",
+});
       const j = await res.json().catch(() => null);
       if (!res.ok) { showMsg(j?.error || "Failed to delete user.", "error"); return; }
       setItems(prev => prev.filter(x => x.id !== id));
