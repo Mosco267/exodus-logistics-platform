@@ -237,7 +237,7 @@ export default function SignInPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5 pt-20 pb-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-hidden">
 
         {/* Subtle background shape */}
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
@@ -247,15 +247,15 @@ export default function SignInPage() {
 
         {/* Mobile logo */}
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="lg:hidden mb-8 relative z-10"
-        >
-          <Link href={`/${locale}`}>
-            <Image src="/logo.svg" alt="Exodus Logistics" width={160} height={50} className="h-10 w-auto" priority />
-          </Link>
-        </motion.div>
+  initial={{ opacity: 0, y: -8 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4 }}
+  className="lg:hidden mb-8 relative z-10"
+>
+  <Link href={`/${locale}`}>
+    <Image src="/logo-dark.svg" alt="Exodus Logistics" width={160} height={50} className="h-10 w-auto" priority />
+  </Link>
+</motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}

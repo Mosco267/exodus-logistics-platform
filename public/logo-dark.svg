@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" width="320" height="72" fill="none">
+  <defs>
+    <!-- ── LIGHT MODE COLORS (white/light background) ── -->
+    <radialGradient id="gOceanLight" cx="35%" cy="28%" r="70%">
+      <stop offset="0%"   stop-color="#dbeafe" stop-opacity="0.95"/>
+      <stop offset="50%"  stop-color="#93c5fd" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.3"/>
+    </radialGradient>
+    <linearGradient id="gStrokeLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+
+    <!-- ── DARK MODE COLORS (dark background) ── -->
+    <radialGradient id="gOceanDark" cx="35%" cy="28%" r="70%">
+      <stop offset="0%"   stop-color="#bae6fd" stop-opacity="0.95"/>
+      <stop offset="50%"  stop-color="#38bdf8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.3"/>
+    </radialGradient>
+
+    <!-- ── SHARED ── -->
+    <radialGradient id="gShine" cx="28%" cy="22%" r="40%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gRingF" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0.15"/>
+      <stop offset="30%"  stop-color="#f97316" stop-opacity="1"/>
+      <stop offset="70%"  stop-color="#ea580c" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="gRingB" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7c2d12" stop-opacity="0.1"/>
+      <stop offset="50%"  stop-color="#7c2d12" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0.1"/>
+    </linearGradient>
+    <clipPath id="gC"><circle cx="36" cy="34" r="18"/></clipPath>
+    <clipPath id="gRB"><rect x="0" y="40" width="72" height="20"/></clipPath>
+    <clipPath id="gRF"><rect x="0" y="0"  width="72" height="40"/></clipPath>
+  </defs>
+
+  <!-- ══ ADAPTIVE CSS ══ -->
+  <style>
+    /* Default: light mode (white/light background) */
+    .hex-outer    { stroke: rgba(29,78,216,0.3); }
+    .hex-inner    { fill: rgba(219,234,254,0.4); }
+    .globe-circle { fill: url(#gOceanLight); stroke: url(#gStrokeLight); }
+    .continent    { fill: rgba(29,78,216,0.32); }
+    .continent-sm { fill: rgba(29,78,216,0.25); }
+    .grid-line    { stroke: rgba(29,78,216,0.28); }
+    .grid-line-sm { stroke: rgba(29,78,216,0.15); }
+    .exodus-text  { fill: #1e293b; }
+    .logistics-text { fill: #475569; }
+    .antarctica   { fill: rgba(29,78,216,0.15); }
+
+    /* Dark mode (dark background) */
+    @media (prefers-color-scheme: dark) {
+      .hex-outer    { stroke: rgba(255,255,255,0.25); }
+      .hex-inner    { fill: rgba(255,255,255,0.08); }
+      .globe-circle { fill: url(#gOceanDark); stroke: rgba(255,255,255,0.7); }
+      .continent    { fill: rgba(255,255,255,0.52); }
+      .continent-sm { fill: rgba(255,255,255,0.38); }
+      .grid-line    { stroke: rgba(255,255,255,0.32); }
+      .grid-line-sm { stroke: rgba(255,255,255,0.16); }
+      .exodus-text  { fill: #ffffff; }
+      .logistics-text { fill: rgba(255,255,255,0.82); }
+      .antarctica   { fill: rgba(255,255,255,0.32); }
+    }
+  </style>
+
+  <!-- ── HEXAGON ── -->
+  <polygon class="hex-outer" points="36,4 62,19 62,49 36,64 10,49 10,19"
+    fill="none" stroke-width="1.5"/>
+  <polygon class="hex-inner" points="36,11 56,22.5 56,45.5 36,57 16,45.5 16,22.5"/>
+
+  <!-- ── GLOBE ── -->
+  <circle class="globe-circle" cx="36" cy="34" r="18" stroke-width="1.6"/>
+
+  <!-- ── CONTINENTS ── -->
+  <g clip-path="url(#gC)">
+    <!-- North America -->
+    <path class="continent" d="M18 22 Q20 18 24 17 Q27 16 28 19 Q30 21 29 25 Q27 28 24 29 Q21 30 19 28 Q17 26 18 22 Z"/>
+    <!-- Greenland -->
+    <ellipse class="continent-sm" cx="28" cy="18" rx="2.5" ry="2"/>
+    <!-- South America -->
+    <path class="continent" d="M23 31 Q25 29 27 31 Q28 34 27 38 Q25 41 23 39 Q21 36 22 33 Z"/>
+    <!-- Europe -->
+    <path class="continent" d="M33 19 Q35 17 37 18 Q39 19 38 22 Q37 24 35 24 Q33 23 33 21 Z"/>
+    <!-- Africa -->
+    <path class="continent" d="M33 25 Q35 23 37 24 Q39 26 39 30 Q39 35 37 37 Q35 38 33 36 Q31 33 31 29 Q31 26 33 25 Z"/>
+    <!-- Asia -->
+    <path class="continent" d="M38 17 Q42 15 47 16 Q51 17 52 20 Q53 23 51 25 Q48 27 44 27 Q40 27 38 25 Q37 22 38 19 Z"/>
+    <!-- India -->
+    <path class="continent-sm" d="M43 27 Q45 26 46 28 Q47 31 45 33 Q43 33 42 31 Q42 29 43 27 Z"/>
+    <!-- Australia -->
+    <path class="continent" d="M48 31 Q51 29 53 31 Q54 34 52 36 Q50 37 48 35 Q47 33 48 31 Z"/>
+    <!-- Antarctica -->
+    <ellipse class="antarctica" cx="36" cy="50" rx="10" ry="2.5"/>
+  </g>
+
+  <!-- ── GRID LINES ── -->
+  <ellipse class="grid-line"    cx="36" cy="34" rx="18" ry="6.5"  fill="none" stroke-width="0.7"/>
+  <ellipse class="grid-line-sm" cx="36" cy="34" rx="18" ry="13"   fill="none" stroke-width="0.6"/>
+  <ellipse class="grid-line"    cx="36" cy="34" rx="7"  ry="18"   fill="none" stroke-width="0.7"/>
+  <ellipse class="grid-line-sm" cx="36" cy="34" rx="14" ry="18"   fill="none" stroke-width="0.6"/>
+  <line class="grid-line" x1="18" y1="34" x2="54" y2="34" stroke-width="0.8"/>
+  <line class="grid-line" x1="36" y1="16" x2="36" y2="52" stroke-width="0.8"/>
+
+  <!-- ── SATURN RING BACK ── -->
+  <g clip-path="url(#gRB)">
+    <ellipse cx="36" cy="34" rx="25" ry="8.5"
+      fill="none" stroke="url(#gRingB)" stroke-width="4"
+      transform="rotate(-20,36,34)"/>
+  </g>
+
+  <!-- ── GLOBE SHINE ── -->
+  <circle cx="36" cy="34" r="18" fill="url(#gShine)"/>
+
+  <!-- ── SATURN RING FRONT ── -->
+  <g clip-path="url(#gRF)">
+    <ellipse cx="36" cy="34" rx="25" ry="8.5"
+      fill="none" stroke="url(#gRingF)" stroke-width="4"
+      transform="rotate(-20,36,34)"/>
+  </g>
+
+  <!-- ── WORDMARK ── -->
+  <text class="exodus-text" x="80" y="38"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="27" font-weight="bold" letter-spacing="4">EXODUS</text>
+
+  <!-- Orange dot -->
+  <circle cx="242" cy="30" r="3.5" fill="#f97316"/>
+
+  <!-- LOGISTICS -->
+  <text class="logistics-text" x="80" y="56"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="11" font-weight="normal" letter-spacing="8">LOGISTICS</text>
+
+  <!-- Orange underline -->
+  <line x1="80" y1="61" x2="240" y2="61"
+    stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+</svg>
