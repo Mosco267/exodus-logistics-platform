@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
 
@@ -7,6 +8,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
 
   providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+
     Credentials({
       name: "Credentials",
       credentials: {
@@ -22,17 +28,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const client = await clientPromise;
         const db = client.db(process.env.MONGODB_DB);
 
-       const user = await db.collection("users").findOne({ email });
-if (!user) return null;
+        const user = await db.collection("users").findOne({ email });
+        if (!user) return null;
 
-// ✅ Block deleted users (soft deleted)
-if ((user as any).isDeleted) return null;
+        // Block deleted/banned users
+        if ((user as any).isDeleted) return null;
 
         const hash = String((user as any).passwordHash || (user as any).password || "");
-const ok = await bcrypt.compare(password, hash);
+        const ok = await bcrypt.compare(password, hash);
         if (!ok) return null;
 
-        // ✅ IMPORTANT: include role here
         return {
           id: String(user._id),
           name: String(user.name || ""),
@@ -44,8 +49,46 @@ const ok = await bcrypt.compare(password, hash);
   ],
 
   callbacks: {
+    async signIn({ user, account }) {
+      // Handle Google sign-in — auto-create or find user in MongoDB
+      if (account?.provider === "google") {
+        try {
+          const client = await clientPromise;
+          const db = client.db(process.env.MONGODB_DB);
+
+          const email = String(user.email || "").toLowerCase().trim();
+          if (!email) return false;
+
+          // Check if blocked
+          const blocked = await db.collection("blocked_emails").findOne({ email });
+          if (blocked) return false;
+
+          let existing = await db.collection("users").findOne({ email });
+
+          if (!existing) {
+            // Create new user from Google
+            const result = await db.collection("users").insertOne({
+              name: user.name || "",
+              email,
+              role: "USER",
+              provider: "google",
+              createdAt: new Date(),
+            });
+            (user as any).id = String(result.insertedId);
+            (user as any).role = "USER";
+          } else {
+            if ((existing as any).isDeleted) return false;
+            (user as any).id = String(existing._id);
+            (user as any).role = String((existing as any).role || "USER");
+          }
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    },
+
     async jwt({ token, user }) {
-      // When user signs in, copy role -> token
       if (user) {
         token.role = (user as any).role || "USER";
         token.uid = (user as any).id;
@@ -54,7 +97,6 @@ const ok = await bcrypt.compare(password, hash);
     },
 
     async session({ session, token }) {
-      // Copy role -> session.user
       (session.user as any).role = (token as any).role || "USER";
       (session.user as any).id = (token as any).uid || (token.sub ?? "");
       return session;
