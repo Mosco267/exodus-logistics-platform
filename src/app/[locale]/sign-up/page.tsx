@@ -110,13 +110,13 @@ export default function SignUpPage() {
   };
 
   const handleGoogleSignUp = async () => {
-    setGoogleLoading(true);
-    try {
-      await signIn('google', { callbackUrl: `/${locale}/dashboard` });
-    } catch {
-      setGoogleLoading(false);
-    }
-  };
+  setGoogleLoading(true);
+  try {
+    await signIn('google', { callbackUrl: `http://localhost:3000/${locale}/dashboard` });
+  } catch {
+    setGoogleLoading(false);
+  }
+};
 
   if (success) {
     return (
