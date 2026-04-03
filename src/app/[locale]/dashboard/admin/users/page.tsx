@@ -64,6 +64,7 @@ export default function AdminUsersPage() {
   const [msgType, setMsgType] = useState<"success" | "error">("success");
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
+  const [bannedCount, setBannedCount] = useState(0);
 
   const showMsg = (text: string, type: "success" | "error" = "success") => {
     setMsg(text); setMsgType(type);
@@ -89,25 +90,32 @@ export default function AdminUsersPage() {
   }, []);
 
   const fetchUsers = async (silent = false) => {
-    if (silent) setRefreshing(true); else setLoading(true);
-    try {
-      const res = await fetch("/api/admin/users", { cache: "no-store" });
-      const json = await res.json();
-      setUsers(Array.isArray(json?.users) ? json.users : []);
-    } catch {
-      showMsg("Failed to load users.", "error");
-    } finally {
-      setLoading(false); setRefreshing(false);
-    }
-  };
+  if (silent) setRefreshing(true); else setLoading(true);
+  try {
+    const [usersRes, bannedRes] = await Promise.all([
+      fetch("/api/admin/users", { cache: "no-store" }),
+      fetch("/api/admin/deleted-users", { cache: "no-store" }),
+    ]);
+    const usersJson = await usersRes.json();
+    const bannedJson = bannedRes.ok ? await bannedRes.json() : { users: [] };
+    setUsers(Array.isArray(usersJson?.users) ? usersJson.users : []);
+    setBannedCount(Array.isArray(bannedJson?.users) ? bannedJson.users.length : 0);
+  } catch {
+    showMsg("Failed to load users.", "error");
+  } finally {
+    setLoading(false); setRefreshing(false);
+  }
+};
+
+  
 
   useEffect(() => { fetchUsers(); }, []); // eslint-disable-line
 
   const stats = useMemo(() => ({
-    total: users.length,
-    active: users.filter(u => !u.banned && u.status !== "banned").length,
-    banned: users.filter(u => u.banned || u.status === "banned" || (u as any).isDeleted).length,
-  }), [users]);
+  total: users.length,
+  active: users.length,
+  banned: bannedCount,
+}), [users, bannedCount]);
 
   const totalPages = Math.ceil(users.length / PAGE_SIZE);
 
@@ -125,7 +133,8 @@ export default function AdminUsersPage() {
 });
 const j = await res.json().catch(() => null);
 if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
-setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: true, status: "banned" } : u));
+setUsers(prev => prev.filter(u => u.id !== userId));
+setBannedCount(prev => prev + 1);
 showMsg("User banned successfully.");
   } finally {
     setDeletingId(""); setConfirmDeleteId("");
