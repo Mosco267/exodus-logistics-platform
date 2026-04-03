@@ -130,3 +130,33 @@ export async function POST(_req: Request, ctx: any) {
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request, ctx: any) {
+  try {
+    const session = await auth();
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+    if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const p = await Promise.resolve(ctx?.params);
+    const rawValue = p?.id ?? p?.userId ?? (Array.isArray(p?.slug) ? p.slug[0] : undefined);
+    const raw = String(rawValue || "").trim();
+    if (!raw || !ObjectId.isValid(raw))
+      return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+
+    const body = await req.json();
+    const updates: Record<string, any> = {};
+    if (body.name !== undefined) updates.name = String(body.name || "").trim();
+    if (body.email !== undefined) updates.email = String(body.email || "").toLowerCase().trim();
+
+    if (Object.keys(updates).length === 0)
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+    await db.collection("users").updateOne({ _id: new ObjectId(raw) }, { $set: updates });
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  }
+}
