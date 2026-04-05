@@ -61,7 +61,8 @@ export default function SignInPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
-    const rawPassword = passwordRef.current?.value || '';
+    const rawPassword = passwordRef.current?.dataset.real || 
+    passwordRef.current?.value || '';
 
     const newErrors = { email: '', password: '', general: '' };
     if (!rawEmail) newErrors.email = 'Email address is required.';
@@ -333,10 +334,22 @@ export default function SignInPage() {
     autoCapitalize="off"
     spellCheck={false}
     onChange={e => {
-      setHasPassword(!!e.target.value);
-      setPasswordLength(e.target.value.length);
-      setErrors(p => ({ ...p, password: '', general: '' }));
-    }}
+  const real = e.target.value.replace(/[^•]/g, '');
+  const added = e.target.value.length - passwordLength;
+  if (added > 0) {
+    const newReal = (passwordRef.current?.dataset.real || '') + 
+      e.target.value.slice(passwordLength);
+    passwordRef.current!.dataset.real = newReal;
+    e.target.value = '•'.repeat(e.target.value.length);
+  } else {
+    const newReal = (passwordRef.current?.dataset.real || '')
+      .slice(0, e.target.value.length);
+    passwordRef.current!.dataset.real = newReal;
+  }
+  setHasPassword(!!e.target.value);
+  setPasswordLength(e.target.value.length);
+  setErrors(p => ({ ...p, password: '', general: '' }));
+}}
     onSelect={e => {
       const t = e.target as HTMLInputElement;
       t.setSelectionRange(t.value.length, t.value.length);
@@ -351,44 +364,22 @@ export default function SignInPage() {
       borderRadius: '12px',
       border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
       fontSize: '16px',
-      backgroundColor: passwordLength > 0 ? 'transparent' : '#ffffff',
-      color: '#ffffff',
-      WebkitTextFillColor: '#ffffff',
+      backgroundColor: '#ffffff',
+      color: '#111827',
+      WebkitTextFillColor: '#111827',
       caretColor: '#0891b2',
       outline: 'none',
       WebkitAppearance: 'none',
       appearance: 'none',
       boxSizing: 'border-box' as const,
       zIndex: 2,
-      fontFamily: 'inherit',
+      fontFamily: 'monospace',
+      letterSpacing: '0.15em',
     }}
   />
 )}
 
-<div
-  aria-hidden="true"
-  style={{
-    position: 'absolute',
-    top: 0, left: 0,
-    right: '44px',
-    height: '48px',
-    paddingLeft: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '16px',
-    color: passwordLength > 0 ? '#111827' : '#9ca3af',
-    letterSpacing: passwordLength > 0 ? '0.15em' : 'normal',
-    pointerEvents: 'none',
-    zIndex: 3,
-    userSelect: 'none',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    fontFamily: 'inherit',
-    fontWeight: 'normal',
-  }}
->
-  {passwordLength > 0 ? '•'.repeat(passwordLength) : 'Enter your password'}
-</div>
+
       
 
   {/* EYEOFF MODE — plain text */}
