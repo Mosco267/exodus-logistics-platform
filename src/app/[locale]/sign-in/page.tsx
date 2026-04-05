@@ -116,7 +116,7 @@ export default function SignInPage() {
     }`;
 
   return (
-    <div className="min-h-screen flex mt-4">
+    <div className="min-h-screen flex">
 
       {/* ── LEFT PANEL ── */}
       <div
@@ -541,7 +541,7 @@ export default function SignInPage() {
             {/* Sign up */}
             <p className="mt-6 text-center text-sm text-gray-500">
               Don&apos;t have an account?{' '}
-              <Link href={`/${locale}/signup`}
+              <Link href={`/${locale}/sign-up`}
                 className="font-bold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
                 Create account
               </Link>
