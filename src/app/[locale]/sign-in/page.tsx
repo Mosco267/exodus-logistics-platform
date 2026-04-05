@@ -235,7 +235,7 @@ export default function SignInPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 pt-16 pb-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-hidden">
 
         {/* Subtle background shape */}
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
