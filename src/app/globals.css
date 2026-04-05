@@ -119,3 +119,10 @@ html, body {
   color: #9ca3af;
   text-shadow: none;
 }
+
+/* Password masked input overrides */
+#password[type="text"] {
+  color: rgba(0,0,0,0) !important;
+  background-color: rgba(0,0,0,0) !important;
+  -webkit-text-fill-color: rgba(0,0,0,0) !important;
+}
