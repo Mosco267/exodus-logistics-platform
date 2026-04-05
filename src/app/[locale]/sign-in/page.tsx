@@ -107,7 +107,7 @@ export default function SignInPage() {
   };
 
  const inputCls = (hasError: boolean) =>
-  `w-full h-12 px-4 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
+  `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
       hasError
         ? 'border-red-400 focus:ring-red-400/20 bg-red-50/30'
         : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
@@ -293,9 +293,10 @@ export default function SignInPage() {
                   Email address
                 </label>
                 <input ref={emailRef} id="email" name="email" type="email" autoComplete="email"
-                  placeholder="you@example.com"
-                  onChange={() => setErrors(p => ({ ...p, email: '', general: '' }))}
-                  className={inputCls(!!errors.email)} />
+  placeholder="you@example.com"
+  onChange={() => setErrors(p => ({ ...p, email: '', general: '' }))}
+  style={{ fontSize: '16px' }}
+  className={inputCls(!!errors.email)} />
                 <AnimatePresence>
                   {errors.email && (
                     <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -324,6 +325,7 @@ export default function SignInPage() {
       id="password"
       name="password"
       type="password"
+      inputMode="text"
       autoComplete="current-password"
       placeholder="Enter your password"
       autoCorrect="off"
