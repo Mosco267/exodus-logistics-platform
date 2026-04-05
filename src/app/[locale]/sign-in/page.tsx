@@ -342,23 +342,23 @@ onBlur={e => {
   if (!e.target.value) e.target.style.letterSpacing = 'normal';
 }}
     style={{
-      width: '100%',
-      height: '48px',
-      paddingLeft: '16px',
-      paddingRight: '44px',
-      borderRadius: '12px',
-      border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-      fontSize: '16px',
-      backgroundColor: '#ffffff',
-      color: '#ffffff',
-      caretColor: '#111827',
-      textShadow: '0 0 0 #111827',
-      outline: 'none',
-      WebkitAppearance: 'none',
-      appearance: 'none',
-      letterSpacing: hasPassword ? '0.2em' : 'normal',
-      fontFamily: 'text-security-disc, monospace',
-    }}
+  width: '100%',
+  height: '48px',
+  paddingLeft: '16px',
+  paddingRight: '44px',
+  borderRadius: '12px',
+  border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+  fontSize: '16px',
+  backgroundColor: '#ffffff',
+  color: hasPassword ? 'transparent' : '#111827',
+  caretColor: '#111827',
+  textShadow: hasPassword ? '0 0 0 #111827' : 'none',
+  outline: 'none',
+  WebkitAppearance: 'none',
+  appearance: 'none',
+  letterSpacing: hasPassword ? '0.25em' : 'normal',
+  fontFamily: 'inherit',
+}}
   />
 )}
   {showPassword && (
