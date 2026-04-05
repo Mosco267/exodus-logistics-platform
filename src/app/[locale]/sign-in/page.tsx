@@ -41,7 +41,7 @@ export default function SignInPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
   const [passwordLength, setPasswordLength] = useState(0);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
   useEffect(() => {
@@ -243,17 +243,7 @@ export default function SignInPage() {
         <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
-        {/* Mobile logo */}
-        <motion.div
-  initial={{ opacity: 0, y: -8 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.4 }}
-  className="lg:hidden mb-8 relative z-10"
->
-  <Link href={`/${locale}`}>
-    <Image src="/logo-dark.svg" alt="Exodus Logistics" width={160} height={50} className="h-10 w-auto" priority />
-  </Link>
-</motion.div>
+        
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
