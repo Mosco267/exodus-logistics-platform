@@ -39,6 +39,7 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
+  const [passwordLength, setPasswordLength] = useState(0);
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
@@ -319,7 +320,7 @@ export default function SignInPage() {
                 <div style={{ position: 'relative' }}>
   {/* Hidden text input to trick iOS into opening keyboard */}
   {!showPassword && (
-  <div style={{ position: 'relative', width: '100%' }}>
+  <>
     <input
       key="password-hidden"
       ref={passwordRef}
@@ -328,12 +329,13 @@ export default function SignInPage() {
       type="text"
       inputMode="text"
       autoComplete="current-password"
-      placeholder="Enter your password"
+      placeholder={passwordLength > 0 ? '' : 'Enter your password'}
       autoCorrect="off"
       autoCapitalize="off"
       spellCheck={false}
       onChange={e => {
         setHasPassword(!!e.target.value);
+        setPasswordLength(e.target.value.length);
         setErrors(p => ({ ...p, password: '', general: '' }));
       }}
       style={{
@@ -356,29 +358,30 @@ export default function SignInPage() {
         zIndex: 2,
       }}
     />
-    {/* Overlay that shows stars */}
+    {/* Dots overlay */}
     <div
       aria-hidden="true"
       style={{
         position: 'absolute',
         top: 0,
         left: 0,
+        width: 'calc(100% - 44px)',
         height: '48px',
         paddingLeft: '16px',
-        paddingRight: '44px',
         display: 'flex',
         alignItems: 'center',
-        fontSize: '20px',
-        color: '#111827',
-        letterSpacing: '0.15em',
+        fontSize: passwordLength > 0 ? '22px' : '14px',
+        color: passwordLength > 0 ? '#111827' : '#9ca3af',
+        letterSpacing: passwordLength > 0 ? '0.15em' : 'normal',
         pointerEvents: 'none',
         zIndex: 1,
         userSelect: 'none',
+        fontFamily: 'inherit',
       }}
     >
-      {'●'.repeat(passwordRef.current?.value?.length || 0)}
+      {passwordLength > 0 ? '●'.repeat(passwordLength) : 'Enter your password'}
     </div>
-  </div>
+  </>
 )}
   {showPassword && (
     <input
