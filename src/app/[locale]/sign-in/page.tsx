@@ -318,142 +318,42 @@ export default function SignInPage() {
                   </button>
                 </div>
                 <div style={{ position: 'relative', height: '48px', borderRadius: '12px' }}>
-  {!showPassword && (
-  <>
-    <input
-      key="password-hidden"
-      ref={passwordRef}
-      id="password"
-      name="password"
-      type="text"
-      inputMode="text"
-      autoComplete="current-password"
-      placeholder=""
-      autoCorrect="off"
-      autoCapitalize="off"
-      spellCheck={false}
-      onChange={e => {
-        setHasPassword(!!e.target.value);
-        setPasswordLength(e.target.value.length);
-        setErrors(p => ({ ...p, password: '', general: '' }));
-      }}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '48px',
-        paddingLeft: '16px',
-        paddingRight: '44px',
-        borderRadius: '12px',
-        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-        fontSize: '16px',
-        letterSpacing: '-0.5em',
-        transform: 'scale(0.5)',
-        transformOrigin: 'left center',
-        backgroundColor: 'rgba(0,0,0,0)',
-        color: 'rgba(0,0,0,0)',
-        WebkitTextFillColor: 'rgba(0,0,0,0)',
-        caretColor: '#0891b2',
-        outline: 'none',
-        WebkitAppearance: 'none',
-        appearance: 'none',
-        zIndex: 2,
-        boxSizing: 'border-box' as const,
-        fontFamily: 'monospace',
-      }}
-    />
-    {/* Overlay */}
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: '44px',
-        height: '48px',
-        paddingLeft: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        fontSize: passwordLength > 0 ? '16px' : '16px',
-        color: passwordLength > 0 ? '#111827' : '#9ca3af',
-        letterSpacing: passwordLength > 0 ? '0.18em' : 'normal',
-        pointerEvents: 'none',
-        zIndex: 1,
-        userSelect: 'none',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        fontFamily: passwordLength > 0 ? 'monospace' : 'inherit',
-        fontWeight: 'normal',
-      }}
-    >
-      {passwordLength > 0 ? '●'.repeat(passwordLength) : 'Enter your password'}
-    </div>
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        borderRadius: '12px',
-        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-        pointerEvents: 'none',
-        zIndex: 1,
-        boxSizing: 'border-box' as const,
-      }}
-    />
-  </>
-)}
-
-  {showPassword && (
-    <input
-      key="password-visible"
-      ref={passwordRef}
-      id="password-visible"
-      name="password"
-      type="text"
-      autoComplete="current-password"
-      placeholder="Enter your password"
-      autoCorrect="off"
-      autoCapitalize="off"
-      spellCheck={false}
-      onChange={e => {
-  setHasPassword(!!e.target.value);
-  setPasswordLength(e.target.value.length);
-  setErrors(p => ({ ...p, password: '', general: '' }));
-  // Force cursor to end
-  const len = e.target.value.length;
-  e.target.setSelectionRange(len, len);
-}}
-onSelect={e => {
-  // Prevent selection — always keep cursor at end
-  const target = e.target as HTMLInputElement;
-  const len = target.value.length;
-  target.setSelectionRange(len, len);
-}}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '48px',
-        paddingLeft: '16px',
-        paddingRight: '44px',
-        borderRadius: '12px',
-        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-        fontSize: '16px',
-        backgroundColor: '#ffffff',
-        color: '#111827',
-        outline: 'none',
-        WebkitAppearance: 'none',
-        appearance: 'none',
-        boxSizing: 'border-box' as const,
-      }}
-    />
-  )}
-
+  <input
+    ref={passwordRef}
+    id="password"
+    name="password"
+    type={showPassword ? 'text' : 'password'}
+    autoComplete="current-password"
+    placeholder="Enter your password"
+    autoCorrect="off"
+    autoCapitalize="off"
+    spellCheck={false}
+    onChange={e => {
+      setHasPassword(!!e.target.value);
+      setPasswordLength(e.target.value.length);
+      setErrors(p => ({ ...p, password: '', general: '' }));
+    }}
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '48px',
+      paddingLeft: '16px',
+      paddingRight: '44px',
+      borderRadius: '12px',
+      border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+      fontSize: '16px',
+      backgroundColor: '#ffffff',
+      color: '#111827',
+      caretColor: '#0891b2',
+      outline: 'none',
+      WebkitAppearance: 'none',
+      appearance: 'none',
+      boxSizing: 'border-box' as const,
+      fontFamily: 'inherit',
+    }}
+  />
   <button
     type="button"
     tabIndex={-1}
@@ -463,6 +363,8 @@ onSelect={e => {
       setTimeout(() => {
         if (passwordRef.current) {
           passwordRef.current.value = current;
+          const len = current.length;
+          passwordRef.current.setSelectionRange(len, len);
           passwordRef.current.focus();
         }
       }, 10);
