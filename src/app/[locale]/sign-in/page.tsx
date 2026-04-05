@@ -106,11 +106,11 @@ export default function SignInPage() {
     }
   };
 
-  const inputCls = (hasError: boolean) =>
-    `w-full h-12 px-4 rounded-xl border text-sm bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
+ const inputCls = (hasError: boolean) =>
+  `w-full h-12 px-4 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
       hasError
         ? 'border-red-400 focus:ring-red-400/20 bg-red-50/30'
-        : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15 focus:bg-white'
+        : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
     }`;
 
   return (
