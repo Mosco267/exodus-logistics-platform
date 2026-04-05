@@ -120,15 +120,8 @@ html, body {
   text-shadow: none;
 }
 
-/* Password masked input overrides */
 #password[type="text"] {
-  color: rgba(0,0,0,0) !important;
-  background-color: rgba(0,0,0,0) !important;
-  -webkit-text-fill-color: rgba(0,0,0,0) !important;
-}
-
-/* Force iOS Safari to allow password field input */
-input[type="password"] {
-  -webkit-user-select: text !important;
-  user-select: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  background-color: transparent !important;
 }
