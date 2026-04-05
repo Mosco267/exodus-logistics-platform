@@ -362,22 +362,24 @@ export default function SignInPage() {
     <div
       aria-hidden="true"
       style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: 'calc(100% - 44px)',
-        height: '48px',
-        paddingLeft: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        fontSize: passwordLength > 0 ? '22px' : '14px',
-        color: passwordLength > 0 ? '#111827' : '#9ca3af',
-        letterSpacing: passwordLength > 0 ? '0.15em' : 'normal',
-        pointerEvents: 'none',
-        zIndex: 1,
-        userSelect: 'none',
-        fontFamily: 'inherit',
-      }}
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: 'calc(100% - 44px)',
+  height: '48px',
+  paddingLeft: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: passwordLength > 0 ? '10px' : '16px',
+  color: passwordLength > 0 ? '#111827' : '#9ca3af',
+  letterSpacing: passwordLength > 0 ? '0.3em' : 'normal',
+  pointerEvents: 'none',
+  zIndex: 1,
+  userSelect: 'none',
+  fontFamily: 'inherit',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+}}
     >
       {passwordLength > 0 ? '●'.repeat(passwordLength) : 'Enter your password'}
     </div>
@@ -430,16 +432,17 @@ export default function SignInPage() {
       }, 10);
     }}
     style={{
-      position: 'absolute',
-      right: '12px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '4px',
-      color: '#9ca3af',
-    }}
+  position: 'absolute',
+  right: '12px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '4px',
+  color: '#9ca3af',
+  zIndex: 3,
+}}
   >
     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
   </button>
