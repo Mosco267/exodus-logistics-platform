@@ -120,10 +120,7 @@ html, body {
   text-shadow: none;
 }
 
-#password {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
+
 
 #password::placeholder {
   color: #9ca3af !important;
@@ -134,4 +131,9 @@ html, body {
 input[type="password"]::-webkit-contacts-auto-fill-button,
 input[type="password"]::-webkit-credentials-auto-fill-button {
   display: none !important;
+}
+
+#password {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
 }

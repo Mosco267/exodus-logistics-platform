@@ -373,8 +373,8 @@ export default function SignInPage() {
       appearance: 'none',
       boxSizing: 'border-box' as const,
       zIndex: 2,
-      fontFamily: 'monospace',
-      letterSpacing: '0.15em',
+      fontFamily: 'inherit',
+      letterSpacing: '0.2em',
     }}
   />
 )}
@@ -433,15 +433,17 @@ export default function SignInPage() {
     type="button"
     tabIndex={-1}
     onClick={() => {
-      const current = passwordRef.current?.value || '';
-      setShowPassword(v => !v);
-      setTimeout(() => {
-        if (passwordRef.current) {
-          passwordRef.current.value = current;
-          passwordRef.current.focus();
-        }
-      }, 10);
-    }}
+  const realPassword = passwordRef.current?.dataset.real || '';
+  setShowPassword(v => !v);
+  setTimeout(() => {
+    if (passwordRef.current) {
+      passwordRef.current.value = realPassword;
+      passwordRef.current.dataset.real = realPassword;
+      setPasswordLength(realPassword.length);
+      passwordRef.current.focus();
+    }
+  }, 10);
+}}
     style={{
       position: 'absolute',
       right: '12px',
