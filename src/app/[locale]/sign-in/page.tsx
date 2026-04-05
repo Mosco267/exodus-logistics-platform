@@ -335,6 +335,12 @@ export default function SignInPage() {
       setHasPassword(!!e.target.value);
       setErrors(p => ({ ...p, password: '', general: '' }));
     }}
+    onFocus={e => {
+  e.target.style.letterSpacing = '0.2em';
+}}
+onBlur={e => {
+  if (!e.target.value) e.target.style.letterSpacing = 'normal';
+}}
     style={{
       width: '100%',
       height: '48px',
@@ -344,13 +350,14 @@ export default function SignInPage() {
       border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
       fontSize: '16px',
       backgroundColor: '#ffffff',
-      color: 'transparent',
+      color: '#ffffff',
       caretColor: '#111827',
       textShadow: '0 0 0 #111827',
       outline: 'none',
       WebkitAppearance: 'none',
       appearance: 'none',
-      letterSpacing: '0.2em',
+      letterSpacing: 'normal',
+      fontFamily: 'text-security-disc, monospace',
     }}
   />
 )}
