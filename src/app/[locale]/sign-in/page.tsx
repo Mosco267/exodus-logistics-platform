@@ -336,6 +336,12 @@ export default function SignInPage() {
       setPasswordLength(e.target.value.length);
       setErrors(p => ({ ...p, password: '', general: '' }));
     }}
+    onFocus={e => {
+  // Force iOS to show caret on password field
+  const val = e.target.value;
+  e.target.value = '';
+  e.target.value = val;
+}}
     style={{
       position: 'absolute',
       top: 0, left: 0,
