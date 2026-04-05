@@ -61,8 +61,7 @@ export default function SignInPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
-    const rawPassword = passwordRef.current?.dataset.real || 
-    passwordRef.current?.value || '';
+    const rawPassword = passwordRef.current?.dataset.real || passwordRef.current?.value || '';
 
     const newErrors = { email: '', password: '', general: '' };
     if (!rawEmail) newErrors.email = 'Email address is required.';
@@ -395,10 +394,14 @@ export default function SignInPage() {
       autoCapitalize="off"
       spellCheck={false}
       onChange={e => {
-        setHasPassword(!!e.target.value);
-        setPasswordLength(e.target.value.length);
-        setErrors(p => ({ ...p, password: '', general: '' }));
-      }}
+  const val = e.target.value;
+  if (passwordRef.current) {
+    passwordRef.current.dataset.real = val;
+  }
+  setHasPassword(!!val);
+  setPasswordLength(val.length);
+  setErrors(p => ({ ...p, password: '', general: '' }));
+}}
       
       onSelect={e => {
   const t = e.target as HTMLInputElement;
@@ -433,16 +436,26 @@ export default function SignInPage() {
     type="button"
     tabIndex={-1}
     onClick={() => {
+  // Always read real password before switching
   const realPassword = passwordRef.current?.dataset.real || '';
-  setShowPassword(v => !v);
-  setTimeout(() => {
-    if (passwordRef.current) {
-      passwordRef.current.value = realPassword;
-      passwordRef.current.dataset.real = realPassword;
-      setPasswordLength(realPassword.length);
-      passwordRef.current.focus();
-    }
-  }, 10);
+  setShowPassword(prev => {
+    const nextShow = !prev;
+    setTimeout(() => {
+      if (passwordRef.current) {
+        if (nextShow) {
+          // Switching to eyeoff — show real text
+          passwordRef.current.value = realPassword;
+        } else {
+          // Switching to eye — show dots
+          passwordRef.current.value = '•'.repeat(realPassword.length);
+        }
+        passwordRef.current.dataset.real = realPassword;
+        setPasswordLength(realPassword.length);
+        passwordRef.current.focus();
+      }
+    }, 10);
+    return nextShow;
+  });
 }}
     style={{
       position: 'absolute',
