@@ -964,23 +964,23 @@ export default function SignUpPage() {
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Phone Number</label>
                           <input
-  value={phone}
+  value={companyPhone}
   onChange={e => {
-    const dialPrefix = dialCode + ' ';
+    const dialPrefix = companyDialCode + ' ';
     const raw = e.target.value;
-    if (!raw.startsWith(dialCode)) { setPhone(dialCode + ' '); return; }
+    if (!raw.startsWith(companyDialCode)) { setCompanyPhone(companyDialCode + ' '); return; }
     const numberPart = raw.slice(dialPrefix.length).replace(/\D/g, '');
-    const fmt = getPhoneFormat(countryCode);
+    const fmt = getPhoneFormat(companyCountryCode);
     const formatted = formatPhoneNumber(numberPart, fmt.pattern);
-    setPhone(dialPrefix + formatted);
-    setErrors(p => ({ ...p, phone: '' }));
+    setCompanyPhone(dialPrefix + formatted);
+    setErrors(p => ({ ...p, companyPhone: '' }));
   }}
   type="tel"
   inputMode="numeric"
-  placeholder={companyDialCode + ' ' + getPhoneFormat(companyCountry).placeholder}
+  placeholder={companyDialCode + ' ' + getPhoneFormat(companyCountryCode).placeholder}
   autoComplete="tel"
   style={{ fontSize: '16px' }}
-  className={inputCls(!!errors.phone)}
+  className={inputCls(!!errors.companyPhone)}
 />
                           {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
                         </div>
