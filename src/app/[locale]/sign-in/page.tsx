@@ -362,7 +362,7 @@ export default function SignInPage() {
       paddingRight: '44px',
       borderRadius: '12px',
       border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-      fontSize: '16px',
+      fontSize: '20px',
       backgroundColor: '#ffffff',
       color: '#111827',
       WebkitTextFillColor: '#111827',
@@ -373,7 +373,8 @@ export default function SignInPage() {
       boxSizing: 'border-box' as const,
       zIndex: 2,
       fontFamily: 'inherit',
-      letterSpacing: '0.2em',
+      letterSpacing: '0.25em',
+      
     }}
   />
 )}
