@@ -356,7 +356,7 @@ onBlur={e => {
       outline: 'none',
       WebkitAppearance: 'none',
       appearance: 'none',
-      letterSpacing: 'normal',
+      letterSpacing: hasPassword ? '0.2em' : 'normal',
       fontFamily: 'text-security-disc, monospace',
     }}
   />
