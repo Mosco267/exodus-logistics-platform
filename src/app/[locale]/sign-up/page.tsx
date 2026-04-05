@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Check,
   ArrowRight, ArrowLeft, User, Building2, Mail, Shield,
-  Globe, Package, Zap, Briefcase
+  Globe, Package, Zap,
 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
@@ -24,18 +24,19 @@ const GoogleIcon = () => (
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
     { label: 'At least 8 characters', pass: password.length >= 8 },
-    { label: 'One uppercase letter', pass: /[A-Z]/.test(password) },
-    { label: 'One number', pass: /[0-9]/.test(password) },
+    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
+    { label: 'Number', pass: /[0-9]/.test(password) },
+    { label: 'Special character', pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter(c => c.pass).length;
-  const barColor = score === 0 ? 'bg-gray-200' : score === 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : 'bg-emerald-500';
-  const label = ['', 'Weak', 'Fair', 'Strong'][score];
-  const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-emerald-600'][score];
+  const barColor = score <= 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : score === 3 ? 'bg-blue-400' : 'bg-emerald-500';
+  const label = ['', 'Weak', 'Fair', 'Good', 'Strong'][score];
+  const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-blue-600', 'text-emerald-600'][score];
   if (!password) return null;
   return (
     <div className="mt-2.5 space-y-2">
       <div className="flex items-center gap-1.5">
-        {[0, 1, 2].map(i => (
+        {[0, 1, 2, 3].map(i => (
           <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i < score ? barColor : 'bg-gray-200'}`} />
         ))}
         {label && <span className={`text-xs font-bold ml-1 ${labelColor}`}>{label}</span>}
@@ -51,6 +52,25 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+function CustomCheckbox({ checked, onChange, error }: { checked: boolean; onChange: () => void; error?: boolean }) {
+  return (
+    <div
+      onClick={onChange}
+      className="cursor-pointer w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200 mt-0.5"
+      style={{
+        backgroundColor: checked ? '#2563eb' : '#ffffff',
+        borderColor: error ? '#f87171' : checked ? '#2563eb' : '#d1d5db',
+      }}
+    >
+      {checked && (
+        <svg className="w-3 h-3 text-white" viewBox="0 0 10 8" fill="none">
+          <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </div>
+  );
+}
+
 type AccountType = 'individual' | 'company' | null;
 type Step = 'type' | 'method' | 'form';
 
@@ -58,6 +78,32 @@ const features = [
   { icon: Globe, title: 'Global Reach', desc: '120+ countries covered worldwide' },
   { icon: Package, title: 'Real-time Tracking', desc: 'Live updates on every shipment' },
   { icon: Zap, title: 'Instant Invoicing', desc: 'Automated billing and receipts' },
+];
+
+const INDUSTRIES = [
+  'Agriculture & Farming',
+  'Automotive & Transportation',
+  'Banking & Financial Services',
+  'Chemicals & Petrochemicals',
+  'Construction & Real Estate',
+  'Consumer Goods & FMCG',
+  'Education & Training',
+  'Energy & Utilities',
+  'Fashion & Apparel',
+  'Food & Beverage',
+  'Government & Public Sector',
+  'Healthcare & Pharmaceuticals',
+  'Hospitality & Tourism',
+  'Information Technology',
+  'Logistics & Supply Chain',
+  'Manufacturing & Industrial',
+  'Media & Entertainment',
+  'Mining & Resources',
+  'Non-Profit & NGO',
+  'Oil & Gas',
+  'Retail & E-commerce',
+  'Telecommunications',
+  'Other',
 ];
 
 export default function SignUpPage() {
@@ -68,14 +114,12 @@ export default function SignUpPage() {
   const [step, setStep] = useState<Step>('type');
   const [accountType, setAccountType] = useState<AccountType>(null);
 
-  // Individual fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [phone, setPhone] = useState('');
 
-  // Company fields
   const [companyName, setCompanyName] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
@@ -90,6 +134,7 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [emailUpdates, setEmailUpdates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -97,7 +142,7 @@ export default function SignUpPage() {
   const [generalError, setGeneralError] = useState('');
 
   const inputCls = (hasError: boolean) =>
-    `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 text-sm ${
+    `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
       hasError
         ? 'border-red-400 focus:ring-red-400/20'
         : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
@@ -107,23 +152,30 @@ export default function SignUpPage() {
     const e: Record<string, string> = {};
     if (accountType === 'individual') {
       if (!name.trim()) e.name = 'Full name is required.';
-      if (!email.trim()) e.email = 'Email is required.';
-      else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Invalid email address.';
+      if (!email.trim()) e.email = 'Email address is required.';
+      else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Please enter a valid email address.';
+      if (!phone.trim()) e.phone = 'Phone number is required.';
       if (!password) e.password = 'Password is required.';
-      else if (password.length < 8) e.password = 'At least 8 characters.';
+      else if (password.length < 8) e.password = 'Password must be at least 8 characters.';
+      else if (!/[^A-Za-z0-9]/.test(password)) e.password = 'Password must include at least one special character.';
       if (!confirm) e.confirm = 'Please confirm your password.';
       else if (confirm !== password) e.confirm = 'Passwords do not match.';
     } else {
       if (!companyName.trim()) e.companyName = 'Company name is required.';
-      if (!contactName.trim()) e.contactName = 'Contact name is required.';
-      if (!companyEmail.trim()) e.companyEmail = 'Email is required.';
-      else if (!/^\S+@\S+\.\S+$/.test(companyEmail)) e.companyEmail = 'Invalid email address.';
+      if (!contactName.trim()) e.contactName = 'Contact person name is required.';
+      if (!companyEmail.trim()) e.companyEmail = 'Business email is required.';
+      else if (!/^\S+@\S+\.\S+$/.test(companyEmail)) e.companyEmail = 'Please enter a valid email address.';
+      if (!companyPhone.trim()) e.companyPhone = 'Phone number is required.';
+      if (!vatNumber.trim()) e.vatNumber = 'VAT number is required.';
+      if (!registrationNumber.trim()) e.registrationNumber = 'Registration number is required.';
+      if (!industry) e.industry = 'Please select an industry.';
       if (!companyPassword) e.companyPassword = 'Password is required.';
-      else if (companyPassword.length < 8) e.companyPassword = 'At least 8 characters.';
+      else if (companyPassword.length < 8) e.companyPassword = 'Password must be at least 8 characters.';
+      else if (!/[^A-Za-z0-9]/.test(companyPassword)) e.companyPassword = 'Password must include at least one special character.';
       if (!companyConfirm) e.companyConfirm = 'Please confirm your password.';
       else if (companyConfirm !== companyPassword) e.companyConfirm = 'Passwords do not match.';
     }
-    if (!agreed) e.agreed = 'You must agree to continue.';
+    if (!agreed) e.agreed = 'You must accept our Terms of Service and Privacy Policy to create an account.';
     return e;
   };
 
@@ -141,8 +193,8 @@ export default function SignUpPage() {
     setIsSubmitting(true);
     try {
       const body = accountType === 'individual'
-        ? { name: submitName, email: submitEmail, password: submitPassword, phone, accountType: 'individual' }
-        : { name: submitName, email: submitEmail, password: submitPassword, phone: companyPhone, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website };
+        ? { name: submitName, email: submitEmail, password: submitPassword, phone, accountType: 'individual', emailUpdates }
+        : { name: submitName, email: submitEmail, password: submitPassword, phone: companyPhone, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website, emailUpdates };
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -154,9 +206,7 @@ export default function SignUpPage() {
 
       setSuccess(true);
       setTimeout(async () => {
-        const result = await signIn('credentials', {
-          email: submitEmail, password: submitPassword, redirect: false,
-        });
+        const result = await signIn('credentials', { email: submitEmail, password: submitPassword, redirect: false });
         if (result?.ok) {
           router.replace(`/${locale}/dashboard`);
           setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 200);
@@ -175,9 +225,7 @@ export default function SignUpPage() {
     setGoogleLoading(true);
     try {
       await signIn('google', { callbackUrl: `/${locale}/dashboard` });
-    } catch {
-      setGoogleLoading(false);
-    }
+    } catch { setGoogleLoading(false); }
   };
 
   if (success) {
@@ -188,18 +236,18 @@ export default function SignUpPage() {
           <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="w-8 h-8 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-extrabold text-gray-900">Account created!</h2>
+          <h2 className="text-xl font-extrabold text-gray-900">Account Created!</h2>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">Welcome to Exodus Logistics. Signing you in…</p>
-          <div className="mt-5 flex justify-center">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-          </div>
+          <div className="mt-5 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-blue-600" /></div>
         </motion.div>
       </div>
     );
   }
 
+  const stepIndex: Record<Step, number> = { type: 0, method: 1, form: 2 };
+
   return (
-    <div className="min-h-screen flex mt-4">
+    <div className="min-h-screen flex">
 
       {/* ── LEFT PANEL ── */}
       <div
@@ -224,12 +272,14 @@ export default function SignUpPage() {
           <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
         </div>
 
+        {/* Logo */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10">
-          <Link href={`/${locale}`}>
+          <Link href={`/${locale}`} className="cursor-pointer">
             <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
           </Link>
         </motion.div>
 
+        {/* Center content */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative z-10 space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
             <Shield className="w-3.5 h-3.5 text-orange-400" />
@@ -260,6 +310,15 @@ export default function SignUpPage() {
               </motion.div>
             ))}
           </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[{ value: '50K+', label: 'Shipments' }, { value: '120+', label: 'Countries' }, { value: '99.9%', label: 'Uptime' }].map(({ value, label }, i) => (
+              <motion.div key={label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.6 + i * 0.08 }}
+                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm">
+                <p className="text-2xl font-extrabold text-white">{value}</p>
+                <p className="text-[11px] text-white/50 mt-0.5 font-semibold tracking-wide">{label}</p>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
 
         <div className="relative z-10">
@@ -268,15 +327,16 @@ export default function SignUpPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center justify-start px-5 pt-10 pb-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-hidden overflow-y-auto">
-
+      <div className="flex-1 flex flex-col items-center justify-start px-5 pt-10 pb-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-y-auto">
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
         {/* Mobile logo */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           className="lg:hidden mb-8 relative z-10">
-          <Link href={`/${locale}`}>
+          <Link href={`/${locale}`} className="cursor-pointer">
             <Image src="/logo-dark.svg" alt="Exodus Logistics" width={160} height={50} className="h-10 w-auto" priority />
           </Link>
         </motion.div>
@@ -285,67 +345,60 @@ export default function SignUpPage() {
           className="w-full max-w-[440px] relative z-10">
 
           <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10">
-
-            {/* ── STEP 1: Account Type ── */}
             <AnimatePresence mode="wait">
+
+              {/* STEP 1 — Type */}
               {step === 'type' && (
                 <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <div className="mb-7">
+                  <div className="mb-8">
                     <div className="w-12 h-12 rounded-2xl mb-5 flex items-center justify-center"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                       <User className="w-6 h-6 text-white" />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Create account</h1>
-                    <p className="mt-1.5 text-sm text-gray-500">What best describes you?</p>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Create an account</h1>
+                    <p className="mt-1.5 text-sm text-gray-500">Select the account type that best suits you.</p>
                   </div>
-
-                  <div className="space-y-3 mb-7">
-                    {/* Individual */}
-                    <button type="button"
-                      onClick={() => { setAccountType('individual'); setStep('method'); }}
-                      className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-md text-left group border-gray-200">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-110"
+                  <div className="space-y-3 mb-8">
+                    <button type="button" onClick={() => { setAccountType('individual'); setStep('method'); }}
+                      className="cursor-pointer w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-md transition-all duration-200 text-left group">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200"
                         style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                         <User className="w-6 h-6 text-white" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-900 text-base">Individual</p>
+                      <div className="flex-1">
+                        <p className="font-bold text-gray-900">Individual</p>
                         <p className="text-sm text-gray-500 mt-0.5">Personal shipments and tracking</p>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                      <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
                     </button>
-
-                    {/* Company */}
-                    <button type="button"
-                      onClick={() => { setAccountType('company'); setStep('method'); }}
-                      className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-md text-left group border-gray-200">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-110"
+                    <button type="button" onClick={() => { setAccountType('company'); setStep('method'); }}
+                      className="cursor-pointer w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50/40 hover:shadow-md transition-all duration-200 text-left group">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200"
                         style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
                         <Building2 className="w-6 h-6 text-white" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-900 text-base">Company</p>
+                      <div className="flex-1">
+                        <p className="font-bold text-gray-900">Company</p>
                         <p className="text-sm text-gray-500 mt-0.5">Business logistics with VAT & registration</p>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                      <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
                     </button>
                   </div>
-
                   <p className="text-center text-sm text-gray-500">
                     Already have an account?{' '}
-                    <Link href={`/${locale}/sign-in`} className="font-bold text-blue-600 hover:text-blue-700 transition">Sign in</Link>
+                    <Link href={`/${locale}/sign-in`} className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition">Sign in</Link>
                   </p>
                 </motion.div>
               )}
 
-              {/* ── STEP 2: Method ── */}
+              {/* STEP 2 — Method */}
               {step === 'method' && (
                 <motion.div key="method" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <button onClick={() => setStep('type')} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition">
+                  <button onClick={() => setStep('type')}
+                    className="cursor-pointer inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-6 -ml-2">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
-
-                  <div className="mb-7">
+                  <div className="mb-8">
                     <div className="w-12 h-12 rounded-2xl mb-5 flex items-center justify-center"
                       style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                       {accountType === 'company' ? <Building2 className="w-6 h-6 text-white" /> : <User className="w-6 h-6 text-white" />}
@@ -353,37 +406,34 @@ export default function SignUpPage() {
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                       {accountType === 'company' ? 'Company account' : 'Individual account'}
                     </h1>
-                    <p className="mt-1.5 text-sm text-gray-500">How would you like to sign up?</p>
+                    <p className="mt-1.5 text-sm text-gray-500">How would you like to create your account?</p>
                   </div>
-
-                  <div className="space-y-3 mb-7">
+                  <div className="space-y-3 mb-8">
                     <button type="button" onClick={handleGoogleSignUp} disabled={googleLoading}
-                      className="cursor-pointer w-full h-14 flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all disabled:opacity-60">
+                      className="cursor-pointer w-full h-14 flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200 disabled:opacity-60">
                       {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
                       Continue with Google
                     </button>
-
                     <button type="button" onClick={() => setStep('form')}
-                      className="w-full h-14 flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:shadow-md active:scale-[.98] transition-all">
+                      className="cursor-pointer w-full h-14 flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 hover:shadow-md active:scale-[.98] transition-all duration-200">
                       <Mail className="w-5 h-5 text-blue-500" />
                       Continue with Email
                     </button>
                   </div>
-
                   <p className="text-center text-sm text-gray-500">
                     Already have an account?{' '}
-                    <Link href={`/${locale}/sign-in`} className="font-bold text-blue-600 hover:text-blue-700 transition">Sign in</Link>
+                    <Link href={`/${locale}/sign-in`} className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition">Sign in</Link>
                   </p>
                 </motion.div>
               )}
 
-              {/* ── STEP 3: Form ── */}
+              {/* STEP 3 — Form */}
               {step === 'form' && (
                 <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <button onClick={() => setStep('method')} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition">
+                  <button onClick={() => setStep('method')}
+                    className="cursor-pointer inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-6 -ml-2">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
-
                   <div className="mb-6">
                     <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center"
                       style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
@@ -392,7 +442,11 @@ export default function SignUpPage() {
                     <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
                       {accountType === 'company' ? 'Company details' : 'Your details'}
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">Fill in your information to get started</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {accountType === 'company'
+                        ? 'Complete your company profile to get started.'
+                        : 'Fill in your personal information to create your account.'}
+                    </p>
                   </div>
 
                   {generalError && (
@@ -406,84 +460,84 @@ export default function SignUpPage() {
                     {accountType === 'individual' ? (
                       <>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full name</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
                           <input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
-                            placeholder="John Doe" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
-                          {errors.name && <p className="mt-1 text-xs text-red-600 font-medium">{errors.name}</p>}
+                            placeholder="Full Name" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
+                          {errors.name && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
                           <input value={email} onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
-                            type="email" placeholder="you@example.com" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
-                          {errors.email && <p className="mt-1 text-xs text-red-600 font-medium">{errors.email}</p>}
+                            type="email" placeholder="Email Address" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
+                          {errors.email && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone number <span className="text-gray-400 font-normal">(optional)</span></label>
-                          <input value={phone} onChange={e => setPhone(e.target.value)}
-                            type="tel" placeholder="+1 234 567 8900" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(false)} />
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                          <input value={phone} onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: '' })); }}
+                            type="tel" placeholder="Phone Number" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(!!errors.phone)} />
+                          {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
                         </div>
                       </>
                     ) : (
                       <>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company name</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company Name</label>
                           <input value={companyName} onChange={e => { setCompanyName(e.target.value); setErrors(p => ({ ...p, companyName: '' })); }}
-                            placeholder="Acme Corp Ltd." autoComplete="organization" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyName)} />
-                          {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium">{errors.companyName}</p>}
+                            placeholder="Company Name" autoComplete="organization" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyName)} />
+                          {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Contact person name</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Contact Person Name</label>
                           <input value={contactName} onChange={e => { setContactName(e.target.value); setErrors(p => ({ ...p, contactName: '' })); }}
-                            placeholder="Jane Smith" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.contactName)} />
-                          {errors.contactName && <p className="mt-1 text-xs text-red-600 font-medium">{errors.contactName}</p>}
+                            placeholder="Contact Person Name" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.contactName)} />
+                          {errors.contactName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.contactName}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business email</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Email Address</label>
                           <input value={companyEmail} onChange={e => { setCompanyEmail(e.target.value); setErrors(p => ({ ...p, companyEmail: '' })); }}
-                            type="email" placeholder="company@example.com" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyEmail)} />
-                          {errors.companyEmail && <p className="mt-1 text-xs text-red-600 font-medium">{errors.companyEmail}</p>}
+                            type="email" placeholder="Business Email Address" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyEmail)} />
+                          {errors.companyEmail && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyEmail}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone number</label>
-                          <input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)}
-                            type="tel" placeholder="+1 234 567 8900" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(false)} />
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Phone Number</label>
+                          <input value={companyPhone} onChange={e => { setCompanyPhone(e.target.value); setErrors(p => ({ ...p, companyPhone: '' })); }}
+                            type="tel" placeholder="Business Phone Number" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyPhone)} />
+                          {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">VAT number <span className="text-gray-400 font-normal">(opt)</span></label>
-                            <input value={vatNumber} onChange={e => setVatNumber(e.target.value)}
-                              placeholder="GB123456789" style={{ fontSize: '16px' }} className={inputCls(false)} />
+                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">VAT Number</label>
+                            <input value={vatNumber} onChange={e => { setVatNumber(e.target.value); setErrors(p => ({ ...p, vatNumber: '' })); }}
+                              placeholder="VAT Number" style={{ fontSize: '16px' }} className={inputCls(!!errors.vatNumber)} />
+                            {errors.vatNumber && <p className="mt-1 text-xs text-red-600 font-medium">{errors.vatNumber}</p>}
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reg. number <span className="text-gray-400 font-normal">(opt)</span></label>
-                            <input value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)}
-                              placeholder="12345678" style={{ fontSize: '16px' }} className={inputCls(false)} />
+                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Registration No.</label>
+                            <input value={registrationNumber} onChange={e => { setRegistrationNumber(e.target.value); setErrors(p => ({ ...p, registrationNumber: '' })); }}
+                              placeholder="Registration No." style={{ fontSize: '16px' }} className={inputCls(!!errors.registrationNumber)} />
+                            {errors.registrationNumber && <p className="mt-1 text-xs text-red-600 font-medium">{errors.registrationNumber}</p>}
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Industry <span className="text-gray-400 font-normal">(optional)</span></label>
-                          <select value={industry} onChange={e => setIndustry(e.target.value)} style={{ fontSize: '16px' }}
-                            className={inputCls(false) + ' cursor-pointer'}>
-                            <option value="">Select industry</option>
-                            <option value="retail">Retail & E-commerce</option>
-                            <option value="manufacturing">Manufacturing</option>
-                            <option value="healthcare">Healthcare & Pharma</option>
-                            <option value="automotive">Automotive</option>
-                            <option value="technology">Technology</option>
-                            <option value="food">Food & Beverage</option>
-                            <option value="construction">Construction</option>
-                            <option value="other">Other</option>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Industry</label>
+                          <select value={industry} onChange={e => { setIndustry(e.target.value); setErrors(p => ({ ...p, industry: '' })); }}
+                            style={{ fontSize: '16px' }} className={inputCls(!!errors.industry) + ' cursor-pointer'}>
+                            <option value="" disabled>Select Your Industry</option>
+                            {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
                           </select>
+                          {errors.industry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.industry}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Website <span className="text-gray-400 font-normal">(optional)</span></label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                            Website <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                          </label>
                           <input value={website} onChange={e => setWebsite(e.target.value)}
-                            placeholder="https://yourcompany.com" style={{ fontSize: '16px' }} className={inputCls(false)} />
+                            placeholder="https://www.yourcompany.com" style={{ fontSize: '16px' }} className={inputCls(false)} />
                         </div>
                       </>
                     )}
 
-                    {/* Password fields — shared */}
+                    {/* Password */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
                       <div className="relative">
@@ -495,7 +549,7 @@ export default function SignUpPage() {
                             setErrors(p => ({ ...p, [accountType === 'individual' ? 'password' : 'companyPassword']: '' }));
                           }}
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Create a strong password"
+                          placeholder="Create a Strong Password"
                           autoComplete="new-password"
                           style={{ fontSize: '16px' }}
                           className={inputCls(!!(accountType === 'individual' ? errors.password : errors.companyPassword)) + ' pr-11'}
@@ -506,13 +560,16 @@ export default function SignUpPage() {
                         </button>
                       </div>
                       {(accountType === 'individual' ? errors.password : errors.companyPassword) && (
-                        <p className="mt-1 text-xs text-red-600 font-medium">{accountType === 'individual' ? errors.password : errors.companyPassword}</p>
+                        <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />{accountType === 'individual' ? errors.password : errors.companyPassword}
+                        </p>
                       )}
                       <PasswordStrength password={accountType === 'individual' ? password : companyPassword} />
                     </div>
 
+                    {/* Confirm Password */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm password</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
                       <div className="relative">
                         <input
                           value={accountType === 'individual' ? confirm : companyConfirm}
@@ -522,7 +579,7 @@ export default function SignUpPage() {
                             setErrors(p => ({ ...p, [accountType === 'individual' ? 'confirm' : 'companyConfirm']: '' }));
                           }}
                           type={showConfirm ? 'text' : 'password'}
-                          placeholder="Re-enter your password"
+                          placeholder="Re-enter Your Password"
                           autoComplete="new-password"
                           style={{ fontSize: '16px' }}
                           className={inputCls(!!(accountType === 'individual' ? errors.confirm : errors.companyConfirm)) + ' pr-11'}
@@ -533,7 +590,9 @@ export default function SignUpPage() {
                         </button>
                       </div>
                       {(accountType === 'individual' ? errors.confirm : errors.companyConfirm) && (
-                        <p className="mt-1 text-xs text-red-600 font-medium">{accountType === 'individual' ? errors.confirm : errors.companyConfirm}</p>
+                        <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />{accountType === 'individual' ? errors.confirm : errors.companyConfirm}
+                        </p>
                       )}
                       {(() => {
                         const pw = accountType === 'individual' ? password : companyPassword;
@@ -547,41 +606,60 @@ export default function SignUpPage() {
                       })()}
                     </div>
 
-                    {/* Terms */}
-                    <div className={`rounded-xl border p-4 transition ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50'}`}>
-                      <label className="flex items-start gap-3 cursor-pointer select-none">
-                        <div className="relative mt-0.5 shrink-0" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
-                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${agreed ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-white'}`}>
-                            {agreed && (
-                              <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
-                                <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            )}
-                          </div>
+                    {/* Checkboxes */}
+                    <div className="space-y-3 pt-1">
+                      {/* Terms */}
+                      <div className={`rounded-xl border p-4 transition-all duration-200 ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50/80'}`}>
+                        <div className="flex items-start gap-3">
+                          <CustomCheckbox
+                            checked={agreed}
+                            onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}
+                            error={!!errors.agreed}
+                          />
+                          <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
+                            I have read, understood, and agree to be bound by the{' '}
+                            <Link href={`/${locale}/terms`} target="_blank" onClick={e => e.stopPropagation()}
+                              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">
+                              Terms of Service
+                            </Link>{' '}
+                            and{' '}
+                            <Link href={`/${locale}/privacy`} target="_blank" onClick={e => e.stopPropagation()}
+                              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">
+                              Privacy Policy
+                            </Link>{' '}
+                            of Exodus Logistics Ltd.
+                          </span>
                         </div>
-                        <span className="text-sm text-gray-600 leading-relaxed">
-                          I agree to the{' '}
-                          <Link href={`/${locale}/terms`} target="_blank" className="font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2">Terms of Service</Link>{' '}
-                          and{' '}
-                          <Link href={`/${locale}/privacy`} target="_blank" className="font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2">Privacy Policy</Link>.
-                          I confirm I am at least 18 years of age.
-                        </span>
-                      </label>
-                      {errors.agreed && <p className="mt-2 text-xs text-red-600 font-medium pl-7">{errors.agreed}</p>}
+                        {errors.agreed && (
+                          <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1 pl-8">
+                            <AlertCircle className="w-3 h-3 shrink-0" />{errors.agreed}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Email updates */}
+                      <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
+                        <div className="flex items-start gap-3">
+                          <CustomCheckbox checked={emailUpdates} onChange={() => setEmailUpdates(v => !v)} />
+                          <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => setEmailUpdates(v => !v)}>
+                            I would like to receive email notifications from Exodus Logistics, including real-time shipment updates, delivery confirmations, platform news, and exclusive offers.
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     <button type="submit" disabled={isSubmitting || googleLoading}
                       className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                       {isSubmitting
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating account…</span></>
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating Account…</span></>
                         : <><span>Create Account</span><ArrowRight className="w-4 h-4" /></>}
                     </button>
                   </form>
 
                   <p className="mt-5 text-center text-sm text-gray-500">
                     Already have an account?{' '}
-                    <Link href={`/${locale}/sign-in`} className="font-bold text-blue-600 hover:text-blue-700 transition">Sign in</Link>
+                    <Link href={`/${locale}/sign-in`} className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition">Sign in</Link>
                   </p>
                 </motion.div>
               )}
@@ -590,8 +668,11 @@ export default function SignUpPage() {
 
           {/* Step indicator */}
           <div className="mt-5 flex items-center justify-center gap-2">
-            {(['type', 'method', 'form'] as Step[]).map((s, i) => (
-              <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${step === s ? 'w-8 bg-blue-600' : i < (['type', 'method', 'form'] as Step[]).indexOf(step) ? 'w-4 bg-blue-300' : 'w-4 bg-gray-200'}`} />
+            {(['type', 'method', 'form'] as Step[]).map((s) => (
+              <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${
+                step === s ? 'w-8 bg-blue-600' :
+                stepIndex[s] < stepIndex[step] ? 'w-4 bg-blue-300' : 'w-4 bg-gray-200'
+              }`} />
             ))}
           </div>
         </motion.div>
