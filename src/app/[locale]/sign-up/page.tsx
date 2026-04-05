@@ -753,7 +753,7 @@ export default function SignUpPage() {
   setCountry(found.name); setCompanyCountry(found.name);
   setDialCode(found.dial); setCompanyDialCode(found.dial);
   setCountryCode(found.code); setCompanyCountryCode(found.code);
-  setPhone(found.dial + ' '); setCompanyPhone(found.dial + ' ');
+  setPhone(''); setCompanyPhone('');
 }
       }).catch(() => {});
   }, []);
@@ -769,7 +769,7 @@ export default function SignUpPage() {
       if (!name.trim()) e.name = 'Full name is required.';
       if (!email.trim()) e.email = 'Email address is required.';
       else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Please enter a valid email address.';
-      if (!phone.trim() || phone.trim() === dialCode) e.phone = 'Phone number is required.';
+      if (!phone.trim()) e.phone = 'Phone number is required.';
       if (!country.trim()) e.country = 'Please select your country.';
       if (!password) e.password = 'Password is required.';
       else if (password.length < 8) e.password = 'Password must be at least 8 characters.';
@@ -781,7 +781,7 @@ export default function SignUpPage() {
       if (!contactName.trim()) e.contactName = 'Contact person name is required.';
       if (!companyEmail.trim()) e.companyEmail = 'Business email is required.';
       else if (!/^\S+@\S+\.\S+$/.test(companyEmail)) e.companyEmail = 'Please enter a valid email address.';
-      if (!companyPhone.trim() || companyPhone.trim() === companyDialCode) e.companyPhone = 'Phone number is required.';
+      if (!companyPhone.trim()) e.companyPhone = 'Phone number is required.';
       if (!companyCountry.trim()) e.companyCountry = 'Please select your country.';
       if (!vatNumber.trim()) e.vatNumber = 'VAT number is required.';
       if (!registrationNumber.trim()) e.registrationNumber = 'Registration number is required.';
@@ -808,8 +808,8 @@ export default function SignUpPage() {
     setIsSubmitting(true);
     try {
       const body = accountType === 'individual'
-        ? { name: submitName, email: submitEmail, password: submitPassword, phone, country, accountType: 'individual', emailUpdates }
-        : { name: submitName, email: submitEmail, password: submitPassword, phone: companyPhone, country: companyCountry, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website, emailUpdates };
+        ? { name: submitName, email: submitEmail, password: submitPassword, phone: dialCode + '' + phone, country, accountType: 'individual', emailUpdates }
+        : { name: submitName, email: submitEmail, password: submitPassword, phone: companyDialCode + '' + companyPhone, country: companyCountry, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website, emailUpdates };
       const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json = await res.json();
       if (!res.ok) { setGeneralError(json?.error || 'Registration failed. Please try again.'); return; }
@@ -1063,31 +1063,27 @@ export default function SignUpPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
-                          <input
-  value={phone}
-  onChange={e => {
-    const prefix = dialCode + ' ';
-    const raw = e.target.value;
-    // Guard: never let user delete the dial prefix
-    if (!raw.startsWith(dialCode)) {
-      setPhone(prefix);
-      return;
-    }
-    // Extract only the local part digits
-    const localRaw = raw.slice(prefix.length);
-    const digits = localRaw.replace(/\D/g, '');
-    const fmt = getPhoneFormat(countryCode);
-    const formatted = formatPhoneNumber(digits, fmt.pattern);
-    setPhone(prefix + formatted);
-    setErrors(p => ({ ...p, phone: '' }));
-  }}
-  type="tel"
-  inputMode="numeric"
-  placeholder={`${dialCode} ${getPhoneFormat(countryCode).placeholder}`}
-  autoComplete="tel"
-  style={{ fontSize: '16px' }}
-  className={inputCls(!!errors.phone)}
-/>
+                          <div className={`flex h-12 rounded-xl border overflow-hidden transition-all duration-200 ${errors.phone ? 'border-red-400' : 'border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 hover:border-blue-300'}`}>
+  <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 shrink-0">
+    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">{dialCode}</span>
+  </div>
+  <input
+    value={phone}
+    onChange={e => {
+      const digits = e.target.value.replace(/\D/g, '');
+      const fmt = getPhoneFormat(countryCode);
+      const formatted = formatPhoneNumber(digits, fmt.pattern);
+      setPhone(formatted);
+      setErrors(p => ({ ...p, phone: '' }));
+    }}
+    type="tel"
+    inputMode="numeric"
+    placeholder={getPhoneFormat(countryCode).placeholder}
+    autoComplete="tel"
+    style={{ fontSize: '16px' }}
+    className="flex-1 px-3 bg-white focus:outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
+  />
+</div>
                           {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
                         </div>
                       </>
@@ -1095,29 +1091,27 @@ export default function SignUpPage() {
                       <>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company Name</label>
-                          <input
-  value={companyPhone}
-  onChange={e => {
-    const prefix = companyDialCode + ' ';
-    const raw = e.target.value;
-    if (!raw.startsWith(companyDialCode)) {
-      setCompanyPhone(prefix);
-      return;
-    }
-    const localRaw = raw.slice(prefix.length);
-    const digits = localRaw.replace(/\D/g, '');
-    const fmt = getPhoneFormat(companyCountryCode);
-    const formatted = formatPhoneNumber(digits, fmt.pattern);
-    setCompanyPhone(prefix + formatted);
-    setErrors(p => ({ ...p, companyPhone: '' }));
-  }}
-  type="tel"
-  inputMode="numeric"
-  placeholder={`${companyDialCode} ${getPhoneFormat(companyCountryCode).placeholder}`}
-  autoComplete="tel"
-  style={{ fontSize: '16px' }}
-  className={inputCls(!!errors.companyPhone)}
-/>
+                          <div className={`flex h-12 rounded-xl border overflow-hidden transition-all duration-200 ${errors.companyPhone ? 'border-red-400' : 'border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 hover:border-blue-300'}`}>
+  <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 shrink-0">
+    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">{companyDialCode}</span>
+  </div>
+  <input
+    value={companyPhone}
+    onChange={e => {
+      const digits = e.target.value.replace(/\D/g, '');
+      const fmt = getPhoneFormat(companyCountryCode);
+      const formatted = formatPhoneNumber(digits, fmt.pattern);
+      setCompanyPhone(formatted);
+      setErrors(p => ({ ...p, companyPhone: '' }));
+    }}
+    type="tel"
+    inputMode="numeric"
+    placeholder={getPhoneFormat(companyCountryCode).placeholder}
+    autoComplete="tel"
+    style={{ fontSize: '16px' }}
+    className="flex-1 px-3 bg-white focus:outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
+  />
+</div>
                           {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
                         </div>
                         <div>
