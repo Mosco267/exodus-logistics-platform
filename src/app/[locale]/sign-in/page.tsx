@@ -319,39 +319,41 @@ export default function SignInPage() {
                 <div style={{ position: 'relative' }}>
   {/* Hidden text input to trick iOS into opening keyboard */}
   {!showPassword && (
-    <input
-      key="password-hidden"
-      ref={passwordRef}
-      id="password"
-      name="password"
-      type="password"
-      inputMode="text"
-      autoComplete="current-password"
-      placeholder="Enter your password"
-      autoCorrect="off"
-      autoCapitalize="off"
-      spellCheck={false}
-      onChange={e => {
-        setHasPassword(!!e.target.value);
-        setErrors(p => ({ ...p, password: '', general: '' }));
-      }}
-      style={{
-        width: '100%',
-        height: '48px',
-        paddingLeft: '16px',
-        paddingRight: '44px',
-        borderRadius: '12px',
-        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-        fontSize: '16px',
-        backgroundColor: '#ffffff',
-        color: '#111827',
-        outline: 'none',
-        WebkitAppearance: 'none',
-        appearance: 'none',
-       
-      }}
-    />
-  )}
+  <input
+    key="password-hidden"
+    ref={passwordRef}
+    id="password"
+    name="password"
+    type="text"
+    inputMode="text"
+    autoComplete="current-password"
+    placeholder="Enter your password"
+    autoCorrect="off"
+    autoCapitalize="off"
+    spellCheck={false}
+    onChange={e => {
+      setHasPassword(!!e.target.value);
+      setErrors(p => ({ ...p, password: '', general: '' }));
+    }}
+    style={{
+      width: '100%',
+      height: '48px',
+      paddingLeft: '16px',
+      paddingRight: '44px',
+      borderRadius: '12px',
+      border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+      fontSize: '16px',
+      backgroundColor: '#ffffff',
+      color: 'transparent',
+      caretColor: '#111827',
+      textShadow: '0 0 0 #111827',
+      outline: 'none',
+      WebkitAppearance: 'none',
+      appearance: 'none',
+      letterSpacing: '0.2em',
+    }}
+  />
+)}
   {showPassword && (
     <input
       key="password-visible"
