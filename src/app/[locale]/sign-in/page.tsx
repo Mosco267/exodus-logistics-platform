@@ -315,31 +315,55 @@ export default function SignInPage() {
                     Forgot password?
                   </button>
                 </div>
-                <div className="relative">
-                  <input
-  ref={passwordRef}
-  id="password"
-  name="password"
-  type={showPassword ? 'text' : 'password'}
-  autoComplete="current-password"
-  placeholder="Enter your password"
-  autoCorrect="off"
-  autoCapitalize="off"
-  spellCheck={false}
-  onInput={() => {
-    const val = passwordRef.current?.value || '';
-    setHasPassword(!!val);
-    setErrors(p => ({ ...p, password: '', general: '' }));
-  }}
-  className={inputCls(!!errors.password) + ' pr-11'}
-/>
-                  {hasPassword && (
-  <button type="button" tabIndex={-1} onClick={toggleShowPassword}
-    className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                <div style={{ position: 'relative' }}>
+  <input
+    ref={passwordRef}
+    id="password"
+    name="password"
+    type={showPassword ? 'text' : 'password'}
+    autoComplete="current-password"
+    placeholder="Enter your password"
+    autoCorrect="off"
+    autoCapitalize="off"
+    spellCheck={false}
+    onChange={e => {
+      setHasPassword(!!e.target.value);
+      setErrors(p => ({ ...p, password: '', general: '' }));
+    }}
+    style={{
+      width: '100%',
+      height: '48px',
+      paddingLeft: '16px',
+      paddingRight: '44px',
+      borderRadius: '12px',
+      border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+      fontSize: '14px',
+      backgroundColor: '#ffffff',
+      color: '#111827',
+      outline: 'none',
+      WebkitAppearance: 'none',
+      appearance: 'none',
+    }}
+  />
+  <button
+    type="button"
+    tabIndex={-1}
+    onClick={toggleShowPassword}
+    style={{
+      position: 'absolute',
+      right: '12px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '4px',
+      color: '#9ca3af',
+    }}
+  >
     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
   </button>
-)}
-                </div>
+</div>
                 <AnimatePresence>
                   {errors.password && (
                     <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
