@@ -218,75 +218,234 @@ const COUNTRIES = [
   { name: 'Zimbabwe', code: 'ZW', flag: '🇿🇼', dial: '+263' },
 ];
 
+// Pattern: # = digit, everything else is literal (auto-inserted)
+// Placeholder shows the LOCAL part only (after the dial code)
 const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = {
+  // North America
   US: { placeholder: '(201) 555-0123', pattern: '(###) ###-####' },
   CA: { placeholder: '(416) 555-0123', pattern: '(###) ###-####' },
-  GB: { placeholder: '07400 123456', pattern: '##### ######' },
-  NG: { placeholder: '0801 376 1826', pattern: '#### ### ####' },
-  GH: { placeholder: '020 123 4567', pattern: '### ### ####' },
-  ZA: { placeholder: '071 234 5678', pattern: '### ### ####' },
-  KE: { placeholder: '0712 345678', pattern: '#### ######' },
-  IN: { placeholder: '98765 43210', pattern: '##### #####' },
-  CN: { placeholder: '139 1234 5678', pattern: '### #### ####' },
-  DE: { placeholder: '0151 12345678', pattern: '#### ########' },
+  MX: { placeholder: '55 1234 5678', pattern: '## #### ####' },
+
+  // Europe
+  GB: { placeholder: '7400 123456', pattern: '#### ######' },
+  DE: { placeholder: '1511 2345678', pattern: '#### #######' },
   FR: { placeholder: '06 12 34 56 78', pattern: '## ## ## ## ##' },
   IT: { placeholder: '312 345 6789', pattern: '### ### ####' },
   ES: { placeholder: '612 345 678', pattern: '### ### ###' },
-  BR: { placeholder: '(11) 99999-9999', pattern: '(##) #####-####' },
-  MX: { placeholder: '55 1234 5678', pattern: '## #### ####' },
-  AU: { placeholder: '0412 345 678', pattern: '#### ### ###' },
-  NZ: { placeholder: '021 234 5678', pattern: '### ### ####' },
-  JP: { placeholder: '090-1234-5678', pattern: '###-####-####' },
-  KR: { placeholder: '010-1234-5678', pattern: '###-####-####' },
-  AE: { placeholder: '050 123 4567', pattern: '### ### ####' },
-  SA: { placeholder: '050 123 4567', pattern: '### ### ####' },
-  EG: { placeholder: '0100 123 4567', pattern: '#### ### ####' },
-  ZW: { placeholder: '0771 234 567', pattern: '#### ### ###' },
-  PH: { placeholder: '0917 123 4567', pattern: '#### ### ####' },
-  PK: { placeholder: '0301 2345678', pattern: '#### #######' },
-  BD: { placeholder: '01712-345678', pattern: '#####-######' },
-  ID: { placeholder: '0812-3456-7890', pattern: '####-####-####' },
-  MY: { placeholder: '012-345 6789', pattern: '###-### ####' },
-  TH: { placeholder: '081 234 5678', pattern: '### ### ####' },
-  VN: { placeholder: '091 234 5678', pattern: '### ### ####' },
-  TR: { placeholder: '0532 123 45 67', pattern: '#### ### ## ##' },
-  RU: { placeholder: '8 (912) 345-67-89', pattern: '# (###) ###-##-##' },
-  UA: { placeholder: '050 123 4567', pattern: '### ### ####' },
-  PL: { placeholder: '512 345 678', pattern: '### ### ###' },
+  PT: { placeholder: '912 345 678', pattern: '### ### ###' },
   NL: { placeholder: '06 12345678', pattern: '## ########' },
   BE: { placeholder: '0472 12 34 56', pattern: '#### ## ## ##' },
-  SE: { placeholder: '070-123 45 67', pattern: '###-### ## ##' },
+  SE: { placeholder: '070 123 45 67', pattern: '### ### ## ##' },
   NO: { placeholder: '412 34 567', pattern: '### ## ###' },
   DK: { placeholder: '20 12 34 56', pattern: '## ## ## ##' },
   FI: { placeholder: '041 2345678', pattern: '### #######' },
-  PT: { placeholder: '912 345 678', pattern: '### ### ###' },
-  GR: { placeholder: '694 123 4567', pattern: '### ### ####' },
-  RO: { placeholder: '0712 345 678', pattern: '#### ### ###' },
-  HU: { placeholder: '06 20 123 4567', pattern: '## ## ### ####' },
+  IE: { placeholder: '087 123 4567', pattern: '### ### ####' },
+  AT: { placeholder: '0664 1234567', pattern: '#### #######' },
+  CH: { placeholder: '076 123 45 67', pattern: '### ### ## ##' },
+  PL: { placeholder: '512 345 678', pattern: '### ### ###' },
   CZ: { placeholder: '601 123 456', pattern: '### ### ###' },
+  SK: { placeholder: '0912 123 456', pattern: '#### ### ###' },
+  HU: { placeholder: '06 20 123 4567', pattern: '## ## ### ####' },
+  RO: { placeholder: '0712 345 678', pattern: '#### ### ###' },
+  BG: { placeholder: '087 123 4567', pattern: '### ### ####' },
+  HR: { placeholder: '091 234 5678', pattern: '### ### ####' },
+  RS: { placeholder: '060 1234567', pattern: '### #######' },
+  GR: { placeholder: '694 123 4567', pattern: '### ### ####' },
+  UA: { placeholder: '050 123 4567', pattern: '### ### ####' },
+  RU: { placeholder: '912 345-67-89', pattern: '### ###-##-##' },
+  BY: { placeholder: '029 123-45-67', pattern: '### ###-##-##' },
+  MD: { placeholder: '0621 12 345', pattern: '#### ## ###' },
+  LT: { placeholder: '612 34567', pattern: '### #####' },
+  LV: { placeholder: '2123 4567', pattern: '#### ####' },
+  EE: { placeholder: '5123 4567', pattern: '#### ####' },
+  AL: { placeholder: '066 123 4567', pattern: '### ### ####' },
+  ME: { placeholder: '067 123 456', pattern: '### ### ###' },
+  MK: { placeholder: '072 123 456', pattern: '### ### ###' },
+  BA: { placeholder: '061 123 456', pattern: '### ### ###' },
+  SI: { placeholder: '040 123 456', pattern: '### ### ###' },
+  LU: { placeholder: '628 123 456', pattern: '### ### ###' },
+  MT: { placeholder: '9961 2345', pattern: '#### ####' },
+  CY: { placeholder: '96 123456', pattern: '## ######' },
+  IS: { placeholder: '611 1234', pattern: '### ####' },
+  LI: { placeholder: '660 1234', pattern: '### ####' },
+  MC: { placeholder: '06 12 34 56 78', pattern: '## ## ## ## ##' },
+  SM: { placeholder: '66 66 12 34', pattern: '## ## ## ##' },
+  AD: { placeholder: '312 345', pattern: '### ###' },
+  VA: { placeholder: '06 698 12345', pattern: '## ### #####' },
+
+  // Africa
+  NG: { placeholder: '0801 234 5678', pattern: '#### ### ####' },
+  GH: { placeholder: '024 123 4567', pattern: '### ### ####' },
+  ZA: { placeholder: '071 234 5678', pattern: '### ### ####' },
+  KE: { placeholder: '0712 345678', pattern: '#### ######' },
+  ET: { placeholder: '091 123 4567', pattern: '### ### ####' },
+  TZ: { placeholder: '0712 345 678', pattern: '#### ### ###' },
+  UG: { placeholder: '0712 345678', pattern: '#### ######' },
+  DZ: { placeholder: '0551 23 45 67', pattern: '#### ## ## ##' },
+  MA: { placeholder: '0612-345678', pattern: '####-######' },
+  TN: { placeholder: '20 123 456', pattern: '## ### ###' },
+  EG: { placeholder: '0100 123 4567', pattern: '#### ### ####' },
+  SD: { placeholder: '091 123 4567', pattern: '### ### ####' },
+  SS: { placeholder: '0977 123 456', pattern: '#### ### ###' },
+  LY: { placeholder: '091 123 4567', pattern: '### ### ####' },
+  CM: { placeholder: '6712 3456', pattern: '#### ####' },
+  SN: { placeholder: '77 123 45 67', pattern: '## ### ## ##' },
+  CI: { placeholder: '07 12 34 56 78', pattern: '## ## ## ## ##' },
+  AO: { placeholder: '923 123 456', pattern: '### ### ###' },
+  MZ: { placeholder: '82 123 4567', pattern: '## ### ####' },
+  MG: { placeholder: '032 12 345 67', pattern: '### ## ### ##' },
+  ZW: { placeholder: '071 234 5678', pattern: '### ### ####' },
+  ZM: { placeholder: '095 123 4567', pattern: '### ### ####' },
+  BW: { placeholder: '71 234 567', pattern: '## ### ###' },
+  NA: { placeholder: '081 123 4567', pattern: '### ### ####' },
+  LS: { placeholder: '5012 3456', pattern: '#### ####' },
+  SZ: { placeholder: '7612 3456', pattern: '#### ####' },
+  RW: { placeholder: '0721 123 456', pattern: '#### ### ###' },
+  BI: { placeholder: '79 12 34 56', pattern: '## ## ## ##' },
+  CD: { placeholder: '0812 345 678', pattern: '#### ### ###' },
+  CG: { placeholder: '06 123 4567', pattern: '## ### ####' },
+  CF: { placeholder: '75 04 12 34', pattern: '## ## ## ##' },
+  GA: { placeholder: '06 12 34 56', pattern: '## ## ## ##' },
+  GQ: { placeholder: '222 123 456', pattern: '### ### ###' },
+  TD: { placeholder: '63 01 23 45', pattern: '## ## ## ##' },
+  GN: { placeholder: '622 12 34 56', pattern: '### ## ## ##' },
+  GW: { placeholder: '955 123 456', pattern: '### ### ###' },
+  SL: { placeholder: '025 123456', pattern: '### ######' },
+  LR: { placeholder: '077 012 3456', pattern: '### ### ####' },
+  GM: { placeholder: '301 2345', pattern: '### ####' },
+  ML: { placeholder: '65 12 34 56', pattern: '## ## ## ##' },
+  BF: { placeholder: '70 12 34 56', pattern: '## ## ## ##' },
+  NE: { placeholder: '93 12 34 56', pattern: '## ## ## ##' },
+  BJ: { placeholder: '90 12 34 56', pattern: '## ## ## ##' },
+  TG: { placeholder: '90 12 34 56', pattern: '## ## ## ##' },
+  MR: { placeholder: '22 12 34 56', pattern: '## ## ## ##' },
+  CV: { placeholder: '991 23 45', pattern: '### ## ##' },
+  ST: { placeholder: '981 2345', pattern: '### ####' },
+  SC: { placeholder: '2 512 345', pattern: '# ### ###' },
+  MU: { placeholder: '5252 1234', pattern: '#### ####' },
+  KM: { placeholder: '321 23 45', pattern: '### ## ##' },
+  DJ: { placeholder: '77 83 12 34', pattern: '## ## ## ##' },
+  ER: { placeholder: '07 123 456', pattern: '## ### ###' },
+  SO: { placeholder: '61 234 567', pattern: '## ### ###' },
+  MW: { placeholder: '0991 23 45 67', pattern: '#### ## ## ##' },
+
+  // Middle East
+  AE: { placeholder: '050 123 4567', pattern: '### ### ####' },
+  SA: { placeholder: '050 123 4567', pattern: '### ### ####' },
+  QA: { placeholder: '3312 3456', pattern: '#### ####' },
+  KW: { placeholder: '500 12345', pattern: '### #####' },
+  BH: { placeholder: '3600 1234', pattern: '#### ####' },
+  OM: { placeholder: '9212 3456', pattern: '#### ####' },
+  YE: { placeholder: '712 123 456', pattern: '### ### ###' },
+  IQ: { placeholder: '0791 123 4567', pattern: '#### ### ####' },
+  SY: { placeholder: '0944 123 456', pattern: '#### ### ###' },
+  LB: { placeholder: '03 123 456', pattern: '## ### ###' },
+  JO: { placeholder: '07 9012 3456', pattern: '## #### ####' },
+  IL: { placeholder: '050-123-4567', pattern: '###-###-####' },
+  PS: { placeholder: '059 123 4567', pattern: '### ### ####' },
+  IR: { placeholder: '0912 345 6789', pattern: '#### ### ####' },
+
+  // Asia
+  IN: { placeholder: '98765 43210', pattern: '##### #####' },
+  CN: { placeholder: '131 2345 6789', pattern: '### #### ####' },
+  JP: { placeholder: '090-1234-5678', pattern: '###-####-####' },
+  KR: { placeholder: '010-1234-5678', pattern: '###-####-####' },
+  KP: { placeholder: '0192 123 4567', pattern: '#### ### ####' },
+  TW: { placeholder: '0912-345-678', pattern: '####-###-###' },
+  HK: { placeholder: '5123 4567', pattern: '#### ####' },
+  MO: { placeholder: '6612 3456', pattern: '#### ####' },
+  PH: { placeholder: '0917 123 4567', pattern: '#### ### ####' },
+  ID: { placeholder: '0812-3456-7890', pattern: '####-####-####' },
+  MY: { placeholder: '012-345 6789', pattern: '###-### ####' },
+  SG: { placeholder: '9123 4567', pattern: '#### ####' },
+  TH: { placeholder: '081 234 5678', pattern: '### ### ####' },
+  VN: { placeholder: '091 234 56 78', pattern: '### ### ## ##' },
+  MM: { placeholder: '09 123 456 789', pattern: '## ### ### ###' },
+  KH: { placeholder: '012 345 678', pattern: '### ### ###' },
+  LA: { placeholder: '020 5512 3456', pattern: '### #### ####' },
+  BD: { placeholder: '01712-345678', pattern: '#####-######' },
+  PK: { placeholder: '0301-2345678', pattern: '####-#######' },
+  LK: { placeholder: '071 234 5678', pattern: '### ### ####' },
+  NP: { placeholder: '984-1234567', pattern: '###-#######' },
+  BT: { placeholder: '17 123 456', pattern: '## ### ###' },
+  MV: { placeholder: '777-1234', pattern: '###-####' },
+  AF: { placeholder: '070 123 4567', pattern: '### ### ####' },
+  TJ: { placeholder: '917 12 3456', pattern: '### ## ####' },
+  TM: { placeholder: '8 65 123456', pattern: '# ## ######' },
+  UZ: { placeholder: '90 123 45 67', pattern: '## ### ## ##' },
+  KG: { placeholder: '0700 123 456', pattern: '#### ### ###' },
+  KZ: { placeholder: '700 123 45 67', pattern: '### ### ## ##' },
+  MN: { placeholder: '9912 3456', pattern: '#### ####' },
+  GE: { placeholder: '555 12 34 56', pattern: '### ## ## ##' },
+  AM: { placeholder: '077 123 456', pattern: '### ### ###' },
+  AZ: { placeholder: '050 123 45 67', pattern: '### ### ## ##' },
+  TR: { placeholder: '0532 123 45 67', pattern: '#### ### ## ##' },
+
+  // South/Central America & Caribbean
+  BR: { placeholder: '(11) 99999-9999', pattern: '(##) #####-####' },
   AR: { placeholder: '011 1234-5678', pattern: '### ####-####' },
   CO: { placeholder: '310 123 4567', pattern: '### ### ####' },
   CL: { placeholder: '9 1234 5678', pattern: '# #### ####' },
   PE: { placeholder: '912 345 678', pattern: '### ### ###' },
-  VE: { placeholder: '0412-1234567', pattern: '####-#######' },
+  VE: { placeholder: '0412-123 4567', pattern: '####-### ####' },
+  EC: { placeholder: '099 123 4567', pattern: '### ### ####' },
+  BO: { placeholder: '7123 4567', pattern: '#### ####' },
+  PY: { placeholder: '0981 234 567', pattern: '#### ### ###' },
+  UY: { placeholder: '094 123 456', pattern: '### ### ###' },
+  GY: { placeholder: '609 1234', pattern: '### ####' },
+  SR: { placeholder: '741 2345', pattern: '### ####' },
+  PA: { placeholder: '6123-4567', pattern: '####-####' },
+  CR: { placeholder: '8312 3456', pattern: '#### ####' },
+  NI: { placeholder: '8412 3456', pattern: '#### ####' },
+  HN: { placeholder: '9812-3456', pattern: '####-####' },
+  SV: { placeholder: '7012 3456', pattern: '#### ####' },
+  GT: { placeholder: '5123 4567', pattern: '#### ####' },
+  BZ: { placeholder: '622 3456', pattern: '### ####' },
+  CU: { placeholder: '05 1234567', pattern: '## #######' },
+  DO: { placeholder: '(809) 234-5678', pattern: '(###) ###-####' },
+  HT: { placeholder: '34 12 3456', pattern: '## ## ####' },
+  JM: { placeholder: '(876) 234-5678', pattern: '(###) ###-####' },
+  TT: { placeholder: '(868) 234-5678', pattern: '(###) ###-####' },
+  BB: { placeholder: '(246) 234-5678', pattern: '(###) ###-####' },
+  BS: { placeholder: '(242) 234-5678', pattern: '(###) ###-####' },
+  AG: { placeholder: '(268) 234-5678', pattern: '(###) ###-####' },
+  DM: { placeholder: '(767) 234-5678', pattern: '(###) ###-####' },
+  GD: { placeholder: '(473) 234-5678', pattern: '(###) ###-####' },
+  KN: { placeholder: '(869) 234-5678', pattern: '(###) ###-####' },
+  LC: { placeholder: '(758) 234-5678', pattern: '(###) ###-####' },
+  VC: { placeholder: '(784) 234-5678', pattern: '(###) ###-####' },
+
+  // Oceania
+  AU: { placeholder: '0412 345 678', pattern: '#### ### ###' },
+  NZ: { placeholder: '021 234 5678', pattern: '### ### ####' },
+  FJ: { placeholder: '701 2345', pattern: '### ####' },
+  PG: { placeholder: '7012 3456', pattern: '#### ####' },
+  SB: { placeholder: '74 12345', pattern: '## #####' },
+  VU: { placeholder: '591 2345', pattern: '### ####' },
+  WS: { placeholder: '72 12345', pattern: '## #####' },
+  TO: { placeholder: '7715 123', pattern: '#### ###' },
+  KI: { placeholder: '72012345', pattern: '########' },
+  FM: { placeholder: '350 1234', pattern: '### ####' },
+  MH: { placeholder: '235-1234', pattern: '###-####' },
+  PW: { placeholder: '775 1234', pattern: '### ####' },
+  NR: { placeholder: '444 1234', pattern: '### ####' },
+  TV: { placeholder: '901 234', pattern: '### ###' },
 };
 
-function getPhoneFormat(countryCode: string) {
-  return PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
+function getPhoneFormat(code: string) {
+  return PHONE_FORMATS[code] || { placeholder: '123 456 7890', pattern: '### ### ####' };
 }
 
-function formatPhoneNumber(value: string, pattern: string): string {
-  const digits = value.replace(/\D/g, '');
+function formatPhoneNumber(digits: string, pattern: string): string {
   let result = '';
-  let digitIndex = 0;
-  for (let i = 0; i < pattern.length && digitIndex < digits.length; i++) {
+  let di = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    if (di >= digits.length) break;
     if (pattern[i] === '#') {
-      result += digits[digitIndex++];
+      result += digits[di++];
     } else {
+      // Only auto-insert separator if there are more digits to come
       result += pattern[i];
-      if (digitIndex < digits.length && pattern[i + 1] === '#') {
-        // keep going
-      }
     }
   }
   return result;
@@ -907,18 +1066,24 @@ export default function SignUpPage() {
                           <input
   value={phone}
   onChange={e => {
-    const dialPrefix = dialCode + ' ';
+    const prefix = dialCode + ' ';
     const raw = e.target.value;
-    if (!raw.startsWith(dialCode)) { setPhone(dialCode + ' '); return; }
-    const numberPart = raw.slice(dialPrefix.length).replace(/\D/g, '');
+    // Guard: never let user delete the dial prefix
+    if (!raw.startsWith(dialCode)) {
+      setPhone(prefix);
+      return;
+    }
+    // Extract only the local part digits
+    const localRaw = raw.slice(prefix.length);
+    const digits = localRaw.replace(/\D/g, '');
     const fmt = getPhoneFormat(countryCode);
-    const formatted = formatPhoneNumber(numberPart, fmt.pattern);
-    setPhone(dialPrefix + formatted);
+    const formatted = formatPhoneNumber(digits, fmt.pattern);
+    setPhone(prefix + formatted);
     setErrors(p => ({ ...p, phone: '' }));
   }}
   type="tel"
   inputMode="numeric"
-  placeholder={dialCode + ' ' + getPhoneFormat(countryCode).placeholder}
+  placeholder={`${dialCode} ${getPhoneFormat(countryCode).placeholder}`}
   autoComplete="tel"
   style={{ fontSize: '16px' }}
   className={inputCls(!!errors.phone)}
@@ -930,8 +1095,29 @@ export default function SignUpPage() {
                       <>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company Name</label>
-                          <input value={companyName} onChange={e => { setCompanyName(e.target.value); setErrors(p => ({ ...p, companyName: '' })); }}
-                            placeholder="Company Name" autoComplete="organization" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyName)} />
+                          <input
+  value={companyPhone}
+  onChange={e => {
+    const prefix = companyDialCode + ' ';
+    const raw = e.target.value;
+    if (!raw.startsWith(companyDialCode)) {
+      setCompanyPhone(prefix);
+      return;
+    }
+    const localRaw = raw.slice(prefix.length);
+    const digits = localRaw.replace(/\D/g, '');
+    const fmt = getPhoneFormat(companyCountryCode);
+    const formatted = formatPhoneNumber(digits, fmt.pattern);
+    setCompanyPhone(prefix + formatted);
+    setErrors(p => ({ ...p, companyPhone: '' }));
+  }}
+  type="tel"
+  inputMode="numeric"
+  placeholder={`${companyDialCode} ${getPhoneFormat(companyCountryCode).placeholder}`}
+  autoComplete="tel"
+  style={{ fontSize: '16px' }}
+  className={inputCls(!!errors.companyPhone)}
+/>
                           {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
                         </div>
                         <div>
