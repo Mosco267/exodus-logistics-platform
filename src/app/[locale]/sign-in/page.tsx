@@ -326,6 +326,7 @@ export default function SignInPage() {
   border: errors.password ? '1px solid #f87171' : passwordFocused ? '1px solid #3b82f6' : '1px solid #e5e7eb',
   boxShadow: passwordFocused && !errors.password ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none',
   transition: 'border-color 0.2s, box-shadow 0.2s',
+  overflow: 'hidden',
 }}>
   
   {/* EYE ICON MODE — masked with dots overlay */}
