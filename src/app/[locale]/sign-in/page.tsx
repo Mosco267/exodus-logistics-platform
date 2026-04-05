@@ -35,7 +35,7 @@ export default function SignInPage() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
@@ -321,15 +321,21 @@ export default function SignInPage() {
     id="password"
     name="password"
     type={showPassword ? 'text' : 'password'}
+    data-form-type="password"
     autoComplete="current-password"
     placeholder="Enter your password"
     autoCorrect="off"
     autoCapitalize="off"
     spellCheck={false}
     onChange={e => {
-      setHasPassword(!!e.target.value);
-      setErrors(p => ({ ...p, password: '', general: '' }));
-    }}
+  const val = e.target.value;
+  setHasPassword(!!val);
+  setErrors(p => ({ ...p, password: '', general: '' }));
+  // Auto-switch to password mode after user starts typing
+  if (val.length === 1 && showPassword) {
+    setShowPassword(false);
+  }
+}}
     style={{
       width: '100%',
       height: '48px',
