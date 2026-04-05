@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Check,
   ArrowRight, ArrowLeft, User, Building2, Mail, Shield,
-  Globe, Package, Zap,
+  Globe, Package, Zap, MapPin, Lock, Rocket, Star,
 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
@@ -54,14 +54,8 @@ function PasswordStrength({ password }: { password: string }) {
 
 function CustomCheckbox({ checked, onChange, error }: { checked: boolean; onChange: () => void; error?: boolean }) {
   return (
-    <div
-      onClick={onChange}
-      className="cursor-pointer w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200 mt-0.5"
-      style={{
-        backgroundColor: checked ? '#2563eb' : '#ffffff',
-        borderColor: error ? '#f87171' : checked ? '#2563eb' : '#d1d5db',
-      }}
-    >
+    <div onClick={onChange} className="cursor-pointer w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200 mt-0.5"
+      style={{ backgroundColor: checked ? '#2563eb' : '#ffffff', borderColor: error ? '#f87171' : checked ? '#2563eb' : '#d1d5db' }}>
       {checked && (
         <svg className="w-3 h-3 text-white" viewBox="0 0 10 8" fill="none">
           <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -71,39 +65,162 @@ function CustomCheckbox({ checked, onChange, error }: { checked: boolean; onChan
   );
 }
 
+// Mobile password field — same approach as sign-in page
+function PasswordField({
+  value, onChange, placeholder, hasError, autoComplete,
+}: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+  hasError: boolean; autoComplete: string;
+}) {
+  const [showPw, setShowPw] = useState(false);
+  const [pwLength, setPwLength] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+
+  const border = hasError ? '1px solid #f87171' : focused ? '1px solid #3b82f6' : '1px solid #e5e7eb';
+  const shadow = focused && !hasError ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none';
+
+  return (
+    <div style={{ position: 'relative', height: '48px', borderRadius: '12px', backgroundColor: '#ffffff', border, boxShadow: shadow, transition: 'border-color 0.2s, box-shadow 0.2s', overflow: 'hidden' }}>
+      {!showPw && (
+        <input
+          ref={ref}
+          type="text"
+          inputMode="text"
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onSelect={e => { const t = e.target as HTMLInputElement; t.setSelectionRange(t.value.length, t.value.length); }}
+          onChange={e => {
+            const added = e.target.value.length - pwLength;
+            if (added > 0) {
+              const newReal = (ref.current?.dataset.real || '') + e.target.value.slice(pwLength);
+              ref.current!.dataset.real = newReal;
+              e.target.value = '•'.repeat(e.target.value.length);
+              onChange(newReal);
+            } else {
+              const newReal = (ref.current?.dataset.real || '').slice(0, e.target.value.length);
+              ref.current!.dataset.real = newReal;
+              onChange(newReal);
+            }
+            setPwLength(e.target.value.length);
+          }}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
+            paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
+            fontSize: '16px', backgroundColor: '#ffffff', color: '#111827',
+            WebkitTextFillColor: '#111827', caretColor: '#3b82f6',
+            outline: 'none', WebkitAppearance: 'none', appearance: 'none',
+            boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
+            letterSpacing: pwLength > 0 ? '0.2em' : 'normal',
+          }}
+        />
+      )}
+      {showPw && (
+        <input
+          ref={ref}
+          type="text"
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onSelect={e => { const t = e.target as HTMLInputElement; t.setSelectionRange(t.value.length, t.value.length); }}
+          onChange={e => {
+            const val = e.target.value;
+            ref.current!.dataset.real = val;
+            setPwLength(val.length);
+            onChange(val);
+          }}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
+            paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
+            fontSize: '16px', backgroundColor: '#ffffff', color: '#111827',
+            caretColor: '#1d4ed8', outline: 'none', WebkitAppearance: 'none', appearance: 'none',
+            boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
+          }}
+        />
+      )}
+      <button type="button" tabIndex={-1}
+        onClick={() => {
+          const real = ref.current?.dataset.real || '';
+          setShowPw(prev => {
+            const next = !prev;
+            setTimeout(() => {
+              if (ref.current) {
+                ref.current.value = next ? real : '•'.repeat(real.length);
+                ref.current.dataset.real = real;
+                setPwLength(real.length);
+                ref.current.focus();
+              }
+            }, 10);
+            return next;
+          });
+        }}
+        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af', zIndex: 4 }}>
+        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
+
 type AccountType = 'individual' | 'company' | null;
 type Step = 'type' | 'method' | 'form';
 
-const features = [
-  { icon: Globe, title: 'Global Reach', desc: '120+ countries covered worldwide' },
-  { icon: Package, title: 'Real-time Tracking', desc: 'Live updates on every shipment' },
-  { icon: Zap, title: 'Instant Invoicing', desc: 'Automated billing and receipts' },
-];
+// Left panel content changes per step
+const LEFT_PANELS = {
+  type: {
+    badge: { icon: Star, text: 'Join 50,000+ Users' },
+    headline: 'Join the future of logistics.',
+    highlight: 'Simple. Fast. Global.',
+    desc: 'Whether you\'re an individual sender or a global enterprise, Exodus Logistics has the tools to manage every shipment with ease.',
+    items: [
+      { icon: Globe, title: 'Global Coverage', desc: 'Ship to 120+ countries worldwide' },
+      { icon: Package, title: 'Smart Tracking', desc: 'Real-time updates on every shipment' },
+      { icon: Zap, title: 'Instant Invoices', desc: 'Automated billing and receipts' },
+    ],
+    stats: [{ value: '50K+', label: 'Users' }, { value: '120+', label: 'Countries' }, { value: '99.9%', label: 'Uptime' }],
+  },
+  method: {
+    badge: { icon: Shield, text: 'Bank-Level Security' },
+    headline: 'Your data is always safe with us.',
+    highlight: 'Encrypted. Protected. Private.',
+    desc: 'We use industry-leading encryption and security protocols to protect your account and shipment data at every step.',
+    items: [
+      { icon: Lock, title: 'End-to-End Encryption', desc: 'All data encrypted in transit and at rest' },
+      { icon: Shield, title: 'Fraud Protection', desc: 'Advanced monitoring to keep you safe' },
+      { icon: Zap, title: 'Instant Access', desc: 'Sign up in under 2 minutes' },
+    ],
+    stats: [{ value: '256-bit', label: 'Encryption' }, { value: '24/7', label: 'Monitoring' }, { value: '0', label: 'Breaches' }],
+  },
+  form: {
+    badge: { icon: Rocket, text: 'Get Started Today' },
+    headline: 'You\'re one step away from smarter shipping.',
+    highlight: 'Track. Ship. Deliver.',
+    desc: 'Complete your profile and gain instant access to real-time tracking, automated invoicing, and our global logistics network.',
+    items: [
+      { icon: MapPin, title: 'Real-time Tracking', desc: 'Know where your shipment is at all times' },
+      { icon: Package, title: 'Automated Invoicing', desc: 'Invoices generated and sent automatically' },
+      { icon: Globe, title: 'Global Network', desc: 'Partners in 120+ countries worldwide' },
+    ],
+    stats: [{ value: '< 2min', label: 'Setup time' }, { value: 'Free', label: 'To start' }, { value: '24/7', label: 'Support' }],
+  },
+};
 
 const INDUSTRIES = [
-  'Agriculture & Farming',
-  'Automotive & Transportation',
-  'Banking & Financial Services',
-  'Chemicals & Petrochemicals',
-  'Construction & Real Estate',
-  'Consumer Goods & FMCG',
-  'Education & Training',
-  'Energy & Utilities',
-  'Fashion & Apparel',
-  'Food & Beverage',
-  'Government & Public Sector',
-  'Healthcare & Pharmaceuticals',
-  'Hospitality & Tourism',
-  'Information Technology',
-  'Logistics & Supply Chain',
-  'Manufacturing & Industrial',
-  'Media & Entertainment',
-  'Mining & Resources',
-  'Non-Profit & NGO',
-  'Oil & Gas',
-  'Retail & E-commerce',
-  'Telecommunications',
-  'Other',
+  'Agriculture & Farming', 'Automotive & Transportation', 'Banking & Financial Services',
+  'Chemicals & Petrochemicals', 'Construction & Real Estate', 'Consumer Goods & FMCG',
+  'Education & Training', 'Energy & Utilities', 'Fashion & Apparel', 'Food & Beverage',
+  'Government & Public Sector', 'Healthcare & Pharmaceuticals', 'Hospitality & Tourism',
+  'Information Technology', 'Logistics & Supply Chain', 'Manufacturing & Industrial',
+  'Media & Entertainment', 'Mining & Resources', 'Non-Profit & NGO', 'Oil & Gas',
+  'Retail & E-commerce', 'Telecommunications', 'Other',
 ];
 
 export default function SignUpPage() {
@@ -114,12 +231,15 @@ export default function SignUpPage() {
   const [step, setStep] = useState<Step>('type');
   const [accountType, setAccountType] = useState<AccountType>(null);
 
+  // Individual fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState('');
 
+  // Company fields
   const [companyName, setCompanyName] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
@@ -130,9 +250,8 @@ export default function SignUpPage() {
   const [industry, setIndustry] = useState('');
   const [contactName, setContactName] = useState('');
   const [website, setWebsite] = useState('');
+  const [companyCountry, setCompanyCountry] = useState('');
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -141,11 +260,22 @@ export default function SignUpPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
 
+  // Auto-detect country
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.country_name) {
+          setCountry(data.country_name);
+          setCompanyCountry(data.country_name);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const inputCls = (hasError: boolean) =>
     `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
-      hasError
-        ? 'border-red-400 focus:ring-red-400/20'
-        : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
+      hasError ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
     }`;
 
   const validate = () => {
@@ -155,6 +285,7 @@ export default function SignUpPage() {
       if (!email.trim()) e.email = 'Email address is required.';
       else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Please enter a valid email address.';
       if (!phone.trim()) e.phone = 'Phone number is required.';
+      if (!country.trim()) e.country = 'Country is required.';
       if (!password) e.password = 'Password is required.';
       else if (password.length < 8) e.password = 'Password must be at least 8 characters.';
       else if (!/[^A-Za-z0-9]/.test(password)) e.password = 'Password must include at least one special character.';
@@ -166,6 +297,7 @@ export default function SignUpPage() {
       if (!companyEmail.trim()) e.companyEmail = 'Business email is required.';
       else if (!/^\S+@\S+\.\S+$/.test(companyEmail)) e.companyEmail = 'Please enter a valid email address.';
       if (!companyPhone.trim()) e.companyPhone = 'Phone number is required.';
+      if (!companyCountry.trim()) e.companyCountry = 'Country is required.';
       if (!vatNumber.trim()) e.vatNumber = 'VAT number is required.';
       if (!registrationNumber.trim()) e.registrationNumber = 'Registration number is required.';
       if (!industry) e.industry = 'Please select an industry.';
@@ -193,13 +325,11 @@ export default function SignUpPage() {
     setIsSubmitting(true);
     try {
       const body = accountType === 'individual'
-        ? { name: submitName, email: submitEmail, password: submitPassword, phone, accountType: 'individual', emailUpdates }
-        : { name: submitName, email: submitEmail, password: submitPassword, phone: companyPhone, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website, emailUpdates };
+        ? { name: submitName, email: submitEmail, password: submitPassword, phone, country, accountType: 'individual', emailUpdates }
+        : { name: submitName, email: submitEmail, password: submitPassword, phone: companyPhone, country: companyCountry, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website, emailUpdates };
 
       const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) { setGeneralError(json?.error || 'Registration failed. Please try again.'); return; }
@@ -207,25 +337,17 @@ export default function SignUpPage() {
       setSuccess(true);
       setTimeout(async () => {
         const result = await signIn('credentials', { email: submitEmail, password: submitPassword, redirect: false });
-        if (result?.ok) {
-          router.replace(`/${locale}/dashboard`);
-          setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 200);
-        } else {
-          router.replace(`/${locale}/sign-in`);
-        }
+        if (result?.ok) { router.replace(`/${locale}/dashboard`); setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 200); }
+        else { router.replace(`/${locale}/sign-in`); }
       }, 1500);
-    } catch {
-      setGeneralError('Something went wrong. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch { setGeneralError('Something went wrong. Please try again.'); }
+    finally { setIsSubmitting(false); }
   };
 
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
-    try {
-      await signIn('google', { callbackUrl: `/${locale}/dashboard` });
-    } catch { setGoogleLoading(false); }
+    try { await signIn('google', { callbackUrl: `/${locale}/dashboard` }); }
+    catch { setGoogleLoading(false); }
   };
 
   if (success) {
@@ -245,26 +367,25 @@ export default function SignUpPage() {
   }
 
   const stepIndex: Record<Step, number> = { type: 0, method: 1, form: 2 };
+  const panel = LEFT_PANELS[step];
+  const BadgeIcon = panel.badge.icon;
 
   return (
     <div className="min-h-screen flex">
 
-      {/* ── LEFT PANEL ── */}
-      <div
-        className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-between p-12 xl:p-16 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}
-      >
+      {/* ── LEFT PANEL — changes per step ── */}
+      <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-between p-12 xl:p-16 overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}>
+
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full"
             style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%)' }} />
           <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full"
             style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.3) 0%, transparent 70%)' }} />
           <svg className="absolute inset-0 w-full h-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-                <path d="M 48 0 L 0 0 0 48" fill="none" stroke="white" strokeWidth="1"/>
-              </pattern>
-            </defs>
+            <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+              <path d="M 48 0 L 0 0 0 48" fill="none" stroke="white" strokeWidth="1"/>
+            </pattern></defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
           <div className="absolute top-1/3 right-8 w-2 h-2 rounded-full bg-orange-400 opacity-60" />
@@ -272,54 +393,57 @@ export default function SignUpPage() {
           <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
         </div>
 
-        {/* Logo */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10">
           <Link href={`/${locale}`} className="cursor-pointer">
             <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
           </Link>
         </motion.div>
 
-        {/* Center content */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative z-10 space-y-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
-            <Shield className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Trusted Platform</span>
-          </div>
-          <div>
-            <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-              Ship smarter.<br />
-              <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Track everything.
-              </span>
-            </h2>
-            <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-              Join thousands of businesses managing their international shipments with Exodus Logistics.
-            </p>
-          </div>
-          <div className="space-y-3">
-            {features.map(({ icon: Icon, title, desc }, i) => (
-              <motion.div key={title} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.3 + i * 0.1 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
-                <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{title}</p>
-                  <p className="text-xs text-white/50">{desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {[{ value: '50K+', label: 'Shipments' }, { value: '120+', label: 'Countries' }, { value: '99.9%', label: 'Uptime' }].map(({ value, label }, i) => (
-              <motion.div key={label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.6 + i * 0.08 }}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-extrabold text-white">{value}</p>
-                <p className="text-[11px] text-white/50 mt-0.5 font-semibold tracking-wide">{label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div key={step} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }}
+            transition={{ duration: 0.4 }} className="relative z-10 space-y-8">
+
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
+              <BadgeIcon className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-xs font-bold text-white/90 tracking-widest uppercase">{panel.badge.text}</span>
+            </div>
+
+            <div>
+              <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
+                {panel.headline}<br />
+                <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  {panel.highlight}
+                </span>
+              </h2>
+              <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">{panel.desc}</p>
+            </div>
+
+            <div className="space-y-3">
+              {panel.items.map(({ icon: Icon, title, desc }, i) => (
+                <motion.div key={title} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.1 + i * 0.1 }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{title}</p>
+                    <p className="text-xs text-white/50">{desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {panel.stats.map(({ value, label }, i) => (
+                <motion.div key={label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.4 + i * 0.08 }}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm">
+                  <p className="text-xl font-extrabold text-white">{value}</p>
+                  <p className="text-[11px] text-white/50 mt-0.5 font-semibold tracking-wide">{label}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         <div className="relative z-10">
           <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
@@ -347,7 +471,7 @@ export default function SignUpPage() {
           <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10">
             <AnimatePresence mode="wait">
 
-              {/* STEP 1 — Type */}
+              {/* STEP 1 */}
               {step === 'type' && (
                 <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
                   <div className="mb-8">
@@ -391,7 +515,7 @@ export default function SignUpPage() {
                 </motion.div>
               )}
 
-              {/* STEP 2 — Method */}
+              {/* STEP 2 */}
               {step === 'method' && (
                 <motion.div key="method" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
                   <button onClick={() => setStep('type')}
@@ -427,7 +551,7 @@ export default function SignUpPage() {
                 </motion.div>
               )}
 
-              {/* STEP 3 — Form */}
+              {/* STEP 3 */}
               {step === 'form' && (
                 <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
                   <button onClick={() => setStep('method')}
@@ -443,9 +567,7 @@ export default function SignUpPage() {
                       {accountType === 'company' ? 'Company details' : 'Your details'}
                     </h1>
                     <p className="mt-1 text-sm text-gray-500">
-                      {accountType === 'company'
-                        ? 'Complete your company profile to get started.'
-                        : 'Fill in your personal information to create your account.'}
+                      {accountType === 'company' ? 'Complete your company profile to get started.' : 'Fill in your personal information to create your account.'}
                     </p>
                   </div>
 
@@ -477,6 +599,12 @@ export default function SignUpPage() {
                             type="tel" placeholder="Phone Number" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(!!errors.phone)} />
                           {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
                         </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
+                          <input value={country} onChange={e => { setCountry(e.target.value); setErrors(p => ({ ...p, country: '' })); }}
+                            placeholder="Country" autoComplete="country-name" style={{ fontSize: '16px' }} className={inputCls(!!errors.country)} />
+                          {errors.country && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.country}</p>}
+                        </div>
                       </>
                     ) : (
                       <>
@@ -503,6 +631,12 @@ export default function SignUpPage() {
                           <input value={companyPhone} onChange={e => { setCompanyPhone(e.target.value); setErrors(p => ({ ...p, companyPhone: '' })); }}
                             type="tel" placeholder="Business Phone Number" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyPhone)} />
                           {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
+                          <input value={companyCountry} onChange={e => { setCompanyCountry(e.target.value); setErrors(p => ({ ...p, companyCountry: '' })); }}
+                            placeholder="Country" autoComplete="country-name" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyCountry)} />
+                          {errors.companyCountry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyCountry}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -540,25 +674,16 @@ export default function SignUpPage() {
                     {/* Password */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
-                      <div className="relative">
-                        <input
-                          value={accountType === 'individual' ? password : companyPassword}
-                          onChange={e => {
-                            const val = e.target.value;
-                            accountType === 'individual' ? setPassword(val) : setCompanyPassword(val);
-                            setErrors(p => ({ ...p, [accountType === 'individual' ? 'password' : 'companyPassword']: '' }));
-                          }}
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Create a Strong Password"
-                          autoComplete="new-password"
-                          style={{ fontSize: '16px' }}
-                          className={inputCls(!!(accountType === 'individual' ? errors.password : errors.companyPassword)) + ' pr-11'}
-                        />
-                        <button type="button" tabIndex={-1} onClick={() => setShowPassword(v => !v)}
-                          className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
+                      <PasswordField
+                        value={accountType === 'individual' ? password : companyPassword}
+                        onChange={val => {
+                          accountType === 'individual' ? setPassword(val) : setCompanyPassword(val);
+                          setErrors(p => ({ ...p, [accountType === 'individual' ? 'password' : 'companyPassword']: '' }));
+                        }}
+                        placeholder="Create a Strong Password"
+                        hasError={!!(accountType === 'individual' ? errors.password : errors.companyPassword)}
+                        autoComplete="new-password"
+                      />
                       {(accountType === 'individual' ? errors.password : errors.companyPassword) && (
                         <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />{accountType === 'individual' ? errors.password : errors.companyPassword}
@@ -570,25 +695,16 @@ export default function SignUpPage() {
                     {/* Confirm Password */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
-                      <div className="relative">
-                        <input
-                          value={accountType === 'individual' ? confirm : companyConfirm}
-                          onChange={e => {
-                            const val = e.target.value;
-                            accountType === 'individual' ? setConfirm(val) : setCompanyConfirm(val);
-                            setErrors(p => ({ ...p, [accountType === 'individual' ? 'confirm' : 'companyConfirm']: '' }));
-                          }}
-                          type={showConfirm ? 'text' : 'password'}
-                          placeholder="Re-enter Your Password"
-                          autoComplete="new-password"
-                          style={{ fontSize: '16px' }}
-                          className={inputCls(!!(accountType === 'individual' ? errors.confirm : errors.companyConfirm)) + ' pr-11'}
-                        />
-                        <button type="button" tabIndex={-1} onClick={() => setShowConfirm(v => !v)}
-                          className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
-                          {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
+                      <PasswordField
+                        value={accountType === 'individual' ? confirm : companyConfirm}
+                        onChange={val => {
+                          accountType === 'individual' ? setConfirm(val) : setCompanyConfirm(val);
+                          setErrors(p => ({ ...p, [accountType === 'individual' ? 'confirm' : 'companyConfirm']: '' }));
+                        }}
+                        placeholder="Re-enter Your Password"
+                        hasError={!!(accountType === 'individual' ? errors.confirm : errors.companyConfirm)}
+                        autoComplete="new-password"
+                      />
                       {(accountType === 'individual' ? errors.confirm : errors.companyConfirm) && (
                         <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />{accountType === 'individual' ? errors.confirm : errors.companyConfirm}
@@ -608,25 +724,16 @@ export default function SignUpPage() {
 
                     {/* Checkboxes */}
                     <div className="space-y-3 pt-1">
-                      {/* Terms */}
                       <div className={`rounded-xl border p-4 transition-all duration-200 ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50/80'}`}>
                         <div className="flex items-start gap-3">
-                          <CustomCheckbox
-                            checked={agreed}
-                            onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}
-                            error={!!errors.agreed}
-                          />
+                          <CustomCheckbox checked={agreed} onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }} error={!!errors.agreed} />
                           <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
                             I have read, understood, and agree to be bound by the{' '}
                             <Link href={`/${locale}/terms`} target="_blank" onClick={e => e.stopPropagation()}
-                              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">
-                              Terms of Service
-                            </Link>{' '}
+                              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Terms of Service</Link>{' '}
                             and{' '}
                             <Link href={`/${locale}/privacy`} target="_blank" onClick={e => e.stopPropagation()}
-                              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">
-                              Privacy Policy
-                            </Link>{' '}
+                              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Privacy Policy</Link>{' '}
                             of Exodus Logistics Ltd.
                           </span>
                         </div>
@@ -636,8 +743,6 @@ export default function SignUpPage() {
                           </p>
                         )}
                       </div>
-
-                      {/* Email updates */}
                       <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
                         <div className="flex items-start gap-3">
                           <CustomCheckbox checked={emailUpdates} onChange={() => setEmailUpdates(v => !v)} />
@@ -670,8 +775,7 @@ export default function SignUpPage() {
           <div className="mt-5 flex items-center justify-center gap-2">
             {(['type', 'method', 'form'] as Step[]).map((s) => (
               <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${
-                step === s ? 'w-8 bg-blue-600' :
-                stepIndex[s] < stepIndex[step] ? 'w-4 bg-blue-300' : 'w-4 bg-gray-200'
+                step === s ? 'w-8 bg-blue-600' : stepIndex[s] < stepIndex[step] ? 'w-4 bg-blue-300' : 'w-4 bg-gray-200'
               }`} />
             ))}
           </div>
