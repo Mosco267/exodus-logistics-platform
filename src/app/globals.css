@@ -125,3 +125,8 @@ html, body {
   -webkit-text-fill-color: transparent !important;
   background-color: transparent !important;
 }
+
+input[type="password"]::-webkit-contacts-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}

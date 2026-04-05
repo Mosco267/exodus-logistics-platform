@@ -321,80 +321,44 @@ export default function SignInPage() {
   
   {/* EYE ICON MODE — masked with dots overlay */}
   {!showPassword && (
-    <>
-      <input
-        ref={passwordRef}
-        id="password"
-        name="password"
-        type="text"
-        inputMode="text"
-        autoComplete="current-password"
-        placeholder="Enter your password"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        onChange={e => {
-          setHasPassword(!!e.target.value);
-          setPasswordLength(e.target.value.length);
-          setErrors(p => ({ ...p, password: '', general: '' }));
-        }}
-
-        onSelect={e => {
-  const t = e.target as HTMLInputElement;
-  t.setSelectionRange(t.value.length, t.value.length);
-}}
-
-        style={{
-          position: 'absolute',
-          top: 0, left: 0,
-          width: '100%',
-          height: '48px',
-          paddingLeft: '16px',
-          paddingRight: '44px',
-          borderRadius: '12px',
-          border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-          fontSize: '16px',
-          backgroundColor: 'transparent',
-          color: 'transparent',
-          WebkitTextFillColor: 'transparent',
-          caretColor: '#0891b2',
-          outline: 'none',
-          WebkitAppearance: 'none',
-          appearance: 'none',
-          boxSizing: 'border-box' as const,
-          zIndex: 2,
-        }}
-      />
-      {/* Dots/placeholder overlay */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: 0, left: 0,
-          right: '44px',
-          height: '48px',
-          paddingLeft: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          fontSize: '16px',
-          color: passwordLength > 0 ? '#111827' : '#9ca3af',
-          letterSpacing: passwordLength > 0 ? '0.15em' : 'normal',
-          pointerEvents: 'none',
-          zIndex: 3,
-          userSelect: 'none',
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          fontFamily: 'inherit',
-          fontWeight: 'normal',
-          backgroundColor: 'transparent',
-        }}
-      >
-        {passwordLength > 0
-          ? '•'.repeat(passwordLength)
-          : 'Enter your password'}
-      </div>
-    </>
-  )}
+  <input
+    ref={passwordRef}
+    id="password"
+    name="password"
+    type="password"
+    autoComplete="current-password"
+    placeholder="Enter your password"
+    autoCorrect="off"
+    autoCapitalize="off"
+    spellCheck={false}
+    onChange={e => {
+      setHasPassword(!!e.target.value);
+      setPasswordLength(e.target.value.length);
+      setErrors(p => ({ ...p, password: '', general: '' }));
+    }}
+    style={{
+      position: 'absolute',
+      top: 0, left: 0,
+      width: '100%',
+      height: '48px',
+      paddingLeft: '16px',
+      paddingRight: '44px',
+      borderRadius: '12px',
+      border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+      fontSize: '16px',
+      backgroundColor: '#ffffff',
+      color: '#111827',
+      caretColor: '#0891b2',
+      outline: 'none',
+      WebkitAppearance: 'none',
+      appearance: 'none',
+      boxSizing: 'border-box' as const,
+      zIndex: 2,
+      fontFamily: 'inherit',
+    }}
+  />
+)}
+      
 
   {/* EYEOFF MODE — plain text */}
   {showPassword && (
