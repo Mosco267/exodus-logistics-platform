@@ -125,6 +125,12 @@ html, body {
   -webkit-text-fill-color: #ffffff !important;
 }
 
+#password::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
 input[type="password"]::-webkit-contacts-auto-fill-button,
 input[type="password"]::-webkit-credentials-auto-fill-button {
   display: none !important;
