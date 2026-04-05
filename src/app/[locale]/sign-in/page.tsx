@@ -338,6 +338,12 @@ export default function SignInPage() {
           setPasswordLength(e.target.value.length);
           setErrors(p => ({ ...p, password: '', general: '' }));
         }}
+
+        onSelect={e => {
+  const t = e.target as HTMLInputElement;
+  t.setSelectionRange(t.value.length, t.value.length);
+}}
+
         style={{
           position: 'absolute',
           top: 0, left: 0,
@@ -407,6 +413,12 @@ export default function SignInPage() {
         setPasswordLength(e.target.value.length);
         setErrors(p => ({ ...p, password: '', general: '' }));
       }}
+      
+      onSelect={e => {
+  const t = e.target as HTMLInputElement;
+  t.setSelectionRange(t.value.length, t.value.length);
+}}
+
       style={{
         position: 'absolute',
         top: 0, left: 0,
@@ -419,7 +431,7 @@ export default function SignInPage() {
         fontSize: '16px',
         backgroundColor: '#ffffff',
         color: '#111827',
-        caretColor: '#0891b2',
+        caretColor: '#1d4ed8',
         outline: 'none',
         WebkitAppearance: 'none',
         appearance: 'none',
