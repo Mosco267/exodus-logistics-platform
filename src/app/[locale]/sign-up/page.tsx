@@ -218,6 +218,80 @@ const COUNTRIES = [
   { name: 'Zimbabwe', code: 'ZW', flag: '🇿🇼', dial: '+263' },
 ];
 
+const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = {
+  US: { placeholder: '(201) 555-0123', pattern: '(###) ###-####' },
+  CA: { placeholder: '(416) 555-0123', pattern: '(###) ###-####' },
+  GB: { placeholder: '07400 123456', pattern: '##### ######' },
+  NG: { placeholder: '0801 376 1826', pattern: '#### ### ####' },
+  GH: { placeholder: '020 123 4567', pattern: '### ### ####' },
+  ZA: { placeholder: '071 234 5678', pattern: '### ### ####' },
+  KE: { placeholder: '0712 345678', pattern: '#### ######' },
+  IN: { placeholder: '98765 43210', pattern: '##### #####' },
+  CN: { placeholder: '139 1234 5678', pattern: '### #### ####' },
+  DE: { placeholder: '0151 12345678', pattern: '#### ########' },
+  FR: { placeholder: '06 12 34 56 78', pattern: '## ## ## ## ##' },
+  IT: { placeholder: '312 345 6789', pattern: '### ### ####' },
+  ES: { placeholder: '612 345 678', pattern: '### ### ###' },
+  BR: { placeholder: '(11) 99999-9999', pattern: '(##) #####-####' },
+  MX: { placeholder: '55 1234 5678', pattern: '## #### ####' },
+  AU: { placeholder: '0412 345 678', pattern: '#### ### ###' },
+  NZ: { placeholder: '021 234 5678', pattern: '### ### ####' },
+  JP: { placeholder: '090-1234-5678', pattern: '###-####-####' },
+  KR: { placeholder: '010-1234-5678', pattern: '###-####-####' },
+  AE: { placeholder: '050 123 4567', pattern: '### ### ####' },
+  SA: { placeholder: '050 123 4567', pattern: '### ### ####' },
+  EG: { placeholder: '0100 123 4567', pattern: '#### ### ####' },
+  ZW: { placeholder: '0771 234 567', pattern: '#### ### ###' },
+  PH: { placeholder: '0917 123 4567', pattern: '#### ### ####' },
+  PK: { placeholder: '0301 2345678', pattern: '#### #######' },
+  BD: { placeholder: '01712-345678', pattern: '#####-######' },
+  ID: { placeholder: '0812-3456-7890', pattern: '####-####-####' },
+  MY: { placeholder: '012-345 6789', pattern: '###-### ####' },
+  TH: { placeholder: '081 234 5678', pattern: '### ### ####' },
+  VN: { placeholder: '091 234 5678', pattern: '### ### ####' },
+  TR: { placeholder: '0532 123 45 67', pattern: '#### ### ## ##' },
+  RU: { placeholder: '8 (912) 345-67-89', pattern: '# (###) ###-##-##' },
+  UA: { placeholder: '050 123 4567', pattern: '### ### ####' },
+  PL: { placeholder: '512 345 678', pattern: '### ### ###' },
+  NL: { placeholder: '06 12345678', pattern: '## ########' },
+  BE: { placeholder: '0472 12 34 56', pattern: '#### ## ## ##' },
+  SE: { placeholder: '070-123 45 67', pattern: '###-### ## ##' },
+  NO: { placeholder: '412 34 567', pattern: '### ## ###' },
+  DK: { placeholder: '20 12 34 56', pattern: '## ## ## ##' },
+  FI: { placeholder: '041 2345678', pattern: '### #######' },
+  PT: { placeholder: '912 345 678', pattern: '### ### ###' },
+  GR: { placeholder: '694 123 4567', pattern: '### ### ####' },
+  RO: { placeholder: '0712 345 678', pattern: '#### ### ###' },
+  HU: { placeholder: '06 20 123 4567', pattern: '## ## ### ####' },
+  CZ: { placeholder: '601 123 456', pattern: '### ### ###' },
+  AR: { placeholder: '011 1234-5678', pattern: '### ####-####' },
+  CO: { placeholder: '310 123 4567', pattern: '### ### ####' },
+  CL: { placeholder: '9 1234 5678', pattern: '# #### ####' },
+  PE: { placeholder: '912 345 678', pattern: '### ### ###' },
+  VE: { placeholder: '0412-1234567', pattern: '####-#######' },
+};
+
+function getPhoneFormat(countryCode: string) {
+  return PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
+}
+
+function formatPhoneNumber(value: string, pattern: string): string {
+  const digits = value.replace(/\D/g, '');
+  let result = '';
+  let digitIndex = 0;
+  for (let i = 0; i < pattern.length && digitIndex < digits.length; i++) {
+    if (pattern[i] === '#') {
+      result += digits[digitIndex++];
+    } else {
+      result += pattern[i];
+      if (digitIndex < digits.length && pattern[i + 1] === '#') {
+        // keep going
+      }
+    }
+  }
+  return result;
+}
+
 function FlagImg({ code }: { code: string }) {
   return (
     <img
@@ -226,7 +300,7 @@ function FlagImg({ code }: { code: string }) {
       width="20"
       height="15"
       alt=""
-      className="shrink-0 rounded-sm object-cover"
+      className="shrink-0 object-cover"
       style={{ minWidth: '20px' }}
     />
   );
@@ -303,8 +377,7 @@ function CountrySelect({ value, onChange, onDialChange, hasError }: {
         <span className="flex items-center gap-2 min-w-0 flex-1">
           {selected ? (
             <><FlagImg code={selected.code} />
-            <span className="text-sm text-gray-900 truncate">{selected.name}</span>
-            <span className="text-xs text-gray-400 shrink-0 ml-1">{selected.dial}</span></>
+<span className="text-sm text-gray-900 truncate">{selected.name}</span></>
           ) : (
             <span className="text-sm text-gray-400">Select Country</span>
           )}
@@ -487,6 +560,8 @@ export default function SignUpPage() {
   const [confirm, setConfirm] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
+  const [countryCode, setCountryCode] = useState('');
+  const [companyCountryCode, setCompanyCountryCode] = useState('');
   const [dialCode, setDialCode] = useState('');
 
   const [companyName, setCompanyName] = useState('');
@@ -516,10 +591,11 @@ export default function SignUpPage() {
       .then(data => {
         const found = COUNTRIES.find(c => c.code === data.country_code || c.name === data.country_name);
         if (found) {
-          setCountry(found.name); setCompanyCountry(found.name);
-          setDialCode(found.dial); setCompanyDialCode(found.dial);
-          setPhone(found.dial + ' '); setCompanyPhone(found.dial + ' ');
-        }
+  setCountry(found.name); setCompanyCountry(found.name);
+  setDialCode(found.dial); setCompanyDialCode(found.dial);
+  setCountryCode(found.code); setCompanyCountryCode(found.code);
+  setPhone(found.dial + ' '); setCompanyPhone(found.dial + ' ');
+}
       }).catch(() => {});
   }, []);
 
@@ -814,15 +890,39 @@ export default function SignUpPage() {
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
                           <CountrySelect value={country}
-                            onChange={n => { setCountry(n); setErrors(p => ({ ...p, country: '' })); }}
-                            onDialChange={d => { setDialCode(d); setPhone(d + ' '); }}
+                            onChange={n => {
+  const found = COUNTRIES.find(c => c.name === n);
+  setCountry(n);
+  setCountryCode(found?.code || '');
+  setDialCode(found?.dial || '');
+  setPhone((found?.dial || '') + ' ');
+  setErrors(p => ({ ...p, country: '' }));
+}}
+                            
                             hasError={!!errors.country} />
                           {errors.country && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.country}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
-                          <input value={phone} onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: '' })); }}
-                            type="tel" placeholder="Phone Number" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(!!errors.phone)} />
+                          <input
+  value={phone}
+  onChange={e => {
+    const dialPrefix = dialCode + ' ';
+    const raw = e.target.value;
+    if (!raw.startsWith(dialCode)) { setPhone(dialCode + ' '); return; }
+    const numberPart = raw.slice(dialPrefix.length).replace(/\D/g, '');
+    const fmt = getPhoneFormat(countryCode);
+    const formatted = formatPhoneNumber(numberPart, fmt.pattern);
+    setPhone(dialPrefix + formatted);
+    setErrors(p => ({ ...p, phone: '' }));
+  }}
+  type="tel"
+  inputMode="numeric"
+  placeholder={dialCode + ' ' + getPhoneFormat(countryCode).placeholder}
+  autoComplete="tel"
+  style={{ fontSize: '16px' }}
+  className={inputCls(!!errors.phone)}
+/>
                           {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
                         </div>
                       </>
@@ -849,15 +949,39 @@ export default function SignUpPage() {
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
                           <CountrySelect value={companyCountry}
-                            onChange={n => { setCompanyCountry(n); setErrors(p => ({ ...p, companyCountry: '' })); }}
-                            onDialChange={d => { setCompanyDialCode(d); setCompanyPhone(d + ' '); }}
+                            onChange={n => {
+  const found = COUNTRIES.find(c => c.name === n);
+  setCompanyCountry(n);
+  setCompanyCountryCode(found?.code || '');
+  setCompanyDialCode(found?.dial || '');
+  setCompanyPhone((found?.dial || '') + ' ');
+  setErrors(p => ({ ...p, companyCountry: '' }));
+}}
+                            
                             hasError={!!errors.companyCountry} />
                           {errors.companyCountry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyCountry}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Phone Number</label>
-                          <input value={companyPhone} onChange={e => { setCompanyPhone(e.target.value); setErrors(p => ({ ...p, companyPhone: '' })); }}
-                            type="tel" placeholder="Business Phone Number" autoComplete="tel" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyPhone)} />
+                          <input
+  value={phone}
+  onChange={e => {
+    const dialPrefix = dialCode + ' ';
+    const raw = e.target.value;
+    if (!raw.startsWith(dialCode)) { setPhone(dialCode + ' '); return; }
+    const numberPart = raw.slice(dialPrefix.length).replace(/\D/g, '');
+    const fmt = getPhoneFormat(countryCode);
+    const formatted = formatPhoneNumber(numberPart, fmt.pattern);
+    setPhone(dialPrefix + formatted);
+    setErrors(p => ({ ...p, phone: '' }));
+  }}
+  type="tel"
+  inputMode="numeric"
+  placeholder={companyDialCode + ' ' + getPhoneFormat(companyCountry).placeholder}
+  autoComplete="tel"
+  style={{ fontSize: '16px' }}
+  className={inputCls(!!errors.phone)}
+/>
                           {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
