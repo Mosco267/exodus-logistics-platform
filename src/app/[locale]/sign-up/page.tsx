@@ -850,7 +850,7 @@ export default function SignUpPage() {
   const BadgeIcon = panel.badge.icon;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex">
       <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-start gap-10 p-12 xl:p-16 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -918,7 +918,7 @@ export default function SignUpPage() {
 </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-10 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative">
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
         <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
