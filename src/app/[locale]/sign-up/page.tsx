@@ -218,6 +218,20 @@ const COUNTRIES = [
   { name: 'Zimbabwe', code: 'ZW', flag: '🇿🇼', dial: '+263' },
 ];
 
+function FlagImg({ code }: { code: string }) {
+  return (
+    <img
+      src={`https://flagcdn.com/w20/${code.toLowerCase()}.png`}
+      srcSet={`https://flagcdn.com/w40/${code.toLowerCase()}.png 2x`}
+      width="20"
+      height="15"
+      alt=""
+      className="shrink-0 rounded-sm object-cover"
+      style={{ minWidth: '20px' }}
+    />
+  );
+}
+
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
     { label: 'At least 8 characters', pass: password.length >= 8 },
@@ -288,7 +302,7 @@ function CountrySelect({ value, onChange, onDialChange, hasError }: {
         }`}>
         <span className="flex items-center gap-2 min-w-0 flex-1">
           {selected ? (
-            <><span className="text-xl shrink-0">{selected.flag}</span>
+            <><FlagImg code={selected.code} />
             <span className="text-sm text-gray-900 truncate">{selected.name}</span>
             <span className="text-xs text-gray-400 shrink-0 ml-1">{selected.dial}</span></>
           ) : (
@@ -315,7 +329,7 @@ function CountrySelect({ value, onChange, onDialChange, hasError }: {
                 <button key={c.code} type="button"
                   onClick={() => { onChange(c.name); onDialChange?.(c.dial); setOpen(false); setSearch(''); }}
                   className={`cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors text-left ${value === c.name ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'}`}>
-                  <span className="text-lg shrink-0">{c.flag}</span>
+                  <FlagImg code={c.code} />
                   <span className="flex-1 truncate">{c.name}</span>
                   <span className="text-gray-400 text-xs shrink-0">{c.dial}</span>
                 </button>
@@ -602,7 +616,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-between p-12 xl:p-16 overflow-hidden"
+      <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-start gap-10 p-12 xl:p-16 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full" style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%)' }} />
@@ -664,9 +678,9 @@ export default function SignUpPage() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="relative z-10">
-          <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
-        </div>
+        <div className="relative z-10 mt-auto">
+  <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
+</div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-start px-5 pt-6 pb-10 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-y-auto"
