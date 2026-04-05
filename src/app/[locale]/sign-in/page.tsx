@@ -325,7 +325,8 @@ export default function SignInPage() {
     ref={passwordRef}
     id="password"
     name="password"
-    type="password"
+    type="text"
+    inputMode="text"
     autoComplete="current-password"
     placeholder="Enter your password"
     autoCorrect="off"
@@ -336,12 +337,10 @@ export default function SignInPage() {
       setPasswordLength(e.target.value.length);
       setErrors(p => ({ ...p, password: '', general: '' }));
     }}
-    onFocus={e => {
-  // Force iOS to show caret on password field
-  const val = e.target.value;
-  e.target.value = '';
-  e.target.value = val;
-}}
+    onSelect={e => {
+      const t = e.target as HTMLInputElement;
+      t.setSelectionRange(t.value.length, t.value.length);
+    }}
     style={{
       position: 'absolute',
       top: 0, left: 0,
@@ -353,7 +352,8 @@ export default function SignInPage() {
       border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
       fontSize: '16px',
       backgroundColor: '#ffffff',
-      color: '#111827',
+      color: '#ffffff',
+      WebkitTextFillColor: '#ffffff',
       caretColor: '#0891b2',
       outline: 'none',
       WebkitAppearance: 'none',
@@ -364,6 +364,31 @@ export default function SignInPage() {
     }}
   />
 )}
+
+<div
+  aria-hidden="true"
+  style={{
+    position: 'absolute',
+    top: 0, left: 0,
+    right: '44px',
+    height: '48px',
+    paddingLeft: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '16px',
+    color: passwordLength > 0 ? '#111827' : '#9ca3af',
+    letterSpacing: passwordLength > 0 ? '0.15em' : 'normal',
+    pointerEvents: 'none',
+    zIndex: 1,
+    userSelect: 'none',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    fontFamily: 'inherit',
+    fontWeight: 'normal',
+  }}
+>
+  {passwordLength > 0 ? '•'.repeat(passwordLength) : 'Enter your password'}
+</div>
       
 
   {/* EYEOFF MODE — plain text */}

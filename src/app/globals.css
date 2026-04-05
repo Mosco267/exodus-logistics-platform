@@ -120,10 +120,9 @@ html, body {
   text-shadow: none;
 }
 
-#password[type="text"] {
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
-  background-color: transparent !important;
+#password {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 input[type="password"]::-webkit-contacts-auto-fill-button,
