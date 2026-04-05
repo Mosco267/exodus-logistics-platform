@@ -317,7 +317,7 @@ export default function SignInPage() {
                     Forgot password?
                   </button>
                 </div>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', backgroundColor: '#ffffff', borderRadius: '12px', height: '48px' }}>
   {/* Hidden text input to trick iOS into opening keyboard */}
   {!showPassword && (
   <>
@@ -339,25 +339,27 @@ export default function SignInPage() {
         setErrors(p => ({ ...p, password: '', general: '' }));
       }}
       style={{
-        width: '100%',
-        height: '48px',
-        paddingLeft: '16px',
-        paddingRight: '44px',
-        borderRadius: '12px',
-        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-        fontSize: '16px',
-        backgroundColor: 'transparent',
-        color: 'transparent',
-        caretColor: '#111827',
-        outline: 'none',
-        WebkitAppearance: 'none',
-        appearance: 'none',
-        letterSpacing: 'normal',
-        fontFamily: 'inherit',
-        position: 'relative',
-        zIndex: 2,
-        
-      }}
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '48px',
+  paddingLeft: '16px',
+  paddingRight: '44px',
+  borderRadius: '12px',
+  border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+  fontSize: '16px',
+  backgroundColor: 'rgba(0,0,0,0)',
+  color: 'rgba(0,0,0,0)',
+  caretColor: '#111827',
+  outline: 'none',
+  WebkitAppearance: 'none',
+  appearance: 'none',
+  letterSpacing: 'normal',
+  fontFamily: 'inherit',
+  zIndex: 2,
+  boxSizing: 'border-box' as const,
+}}
     />
     {/* Dots overlay */}
     <div
