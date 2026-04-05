@@ -346,7 +346,7 @@ export default function SignInPage() {
         borderRadius: '12px',
         border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
         fontSize: '16px',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'transparent',
         color: 'transparent',
         caretColor: '#111827',
         outline: 'none',
@@ -356,6 +356,7 @@ export default function SignInPage() {
         fontFamily: 'inherit',
         position: 'relative',
         zIndex: 2,
+        
       }}
     />
     {/* Dots overlay */}
