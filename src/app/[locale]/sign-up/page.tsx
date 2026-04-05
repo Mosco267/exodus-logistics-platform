@@ -918,8 +918,8 @@ export default function SignUpPage() {
 </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-y-auto"
-      style={{ WebkitOverflowScrolling: 'touch' as any }}>
+      <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+<div className="min-h-full flex flex-col items-center justify-center px-5 py-8 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative">
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
         <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
@@ -1254,6 +1254,7 @@ export default function SignUpPage() {
           </div>
         </motion.div>
       </div>
+    </div>
     </div>
   );
 }
