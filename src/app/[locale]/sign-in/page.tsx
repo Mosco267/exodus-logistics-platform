@@ -295,7 +295,7 @@ export default function SignInPage() {
                   Email address
                 </label>
                 <input ref={emailRef} id="email" name="email" type="email" autoComplete="email"
-  placeholder="you@example.com"
+  placeholder="Email Address"
   onChange={() => setErrors(p => ({ ...p, email: '', general: '' }))}
   style={{ fontSize: '16px' }}
   className={inputCls(!!errors.email)} />
