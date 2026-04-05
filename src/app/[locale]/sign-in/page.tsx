@@ -319,47 +319,66 @@ export default function SignInPage() {
                 <div style={{ position: 'relative' }}>
   {/* Hidden text input to trick iOS into opening keyboard */}
   {!showPassword && (
-  <input
-    key="password-hidden"
-    ref={passwordRef}
-    id="password"
-    name="password"
-    type="text"
-    inputMode="text"
-    autoComplete="current-password"
-    placeholder="Enter your password"
-    autoCorrect="off"
-    autoCapitalize="off"
-    spellCheck={false}
-    onChange={e => {
-      setHasPassword(!!e.target.value);
-      setErrors(p => ({ ...p, password: '', general: '' }));
-    }}
-    onFocus={e => {
-  e.target.style.letterSpacing = '0.2em';
-}}
-onBlur={e => {
-  if (!e.target.value) e.target.style.letterSpacing = 'normal';
-}}
-    style={{
-  width: '100%',
-  height: '48px',
-  paddingLeft: '16px',
-  paddingRight: '44px',
-  borderRadius: '12px',
-  border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-  fontSize: '16px',
-  backgroundColor: '#ffffff',
-  color: hasPassword ? 'transparent' : '#111827',
-  caretColor: '#111827',
-  textShadow: hasPassword ? '0 0 0 #111827' : 'none',
-  outline: 'none',
-  WebkitAppearance: 'none',
-  appearance: 'none',
-  letterSpacing: hasPassword ? '0.25em' : 'normal',
-  fontFamily: 'inherit',
-}}
-  />
+  <div style={{ position: 'relative', width: '100%' }}>
+    <input
+      key="password-hidden"
+      ref={passwordRef}
+      id="password"
+      name="password"
+      type="text"
+      inputMode="text"
+      autoComplete="current-password"
+      placeholder="Enter your password"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      onChange={e => {
+        setHasPassword(!!e.target.value);
+        setErrors(p => ({ ...p, password: '', general: '' }));
+      }}
+      style={{
+        width: '100%',
+        height: '48px',
+        paddingLeft: '16px',
+        paddingRight: '44px',
+        borderRadius: '12px',
+        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+        fontSize: '16px',
+        backgroundColor: '#ffffff',
+        color: 'transparent',
+        caretColor: '#111827',
+        outline: 'none',
+        WebkitAppearance: 'none',
+        appearance: 'none',
+        letterSpacing: 'normal',
+        fontFamily: 'inherit',
+        position: 'relative',
+        zIndex: 2,
+      }}
+    />
+    {/* Overlay that shows stars */}
+    <div
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        height: '48px',
+        paddingLeft: '16px',
+        paddingRight: '44px',
+        display: 'flex',
+        alignItems: 'center',
+        fontSize: '20px',
+        color: '#111827',
+        letterSpacing: '0.15em',
+        pointerEvents: 'none',
+        zIndex: 1,
+        userSelect: 'none',
+      }}
+    >
+      {'●'.repeat(passwordRef.current?.value?.length || 0)}
+    </div>
+  </div>
 )}
   {showPassword && (
     <input
