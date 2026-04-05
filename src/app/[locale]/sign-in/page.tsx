@@ -35,6 +35,7 @@ export default function SignInPage() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -317,7 +318,15 @@ export default function SignInPage() {
                     Forgot password?
                   </button>
                 </div>
-                <div style={{ position: 'relative', height: '48px', borderRadius: '12px', backgroundColor: '#ffffff' }}>
+                <div style={{
+  position: 'relative',
+  height: '48px',
+  borderRadius: '12px',
+  backgroundColor: '#ffffff',
+  border: errors.password ? '1px solid #f87171' : passwordFocused ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+  boxShadow: passwordFocused && !errors.password ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+}}>
   
   {/* EYE ICON MODE — masked with dots overlay */}
   {!showPassword && (
@@ -332,6 +341,8 @@ export default function SignInPage() {
     autoCorrect="off"
     autoCapitalize="off"
     spellCheck={false}
+    onFocus={() => setPasswordFocused(true)}
+    onBlur={() => setPasswordFocused(false)}
     onChange={e => {
   const real = e.target.value.replace(/[^•]/g, '');
   const added = e.target.value.length - passwordLength;
@@ -361,19 +372,19 @@ export default function SignInPage() {
       paddingLeft: '16px',
       paddingRight: '44px',
       borderRadius: '12px',
-      border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
-      fontSize: '20px',
+      border: 'none',
+      fontSize: '16px',
       backgroundColor: '#ffffff',
       color: '#111827',
       WebkitTextFillColor: '#111827',
-      caretColor: '#0891b2',
+      caretColor: '#3b82f6',
       outline: 'none',
       WebkitAppearance: 'none',
       appearance: 'none',
       boxSizing: 'border-box' as const,
       zIndex: 2,
       fontFamily: 'inherit',
-      letterSpacing: '0.25em',
+      letterSpacing: '0.2em',
       
     }}
   />
@@ -394,6 +405,8 @@ export default function SignInPage() {
       autoCorrect="off"
       autoCapitalize="off"
       spellCheck={false}
+      onFocus={() => setPasswordFocused(true)}
+      onBlur={() => setPasswordFocused(false)}
       onChange={e => {
   const val = e.target.value;
   if (passwordRef.current) {
@@ -417,11 +430,11 @@ export default function SignInPage() {
         paddingLeft: '16px',
         paddingRight: '44px',
         borderRadius: '12px',
-        border: errors.password ? '1px solid #f87171' : '1px solid #e5e7eb',
+        border: 'none',
         fontSize: '16px',
         backgroundColor: '#ffffff',
         color: '#111827',
-        caretColor: '#1d4ed8',
+        caretColor: '#3b82f6',
         outline: 'none',
         WebkitAppearance: 'none',
         appearance: 'none',
