@@ -371,9 +371,9 @@ export default function SignInPage() {
           paddingLeft: '16px',
           display: 'flex',
           alignItems: 'center',
-          fontSize: '16px',
+          fontSize: passwordLength > 0 ? '8px' : '16px',
           color: passwordLength > 0 ? '#111827' : '#9ca3af',
-          letterSpacing: passwordLength > 0 ? '0.2em' : 'normal',
+          letterSpacing: passwordLength > 0 ? '0.3em' : 'normal',
           pointerEvents: 'none',
           zIndex: 1,
           userSelect: 'none',
@@ -417,10 +417,19 @@ export default function SignInPage() {
       autoCapitalize="off"
       spellCheck={false}
       onChange={e => {
-        setHasPassword(!!e.target.value);
-        setPasswordLength(e.target.value.length);
-        setErrors(p => ({ ...p, password: '', general: '' }));
-      }}
+  setHasPassword(!!e.target.value);
+  setPasswordLength(e.target.value.length);
+  setErrors(p => ({ ...p, password: '', general: '' }));
+  // Force cursor to end
+  const len = e.target.value.length;
+  e.target.setSelectionRange(len, len);
+}}
+onSelect={e => {
+  // Prevent selection — always keep cursor at end
+  const target = e.target as HTMLInputElement;
+  const len = target.value.length;
+  target.setSelectionRange(len, len);
+}}
       style={{
         position: 'absolute',
         top: 0,
