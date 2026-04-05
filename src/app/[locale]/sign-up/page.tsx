@@ -1054,7 +1054,7 @@ export default function SignUpPage() {
   setCountry(n);
   setCountryCode(found?.code || '');
   setDialCode(found?.dial || '');
-  setPhone((found?.dial || '') + ' ');
+  setPhone('');
   setErrors(p => ({ ...p, country: '' }));
 }}
                             
@@ -1090,30 +1090,11 @@ export default function SignUpPage() {
                     ) : (
                       <>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company Name</label>
-                          <div className={`flex h-12 rounded-xl border overflow-hidden transition-all duration-200 ${errors.companyPhone ? 'border-red-400' : 'border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 hover:border-blue-300'}`}>
-  <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 shrink-0">
-    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">{companyDialCode}</span>
-  </div>
-  <input
-    value={companyPhone}
-    onChange={e => {
-      const digits = e.target.value.replace(/\D/g, '');
-      const fmt = getPhoneFormat(companyCountryCode);
-      const formatted = formatPhoneNumber(digits, fmt.pattern);
-      setCompanyPhone(formatted);
-      setErrors(p => ({ ...p, companyPhone: '' }));
-    }}
-    type="tel"
-    inputMode="numeric"
-    placeholder={getPhoneFormat(companyCountryCode).placeholder}
-    autoComplete="tel"
-    style={{ fontSize: '16px' }}
-    className="flex-1 px-3 bg-white focus:outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
-  />
+  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company Name</label>
+  <input value={companyName} onChange={e => { setCompanyName(e.target.value); setErrors(p => ({ ...p, companyName: '' })); }}
+    placeholder="Company Name" autoComplete="organization" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyName)} />
+  {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
 </div>
-                          {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
-                        </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Contact Person Name</label>
                           <input value={contactName} onChange={e => { setContactName(e.target.value); setErrors(p => ({ ...p, contactName: '' })); }}
@@ -1134,7 +1115,7 @@ export default function SignUpPage() {
   setCompanyCountry(n);
   setCompanyCountryCode(found?.code || '');
   setCompanyDialCode(found?.dial || '');
-  setCompanyPhone((found?.dial || '') + ' ');
+  setCompanyPhone('');
   setErrors(p => ({ ...p, companyCountry: '' }));
 }}
                             
@@ -1142,28 +1123,30 @@ export default function SignUpPage() {
                           {errors.companyCountry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyCountry}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Phone Number</label>
-                          <input
-  value={companyPhone}
-  onChange={e => {
-    const dialPrefix = companyDialCode + ' ';
-    const raw = e.target.value;
-    if (!raw.startsWith(companyDialCode)) { setCompanyPhone(companyDialCode + ' '); return; }
-    const numberPart = raw.slice(dialPrefix.length).replace(/\D/g, '');
-    const fmt = getPhoneFormat(companyCountryCode);
-    const formatted = formatPhoneNumber(numberPart, fmt.pattern);
-    setCompanyPhone(dialPrefix + formatted);
-    setErrors(p => ({ ...p, companyPhone: '' }));
-  }}
-  type="tel"
-  inputMode="numeric"
-  placeholder={companyDialCode + ' ' + getPhoneFormat(companyCountryCode).placeholder}
-  autoComplete="tel"
-  style={{ fontSize: '16px' }}
-  className={inputCls(!!errors.companyPhone)}
-/>
-                          {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
-                        </div>
+  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Phone Number</label>
+  <div className={`flex h-12 rounded-xl border overflow-hidden transition-all duration-200 ${errors.companyPhone ? 'border-red-400' : 'border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 hover:border-blue-300'}`}>
+    <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 shrink-0">
+      <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">{companyDialCode}</span>
+    </div>
+    <input
+      value={companyPhone}
+      onChange={e => {
+        const digits = e.target.value.replace(/\D/g, '');
+        const fmt = getPhoneFormat(companyCountryCode);
+        const formatted = formatPhoneNumber(digits, fmt.pattern);
+        setCompanyPhone(formatted);
+        setErrors(p => ({ ...p, companyPhone: '' }));
+      }}
+      type="tel"
+      inputMode="numeric"
+      placeholder={getPhoneFormat(companyCountryCode).placeholder}
+      autoComplete="tel"
+      style={{ fontSize: '16px' }}
+      className="flex-1 px-3 bg-white focus:outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
+    />
+  </div>
+  {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
+</div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">VAT Number</label>
