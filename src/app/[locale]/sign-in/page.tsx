@@ -42,6 +42,15 @@ export default function SignInPage() {
   const [hasPassword, setHasPassword] = useState(false);
   const [passwordLength, setPasswordLength] = useState(0);
   const [rememberMe, setRememberMe] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
+
+const navItems = [
+  { name: 'Home', href: `/${locale}` },
+  { name: 'About', href: `/${locale}/about` },
+  { name: 'Services', href: `/${locale}/services` },
+  { name: 'Contact', href: `/${locale}/contact` },
+  { name: 'Get Started', href: `/${locale}/sign-up` },
+];
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
   useEffect(() => {
@@ -241,7 +250,47 @@ export default function SignInPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 relative overflow-hidden"
+  style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+
+      {/* Desktop nav menu icon — top right */}
+<div className="hidden lg:block absolute top-6 right-6 z-20">
+  <div className="relative">
+    <button
+      onClick={() => setNavOpen(v => !v)}
+      className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
+      style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+      {navOpen
+        ? <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      }
+    </button>
+    <AnimatePresence>
+      {navOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.95 }}
+          transition={{ duration: 0.15 }}
+          className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+          <div className="py-2">
+            {navItems.map((item) => (
+              <Link key={item.name} href={item.href}
+                onClick={() => setNavOpen(false)}
+                className={`flex items-center px-5 py-3 text-sm font-bold transition-all duration-200 ${
+                  item.name === 'Get Started'
+                    ? 'text-orange-500 hover:bg-orange-50'
+                    : 'text-cyan-700 hover:text-orange-500 hover:bg-orange-50'
+                }`}>
+                {item.name}
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+</div>
 
         {/* Subtle background shape */}
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
