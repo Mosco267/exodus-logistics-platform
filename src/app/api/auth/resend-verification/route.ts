@@ -38,8 +38,7 @@ export async function POST(req: Request) {
 
         <!-- Header -->
         <tr><td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:36px 40px;text-align:center;">
-          <img src="https://goexoduslogistics.com/logo.svg" alt="Exodus Logistics" style="height:48px;width:auto;display:block;margin:0 auto 16px;" />
-          <div style="width:48px;height:3px;background:linear-gradient(90deg,#f97316,#fb923c);border-radius:2px;margin:0 auto;"></div>
+          <img src="https://goexoduslogistics.com/logo.svg" alt="Exodus Logistics" style="height:64px;width:auto;display:block;margin:0 auto;" />
         </td></tr>
 
         <!-- Body -->
