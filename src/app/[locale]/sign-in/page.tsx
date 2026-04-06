@@ -116,7 +116,13 @@ export default function SignInPage() {
     }`;
 
   return (
-    <div className="min-h-screen flex">
+    <>
+      <style>{`
+        @media (min-width: 1024px) {
+          header, nav[role="navigation"] { display: none !important; }
+        }
+      `}</style>
+      <div className="min-h-screen flex">
 
       {/* ── LEFT PANEL ── */}
       <div
@@ -559,5 +565,6 @@ export default function SignInPage() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }
