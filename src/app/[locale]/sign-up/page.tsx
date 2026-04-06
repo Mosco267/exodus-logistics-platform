@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, AlertCircle, CheckCircle2, Check,
-  ArrowRight, ArrowLeft, User, Building2, Mail, Shield,
+  ArrowRight, User, Building2, Mail, Shield,
   Globe, Package, Zap, MapPin, Lock, Rocket, Star,
 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
@@ -796,12 +796,34 @@ export default function SignUpPage() {
     return e;
   };
 
+  const scrollToFirstError = (errs: Record<string, string>) => {
+  const fieldOrder = accountType === 'individual'
+    ? ['name', 'email', 'country', 'phone', 'password', 'confirm', 'agreed']
+    : ['companyName', 'contactName', 'companyEmail', 'companyCountry', 'companyPhone', 'vatNumber', 'registrationNumber', 'industry', 'companyPassword', 'companyConfirm', 'agreed'];
+
+  for (const field of fieldOrder) {
+    if (errs[field]) {
+      const el = document.getElementById(`input-${field}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Also focus the input inside if possible
+        const input = el.querySelector('input, select, button') as HTMLElement;
+        if (input) input.focus();
+      }
+      break;
+    }
+  }
+};
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralError('');
     const errs = validate();
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+setErrors(errs);
+if (Object.keys(errs).length > 0) {
+  setTimeout(() => scrollToFirstError(errs), 50);
+  return;
+}
     const submitEmail = accountType === 'individual' ? email.trim().toLowerCase() : companyEmail.trim().toLowerCase();
     const submitPassword = accountType === 'individual' ? password : companyPassword;
     const submitName = accountType === 'individual' ? name.trim() : contactName.trim();
@@ -956,7 +978,7 @@ export default function SignUpPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-gray-900">Company</p>
-                        <p className="text-sm text-gray-500 mt-0.5">Business logistics with VAT & registration</p>
+                        <p className="text-sm text-gray-500 mt-0.5">Business logistics with VAT & Registration</p>
                       </div>
                       <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
                     </button>
@@ -970,9 +992,13 @@ export default function SignUpPage() {
 
               {step === 'method' && (
                 <motion.div key="method" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <button onClick={() => setStep('type')} className="cursor-pointer inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-6 -ml-2">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
+                  <div className="flex justify-end mb-6">
+  <button onClick={() => setStep('type')}
+    className="cursor-pointer px-5 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
+    style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+    Back
+  </button>
+</div>
                   <div className="mb-7">
                     <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center"
                       style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
@@ -1004,9 +1030,13 @@ export default function SignUpPage() {
 
               {step === 'form' && (
                 <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <button onClick={() => setStep('method')} className="cursor-pointer inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-5 -ml-2">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
+                  <div className="flex justify-end mb-6">
+  <button onClick={() => setStep('type')}
+    className="cursor-pointer px-5 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
+    style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+    Back
+  </button>
+</div>
                   <div className="mb-5">
                     <div className="w-11 h-11 rounded-2xl mb-3 flex items-center justify-center"
                       style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
@@ -1031,19 +1061,19 @@ export default function SignUpPage() {
                       <>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
-                          <input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
+                          <input id="input-name" value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
                             placeholder="Full Name" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
                           {errors.name && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
-                          <input value={email} onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
+                          <input id="input-email" value={email} onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
                             type="email" placeholder="Email Address" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
                           {errors.email && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
                         </div>
-                        <div>
+                        <div id="input-country">
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
-                          <CountrySelect value={country}
+                          <CountrySelect  value={country}
                             onChange={n => {
   const found = COUNTRIES.find(c => c.name === n);
   setCountry(n);
@@ -1056,7 +1086,7 @@ export default function SignUpPage() {
                             hasError={!!errors.country} />
                           {errors.country && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.country}</p>}
                         </div>
-                        <div>
+                        <div id="input-phone">
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
                           <div className={`flex h-12 rounded-xl border overflow-hidden transition-all duration-200 ${errors.phone ? 'border-red-400' : 'border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 hover:border-blue-300'}`}>
   <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 shrink-0">
@@ -1086,23 +1116,23 @@ export default function SignUpPage() {
                       <>
                         <div>
   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Company Name</label>
-  <input value={companyName} onChange={e => { setCompanyName(e.target.value); setErrors(p => ({ ...p, companyName: '' })); }}
+  <input id="input-companyName" value={companyName} onChange={e => { setCompanyName(e.target.value); setErrors(p => ({ ...p, companyName: '' })); }}
     placeholder="Company Name" autoComplete="organization" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyName)} />
   {errors.companyName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
 </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Contact Person Name</label>
-                          <input value={contactName} onChange={e => { setContactName(e.target.value); setErrors(p => ({ ...p, contactName: '' })); }}
+                          <input id="input-contactName" value={contactName} onChange={e => { setContactName(e.target.value); setErrors(p => ({ ...p, contactName: '' })); }}
                             placeholder="Contact Person Name" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.contactName)} />
                           {errors.contactName && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.contactName}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Email Address</label>
-                          <input value={companyEmail} onChange={e => { setCompanyEmail(e.target.value); setErrors(p => ({ ...p, companyEmail: '' })); }}
+                          <input id="input-companyEmail" value={companyEmail} onChange={e => { setCompanyEmail(e.target.value); setErrors(p => ({ ...p, companyEmail: '' })); }}
                             type="email" placeholder="Business Email Address" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.companyEmail)} />
                           {errors.companyEmail && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyEmail}</p>}
                         </div>
-                        <div>
+                        <div id="input-companyCountry">
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
                           <CountrySelect value={companyCountry}
                             onChange={n => {
@@ -1117,7 +1147,7 @@ export default function SignUpPage() {
                             hasError={!!errors.companyCountry} />
                           {errors.companyCountry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyCountry}</p>}
                         </div>
-                        <div>
+                        <div id="input-companyPhone">
   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Phone Number</label>
   <div className={`flex h-12 rounded-xl border overflow-hidden transition-all duration-200 ${errors.companyPhone ? 'border-red-400' : 'border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 hover:border-blue-300'}`}>
     <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 shrink-0">
@@ -1143,20 +1173,20 @@ export default function SignUpPage() {
   {errors.companyPhone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyPhone}</p>}
 </div>
                         <div className="grid grid-cols-2 gap-3">
-                          <div>
+                          <div id="input-vatNumber">
                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">VAT Number</label>
                             <input value={vatNumber} onChange={e => { setVatNumber(e.target.value); setErrors(p => ({ ...p, vatNumber: '' })); }}
                               placeholder="VAT Number" style={{ fontSize: '16px' }} className={inputCls(!!errors.vatNumber)} />
                             {errors.vatNumber && <p className="mt-1 text-xs text-red-600 font-medium">{errors.vatNumber}</p>}
                           </div>
-                          <div>
+                          <div id="input-registrationNumber">
                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Registration No.</label>
                             <input value={registrationNumber} onChange={e => { setRegistrationNumber(e.target.value); setErrors(p => ({ ...p, registrationNumber: '' })); }}
                               placeholder="Registration No." style={{ fontSize: '16px' }} className={inputCls(!!errors.registrationNumber)} />
                             {errors.registrationNumber && <p className="mt-1 text-xs text-red-600 font-medium">{errors.registrationNumber}</p>}
                           </div>
                         </div>
-                        <div>
+                        <div id="input-industry">
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Industry</label>
                           <select value={industry} onChange={e => { setIndustry(e.target.value); setErrors(p => ({ ...p, industry: '' })); }}
                             style={{ fontSize: '16px' }} className={inputCls(!!errors.industry) + ' cursor-pointer'}>
@@ -1175,7 +1205,7 @@ export default function SignUpPage() {
                       </>
                     )}
 
-                    <div>
+                    <div id="input-password">
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
                       <PasswordField
                         value={accountType === 'individual' ? password : companyPassword}
@@ -1187,7 +1217,7 @@ export default function SignUpPage() {
                       <PasswordStrength password={accountType === 'individual' ? password : companyPassword} />
                     </div>
 
-                    <div>
+                    <div id="input-confirmPassword">
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
                       <PasswordField
                         value={accountType === 'individual' ? confirm : companyConfirm}
@@ -1207,7 +1237,7 @@ export default function SignUpPage() {
                     </div>
 
                     <div className="space-y-3 pt-1">
-                      <div className={`rounded-xl border p-4 transition-all duration-200 ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50/80'}`}>
+                      <div id="input-agreed" className={`rounded-xl border p-4 transition-all duration-200 ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50/80'}`}>
                         <div className="flex items-start gap-3">
                           <CustomCheckbox checked={agreed} onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }} error={!!errors.agreed} />
                           <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
@@ -1233,7 +1263,7 @@ export default function SignUpPage() {
                     <button type="submit" disabled={isSubmitting || googleLoading}
                       className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-                      {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating Account...</span></> : <><span>Create Account</span><ArrowRight className="w-4 h-4" /></>}
+                      {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating Account...</span></> : <><span>Create Account</span></>}
                     </button>
                   </form>
 
