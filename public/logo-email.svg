@@ -75,9 +75,13 @@
 
   <!-- WORDMARK — thicker/bolder -->
   <text x="80" y="38"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="28" font-weight="900" letter-spacing="4"
-    fill="#ffffff">EXODUS</text>
+  font-family="Georgia, 'Times New Roman', serif"
+  font-size="30" font-weight="900" letter-spacing="4"
+  fill="#ffffff"
+  paint-order="stroke"
+  stroke="#ffffff"
+  stroke-width="1.5"
+  stroke-linejoin="round">EXODUS</text>
 
   <!-- Orange dot -->
   <circle cx="244" cy="30" r="4" fill="#f97316"/>
@@ -89,6 +93,6 @@
     fill="rgba(255,255,255,0.9)">LOGISTICS</text>
 
   <!-- Orange underline -->
-  <line x1="80" y1="61" x2="240" y2="61"
-    stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="80" y1="61" x2="195" y2="61"
+  stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
 </svg>
