@@ -1185,44 +1185,77 @@ document.body.scrollTop = 0;
       <div className="flex-1 flex flex-col items-center justify-center px-5 py-10 sm:px-10 relative"
   style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
         
-        {/* Desktop nav menu icon — top right */}
+       {/* Desktop nav menu icon — top right */}
 <div className="hidden lg:block absolute top-6 right-6 z-20">
-  <div className="relative">
-    <button
-      onClick={() => setNavOpen(v => !v)}
-      className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
-      style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-      {navOpen
-        ? <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      }
-    </button>
-    <AnimatePresence>
-      {navOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -8, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.95 }}
-          transition={{ duration: 0.15 }}
-          className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-          <div className="py-2">
-            {navItems.map((item) => (
-              <Link key={item.name} href={item.href}
-                onClick={() => setNavOpen(false)}
-                className={`flex items-center px-5 py-3 text-sm font-bold transition-all duration-200 ${
+  <button
+    onClick={() => setNavOpen(v => !v)}
+    className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
+    style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</div>
+
+{/* Sidebar overlay */}
+<AnimatePresence>
+  {navOpen && (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="hidden lg:block fixed inset-0 bg-black/30 z-40"
+        onClick={() => setNavOpen(false)}
+      />
+      {/* Sidebar panel */}
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ duration: 0.28, ease: 'easeInOut' }}
+        className="hidden lg:flex fixed top-0 right-0 h-full w-72 z-50 flex-col shadow-2xl"
+        style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+        
+        {/* Sidebar header */}
+        <div className="flex items-center justify-between px-6 py-6 border-b border-white/20">
+          <Link href={`/${locale}`} onClick={() => setNavOpen(false)}>
+            <Image src="/logo.svg" alt="Exodus Logistics" width={140} height={42} className="h-9 w-auto" />
+          </Link>
+          <button onClick={() => setNavOpen(false)}
+            className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-all duration-200 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        {/* Nav links */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
+          {navItems.map((item, i) => (
+            <motion.div
+              key={item.name}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: i * 0.05 }}>
+              <Link href={item.href} onClick={() => setNavOpen(false)}
+                className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 ${
                   item.name === 'Get Started'
-                    ? 'text-orange-500 hover:bg-orange-50'
-                    : 'text-cyan-700 hover:text-orange-500 hover:bg-orange-50'
+                    ? 'bg-orange-500 text-white hover:bg-orange-600 mt-4'
+                    : 'text-white/80 hover:text-white hover:bg-white/15'
                 }`}>
                 {item.name}
               </Link>
-            ))}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-</div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Sidebar footer */}
+        <div className="px-6 py-5 border-t border-white/20">
+          <p className="text-xs text-white/40">© {new Date().getFullYear()} Exodus Logistics Ltd.</p>
+        </div>
+      </motion.div>
+    </>
+  )}
+</AnimatePresence>
 
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
         <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
