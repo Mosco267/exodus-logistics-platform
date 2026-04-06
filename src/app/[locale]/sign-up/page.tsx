@@ -772,7 +772,9 @@ function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: (
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 }, []);
 
   useEffect(() => {
@@ -844,7 +846,7 @@ function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: (
   const maskedEmail = email.replace(/(.{2})(.+?)(@.*)/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white">
+    <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white" style={{ minHeight: '100dvh' }}>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         className="w-full max-w-[420px]">
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10 text-center">
@@ -1052,6 +1054,9 @@ if (Object.keys(errs).length > 0) {
       const json = await res.json();
       if (!res.ok) { setGeneralError(json?.error || 'Registration failed. Please try again.'); return; }
       setSuccess(true);
+window.scrollTo(0, 0);
+document.documentElement.scrollTop = 0;
+document.body.scrollTop = 0;
     } catch { setGeneralError('Something went wrong. Please try again.'); }
     finally { setIsSubmitting(false); }
   };
