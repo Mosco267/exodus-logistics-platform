@@ -1182,7 +1182,7 @@ document.body.scrollTop = 0;
 </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-10 sm:px-10 relative"
+      <div className="flex-1 flex flex-col items-center justify-start px-5 pt-8 pb-10 sm:px-10 lg:justify-center lg:pt-4 relative"
   style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
         
         {/* Desktop nav menu icon — top right */}
@@ -1229,13 +1229,13 @@ document.body.scrollTop = 0;
 
         
 
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.05 }} className="w-full max-w-[440px] relative z-10">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.05 }} className="w-full max-w-[440px] relative z-10 lg:-mt-6">
          <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10" style={{ touchAction: 'pan-y' }}>
             <AnimatePresence mode="wait">
 
               {step === 'type' && (
                 <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <div className="mb-7">
+                  <div className="mb-5">
                     <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                       <User className="w-6 h-6 text-white" />
                     </div>
@@ -1286,7 +1286,7 @@ document.body.scrollTop = 0;
     Back
   </button>
 </div>
-<div className="mb-4">
+<div className="mb-3">
   <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                       {accountType === 'company' ? 'Company account' : 'Individual account'}
                     </h1>
