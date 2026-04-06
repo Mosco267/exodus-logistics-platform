@@ -3,7 +3,7 @@
 import { useEffect, useRef, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight, Shield, Globe, Package, Zap } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, Shield, Globe, Package, Zap } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -510,7 +510,7 @@ export default function SignInPage() {
                 style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                 {isSubmitting
                   ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Signing in…</span></>
-                  : <><span>Sign In</span><ArrowRight className="w-4 h-4" /></>}
+                  : <><span>Sign In</span></>}
               </button>
             </form>
 

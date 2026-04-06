@@ -1095,8 +1095,15 @@ document.body.scrollTop = 0;
   const panel = LEFT_PANELS[step];
   const BadgeIcon = panel.badge.icon;
 
-  return (
-    <div className="flex">
+  
+    return (
+    <>
+      <style>{`
+        @media (min-width: 1024px) {
+          header, nav[role="navigation"] { display: none !important; }
+        }
+      `}</style>
+      <div className="flex min-h-screen">
       <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-start gap-10 p-12 xl:p-16 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1508,5 +1515,6 @@ document.body.scrollTop = 0;
         </motion.div>
       </div>
     </div>
+    </>
   );
 }
