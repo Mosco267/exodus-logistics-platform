@@ -64,16 +64,13 @@ export async function POST(req: Request) {
 
         <!-- Header with gradient -->
         <tr><td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:36px 40px;text-align:center;">
-          <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:16px;padding:12px 24px;margin-bottom:16px;">
-            <span style="font-size:28px;font-weight:900;color:#ffffff;letter-spacing:2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">EXODUS</span>
-            <span style="display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:4px;">LOGISTICS</span>
-          </div>
+          <img src="https://goexoduslogistics.com/logo.svg" alt="Exodus Logistics" style="height:48px;width:auto;display:block;margin:0 auto 16px;" />
           <div style="width:48px;height:3px;background:linear-gradient(90deg,#f97316,#fb923c);border-radius:2px;margin:0 auto;"></div>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="background:#ffffff;padding:40px;">
-          <h1 style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111827;">Welcome to Exodus Logistics! 🎉</h1>
+          <h1 style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111827;">Welcome to Exodus Logistics!</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.7;">
             Hi <strong style="color:#111827;">${name}</strong>, your account has been created successfully.<br/>
             You're just one step away from managing your shipments smarter. Enter the verification code below to activate your account.
@@ -89,9 +86,9 @@ export async function POST(req: Request) {
           <!-- What's next -->
           <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #1d4ed8;">
             <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">What you can do with Exodus Logistics:</p>
-            <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">📦 &nbsp;Track shipments in real time across 120+ countries</p>
-            <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">🧾 &nbsp;Generate and manage invoices automatically</p>
-            <p style="margin:0;font-size:13px;color:#6b7280;">🌍 &nbsp;Access our global logistics network instantly</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">Track shipments in real time across 120+ countries</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">Generate and manage invoices automatically</p>
+            <p style="margin:0;font-size:13px;color:#6b7280;">Access our global logistics network instantly</p>
           </div>
 
           <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">If you didn't create this account, you can safely ignore this email. No action is needed.</p>
