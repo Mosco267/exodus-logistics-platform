@@ -705,6 +705,153 @@ const INDUSTRIES = [
   'Retail & E-commerce', 'Telecommunications', 'Other',
 ];
 
+function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: () => void }) {
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState('');
+  const [resending, setResending] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+      return () => clearTimeout(t);
+    } else {
+      setCanResend(true);
+    }
+  }, [countdown]);
+
+  const handleChange = (i: number, val: string) => {
+    if (!/^\d*$/.test(val)) return;
+    const newCode = [...code];
+    newCode[i] = val.slice(-1);
+    setCode(newCode);
+    setError('');
+    if (val && i < 5) inputRefs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !code[i] && i > 0) {
+      inputRefs.current[i - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setCode(pasted.split(''));
+      inputRefs.current[5]?.focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const fullCode = code.join('');
+    if (fullCode.length < 6) { setError('Please enter the complete 6-digit code.'); return; }
+    setVerifying(true);
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: fullCode }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json?.error || 'Invalid code. Please try again.'); return; }
+      onVerified();
+    } catch { setError('Something went wrong. Please try again.'); }
+    finally { setVerifying(false); }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setCountdown(60);
+      setCanResend(false);
+      setCode(['', '', '', '', '', '']);
+      setError('');
+      inputRefs.current[0]?.focus();
+    } catch {}
+    finally { setResending(false); }
+  };
+
+  const maskedEmail = email.replace(/(.{2})(.+?)(@.*)/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+        className="w-full max-w-[420px]">
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
+            <Mail className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Verify your email</h2>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+            We've sent a 6-digit verification code to<br />
+            <span className="font-semibold text-gray-700">{maskedEmail}</span>
+          </p>
+
+          <div className="flex justify-center gap-2 mt-7" onPaste={handlePaste}>
+            {code.map((digit, i) => (
+              <input
+                key={i}
+                ref={el => { inputRefs.current[i] = el; }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={e => handleChange(i, e.target.value)}
+                onKeyDown={e => handleKeyDown(i, e)}
+                style={{ fontSize: '24px', caretColor: '#3b82f6' }}
+                className={`w-12 h-14 text-center font-bold rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/15 ${
+                  digit ? 'border-blue-500 bg-blue-50 text-gray-900' : 'border-gray-200 text-gray-900'
+                } focus:border-blue-500`}
+              />
+            ))}
+          </div>
+
+          {error && (
+            <p className="mt-3 text-xs text-red-600 font-medium flex items-center justify-center gap-1">
+              <AlertCircle className="w-3 h-3" />{error}
+            </p>
+          )}
+
+          <button onClick={handleVerify} disabled={verifying || code.join('').length < 6}
+            className="cursor-pointer mt-6 w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+            {verifying
+              ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Verifying...</span></>
+              : <><span>Verify Email</span><ArrowRight className="w-4 h-4" /></>}
+          </button>
+
+          <div className="mt-5">
+            {canResend ? (
+              <button onClick={handleResend} disabled={resending}
+                className="cursor-pointer text-sm font-semibold text-blue-600 hover:text-blue-700 transition disabled:opacity-60">
+                {resending ? 'Resending...' : 'Resend code'}
+              </button>
+            ) : (
+              <p className="text-sm text-gray-400">
+                Resend code in <span className="font-bold text-gray-600 tabular-nums">
+                  {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
+                </span>
+              </p>
+            )}
+          </div>
+
+          <p className="mt-3 text-xs text-gray-400">Didn't receive it? Check your spam folder.</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function SignUpPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
@@ -772,8 +919,12 @@ export default function SignUpPage() {
       if (!phone.trim()) e.phone = 'Phone number is required.';
       if (!country.trim()) e.country = 'Please select your country.';
       if (!password) e.password = 'Password is required.';
-      else if (password.length < 8) e.password = 'Password must be at least 8 characters.';
-      else if (!/[^A-Za-z0-9]/.test(password)) e.password = 'Password must include at least one special character.';
+else if (
+  password.length < 8 ||
+  !/[A-Z]/.test(password) ||
+  !/[0-9]/.test(password) ||
+  !/[^A-Za-z0-9]/.test(password)
+) e.password = 'Password must meet all requirements above.';
       if (!confirm) e.confirm = 'Please confirm your password.';
       else if (confirm !== password) e.confirm = 'Passwords do not match.';
     } else {
@@ -787,8 +938,12 @@ export default function SignUpPage() {
       if (!registrationNumber.trim()) e.registrationNumber = 'Registration number is required.';
       if (!industry) e.industry = 'Please select an industry.';
       if (!companyPassword) e.companyPassword = 'Password is required.';
-      else if (companyPassword.length < 8) e.companyPassword = 'Password must be at least 8 characters.';
-      else if (!/[^A-Za-z0-9]/.test(companyPassword)) e.companyPassword = 'Password must include at least one special character.';
+else if (
+  companyPassword.length < 8 ||
+  !/[A-Z]/.test(companyPassword) ||
+  !/[0-9]/.test(companyPassword) ||
+  !/[^A-Za-z0-9]/.test(companyPassword)
+) e.companyPassword = 'Password must meet all requirements above.';
       if (!companyConfirm) e.companyConfirm = 'Please confirm your password.';
       else if (companyConfirm !== companyPassword) e.companyConfirm = 'Passwords do not match.';
     }
@@ -852,20 +1007,28 @@ if (Object.keys(errs).length > 0) {
   };
 
   if (success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl p-10 text-center max-w-sm w-full shadow-xl border border-gray-100">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-          </div>
-          <h2 className="text-xl font-extrabold text-gray-900">Account Created!</h2>
-          <p className="mt-2 text-sm text-gray-500 leading-relaxed">Welcome to Exodus Logistics. Signing you in...</p>
-          <div className="mt-5 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-blue-600" /></div>
-        </motion.div>
-      </div>
-    );
-  }
+  const verifyEmail = accountType === 'individual' ? email : companyEmail;
+  const verifyPassword = accountType === 'individual' ? password : companyPassword;
+  return (
+    <VerifyEmailScreen
+      email={verifyEmail.trim().toLowerCase()}
+      onVerified={() => {
+        signIn('credentials', {
+          email: verifyEmail.trim().toLowerCase(),
+          password: verifyPassword,
+          redirect: false,
+        }).then(result => {
+          if (result?.ok) {
+            router.replace(`/${locale}/dashboard`);
+            setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 200);
+          } else {
+            router.replace(`/${locale}/sign-in`);
+          }
+        });
+      }}
+    />
+  );
+}
 
   const stepIndex: Record<Step, number> = { type: 0, method: 1, form: 2 };
   const panel = LEFT_PANELS[step];
@@ -978,7 +1141,7 @@ if (Object.keys(errs).length > 0) {
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-gray-900">Company</p>
-                        <p className="text-sm text-gray-500 mt-0.5">Business logistics with VAT & Registration</p>
+                        <p className="text-sm text-gray-500 mt-0.5">For businesses, brands & organisations</p>
                       </div>
                       <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
                     </button>
@@ -992,19 +1155,19 @@ if (Object.keys(errs).length > 0) {
 
               {step === 'method' && (
                 <motion.div key="method" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <div className="flex justify-end mb-6">
+                  <div className="flex items-center justify-between mb-7">
+  <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+    style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
+    {accountType === 'company' ? <Building2 className="w-6 h-6 text-white" /> : <User className="w-6 h-6 text-white" />}
+  </div>
   <button onClick={() => setStep('type')}
     className="cursor-pointer px-5 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
     style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
     Back
   </button>
 </div>
-                  <div className="mb-7">
-                    <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center"
-                      style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
-                      {accountType === 'company' ? <Building2 className="w-6 h-6 text-white" /> : <User className="w-6 h-6 text-white" />}
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+<div className="mb-4">
+  <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                       {accountType === 'company' ? 'Company account' : 'Individual account'}
                     </h1>
                     <p className="mt-1.5 text-sm text-gray-500">How would you like to create your account?</p>
@@ -1030,19 +1193,19 @@ if (Object.keys(errs).length > 0) {
 
               {step === 'form' && (
                 <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                  <div className="flex justify-end mb-6">
-  <button onClick={() => setStep('type')}
+                  <div className="flex items-center justify-between mb-5">
+  <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                      style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
+                      {accountType === 'company' ? <Building2 className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
+  </div>
+  <button onClick={() => setStep('method')}
     className="cursor-pointer px-5 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
     style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
     Back
   </button>
 </div>
-                  <div className="mb-5">
-                    <div className="w-11 h-11 rounded-2xl mb-3 flex items-center justify-center"
-                      style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
-                      {accountType === 'company' ? <Building2 className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+<div className="mb-3">
+  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
                       {accountType === 'company' ? 'Company details' : 'Your details'}
                     </h1>
                     <p className="mt-1 text-sm text-gray-500">
@@ -1189,9 +1352,9 @@ if (Object.keys(errs).length > 0) {
                         <div id="input-industry">
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Industry</label>
                           <select value={industry} onChange={e => { setIndustry(e.target.value); setErrors(p => ({ ...p, industry: '' })); }}
-                            style={{ fontSize: '16px' }} className={inputCls(!!errors.industry) + ' cursor-pointer'}>
-                            <option value="" disabled>Select Your Industry</option>
-                            {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+                            style={{ fontSize: '16px', color: industry ? '#111827' : '#9ca3af' }} className={inputCls(!!errors.industry) + ' cursor-pointer'}>
+<option value="" disabled style={{ color: '#9ca3af' }}>Select Your Industry</option>
+{INDUSTRIES.map(ind => <option key={ind} value={ind} style={{ color: '#111827', backgroundColor: '#fff' }}>{ind}</option>)}
                           </select>
                           {errors.industry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.industry}</p>}
                         </div>
@@ -1237,28 +1400,28 @@ if (Object.keys(errs).length > 0) {
                     </div>
 
                     <div className="space-y-3 pt-1">
-                      <div id="input-agreed" className={`rounded-xl border p-4 transition-all duration-200 ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50/80'}`}>
-                        <div className="flex items-start gap-3">
-                          <CustomCheckbox checked={agreed} onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }} error={!!errors.agreed} />
-                          <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
-                            I have read, understood, and agree to be bound by the{' '}
-                            <Link href={`/${locale}/terms`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Terms of Service</Link>{' '}
-                            and{' '}
-                            <Link href={`/${locale}/privacy`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Privacy Policy</Link>{' '}
-                            of Exodus Logistics Ltd.
-                          </span>
-                        </div>
-                        {errors.agreed && <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1 pl-8"><AlertCircle className="w-3 h-3 shrink-0" />{errors.agreed}</p>}
-                      </div>
-                      <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
-                        <div className="flex items-start gap-3">
-                          <CustomCheckbox checked={emailUpdates} onChange={() => setEmailUpdates(v => !v)} />
-                          <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => setEmailUpdates(v => !v)}>
-                            I would like to receive email notifications from Exodus Logistics, including real-time shipment updates, delivery confirmations, platform news, and exclusive offers.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+  <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
+    <div className="flex items-start gap-3">
+      <CustomCheckbox checked={emailUpdates} onChange={() => setEmailUpdates(v => !v)} />
+      <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => setEmailUpdates(v => !v)}>
+        Keep me updated with shipment alerts, platform news, and exclusive offers from Exodus Logistics.
+      </span>
+    </div>
+  </div>
+  <div id="input-agreed" className={`rounded-xl border p-4 transition-all duration-200 ${errors.agreed ? 'border-red-300 bg-red-50/60' : 'border-gray-200 bg-gray-50/80'}`}>
+    <div className="flex items-start gap-3">
+      <CustomCheckbox checked={agreed} onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }} error={!!errors.agreed} />
+      <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
+        I have read, understood, and agree to be bound by the{' '}
+        <Link href={`/${locale}/terms`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Terms of Service</Link>{' '}
+        and{' '}
+        <Link href={`/${locale}/privacy`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Privacy Policy</Link>{' '}
+        of Exodus Logistics Ltd.
+      </span>
+    </div>
+    {errors.agreed && <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1 pl-8"><AlertCircle className="w-3 h-3 shrink-0" />{errors.agreed}</p>}
+  </div>
+</div>
 
                     <button type="submit" disabled={isSubmitting || googleLoading}
                       className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
