@@ -574,6 +574,63 @@ function CountrySelect({ value, onChange, onDialChange, hasError }: {
   );
 }
 
+function IndustrySelect({ value, onChange, hasError }: {
+  value: string; onChange: (v: string) => void; hasError: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className={`cursor-pointer w-full h-12 px-4 rounded-xl border bg-white flex items-center justify-between transition-all duration-200 ${
+          hasError ? 'border-red-400' : open ? 'border-blue-500 ring-2 ring-blue-500/15' : 'border-gray-200 hover:border-blue-300'
+        }`}>
+        <span className={`text-sm truncate ${value ? 'text-gray-900' : 'text-gray-400'}`}>
+          {value || 'Select Your Industry'}
+        </span>
+        <svg className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="max-h-56 overflow-y-auto">
+              {INDUSTRIES.map((ind, i) => (
+                <button key={ind} type="button"
+                  onClick={() => { onChange(ind); setOpen(false); }}
+                  className={`cursor-pointer w-full flex items-center px-4 py-3 text-sm transition-colors text-left border-b border-gray-50 last:border-0 ${
+                    value === ind
+                      ? 'bg-blue-50 text-blue-700 font-semibold'
+                      : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                  }`}>
+                  <span className="flex-1">{ind}</span>
+                  {value === ind && (
+                    <svg className="w-4 h-4 text-blue-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function PasswordField({ value, onChange, placeholder, hasError, autoComplete }: {
   value: string; onChange: (v: string) => void; placeholder: string;
   hasError: boolean; autoComplete: string;
@@ -991,11 +1048,6 @@ if (Object.keys(errs).length > 0) {
       const json = await res.json();
       if (!res.ok) { setGeneralError(json?.error || 'Registration failed. Please try again.'); return; }
       setSuccess(true);
-      setTimeout(async () => {
-        const result = await signIn('credentials', { email: submitEmail, password: submitPassword, redirect: false });
-        if (result?.ok) { router.replace(`/${locale}/dashboard`); setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 200); }
-        else { router.replace(`/${locale}/sign-in`); }
-      }, 1500);
     } catch { setGeneralError('Something went wrong. Please try again.'); }
     finally { setIsSubmitting(false); }
   };
@@ -1351,11 +1403,11 @@ if (Object.keys(errs).length > 0) {
                         </div>
                         <div id="input-industry">
                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Industry</label>
-                          <select value={industry} onChange={e => { setIndustry(e.target.value); setErrors(p => ({ ...p, industry: '' })); }}
-                            style={{ fontSize: '16px', color: industry ? '#111827' : '#9ca3af' }} className={inputCls(!!errors.industry) + ' cursor-pointer'}>
-<option value="" disabled style={{ color: '#9ca3af' }}>Select Your Industry</option>
-{INDUSTRIES.map(ind => <option key={ind} value={ind} style={{ color: '#111827', backgroundColor: '#fff' }}>{ind}</option>)}
-                          </select>
+                          <IndustrySelect
+  value={industry}
+  onChange={v => { setIndustry(v); setErrors(p => ({ ...p, industry: '' })); }}
+  hasError={!!errors.industry}
+/>
                           {errors.industry && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.industry}</p>}
                         </div>
                         <div>
