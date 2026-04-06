@@ -84,7 +84,7 @@
   stroke-linejoin="round">EXODUS</text>
 
   <!-- Orange dot -->
-  <circle cx="244" cy="30" r="4" fill="#f97316"/>
+  <circle cx="234" cy="30" r="4" fill="#f97316"/>
 
   <!-- LOGISTICS — slightly thicker -->
   <text x="80" y="56"
@@ -93,6 +93,6 @@
     fill="rgba(255,255,255,0.9)">LOGISTICS</text>
 
   <!-- Orange underline -->
-  <line x1="80" y1="61" x2="195" y2="61"
+  <line x1="80" y1="61" x2="218" y2="61"
   stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
 </svg>
