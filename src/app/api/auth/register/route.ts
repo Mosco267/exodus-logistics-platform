@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
         <!-- Header with gradient -->
         <tr><td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:36px 40px;text-align:center;">
-          <img src="https://goexoduslogistics.com/logo.svg" alt="Exodus Logistics" style="height:64px;width:auto;display:block;margin:0 auto;" />
+          <img src="https://goexoduslogistics.com/logo-email.svg" alt="Exodus Logistics" style="height:64px;width:auto;display:block;margin:0 auto;" />
         </td></tr>
 
         <!-- Body -->
