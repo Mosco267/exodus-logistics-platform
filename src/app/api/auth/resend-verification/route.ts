@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
 import { Resend } from "resend";
 import crypto from "crypto";
@@ -8,52 +7,26 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-
-    const name = String(body.name || "").trim();
-    const email = String(body.email || "").toLowerCase().trim();
-    const password = String(body.password || "");
-
-    if (!name) return NextResponse.json({ error: "Full name is required." }, { status: 400 });
-    if (!email || !/^\S+@\S+\.\S+$/.test(email))
-      return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
-    if (!password || password.length < 8)
-      return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
+    const { email } = await req.json();
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    const blocked = await db.collection("blocked_emails").findOne({ email });
-    if (blocked)
-      return NextResponse.json({ error: "This email address is not eligible for registration." }, { status: 403 });
+    const user = await db.collection("users").findOne({ email });
+    if (!user) return NextResponse.json({ error: "Account not found." }, { status: 404 });
 
-    const existing = await db.collection("users").findOne({ email });
-    if (existing)
-      return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    // Generate 6-digit code
     const verificationCode = crypto.randomInt(100000, 999999).toString();
-    const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+    const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    await db.collection("users").insertOne({
-      name,
-      email,
-      passwordHash,
-      role: "USER",
-      provider: "credentials",
-      emailVerified: false,
-      verificationCode,
-      verificationExpiry,
-      createdAt: new Date(),
-    });
+    await db.collection("users").updateOne(
+      { email },
+      { $set: { verificationCode, verificationExpiry } }
+    );
 
-    // Send verification email
     await resend.emails.send({
       from: "Exodus Logistics <noreply@goexoduslogistics.com>",
       to: email,
-      subject: "Verify your Exodus Logistics account",
+      subject: "Your new verification code — Exodus Logistics",
       html: `
         <!DOCTYPE html>
         <html>
@@ -65,17 +38,13 @@ export async function POST(req: Request) {
                   <img src="https://goexoduslogistics.com/logo-dark.svg" alt="Exodus Logistics" style="height:44px;width:auto;" />
                 </td></tr>
                 <tr><td style="padding:40px;">
-                  <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#111827;">Verify your email</h1>
-                  <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">
-                    Hi <strong>${name}</strong>, welcome to Exodus Logistics!<br/>
-                    Enter the 6-digit code below to activate your account.
-                  </p>
+                  <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#111827;">New verification code</h1>
+                  <p style="margin:0 0 28px;font-size:15px;color:#6b7280;">Here is your new 6-digit code:</p>
                   <div style="background:#f0f4ff;border-radius:16px;padding:28px;text-align:center;margin-bottom:28px;">
                     <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:2px;text-transform:uppercase;">Verification code</p>
                     <p style="margin:0;font-size:48px;font-weight:900;letter-spacing:12px;color:#1d4ed8;">${verificationCode}</p>
                   </div>
-                  <p style="margin:0 0 8px;font-size:13px;color:#9ca3af;text-align:center;">This code expires in <strong>10 minutes</strong>.</p>
-                  <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">If you didn't create this account, you can safely ignore this email.</p>
+                  <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">Expires in <strong>10 minutes</strong>.</p>
                 </td></tr>
                 <tr><td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #f1f5f9;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">© ${new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
