@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { sendWelcomeEmail } from "@/lib/sendWelcomeEmail"
 
 export async function POST(req: Request) {
   try {
@@ -20,11 +21,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "This code has expired. Please request a new one." }, { status: 400 });
 
     await db.collection("users").updateOne(
-      { email },
-      { $set: { emailVerified: true, verificationCode: null, verificationExpiry: null } }
-    );
+  { email },
+  { $set: { emailVerified: true, verificationCode: null, verificationExpiry: null } }
+);
 
-    return NextResponse.json({ ok: true });
+// Send welcome email
+try {
+  await sendWelcomeEmail(user.name, email);
+} catch (e) {
+  console.error("Welcome email failed:", e);
+}
+
+return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: e?.message || "Server error." }, { status: 500 });

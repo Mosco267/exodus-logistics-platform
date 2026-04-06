@@ -66,21 +66,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           let existing = await db.collection("users").findOne({ email });
 
           if (!existing) {
-            // Create new user from Google
-            const result = await db.collection("users").insertOne({
-              name: user.name || "",
-              email,
-              role: "USER",
-              provider: "google",
-              createdAt: new Date(),
-            });
-            (user as any).id = String(result.insertedId);
-            (user as any).role = "USER";
-          } else {
-            if ((existing as any).isDeleted) return false;
-            (user as any).id = String(existing._id);
-            (user as any).role = String((existing as any).role || "USER");
-          }
+  // Create new user from Google
+  const result = await db.collection("users").insertOne({
+    name: user.name || "",
+    email,
+    role: "USER",
+    provider: "google",
+    createdAt: new Date(),
+  });
+  (user as any).id = String(result.insertedId);
+  (user as any).role = "USER";
+
+  // Send welcome email to new Google user
+  try {
+    const { sendWelcomeEmail } = await import("@/lib/sendWelcomeEmail");
+    await sendWelcomeEmail(user.name || "there", email);
+  } catch (e) {
+    console.error("Google welcome email failed:", e);
+  }
+}
         } catch {
           return false;
         }
