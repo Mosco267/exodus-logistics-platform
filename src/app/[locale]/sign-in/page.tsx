@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle, Shield, Globe, Package, Zap } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
-import { signIn, getSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -38,6 +38,7 @@ export default function SignInPage() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
   const [passwordLength, setPasswordLength] = useState(0);
@@ -97,10 +98,8 @@ const navItems = [
         setErrors({ email: '', password: '', general: 'Invalid email or password. Please try again.' });
         return;
       }
-      const sess = await getSession();
-      const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
-      const nextUrl = role === 'ADMIN' ? `/${locale}/dashboard/admin/users` : `/${locale}/dashboard`;
-      window.location.href = nextUrl;
+     setIsNavigating(true);
+     window.location.href = `/${locale}/dashboard`;
     } finally {
       setIsSubmitting(false);
     }
@@ -591,12 +590,14 @@ const navItems = [
               </label>
 
               {/* Submit */}
-              <button type="submit" disabled={isSubmitting || googleLoading}
+              <button type="submit" disabled={isSubmitting || googleLoading || isNavigating}
                 className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                 style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-                {isSubmitting
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Signing in…</span></>
-                  : <><span>Sign In</span></>}
+                {isNavigating
+  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Taking you in…</span></>
+  : isSubmitting
+  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Signing in…</span></>
+  : <span>Sign In</span>}
               </button>
             </form>
 

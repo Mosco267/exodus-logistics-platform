@@ -762,7 +762,7 @@ const INDUSTRIES = [
   'Retail & E-commerce', 'Telecommunications', 'Other',
 ];
 
-function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: () => void }) {
+function VerifyEmailScreen({ email, onVerified, isNavigating }: { email: string; onVerified: () => void; isNavigating?: boolean }) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
@@ -891,8 +891,8 @@ function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: (
           <button onClick={handleVerify} disabled={verifying || code.join('').length < 6}
             className="cursor-pointer mt-6 w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-            {verifying
-  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Verifying...</span></>
+            {verifying || isNavigating
+  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{isNavigating ? 'Taking you in…' : 'Verifying...'}</span></>
   : <span>Verify Email</span>}
           </button>
 
@@ -952,8 +952,9 @@ export default function SignUpPage() {
   const [agreed, setAgreed] = useState(false);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+const [isNavigating, setIsNavigating] = useState(false);
+const [googleLoading, setGoogleLoading] = useState(false);
+const [success, setSuccess] = useState(false);
 
   const [navOpen, setNavOpen] = useState(false);
 
@@ -1086,9 +1087,11 @@ document.body.scrollTop = 0;
   const verifyPassword = accountType === 'individual' ? password : companyPassword;
   return (
     <VerifyEmailScreen
-      email={verifyEmail.trim().toLowerCase()}
-      onVerified={() => {
-        signIn('credentials', {
+  email={verifyEmail.trim().toLowerCase()}
+  isNavigating={isNavigating}
+  onVerified={() => {
+        setIsNavigating(true);
+signIn('credentials', {
   email: verifyEmail.trim().toLowerCase(),
   password: verifyPassword,
   redirect: false,
