@@ -843,8 +843,10 @@ function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: (
     finally { setResending(false); }
   };
 
-  const [localPart, domain] = email.split('@');
-  const maskedEmail = localPart.slice(0, 2) + '*****' + '@' + domain;
+ const [localPart, domain] = email.split('@');
+ const maskedEmail = localPart.length > 7
+  ? localPart.slice(0, 2) + '*****' + '@' + domain
+  : localPart + '@' + domain;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white" style={{ minHeight: '100dvh' }}>
