@@ -73,7 +73,7 @@ await db.collection("pending_users").insertOne({
           <h1 style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111827;">Welcome to Exodus Logistics!</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.7;">
             Hi <strong style="color:#111827;">${name}</strong>, thank you for signing up with Exodus Logistics<br/>
-            Please enter the verification code below to complete your registration and activate your account. This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
+            Please enter the verification code below to complete your registration and activate your account. This code will expire in <strong style="color:#111827;">10 minutes</strong>.
           </p>
 
           <!-- Code box -->

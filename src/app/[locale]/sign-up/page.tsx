@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, AlertCircle, CheckCircle2, Check,
@@ -923,8 +923,11 @@ export default function SignUpPage() {
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
 
-  const [step, setStep] = useState<Step>('type');
-  const [accountType, setAccountType] = useState<AccountType>(null);
+  const searchParams = useSearchParams();
+const urlStep = (searchParams.get('step') as Step) || 'type';
+const urlType = (searchParams.get('type') as AccountType) || null;
+const [step, setStep] = useState<Step>(urlStep);
+const [accountType, setAccountType] = useState<AccountType>(urlType);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -968,6 +971,21 @@ const navItems = [
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
+
+  const goToStep = (newStep: Step, newType?: AccountType) => {
+  const params = new URLSearchParams();
+  params.set('step', newStep);
+  if (newType) params.set('type', newType);
+  else if (accountType) params.set('type', accountType);
+  router.push(`?${params.toString()}`);
+  setStep(newStep);
+  if (newType !== undefined) setAccountType(newType);
+};
+
+useEffect(() => {
+  setStep(urlStep);
+  if (urlType) setAccountType(urlType);
+}, [urlStep, urlType]);
 
   useEffect(() => {
     fetch('https://ipapi.co/json/')
@@ -1067,7 +1085,14 @@ if (Object.keys(errs).length > 0) {
         : { name: submitName, email: submitEmail, password: submitPassword, phone: companyDialCode + '' + companyPhone, country: companyCountry, accountType: 'company', companyName: companyName.trim(), vatNumber, registrationNumber, industry, website, emailUpdates };
       const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json = await res.json();
-      if (!res.ok) { setGeneralError(json?.error || 'Registration failed. Please try again.'); return; }
+      if (!res.ok) {
+  setGeneralError(json?.error || 'Registration failed. Please try again.');
+  setTimeout(() => {
+    const el = document.getElementById('general-error');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 50);
+  return;
+}
       setSuccess(true);
 window.scrollTo(0, 0);
 document.documentElement.scrollTop = 0;
@@ -1106,6 +1131,8 @@ signIn('credentials', {
     />
   );
 }
+
+
 
   const stepIndex: Record<Step, number> = { type: 0, method: 1, form: 2 };
   const panel = LEFT_PANELS[step];
@@ -1281,7 +1308,7 @@ signIn('credentials', {
                     <p className="mt-1.5 text-sm text-gray-500">Select the account type that best suits you.</p>
                   </div>
                   <div className="space-y-3 mb-7">
-                    <button type="button" onClick={() => { setAccountType('individual'); setStep('method'); }}
+                    <button type="button" onClick={() => goToStep('method', 'individual')}
                       className="cursor-pointer w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-md transition-all duration-200 text-left group">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                         <User className="w-6 h-6 text-white" />
@@ -1292,7 +1319,7 @@ signIn('credentials', {
                       </div>
                       <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
                     </button>
-                    <button type="button" onClick={() => { setAccountType('company'); setStep('method'); }}
+                    <button type="button" onClick={() => goToStep('method', 'company')}
                       className="cursor-pointer w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50/40 hover:shadow-md transition-all duration-200 text-left group">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
                         <Building2 className="w-6 h-6 text-white" />
@@ -1318,7 +1345,7 @@ signIn('credentials', {
     style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
     {accountType === 'company' ? <Building2 className="w-6 h-6 text-white" /> : <User className="w-6 h-6 text-white" />}
   </div>
-  <button onClick={() => setStep('type')}
+  <button onClick={() => goToStep('type')}
     className="cursor-pointer px-5 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
     style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
     Back
@@ -1336,7 +1363,7 @@ signIn('credentials', {
                       {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
                       Continue with Google
                     </button>
-                    <button type="button" onClick={() => setStep('form')}
+                    <button type="button" onClick={() => goToStep('form')}
                       className="cursor-pointer w-full h-14 flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 hover:shadow-md active:scale-[.98] transition-all duration-200">
                       <Mail className="w-5 h-5 text-blue-500" />
                       Continue with Email
@@ -1356,7 +1383,7 @@ signIn('credentials', {
                       style={{ background: accountType === 'company' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                       {accountType === 'company' ? <Building2 className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
   </div>
-  <button onClick={() => setStep('method')}
+  <button onClick={() => goToStep('method')}
     className="cursor-pointer px-5 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
     style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
     Back
@@ -1372,10 +1399,10 @@ signIn('credentials', {
                   </div>
 
                   {generalError && (
-                    <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                      <AlertCircle className="w-4 h-4 shrink-0" />{generalError}
-                    </div>
-                  )}
+  <div id="general-error" className="mb-4 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+    <AlertCircle className="w-4 h-4 shrink-0" />{generalError}
+  </div>
+)}
 
                   <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
                     {accountType === 'individual' ? (
