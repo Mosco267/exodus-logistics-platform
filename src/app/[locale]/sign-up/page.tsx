@@ -843,7 +843,8 @@ function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: (
     finally { setResending(false); }
   };
 
-  const maskedEmail = email.replace(/(.{2})(.+?)(@.*)/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+  const [localPart, domain] = email.split('@');
+const maskedEmail = localPart.slice(0, 2) + '*'.repeat(Math.max(localPart.length - 2, 4)) + '@' + domain;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white" style={{ minHeight: '100dvh' }}>
@@ -857,7 +858,7 @@ function VerifyEmailScreen({ email, onVerified }: { email: string; onVerified: (
           <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Verify your email</h2>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">
             We've sent a 6-digit verification code to<br />
-            <span className="font-semibold text-gray-700">{maskedEmail}</span>
+            <span className="font-semibold text-gray-700" style={{ textDecoration: 'none' }}>{maskedEmail}</span>
           </p>
 
           <div className="flex justify-center gap-2 mt-7" onPaste={handlePaste}>
