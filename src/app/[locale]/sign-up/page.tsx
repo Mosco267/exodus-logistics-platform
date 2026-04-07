@@ -762,7 +762,7 @@ const INDUSTRIES = [
   'Retail & E-commerce', 'Telecommunications', 'Other',
 ];
 
-function VerifyEmailScreen({ email, onVerified, isNavigating }: { email: string; onVerified: () => void; isNavigating?: boolean }) {
+function VerifyEmailScreen({ email, onVerified, isNavigating, onBack }: { email: string; onVerified: () => void; isNavigating?: boolean; onBack?: () => void }) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
@@ -776,6 +776,15 @@ function VerifyEmailScreen({ email, onVerified, isNavigating }: { email: string;
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
 }, []);
+
+  useEffect(() => {
+  window.history.pushState(null, '', window.location.href);
+  const handleBack = () => {
+    onBack?.();
+  };
+  window.addEventListener('popstate', handleBack);
+  return () => window.removeEventListener('popstate', handleBack);
+}, [onBack]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -1114,6 +1123,10 @@ document.body.scrollTop = 0;
     <VerifyEmailScreen
   email={verifyEmail.trim().toLowerCase()}
   isNavigating={isNavigating}
+  onBack={() => {
+    setSuccess(false);
+    goToStep('form', accountType);
+  }}
   onVerified={() => {
         setIsNavigating(true);
 signIn('credentials', {
