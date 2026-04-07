@@ -962,10 +962,11 @@ router.push(`/${locale}/verify-email?email=${encodeURIComponent(submitEmail)}&lo
     return (
     <>
       <style>{`
-        @media (min-width: 1024px) {
-          header, nav[role="navigation"] { display: none !important; }
-        }
-      `}</style>
+  @media (min-width: 1024px) {
+    header, nav[role="navigation"] { display: none !important; }
+  }
+  html { overscroll-behavior-x: none; }
+`}</style>
       <div className="flex min-h-screen">
       <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-start gap-10 p-12 xl:p-16 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}>

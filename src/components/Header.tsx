@@ -208,7 +208,13 @@ export default function Header() {
                 {/* Nav links */}
                 {navigation.map((item) => (
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
+  item.name === 'Sign-in'
+    ? 'bg-orange-500 text-white hover:bg-orange-600'
+    : isActive(item.href)
+    ? 'text-orange-500 bg-orange-50'
+    : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
+}`}>
                     <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
                     <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                   </Link>

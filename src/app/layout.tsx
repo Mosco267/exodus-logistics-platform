@@ -9,9 +9,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-dvh overflow-x-hidden overflow-y-auto">
-        {children}
-      </body>
-    </html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
+  </head>
+  <body className="min-h-dvh overflow-x-hidden overflow-y-auto" style={{ overscrollBehaviorX: 'none' }}>
+    {children}
+  </body>
+</html>
   );
 }
