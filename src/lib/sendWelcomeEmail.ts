@@ -4,9 +4,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendWelcomeEmail(name: string, email: string) {
   await resend.emails.send({
-    from: "Exodus Logistics <noreply@goexoduslogistics.com>",
-    to: email,
-    subject: "Welcome to Exodus Logistics — You're all set!",
+  from: "Exodus Logistics <noreply@goexoduslogistics.com>",
+  replyTo: "support@goexoduslogistics.com",
+  to: email,
+  subject: "Welcome to Exodus Logistics, Your account is ready!",
     html: `
 <!DOCTYPE html>
 <html>
