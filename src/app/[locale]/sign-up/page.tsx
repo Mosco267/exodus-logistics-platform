@@ -821,7 +821,7 @@ const navItems = [
   params.set('step', newStep);
   if (newType) params.set('type', newType);
   else if (accountType) params.set('type', accountType);
-  router.replace(`?${params.toString()}`);
+  router.push(`?${params.toString()}`);
   setStep(newStep);
   if (newType !== undefined) setAccountType(newType);
 };
