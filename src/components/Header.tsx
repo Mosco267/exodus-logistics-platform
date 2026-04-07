@@ -52,6 +52,8 @@ export default function Header() {
     pathWithoutLocale.startsWith(itemPathWithoutLocale + '/');
 };
 
+  const isGetStartedActive = pathname.includes('/sign-in') || pathname.includes('/sign-up') || pathname.includes('/verify-email');
+
   return (
     <>
       <motion.header
@@ -135,7 +137,11 @@ export default function Header() {
                       <div className="py-2">
                         {navigation.map((item) => (
                           <Link key={item.name} href={item.href} onClick={() => setNavDropdownOpen(false)}
-                            className={`flex items-center gap-3 px-5 py-3 text-sm font-bold transition-all duration-200 ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'}`}>
+                            className={`flex items-center gap-3 px-5 py-3 text-sm font-bold transition-all duration-200 ${
+  (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
+    ? 'text-orange-500 bg-orange-50'
+    : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'
+}`}>
                             {item.icon}
                             <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                           </Link>
@@ -209,9 +215,7 @@ export default function Header() {
                 {navigation.map((item) => (
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
-  item.name === 'Sign-in'
-    ? 'bg-orange-500 text-white hover:bg-orange-600'
-    : isActive(item.href)
+  (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
     ? 'text-orange-500 bg-orange-50'
     : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
 }`}>
