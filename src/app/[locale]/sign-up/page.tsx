@@ -1089,17 +1089,16 @@ document.body.scrollTop = 0;
       email={verifyEmail.trim().toLowerCase()}
       onVerified={() => {
         signIn('credentials', {
-          email: verifyEmail.trim().toLowerCase(),
-          password: verifyPassword,
-          redirect: false,
-        }).then(result => {
-          if (result?.ok) {
-            router.replace(`/${locale}/dashboard`);
-            setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 200);
-          } else {
-            router.replace(`/${locale}/sign-in`);
-          }
-        });
+  email: verifyEmail.trim().toLowerCase(),
+  password: verifyPassword,
+  redirect: false,
+}).then(result => {
+  if (result?.ok) {
+    window.location.href = `/${locale}/dashboard`;
+  } else {
+    window.location.href = `/${locale}/sign-in`;
+  }
+});
       }}
     />
   );

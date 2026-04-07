@@ -100,9 +100,7 @@ const navItems = [
       const sess = await getSession();
       const role = String((sess as any)?.user?.role || 'USER').toUpperCase();
       const nextUrl = role === 'ADMIN' ? `/${locale}/dashboard/admin/users` : `/${locale}/dashboard`;
-      router.replace(nextUrl);
-      router.refresh();
-      setTimeout(() => { window.location.href = nextUrl; }, 200);
+      window.location.href = nextUrl;
     } finally {
       setIsSubmitting(false);
     }
