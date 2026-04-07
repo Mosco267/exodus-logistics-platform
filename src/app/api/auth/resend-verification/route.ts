@@ -12,13 +12,13 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    const user = await db.collection("users").findOne({ email });
-    if (!user) return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    const user = await db.collection("pending_users").findOne({ email });
+    if (!user) return NextResponse.json({ error: "No pending registration found. Please sign up again." }, { status: 404 });
 
     const verificationCode = crypto.randomInt(100000, 999999).toString();
     const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    await db.collection("users").updateOne(
+    await db.collection("pending_users").updateOne(
       { email },
       { $set: { verificationCode, verificationExpiry } }
     );

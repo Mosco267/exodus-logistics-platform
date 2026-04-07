@@ -37,17 +37,18 @@ export async function POST(req: Request) {
     const verificationCode = crypto.randomInt(100000, 999999).toString();
     const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
-    await db.collection("users").insertOne({
-      name,
-      email,
-      passwordHash,
-      role: "USER",
-      provider: "credentials",
-      emailVerified: false,
-      verificationCode,
-      verificationExpiry,
-      createdAt: new Date(),
-    });
+    // Save to pending collection, NOT users yet
+await db.collection("pending_users").deleteMany({ email }); // clear old pending
+await db.collection("pending_users").insertOne({
+  name,
+  email,
+  passwordHash,
+  role: "USER",
+  provider: "credentials",
+  verificationCode,
+  verificationExpiry,
+  createdAt: new Date(),
+});
 
     // Send verification email
     await resend.emails.send({
@@ -71,8 +72,8 @@ export async function POST(req: Request) {
         <tr><td style="background:#ffffff;padding:40px;">
           <h1 style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111827;">Welcome to Exodus Logistics!</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.7;">
-            Hi <strong style="color:#111827;">${name}</strong>, your account has been created successfully.<br/>
-            You're just one step away from managing your shipments smarter. Enter the verification code below to activate your account.
+            Hi <strong style="color:#111827;">${name}</strong>, thank you for signing up with Exodus Logistics<br/>
+            Please enter the verification code below to complete your registration and activate your account. This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
           </p>
 
           <!-- Code box -->
