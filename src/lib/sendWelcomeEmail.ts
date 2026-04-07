@@ -25,7 +25,7 @@ export async function sendWelcomeEmail(name: string, email: string) {
         <tr><td style="background:#ffffff;padding:40px;">
           <h1 style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111827;">Congratulations, ${name}!</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.7;">
-            Your Exodus Logistics account is now fully activated. Welcome to a smarter way to manage shipments, invoices, and global logistics — all in one place.
+            Your Exodus Logistics account is now fully activated. Welcome to a smarter way to manage shipments, invoices, and global logistics all in one place.
           </p>
 
           <!-- What's next -->
