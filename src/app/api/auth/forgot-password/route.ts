@@ -15,8 +15,7 @@ export async function POST(req: Request) {
 
     const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
 
-    // Always return success even if user not found (security best practice)
-    if (!user) return NextResponse.json({ ok: true });
+    if (!user) return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
 
     // Generate secure token
     const token = crypto.randomBytes(32).toString("hex");
@@ -44,15 +43,21 @@ export async function POST(req: Request) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4ff;padding:40px 16px;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
+
+        <!-- Header -->
         <tr><td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:36px 40px;text-align:center;">
           <img src="https://goexoduslogistics.com/logo-email.svg" alt="Exodus Logistics" style="height:48px;width:auto;display:block;margin:0 auto;" />
         </td></tr>
+
+        <!-- Body -->
         <tr><td style="background:#ffffff;padding:40px;">
           <h1 style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111827;">Password Reset Request</h1>
-          <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.7;">
+          <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.7;">
             Hi <strong style="color:#111827;">${user.name || 'there'}</strong>,<br/>
-            We received a request to reset the password associated with your Exodus Logistics account. If you made this request, click the button below to proceed. This link is valid for <strong style="color:#111827;">1 hour</strong>.
+            We received a request to reset the password for your Exodus Logistics account. Click the button below to create a new password. This link expires in <strong style="color:#111827;">1 hour</strong>.
           </p>
+
+          <!-- CTA Button -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             <tr><td align="center">
               <a href="${resetUrl}"
@@ -61,28 +66,27 @@ export async function POST(req: Request) {
               </a>
             </td></tr>
           </table>
-          <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #1d4ed8;">
-            <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">What happens next</p>
-            <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">Click the button above to be taken to a secure page where you can create a new password.</p>
-            <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">Once reset, you can sign in immediately with your new password.</p>
-            <p style="margin:0;font-size:13px;color:#6b7280;">Your previous password will no longer work.</p>
-          </div>
+
+          <!-- Security notice -->
           <div style="background:#fff7ed;border-radius:12px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #f97316;">
-            <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Did not request this?</p>
-            <p style="margin:0 0 6px;font-size:13px;color:#78350f;">If you did not request a password reset, no action is required. Your account remains secure and your password has not been changed.</p>
-            <p style="margin:0;font-size:13px;color:#78350f;">However, if you are concerned about your account security, please contact us immediately.</p>
+            <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Security Notice</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#78350f;">If you did not request a password reset, please ignore this email. Your account remains secure and no changes have been made.</p>
+            <p style="margin:0;font-size:13px;color:#78350f;">If you are concerned about your account security, contact us immediately at <a href="mailto:support@goexoduslogistics.com" style="color:#1d4ed8;text-decoration:none;font-weight:600;">support@goexoduslogistics.com</a></p>
           </div>
+
           <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">
             If the button above does not work, copy and paste this link into your browser:<br/>
             <span style="color:#1d4ed8;word-break:break-all;font-size:11px;">${resetUrl}</span>
           </p>
         </td></tr>
+
+        <!-- Footer -->
         <tr><td style="background:#1e293b;padding:28px 40px;text-align:center;border-radius:0 0 20px 20px;">
           <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#ffffff;">Exodus Logistics Ltd.</p>
           <p style="margin:0 0 10px;font-size:12px;color:rgba(255,255,255,0.5);">Your trusted global shipping partner</p>
-          <p style="margin:0 0 8px;font-size:11px;color:rgba(255,255,255,0.3);">© ${new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
-          <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.2);">This email was sent to ${email} because a password reset was requested for this account.</p>
+          <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.3);">© ${new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
         </td></tr>
+
       </table>
     </td></tr>
   </table>

@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: trimmed }),
       });
       const json = await res.json();
-      if (!res.ok) { setError(json?.error || 'Something went wrong.'); return; }
+      if (!res.ok) { setError(json?.error || 'Something went wrong. Please try again.'); return; }
       setSuccess(true);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -61,13 +61,18 @@ export default function ForgotPasswordPage() {
               </pattern></defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
             </svg>
+            <div className="absolute top-1/3 right-8 w-2 h-2 rounded-full bg-orange-400 opacity-60" />
+            <div className="absolute top-1/2 right-24 w-1.5 h-1.5 rounded-full bg-cyan-300 opacity-50" />
+            <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
           </div>
+
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="relative z-10">
             <Link href={`/${locale}`}>
               <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
             </Link>
           </motion.div>
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="relative z-10 space-y-6">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -82,16 +87,16 @@ export default function ForgotPasswordPage() {
                 </span>
               </h2>
               <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-                No worries. Enter your email address and we'll send you a secure link to reset your password.
+                No worries. Enter your registered email address and we'll send you a secure link to reset your password.
               </p>
             </div>
             <div className="space-y-3">
               {[
                 { title: 'Secure reset link', desc: 'Valid for 1 hour only' },
-                { title: 'No account needed', desc: 'Just your registered email' },
                 { title: 'Instant delivery', desc: 'Check your inbox right away' },
+                { title: 'Easy process', desc: 'Just follow the link in the email' },
               ].map(({ title, desc }) => (
-                <div key={title} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
+                <div key={title} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
                   <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                   <div>
                     <p className="text-sm font-bold text-white">{title}</p>
@@ -101,6 +106,7 @@ export default function ForgotPasswordPage() {
               ))}
             </div>
           </motion.div>
+
           <div className="relative z-10">
             <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
           </div>
@@ -110,13 +116,18 @@ export default function ForgotPasswordPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 relative"
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
 
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+          <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.05 }} className="w-full max-w-[420px] relative z-10">
 
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10">
               <AnimatePresence mode="wait">
                 {!success ? (
-                  <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15 } }}>
                     <div className="mb-7">
                       <div className="w-12 h-12 rounded-2xl mb-5 flex items-center justify-center"
                         style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
@@ -130,8 +141,8 @@ export default function ForgotPasswordPage() {
 
                     <AnimatePresence>
                       {error && (
-                        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                        <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                          className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 overflow-hidden">
                           <AlertCircle className="w-4 h-4 shrink-0" />{error}
                         </motion.div>
                       )}
@@ -166,7 +177,7 @@ export default function ForgotPasswordPage() {
                   </motion.div>
                 ) : (
                   <motion.div key="success" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-4">
+                    transition={{ duration: 0.3 }} className="text-center py-4">
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                       <CheckCircle2 className="w-8 h-8 text-white" />
@@ -178,20 +189,34 @@ export default function ForgotPasswordPage() {
                     </p>
                     <div className="mt-6 bg-blue-50 rounded-xl p-4 text-left">
                       <p className="text-xs font-semibold text-blue-800 mb-1">Didn't receive it?</p>
-                      <p className="text-xs text-blue-700">Check your spam or promotions folder. The link expires in 1 hour.</p>
+                      <p className="text-xs text-blue-700 leading-relaxed">Check your spam or promotions folder. The link expires in 1 hour.</p>
                     </div>
-                    <button onClick={() => { setSuccess(false); setEmail(''); }}
-                      className="cursor-pointer mt-6 text-sm font-semibold text-blue-600 hover:text-blue-700 transition">
+                    <button onClick={() => { setSuccess(false); setEmail(''); setError(''); }}
+                      className="cursor-pointer mt-5 text-sm font-semibold text-blue-600 hover:text-blue-700 transition">
                       Try a different email
                     </button>
-                    <p className="mt-4 text-center text-sm text-gray-500">
-                      <Link href={`/${locale}/sign-in`} className="font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition flex items-center justify-center gap-1">
+                    <div className="mt-4">
+                      <Link href={`/${locale}/sign-in`}
+                        className="font-bold text-sm text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition flex items-center justify-center gap-1">
                         <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
                       </Link>
-                    </p>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Trust badges */}
+            <div className="mt-5 flex items-center justify-center gap-6">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                SSL Secured
+              </div>
+              <div className="w-px h-3 bg-gray-200" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                99.9% Uptime
+              </div>
             </div>
           </motion.div>
         </div>

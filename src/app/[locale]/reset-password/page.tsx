@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Loader2, AlertCircle, Lock, CheckCircle2, Eye, EyeOff, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Lock, CheckCircle2, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -130,12 +130,21 @@ function ResetPasswordContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const isValidPassword = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+  const isValidPassword = password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password) &&
+    /[^A-Za-z0-9]/.test(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!isValidPassword) { setError('Password must meet all requirements.'); return; }
+    if (!isValidPassword) { setError('Password must meet all requirements above.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
 
     setIsSubmitting(true);
@@ -146,7 +155,7 @@ function ResetPasswordContent() {
         body: JSON.stringify({ email, token, password }),
       });
       const json = await res.json();
-      if (!res.ok) { setError(json?.error || 'Something went wrong.'); return; }
+      if (!res.ok) { setError(json?.error || 'Something went wrong. Please try again.'); return; }
       setSuccess(true);
       setTimeout(() => { router.push('/en/sign-in'); }, 3000);
     } catch {
@@ -160,13 +169,15 @@ function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white">
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-10 text-center max-w-sm w-full">
-          <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-7 h-7 text-red-500" />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+            <AlertCircle className="w-7 h-7 text-white" />
           </div>
           <h2 className="text-xl font-extrabold text-gray-900">Invalid reset link</h2>
-          <p className="mt-2 text-sm text-gray-500">This reset link is invalid or has expired.</p>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">This reset link is invalid or has expired. Please request a new one.</p>
           <Link href="/en/forgot-password"
-            className="mt-6 inline-block font-bold text-blue-600 hover:text-blue-700 transition text-sm">
+            className="mt-6 inline-flex items-center justify-center w-full h-11 rounded-xl font-bold text-sm text-white transition-all hover:shadow-lg hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
             Request a new reset link
           </Link>
         </div>
@@ -197,13 +208,18 @@ function ResetPasswordContent() {
               </pattern></defs>
               <rect width="100%" height="100%" fill="url(#grid2)" />
             </svg>
+            <div className="absolute top-1/3 right-8 w-2 h-2 rounded-full bg-orange-400 opacity-60" />
+            <div className="absolute top-1/2 right-24 w-1.5 h-1.5 rounded-full bg-cyan-300 opacity-50" />
+            <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
           </div>
+
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="relative z-10">
             <Link href="/en">
               <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
             </Link>
           </motion.div>
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="relative z-10 space-y-6">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -218,7 +234,7 @@ function ResetPasswordContent() {
                 </span>
               </h2>
               <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-                Choose a password that is hard to guess and that you don't use anywhere else.
+                Choose a password that is hard to guess and that you have not used before on this account.
               </p>
             </div>
             <div className="space-y-3">
@@ -228,13 +244,14 @@ function ResetPasswordContent() {
                 { title: 'One number' },
                 { title: 'One special character' },
               ].map(({ title }) => (
-                <div key={title} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5">
+                <div key={title} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
                   <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                   <p className="text-sm font-bold text-white">{title}</p>
                 </div>
               ))}
             </div>
           </motion.div>
+
           <div className="relative z-10">
             <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
           </div>
@@ -243,6 +260,11 @@ function ResetPasswordContent() {
         {/* Right Panel */}
         <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 relative"
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+          <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }} className="w-full max-w-[420px] relative z-10">
@@ -256,31 +278,45 @@ function ResetPasswordContent() {
                       <Lock className="w-6 h-6 text-white" />
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Set new password</h1>
-                    <p className="mt-1.5 text-sm text-gray-500">Choose a strong password for your account.</p>
+                    <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">
+                      Choose a strong password you haven't used before.
+                    </p>
                   </div>
 
                   {error && (
-                    <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                      className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                       <AlertCircle className="w-4 h-4 shrink-0" />{error}
-                    </div>
+                    </motion.div>
                   )}
 
                   <form onSubmit={handleSubmit} noValidate className="space-y-5">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">New Password</label>
-                      <PasswordInput value={password} onChange={setPassword} placeholder="Create a strong password" hasError={!!error && !isValidPassword} />
+                      <PasswordInput
+                        value={password}
+                        onChange={v => { setPassword(v); setError(''); }}
+                        placeholder="Create a strong password"
+                        hasError={!!error && !isValidPassword}
+                      />
                       <PasswordStrength password={password} />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
-                      <PasswordInput value={confirm} onChange={v => { setConfirm(v); setError(''); }} placeholder="Re-enter your password" hasError={!!error && confirm !== password} />
+                      <PasswordInput
+                        value={confirm}
+                        onChange={v => { setConfirm(v); setError(''); }}
+                        placeholder="Re-enter your password"
+                        hasError={!!error && confirm !== password}
+                      />
                       {confirm && confirm === password && (
                         <p className="mt-1 text-xs text-emerald-600 font-medium flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />Passwords match
                         </p>
                       )}
                     </div>
-                    <button type="submit" disabled={isSubmitting || !isValidPassword || password !== confirm}
+                    <button type="submit"
+                      disabled={isSubmitting || !isValidPassword || password !== confirm}
                       className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                       {isSubmitting
@@ -288,6 +324,13 @@ function ResetPasswordContent() {
                         : <span>Update Password</span>}
                     </button>
                   </form>
+
+                  <p className="mt-6 text-center text-sm text-gray-500">
+                    <Link href="/en/sign-in"
+                      className="font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">
+                      Back to Sign In
+                    </Link>
+                  </p>
                 </>
               ) : (
                 <div className="text-center py-4">
@@ -295,12 +338,12 @@ function ResetPasswordContent() {
                     style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                     <CheckCircle2 className="w-8 h-8 text-white" />
                   </div>
-                  <h2 className="text-2xl font-extrabold text-gray-900">Password updated!</h2>
+                  <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Password updated!</h2>
                   <p className="mt-2 text-sm text-gray-500 leading-relaxed">
                     Your password has been reset successfully.<br />
                     Redirecting you to sign in...
                   </p>
-                  <div className="mt-4 flex justify-center">
+                  <div className="mt-5 flex justify-center">
                     <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
                   </div>
                 </div>

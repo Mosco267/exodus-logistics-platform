@@ -29,27 +29,48 @@ export async function POST(req: Request) {
     if (new Date() > new Date(reset.expiry))
       return NextResponse.json({ error: "This reset link has expired. Please request a new one." }, { status: 400 });
 
-    // Check if same as current password
-const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
-if (user?.passwordHash) {
+   const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
+if (!user) return NextResponse.json({ error: "Account not found." }, { status: 404 });
+
+// Check current password
+if (user.passwordHash) {
   const isSame = await bcrypt.compare(password, user.passwordHash);
   if (isSame) {
     return NextResponse.json({
-      error: "This password has been used before. Please choose a new password."
+      error: "This password has been used before. Please choose a different password."
+    }, { status: 400 });
+  }
+}
+
+// Check password history (last 10 passwords)
+const history: string[] = user.passwordHistory || [];
+for (const oldHash of history) {
+  const isOld = await bcrypt.compare(password, oldHash);
+  if (isOld) {
+    return NextResponse.json({
+      error: "This password has been used before. Please choose a different password."
     }, { status: 400 });
   }
 }
 
 const passwordHash = await bcrypt.hash(password, 12);
 
+// Keep last 10 passwords in history
+const updatedHistory = [user.passwordHash, ...history].filter(Boolean).slice(0, 10);
+
 await db.collection("users").updateOne(
   { email: email.toLowerCase().trim() },
-  { $set: { passwordHash } }
+  {
+    $set: {
+      passwordHash,
+      passwordHistory: updatedHistory,
+    }
+  }
 );
 
-    await db.collection("password_resets").deleteMany({ email });
+await db.collection("password_resets").deleteMany({ email });
 
-    return NextResponse.json({ ok: true });
+return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: "Server error." }, { status: 500 });
