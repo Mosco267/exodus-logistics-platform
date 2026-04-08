@@ -80,11 +80,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // Send welcome email to new Google user
   try {
-    const { sendWelcomeEmail } = await import("@/lib/sendWelcomeEmail");
-    await sendWelcomeEmail(user.name || "there", email);
-  } catch (e) {
-    console.error("Google welcome email failed:", e);
-  }
+  await sendWelcomeEmail(user.name || "there", email);
+} catch (e) {
+  console.error("Google welcome email failed:", e);
+}
 }
         } catch {
           return false;
