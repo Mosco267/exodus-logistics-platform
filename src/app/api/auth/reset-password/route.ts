@@ -29,12 +29,23 @@ export async function POST(req: Request) {
     if (new Date() > new Date(reset.expiry))
       return NextResponse.json({ error: "This reset link has expired. Please request a new one." }, { status: 400 });
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    // Check if same as current password
+const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
+if (user?.passwordHash) {
+  const isSame = await bcrypt.compare(password, user.passwordHash);
+  if (isSame) {
+    return NextResponse.json({
+      error: "This password has been used before. Please choose a new password."
+    }, { status: 400 });
+  }
+}
 
-    await db.collection("users").updateOne(
-      { email: email.toLowerCase().trim() },
-      { $set: { passwordHash } }
-    );
+const passwordHash = await bcrypt.hash(password, 12);
+
+await db.collection("users").updateOne(
+  { email: email.toLowerCase().trim() },
+  { $set: { passwordHash } }
+);
 
     await db.collection("password_resets").deleteMany({ email });
 
