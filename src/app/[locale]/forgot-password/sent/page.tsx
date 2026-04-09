@@ -12,7 +12,7 @@ function SentContent() {
   const email = searchParams.get('email') || '';
 
   const COUNTDOWN = 60;
-const [startTime] = useState(() => {
+const [startTime, setStartTime] = useState(() => {
   // Persist start time in sessionStorage so refresh doesn't reset
   if (typeof window !== 'undefined') {
     const stored = sessionStorage.getItem('fp_countdown_start');
@@ -65,29 +65,32 @@ const maskedEmail = localPart?.length > 7
   : localPart + '@' + domain;
 
   const handleResend = async () => {
-    setResending(true);
-    setResendError('');
-    setResendSuccess(false);
-    try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const json = await res.json();
-      if (!res.ok) { setResendError(json?.error || 'Something went wrong.'); return; }
-      setResendSuccess(true);
-      const newStart = Date.now();
-sessionStorage.setItem('fp_countdown_start', String(newStart));
-setCanResend(false);
-setElapsed(0);
-      setElapsed(0);
-    } catch {
-      setResendError('Something went wrong. Please try again.');
-    } finally {
-      setResending(false);
-    }
-  };
+  setResending(true);
+  setResendError('');
+  setResendSuccess(false);
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setResendError(json?.error || 'Something went wrong.'); return; }
+    // Reset countdown immediately
+    const newStart = Date.now();
+    sessionStorage.setItem('fp_countdown_start', String(newStart));
+    setStartTime(newStart);
+    setElapsed(0);
+    setCanResend(false);
+    setResendSuccess(true);
+    // Hide success message after 3 seconds
+    setTimeout(() => setResendSuccess(false), 3000);
+  } catch {
+    setResendError('Something went wrong. Please try again.');
+  } finally {
+    setResending(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-slate-50 via-blue-50/20 to-white" style={{ minHeight: '100dvh' }}>
