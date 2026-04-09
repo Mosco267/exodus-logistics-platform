@@ -398,10 +398,9 @@ const navItems = [
     transition: 'border-color 0.2s, box-shadow 0.2s',
   }}>
     <input
-      ref={passwordRef}
-      id="password"
-      name="password"
-      type={showPassword ? 'text' : 'password'}
+  ref={passwordRef}
+  name="password"
+  type={showPassword ? 'text' : 'password'}
       autoComplete="current-password"
       placeholder="Enter your password"
       autoCorrect="off"
