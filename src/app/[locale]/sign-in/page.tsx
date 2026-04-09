@@ -423,7 +423,7 @@ const navItems = [
         style={{
           position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
           paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
-          fontSize: pwLength > 0 ? '20px' : '16px',
+          fontSize: pwLength > 0 ? '40px' : '16px',
 backgroundColor: '#ffffff',
 color: pwLength > 0 ? '#111827' : '#9ca3af',
 WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
