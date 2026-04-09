@@ -410,26 +410,21 @@ const navItems = [
       onFocus={() => setPasswordFocused(true)}
       onBlur={() => setPasswordFocused(false)}
       onChange={e => {
-        const val = e.target.value;
-        if (passwordRef.current) {
-          passwordRef.current.dataset.real = val;
-        }
-        setHasPassword(!!val);
-        setPasswordLength(val.length);
-        setErrors(p => ({ ...p, password: '', general: '' }));
-      }}
+  setErrors(p => ({ ...p, password: '', general: '' }));
+}}
       style={{
-        position: 'absolute', top: 0, left: 0,
-        width: '100%', height: '48px',
-        paddingLeft: '16px', paddingRight: '44px',
-        borderRadius: '12px', border: 'none',
-        fontSize: '16px', backgroundColor: '#ffffff',
-        color: '#111827',
-        caretColor: '#3b82f6', outline: 'none',
-        WebkitAppearance: 'none' as any, appearance: 'none' as any,
-        boxSizing: 'border-box' as const,
-        zIndex: 2, fontFamily: 'inherit',
-      }}
+  position: 'absolute', top: 0, left: 0,
+  width: '100%', height: '48px',
+  paddingLeft: '16px', paddingRight: '44px',
+  borderRadius: '12px', border: 'none',
+  fontSize: '16px', backgroundColor: '#ffffff',
+  color: '#111827',
+  WebkitTextFillColor: 'unset' as any,
+  caretColor: '#3b82f6', outline: 'none',
+  WebkitAppearance: 'none' as any, appearance: 'none' as any,
+  boxSizing: 'border-box' as const,
+  zIndex: 2, fontFamily: 'inherit',
+}}
     />
     <button
       type="button"

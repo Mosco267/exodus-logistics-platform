@@ -194,3 +194,9 @@ input:not(#password)::placeholder {
   -webkit-text-fill-color: #9ca3af !important;
   opacity: 1 !important;
 }
+
+#password::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1 !important;
+}
