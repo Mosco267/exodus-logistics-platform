@@ -101,7 +101,7 @@ const navItems = [
 const sessionRes = await fetch('/api/auth/session');
 const session = await sessionRes.json();
 if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
-  window.location.href = `/${locale}/admin`;
+  window.location.href = `/${locale}/dashboard/admin/users`;
 } else {
   window.location.href = `/${locale}/dashboard`;
 }
