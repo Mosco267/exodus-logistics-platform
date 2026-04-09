@@ -36,7 +36,8 @@ export default function SignInPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+const [showPassword, setShowPassword] = useState(false);
+const [pwLength, setPwLength] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -69,7 +70,7 @@ const navItems = [
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
-    const rawPassword = passwordRef.current?.value || '';
+    const rawPassword = passwordRef.current?.dataset.real || passwordRef.current?.value || '';
 
     const newErrors = { email: '', password: '', general: '' };
     if (!rawEmail) newErrors.email = 'Email address is required.';
@@ -381,7 +382,7 @@ const navItems = [
                 </AnimatePresence>
               </div>
 
-              {/* Password */}
+             {/* Password */}
 <div>
   <div className="flex items-center justify-between mb-1.5">
     <label className="block text-sm font-semibold text-gray-700">Password</label>
@@ -392,53 +393,90 @@ const navItems = [
   </div>
   <div style={{
     position: 'relative', height: '48px', borderRadius: '12px',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', overflow: 'hidden',
     border: errors.password ? '1px solid #f87171' : passwordFocused ? '1px solid #3b82f6' : '1px solid #e5e7eb',
     boxShadow: passwordFocused && !errors.password ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none',
     transition: 'border-color 0.2s, box-shadow 0.2s',
   }}>
-    <input
-  ref={passwordRef}
-  name="password"
-  type={showPassword ? 'text' : 'password'}
-      autoComplete="current-password"
-      placeholder="Enter your password"
-      autoCorrect="off"
-      autoCapitalize="off"
-      spellCheck={false}
-      onFocus={() => setPasswordFocused(true)}
-      onBlur={() => setPasswordFocused(false)}
-      onChange={e => {
-  setErrors(p => ({ ...p, password: '', general: '' }));
-}}
-      style={{
-  position: 'absolute', top: 0, left: 0,
-  width: '100%', height: '48px',
-  paddingLeft: '16px', paddingRight: '44px',
-  borderRadius: '12px', border: 'none',
-  fontSize: '16px', backgroundColor: '#ffffff',
-  color: '#111827',
-  WebkitTextFillColor: 'unset' as any,
-  caretColor: '#3b82f6', outline: 'none',
-  WebkitAppearance: 'none' as any, appearance: 'none' as any,
-  boxSizing: 'border-box' as const,
-  zIndex: 2, fontFamily: 'inherit',
-}}
-    />
+    {!showPassword ? (
+      <input
+        ref={passwordRef}
+        name="password"
+        type="text"
+        inputMode="text"
+        autoComplete="current-password"
+        placeholder="Enter your password"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        onFocus={() => setPasswordFocused(true)}
+        onBlur={() => setPasswordFocused(false)}
+        onChange={e => {
+          const added = e.target.value.length - pwLength;
+          let real = passwordRef.current?.dataset.real || '';
+          real = added > 0 ? real + e.target.value.slice(pwLength) : real.slice(0, e.target.value.length);
+          passwordRef.current!.dataset.real = real;
+          e.target.value = '•'.repeat(e.target.value.length);
+          setPwLength(e.target.value.length);
+          setErrors(p => ({ ...p, password: '', general: '' }));
+        }}
+        style={{
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
+          paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
+          fontSize: '16px', backgroundColor: '#ffffff',
+          color: pwLength > 0 ? '#111827' : '#9ca3af',
+          WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
+          caretColor: '#3b82f6', outline: 'none',
+          WebkitAppearance: 'none' as any, appearance: 'none' as any,
+          boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
+          letterSpacing: pwLength > 0 ? '0.2em' : 'normal',
+        }}
+      />
+    ) : (
+      <input
+        ref={passwordRef}
+        name="password"
+        type="text"
+        autoComplete="current-password"
+        placeholder="Enter your password"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        onFocus={() => setPasswordFocused(true)}
+        onBlur={() => setPasswordFocused(false)}
+        onChange={e => {
+          const val = e.target.value;
+          if (passwordRef.current) passwordRef.current.dataset.real = val;
+          setPwLength(val.length);
+          setErrors(p => ({ ...p, password: '', general: '' }));
+        }}
+        style={{
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
+          paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
+          fontSize: '16px', backgroundColor: '#ffffff', color: '#111827',
+          WebkitTextFillColor: '#111827',
+          caretColor: '#1d4ed8', outline: 'none',
+          WebkitAppearance: 'none' as any, appearance: 'none' as any,
+          boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
+        }}
+      />
+    )}
     <button
       type="button"
       tabIndex={-1}
-      onMouseDown={e => {
-        e.preventDefault();
-        const cursorPos = passwordRef.current?.selectionStart ?? 0;
+      onClick={() => {
+        const real = passwordRef.current?.dataset.real || '';
         setShowPassword(prev => {
+          const next = !prev;
           setTimeout(() => {
             if (passwordRef.current) {
+              passwordRef.current.value = next ? real : '•'.repeat(real.length);
+              passwordRef.current.dataset.real = real;
+              setPwLength(real.length);
               passwordRef.current.focus();
-              passwordRef.current.setSelectionRange(cursorPos, cursorPos);
             }
-          }, 0);
-          return !prev;
+          }, 10);
+          return next;
         });
       }}
       style={{
