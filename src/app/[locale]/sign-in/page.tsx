@@ -430,7 +430,7 @@ WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
 caretColor: '#3b82f6', outline: 'none',
 WebkitAppearance: 'none' as any, appearance: 'none' as any,
 boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
-letterSpacing: pwLength > 0 ? '0.2em' : 'normal',
+letterSpacing: pwLength > 0 ? '0.05em' : 'normal',
         }}
       />
     ) : (
