@@ -18,6 +18,10 @@
   --destructive-foreground: #ffffff;
 }
 
+html {
+  overscroll-behavior-x: none;
+}
+
 /* ✅ Dark mode variables (when html has class="dark") */
 html.dark {
   --background: #0b1220;      /* deep navy */

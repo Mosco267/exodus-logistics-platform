@@ -38,9 +38,9 @@ function SentContent() {
   const remaining = Math.max(COUNTDOWN - elapsed, 0);
 
   const [localPart, domain] = email.split('@');
-  const maskedEmail = localPart?.length > 7
-    ? localPart.slice(0, 2) + '*****' + '@' + domain
-    : email;
+const maskedEmail = localPart?.length > 7
+  ? localPart.slice(0, 2) + '*****' + '@' + domain
+  : localPart + '@' + domain;
 
   const handleResend = async () => {
     setResending(true);
@@ -78,7 +78,7 @@ function SentContent() {
           <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Check your email</h2>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">
             We've sent a password reset link to<br />
-            <span className="font-semibold text-gray-700 block break-all mt-1">{maskedEmail}</span>
+            <span className="font-semibold text-gray-700 block break-all mt-1" style={{ textDecoration: 'none' }}>{maskedEmail}</span>
           </p>
 
           <div className="mt-6 bg-blue-50 rounded-xl p-4 text-left">
@@ -113,12 +113,20 @@ function SentContent() {
             )}
           </div>
 
-          <div className="mt-5 pt-5 border-t border-gray-100">
-            <Link href="/en/sign-in"
-              className="text-sm font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">
-              Back to Sign In
-            </Link>
-          </div>
+          <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
+  <div>
+    <Link href="/en/forgot-password"
+      className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition">
+      Use a different email?
+    </Link>
+  </div>
+  <div>
+    <Link href="/en/sign-in"
+      className="text-sm font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">
+      Back to Sign In
+    </Link>
+  </div>
+</div>
         </div>
       </motion.div>
     </div>

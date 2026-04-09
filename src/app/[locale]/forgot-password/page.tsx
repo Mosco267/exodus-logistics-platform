@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
       // Navigate to sent page
       router.push(`/${locale}/forgot-password/sent?email=${encodeURIComponent(trimmed)}`);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('Unabble to process your request. please check your network connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
