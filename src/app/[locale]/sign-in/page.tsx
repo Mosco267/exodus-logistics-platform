@@ -3,7 +3,7 @@
 import { useEffect, useRef, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Loader2, AlertCircle, Shield, Globe, Package, Zap } from 'lucide-react';
+import { Loader2, AlertCircle, Shield, Globe, Package, Zap } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
@@ -61,10 +61,7 @@ const navItems = [
       setRememberMe(enabled === null ? true : enabled === '1');
       if (enabled && savedEmail && emailRef.current) emailRef.current.value = savedEmail;
     } catch {}
-    const t = setTimeout(() => {
-      if (passwordRef.current?.value) setHasPassword(true);
-    }, 250);
-    return () => clearTimeout(t);
+     
   }, []);
 
   const toggleShowPassword = () => setShowPassword(v => !v);
@@ -72,7 +69,7 @@ const navItems = [
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
-    const rawPassword = passwordRef.current?.dataset.real || passwordRef.current?.value || '';
+    const rawPassword = passwordRef.current?.value || '';
 
     const newErrors = { email: '', password: '', general: '' };
     if (!rawEmail) newErrors.email = 'Email address is required.';
@@ -385,97 +382,26 @@ const navItems = [
               </div>
 
               {/* Password */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700">Password</label>
-                  <button type="button" onClick={() => router.push(`/${locale}/forgot-password`)}
-                    className="cursor-pointer text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
-                    Forgot password?
-                  </button>
-                </div>
-                <div style={{
-  position: 'relative',
-  height: '48px',
-  borderRadius: '12px',
-  backgroundColor: '#ffffff',
-  border: errors.password ? '1px solid #f87171' : passwordFocused ? '1px solid #3b82f6' : '1px solid #e5e7eb',
-  boxShadow: passwordFocused && !errors.password ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-  overflow: 'hidden',
-}}>
-  
-  {/* EYE ICON MODE — masked with dots overlay */}
-  {!showPassword && (
-  <input
-    ref={passwordRef}
-    id="password"
-    name="password"
-    type="text"
-    inputMode="text"
-    autoComplete="current-password"
-    placeholder="Enter your password"
-    autoCorrect="off"
-    autoCapitalize="off"
-    spellCheck={false}
-    onFocus={() => setPasswordFocused(true)}
-    onBlur={() => setPasswordFocused(false)}
-    onChange={e => {
-  const real = e.target.value.replace(/[^•]/g, '');
-  const added = e.target.value.length - passwordLength;
-  if (added > 0) {
-    const newReal = (passwordRef.current?.dataset.real || '') + 
-      e.target.value.slice(passwordLength);
-    passwordRef.current!.dataset.real = newReal;
-    e.target.value = '•'.repeat(e.target.value.length);
-  } else {
-    const newReal = (passwordRef.current?.dataset.real || '')
-      .slice(0, e.target.value.length);
-    passwordRef.current!.dataset.real = newReal;
-  }
-  setHasPassword(!!e.target.value);
-  setPasswordLength(e.target.value.length);
-  setErrors(p => ({ ...p, password: '', general: '' }));
-}}
-    onSelect={e => {
-      const t = e.target as HTMLInputElement;
-      t.setSelectionRange(t.value.length, t.value.length);
-    }}
-    style={{
-      position: 'absolute',
-      top: 0, left: 0,
-      width: '100%',
-      height: '48px',
-      paddingLeft: '16px',
-      paddingRight: '44px',
-      borderRadius: '12px',
-      border: 'none',
-      fontSize: '16px',
-      backgroundColor: '#ffffff',
-      color: '#111827',
-      WebkitTextFillColor: '#111827',
-      caretColor: '#3b82f6',
-      outline: 'none',
-      WebkitAppearance: 'none',
-      appearance: 'none',
-      boxSizing: 'border-box' as const,
-      zIndex: 2,
-      fontFamily: 'inherit',
-      letterSpacing: '0.2em',
-      
-    }}
-  />
-)}
-
-
-      
-
-  {/* EYEOFF MODE — plain text */}
-  {showPassword && (
+<div>
+  <div className="flex items-center justify-between mb-1.5">
+    <label className="block text-sm font-semibold text-gray-700">Password</label>
+    <button type="button" onClick={() => router.push(`/${locale}/forgot-password`)}
+      className="cursor-pointer text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
+      Forgot password?
+    </button>
+  </div>
+  <div style={{
+    position: 'relative', height: '48px', borderRadius: '12px',
+    backgroundColor: '#ffffff',
+    border: errors.password ? '1px solid #f87171' : passwordFocused ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+    boxShadow: passwordFocused && !errors.password ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+  }}>
     <input
       ref={passwordRef}
-      id="password-visible"
+      id="password"
       name="password"
-      type="text"
+      type={showPassword ? 'text' : 'password'}
       autoComplete="current-password"
       placeholder="Enter your password"
       autoCorrect="off"
@@ -484,94 +410,66 @@ const navItems = [
       onFocus={() => setPasswordFocused(true)}
       onBlur={() => setPasswordFocused(false)}
       onChange={e => {
-  const val = e.target.value;
-  if (passwordRef.current) {
-    passwordRef.current.dataset.real = val;
-  }
-  setHasPassword(!!val);
-  setPasswordLength(val.length);
-  setErrors(p => ({ ...p, password: '', general: '' }));
-}}
-      
-      onSelect={e => {
-  const t = e.target as HTMLInputElement;
-  t.setSelectionRange(t.value.length, t.value.length);
-}}
-
+        const val = e.target.value;
+        if (passwordRef.current) {
+          passwordRef.current.dataset.real = val;
+        }
+        setHasPassword(!!val);
+        setPasswordLength(val.length);
+        setErrors(p => ({ ...p, password: '', general: '' }));
+      }}
       style={{
-        position: 'absolute',
-        top: 0, left: 0,
-        width: '100%',
-        height: '48px',
-        paddingLeft: '16px',
-        paddingRight: '44px',
-        borderRadius: '12px',
-        border: 'none',
-        fontSize: '16px',
-        backgroundColor: '#ffffff',
+        position: 'absolute', top: 0, left: 0,
+        width: '100%', height: '48px',
+        paddingLeft: '16px', paddingRight: '44px',
+        borderRadius: '12px', border: 'none',
+        fontSize: '16px', backgroundColor: '#ffffff',
         color: '#111827',
-        caretColor: '#3b82f6',
-        outline: 'none',
-        WebkitAppearance: 'none',
-        appearance: 'none',
+        caretColor: '#3b82f6', outline: 'none',
+        WebkitAppearance: 'none' as any, appearance: 'none' as any,
         boxSizing: 'border-box' as const,
-        zIndex: 2,
-        fontFamily: 'inherit',
+        zIndex: 2, fontFamily: 'inherit',
       }}
     />
-  )}
-
-  {/* Eye toggle button */}
-  <button
-    type="button"
-    tabIndex={-1}
-    onClick={() => {
-  // Always read real password before switching
-  const realPassword = passwordRef.current?.dataset.real || '';
-  setShowPassword(prev => {
-    const nextShow = !prev;
-    setTimeout(() => {
-      if (passwordRef.current) {
-        if (nextShow) {
-          // Switching to eyeoff — show real text
-          passwordRef.current.value = realPassword;
-        } else {
-          // Switching to eye — show dots
-          passwordRef.current.value = '•'.repeat(realPassword.length);
-        }
-        passwordRef.current.dataset.real = realPassword;
-        setPasswordLength(realPassword.length);
-        passwordRef.current.focus();
+    <button
+      type="button"
+      tabIndex={-1}
+      onMouseDown={e => {
+        e.preventDefault();
+        const cursorPos = passwordRef.current?.selectionStart ?? 0;
+        setShowPassword(prev => {
+          setTimeout(() => {
+            if (passwordRef.current) {
+              passwordRef.current.focus();
+              passwordRef.current.setSelectionRange(cursorPos, cursorPos);
+            }
+          }, 0);
+          return !prev;
+        });
+      }}
+      style={{
+        position: 'absolute', right: '12px', top: '50%',
+        transform: 'translateY(-50%)',
+        background: 'none', border: 'none',
+        cursor: 'pointer', padding: '4px',
+        color: '#9ca3af', zIndex: 4,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+      {showPassword
+        ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       }
-    }, 10);
-    return nextShow;
-  });
-}}
-    style={{
-      position: 'absolute',
-      right: '12px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '4px',
-      color: '#9ca3af',
-      zIndex: 4,
-    }}
-  >
-    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-  </button>
+    </button>
+  </div>
+  <AnimatePresence>
+    {errors.password && (
+      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+        className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+        <AlertCircle className="w-3 h-3" />{errors.password}
+      </motion.p>
+    )}
+  </AnimatePresence>
 </div>
-                <AnimatePresence>
-                  {errors.password && (
-                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />{errors.password}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
 
               {/* Remember me */}
               <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">

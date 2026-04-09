@@ -648,7 +648,7 @@ function PasswordField({ value, onChange, placeholder, hasError, autoComplete }:
         <input ref={ref} type="text" inputMode="text" autoComplete={autoComplete} placeholder={placeholder}
           autoCorrect="off" autoCapitalize="off" spellCheck={false}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          onSelect={e => { const t = e.target as HTMLInputElement; t.setSelectionRange(t.value.length, t.value.length); }}
+          
           onChange={e => {
             const added = e.target.value.length - pwLength;
             let real = ref.current?.dataset.real || '';
@@ -673,7 +673,7 @@ function PasswordField({ value, onChange, placeholder, hasError, autoComplete }:
         <input ref={ref} type="text" autoComplete={autoComplete} placeholder={placeholder}
           autoCorrect="off" autoCapitalize="off" spellCheck={false}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          onSelect={e => { const t = e.target as HTMLInputElement; t.setSelectionRange(t.value.length, t.value.length); }}
+          
           onChange={e => { const val = e.target.value; ref.current!.dataset.real = val; setPwLength(val.length); onChange(val); }}
           style={{
             position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
