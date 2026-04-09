@@ -453,8 +453,9 @@ const navItems = [
         style={{
           position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
           paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
-          fontSize: '16px', backgroundColor: '#ffffff', color: '#111827',
-          WebkitTextFillColor: '#111827',
+          fontSize: '16px', backgroundColor: '#ffffff',
+color: pwLength > 0 ? '#111827' : '#9ca3af',
+WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
           caretColor: '#1d4ed8', outline: 'none',
           WebkitAppearance: 'none' as any, appearance: 'none' as any,
           boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
