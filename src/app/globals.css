@@ -169,3 +169,28 @@ main, .min-h-screen {
   transform: translateZ(0);
   will-change: transform;
 }
+
+/* Reset password page placeholder fix */
+input[type="password"]::placeholder,
+input[type="text"]::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+input[type="password"],
+input[type="text"] {
+  -webkit-text-fill-color: #111827;
+}
+
+input[type="password"]:placeholder-shown,
+input[type="text"]:placeholder-shown {
+  -webkit-text-fill-color: #9ca3af !important;
+}
+
+/* Allow placeholder to show on reset password inputs */
+input:not(#password)::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1 !important;
+}

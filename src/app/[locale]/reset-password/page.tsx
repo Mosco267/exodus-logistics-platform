@@ -63,20 +63,21 @@ function PasswordInput({ value, onChange, placeholder, hasError }: {
         autoCapitalize="off"
         spellCheck={false}
         style={{
-          position: 'absolute', top: 0, left: 0,
-          width: '100%', height: '48px',
-          paddingLeft: '16px', paddingRight: '44px',
-          border: 'none', borderRadius: '12px',
-          fontSize: '16px',
-          backgroundColor: '#ffffff',
-          color: value ? '#111827' : '#9ca3af',
-          outline: 'none',
-          WebkitAppearance: 'none' as any,
-          appearance: 'none' as any,
-          boxSizing: 'border-box' as const,
-          fontFamily: 'inherit',
-          zIndex: 2,
-        }}
+  position: 'absolute', top: 0, left: 0,
+  width: '100%', height: '48px',
+  paddingLeft: '16px', paddingRight: '44px',
+  border: 'none', borderRadius: '12px',
+  fontSize: '16px',
+  backgroundColor: '#ffffff',
+  color: '#111827',
+  WebkitTextFillColor: '#111827' as any,
+  outline: 'none',
+  WebkitAppearance: 'none' as any,
+  appearance: 'none' as any,
+  boxSizing: 'border-box' as const,
+  fontFamily: 'inherit',
+  zIndex: 2,
+}}
       />
       <button
         type="button"
