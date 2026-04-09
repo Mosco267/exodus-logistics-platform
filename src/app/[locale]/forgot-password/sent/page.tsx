@@ -76,10 +76,16 @@ const maskedEmail = localPart?.length > 7
           </div>
 
           <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Check your email</h2>
-          <p className="mt-2 text-sm text-gray-500 leading-relaxed" style={{ textDecoration: 'none' }}>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
   We've sent a password reset link to
 </p>
-<p className="mt-1 text-sm font-semibold text-gray-700 break-all no-underline">
+<p className="mt-1 text-sm font-semibold text-gray-700"
+  style={{ 
+    wordBreak: 'break-all',
+    textDecoration: 'none',
+    WebkitUserSelect: 'none',
+    pointerEvents: 'none',
+  }}>
   {maskedEmail}
 </p>
 

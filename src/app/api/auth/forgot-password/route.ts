@@ -6,30 +6,27 @@ import crypto from "crypto";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
+  let email = '';
   try {
-    const { email } = await req.json();
+    const body = await req.json();
+    email = String(body.email || '').toLowerCase().trim();
     if (!email) return NextResponse.json({ error: "Email is required." }, { status: 400 });
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
+    const user = await db.collection("users").findOne({ email });
+    if (!user) {
+      return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
+    }
 
-    if (!user) return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
-
-    // Generate secure token
     const token = crypto.randomBytes(32).toString("hex");
-    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiry = new Date(Date.now() + 60 * 60 * 1000);
 
     await db.collection("password_resets").deleteMany({ email });
-    await db.collection("password_resets").insertOne({
-      email: email.toLowerCase().trim(),
-      token,
-      expiry,
-      createdAt: new Date(),
-    });
+    await db.collection("password_resets").insertOne({ email, token, expiry, createdAt: new Date() });
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/en/reset-password?token=${token}&email=${encodeURIComponent(email.toLowerCase().trim())}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/en/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
     await resend.emails.send({
       from: "Exodus Logistics <noreply@goexoduslogistics.com>",
@@ -97,7 +94,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+    console.error("Forgot password error:", e);
+    // Never expose server errors to user
+    return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
   }
 }
