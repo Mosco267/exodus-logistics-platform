@@ -93,9 +93,14 @@ const navItems = [
     try {
       const res = await signIn('credentials', { email: rawEmail, password: rawPassword, redirect: false });
       if (!res || res.error) {
-        setErrors({ email: '', password: '', general: 'Invalid email or password. Please try again.' });
-        return;
-      }
+  const errorMsg = res?.error === 'banned'
+    ? 'Your account has been suspended. Please contact support.'
+    : 'Invalid email or password. Please try again.';
+  setErrors({ email: '', password: '', general: errorMsg });
+  setIsSubmitting(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  return;
+}
      setIsNavigating(true);
 // Get session to check role
 const sessionRes = await fetch('/api/auth/session');
@@ -359,11 +364,9 @@ if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
             {/* Error banner */}
             <AnimatePresence>
               {errors.general && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 overflow-hidden">
-                  <AlertCircle className="w-4 h-4 shrink-0" />{errors.general}
-                </motion.div>
+                <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+  <AlertCircle className="w-4 h-4 shrink-0" />{errors.general}
+</div>
               )}
             </AnimatePresence>
 

@@ -62,7 +62,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Check if blocked
           const blocked = await db.collection("blocked_emails").findOne({ email });
-          if (blocked) return false;
+if (blocked) throw new Error('banned');
 
           let existing = await db.collection("users").findOne({ email });
 
