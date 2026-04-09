@@ -12,9 +12,19 @@ function SentContent() {
   const email = searchParams.get('email') || '';
 
   const COUNTDOWN = 60;
-  const [startTime] = useState(() => Date.now());
-  const [elapsed, setElapsed] = useState(0);
-  const [canResend, setCanResend] = useState(false);
+const [startTime] = useState(() => {
+  // Persist start time in sessionStorage so refresh doesn't reset
+  if (typeof window !== 'undefined') {
+    const stored = sessionStorage.getItem('fp_countdown_start');
+    if (stored) return parseInt(stored);
+    const now = Date.now();
+    sessionStorage.setItem('fp_countdown_start', String(now));
+    return now;
+  }
+  return Date.now();
+});
+const [elapsed, setElapsed] = useState(0);
+const [canResend, setCanResend] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState('');
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -24,16 +34,28 @@ function SentContent() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newElapsed = Math.floor((Date.now() - startTime) / 1000);
-      setElapsed(newElapsed);
-      if (newElapsed >= COUNTDOWN) {
-        setCanResend(true);
-        clearInterval(interval);
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [startTime]);
+  // Use Page Visibility API to keep counting when tab is backgrounded
+  const tick = () => {
+    const newElapsed = Math.floor((Date.now() - startTime) / 1000);
+    setElapsed(newElapsed);
+    if (newElapsed >= COUNTDOWN) {
+      setCanResend(true);
+    }
+  };
+
+  tick(); // run immediately
+  const interval = setInterval(tick, 500);
+
+  const handleVisibility = () => {
+    if (!document.hidden) tick(); // sync immediately when tab becomes visible
+  };
+  document.addEventListener('visibilitychange', handleVisibility);
+
+  return () => {
+    clearInterval(interval);
+    document.removeEventListener('visibilitychange', handleVisibility);
+  };
+}, [startTime]);
 
   const remaining = Math.max(COUNTDOWN - elapsed, 0);
 
@@ -55,7 +77,10 @@ const maskedEmail = localPart?.length > 7
       const json = await res.json();
       if (!res.ok) { setResendError(json?.error || 'Something went wrong.'); return; }
       setResendSuccess(true);
-      setCanResend(false);
+      const newStart = Date.now();
+sessionStorage.setItem('fp_countdown_start', String(newStart));
+setCanResend(false);
+setElapsed(0);
       setElapsed(0);
     } catch {
       setResendError('Something went wrong. Please try again.');
