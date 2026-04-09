@@ -13,15 +13,11 @@ function SentContent() {
 
   const COUNTDOWN = 60;
 const [startTime, setStartTime] = useState(() => {
-  // Persist start time in sessionStorage so refresh doesn't reset
+  const now = Date.now();
   if (typeof window !== 'undefined') {
-    const stored = sessionStorage.getItem('fp_countdown_start');
-    if (stored) return parseInt(stored);
-    const now = Date.now();
     sessionStorage.setItem('fp_countdown_start', String(now));
-    return now;
   }
-  return Date.now();
+  return now;
 });
 const [elapsed, setElapsed] = useState(0);
 const [canResend, setCanResend] = useState(false);
@@ -30,8 +26,10 @@ const [canResend, setCanResend] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  window.scrollTo(0, 0);
+  // Clear any existing countdown so it always starts fresh
+  sessionStorage.removeItem('fp_countdown_start');
+}, []);
 
   useEffect(() => {
   // Use Page Visibility API to keep counting when tab is backgrounded
