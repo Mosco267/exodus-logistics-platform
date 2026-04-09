@@ -24,23 +24,23 @@ export default function ForgotPasswordPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json?.error || 'Something went wrong. Please try again.');
-        return;
-      }
-      // Navigate to sent page
-      router.push(`/${locale}/forgot-password/sent?email=${encodeURIComponent(trimmed)}`);
-    } catch {
-      setError('Unabble to process your request. please check your network connection and try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const res = await fetch('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: trimmed }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    setError(json?.error || 'No account found with this email address.');
+    return;
+  }
+  router.push(`/${locale}/forgot-password/sent?email=${encodeURIComponent(trimmed)}`);
+} catch {
+  // Never show server error — silently redirect
+  router.push(`/${locale}/forgot-password/sent?email=${encodeURIComponent(trimmed)}`);
+} finally {
+  setIsSubmitting(false);
+}
   };
 
   return (

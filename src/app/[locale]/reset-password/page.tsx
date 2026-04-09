@@ -42,75 +42,40 @@ function PasswordStrength({ password }: { password: string }) {
 function PasswordInput({ value, onChange, placeholder, hasError }: {
   value: string; onChange: (v: string) => void; placeholder: string; hasError: boolean;
 }) {
-  const [showPw, setShowPw] = useState(false);
-  const [pwLength, setPwLength] = useState(0);
+  const [show, setShow] = useState(false);
   const [focused, setFocused] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
   const border = hasError ? '1px solid #f87171' : focused ? '1px solid #3b82f6' : '1px solid #e5e7eb';
   const shadow = focused && !hasError ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none';
 
   return (
     <div style={{ position: 'relative', height: '48px', borderRadius: '12px', backgroundColor: '#ffffff', border, boxShadow: shadow, transition: 'border-color 0.2s, box-shadow 0.2s', overflow: 'hidden' }}>
-      {!showPw ? (
-        <input ref={ref} type="text" inputMode="text" autoComplete="new-password"
-          placeholder={placeholder}
-          autoCorrect="off" autoCapitalize="off" spellCheck={false}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          onSelect={e => { const t = e.target as HTMLInputElement; t.setSelectionRange(t.value.length, t.value.length); }}
-          onChange={e => {
-            const added = e.target.value.length - pwLength;
-            let real = ref.current?.dataset.real || '';
-            real = added > 0 ? real + e.target.value.slice(pwLength) : real.slice(0, e.target.value.length);
-            ref.current!.dataset.real = real;
-            e.target.value = '•'.repeat(e.target.value.length);
-            setPwLength(e.target.value.length);
-            onChange(real);
-          }}
-          style={{
-            position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
-            paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
-            fontSize: '16px', backgroundColor: '#ffffff',
-            color: pwLength > 0 ? '#111827' : '#9ca3af',
-            WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
-            caretColor: '#3b82f6', outline: 'none', WebkitAppearance: 'none' as any,
-            boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
-            letterSpacing: pwLength > 0 ? '0.2em' : 'normal',
-          }}
-        />
-      ) : (
-        <input ref={ref} type="text" autoComplete="new-password"
-          placeholder={placeholder}
-          autoCorrect="off" autoCapitalize="off" spellCheck={false}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          onSelect={e => { const t = e.target as HTMLInputElement; t.setSelectionRange(t.value.length, t.value.length); }}
-          onChange={e => { const val = e.target.value; ref.current!.dataset.real = val; setPwLength(val.length); onChange(val); }}
-          style={{
-            position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
-            paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
-            fontSize: '16px', backgroundColor: '#ffffff', color: '#111827',
-            caretColor: '#1d4ed8', outline: 'none', WebkitAppearance: 'none' as any,
-            boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
-          }}
-        />
-      )}
-      <button type="button" tabIndex={-1}
-        onClick={() => {
-          const real = ref.current?.dataset.real || '';
-          setShowPw(prev => {
-            const next = !prev;
-            setTimeout(() => {
-              if (ref.current) {
-                ref.current.value = next ? real : '•'.repeat(real.length);
-                ref.current.dataset.real = real;
-                setPwLength(real.length);
-                ref.current.focus();
-              }
-            }, 10);
-            return next;
-          });
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        autoComplete="new-password"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        style={{
+          position: 'absolute', top: 0, left: 0,
+          width: '100%', height: '48px',
+          paddingLeft: '16px', paddingRight: '44px',
+          border: 'none', fontSize: '16px',
+          backgroundColor: '#ffffff', color: '#111827',
+          outline: 'none',
+          WebkitAppearance: 'none' as any,
+          boxSizing: 'border-box' as const,
+          fontFamily: 'inherit',
         }}
+      />
+      <button type="button" tabIndex={-1}
+        onClick={() => setShow(v => !v)}
         style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af', zIndex: 4 }}>
-        {showPw
+        {show
           ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
           : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         }

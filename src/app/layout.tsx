@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   </head>
-  <body className="min-h-dvh overflow-x-hidden overflow-y-auto" style={{ overscrollBehaviorX: 'none' }}>
+  <body className="min-h-dvh overflow-x-hidden overflow-y-auto" style={{ overscrollBehaviorX: 'none', overscrollBehaviorY: 'none' }}>
     {children}
   </body>
 </html>

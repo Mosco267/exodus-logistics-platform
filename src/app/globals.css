@@ -18,8 +18,12 @@
   --destructive-foreground: #ffffff;
 }
 
-html {
+html, body {
   overscroll-behavior-x: none;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ✅ Dark mode variables (when html has class="dark") */
@@ -140,4 +144,16 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 #password {
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
+}
+
+/* Remove underline from email display in sent pages */
+.no-underline {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+}
+
+/* Improve page transition caching on iOS */
+* {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
