@@ -97,7 +97,14 @@ const navItems = [
         return;
       }
      setIsNavigating(true);
-     window.location.href = `/${locale}/dashboard`;
+// Get session to check role
+const sessionRes = await fetch('/api/auth/session');
+const session = await sessionRes.json();
+if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
+  window.location.href = `/${locale}/admin`;
+} else {
+  window.location.href = `/${locale}/dashboard`;
+}
     } finally {
       setIsSubmitting(false);
     }
