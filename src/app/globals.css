@@ -113,37 +113,15 @@ html, body {
   overflow-y: auto;
 }
 
-/* Fix password field placeholder on iOS Safari */
-#password::placeholder {
-  font-family: inherit;
-  letter-spacing: normal;
+/* Password field fix */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input::placeholder {
   color: #9ca3af;
-  text-shadow: none;
-}
-
-#password::-webkit-input-placeholder {
-  font-family: inherit;
-  letter-spacing: normal;
-  color: #9ca3af;
-  text-shadow: none;
-}
-
-
-
-#password::placeholder {
-  color: #9ca3af !important;
-  -webkit-text-fill-color: #9ca3af !important;
-  opacity: 1 !important;
-}
-
-input[type="password"]::-webkit-contacts-auto-fill-button,
-input[type="password"]::-webkit-credentials-auto-fill-button {
-  display: none !important;
-}
-
-#password {
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
+  opacity: 1;
 }
 
 /* Remove underline from email display in sent pages */
@@ -170,33 +148,3 @@ main, .min-h-screen {
   will-change: transform;
 }
 
-/* Reset password page placeholder fix */
-input[type="password"]::placeholder,
-input[type="text"]::placeholder {
-  color: #9ca3af !important;
-  -webkit-text-fill-color: #9ca3af !important;
-  opacity: 1 !important;
-}
-
-input[type="password"],
-input[type="text"] {
-  -webkit-text-fill-color: #111827;
-}
-
-input[type="password"]:placeholder-shown,
-input[type="text"]:placeholder-shown {
-  -webkit-text-fill-color: #9ca3af !important;
-}
-
-/* Allow placeholder to show on reset password inputs */
-input:not(#password)::placeholder {
-  color: #9ca3af !important;
-  -webkit-text-fill-color: #9ca3af !important;
-  opacity: 1 !important;
-}
-
-#password::placeholder {
-  color: #9ca3af !important;
-  -webkit-text-fill-color: #9ca3af !important;
-  opacity: 1 !important;
-}
