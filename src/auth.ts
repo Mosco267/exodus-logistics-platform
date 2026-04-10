@@ -73,6 +73,7 @@ if (blocked) throw new Error('suspended');
     const existing = await db.collection("users").findOne({ email });
 
     if (!existing) {
+      // New user — create account
       try {
         const result = await db.collection("users").insertOne({
           name: user.name || "",
@@ -88,19 +89,28 @@ if (blocked) throw new Error('suspended');
         console.error("Google new user creation failed:", e);
       }
     } else {
+      // Existing user — link Google to their account regardless of how it was created
+      // Update provider to include google if not already
+      await db.collection("users").updateOne(
+        { email },
+        { $set: { googleLinked: true, lastGoogleSignIn: new Date() } }
+      );
+      // Carry over their existing role (ADMIN, USER, etc)
       (user as any).id = String(existing._id);
       (user as any).role = String(existing.role || "USER");
+      user.name = user.name || existing.name;
     }
   }
   return true;
 },
 
-    async jwt({ token, user, account }) {
+   async jwt({ token, user, account }) {
   if (user) {
     token.role = (user as any).role || "USER";
-    token.uid = (user as any).id;
+    token.uid = (user as any).id || user.id;
+    token.email = user.email;
   }
-  // For Google sign-in, always fetch fresh role from DB
+  // Always re-fetch role from DB for Google sign-ins to ensure accuracy
   if (account?.provider === "google" && token.email) {
     try {
       const client = await clientPromise;
@@ -112,7 +122,9 @@ if (blocked) throw new Error('suspended');
         token.role = String(dbUser.role || "USER");
         token.uid = String(dbUser._id);
       }
-    } catch {}
+    } catch (e) {
+      console.error("JWT role fetch failed:", e);
+    }
   }
   return token;
 },
