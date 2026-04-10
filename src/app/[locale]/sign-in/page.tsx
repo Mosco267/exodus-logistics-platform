@@ -116,13 +116,13 @@ if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
   };
 
   const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    try {
-      await signIn('google', { callbackUrl: `/${locale}/dashboard` });
-    } catch {
-      setGoogleLoading(false);
-    }
-  };
+  setGoogleLoading(true);
+  try {
+    await signIn('google', { callbackUrl: `/${locale}/auth/google-redirect` });
+  } catch {
+    setGoogleLoading(false);
+  }
+};
 
  const inputCls = (hasError: boolean) =>
   `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
