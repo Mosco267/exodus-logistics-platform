@@ -36,11 +36,18 @@ export default function GoogleRedirectPage() {
     return () => clearTimeout(timer);
   }, [locale, router]);
 
-  return (
+ return (
+  <>
+    <style>{`
+      header, nav[role="navigation"] { display: none !important; }
+    `}</style>
     <div className="min-h-screen flex flex-col items-center justify-center gap-3"
-      style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      <p className="text-sm font-semibold text-gray-500">Signing you in...</p>
+      style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)', minHeight: '100dvh' }}>
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100/80 px-10 py-8 flex flex-col items-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-sm font-semibold text-gray-600">Signing you in...</p>
+      </div>
     </div>
-  );
+  </>
+);
 }
