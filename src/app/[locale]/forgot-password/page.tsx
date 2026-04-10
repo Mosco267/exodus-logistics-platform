@@ -31,9 +31,12 @@ export default function ForgotPasswordPage() {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    setError(json?.error || 'No account found with this email address.');
-    return;
-  }
+  setError(json?.error || 'No account found with this email address.');
+  window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  return;
+}
   router.push(`/${locale}/forgot-password/sent?email=${encodeURIComponent(trimmed)}`);
 } catch {
   // Never show server error — silently redirect
@@ -143,11 +146,10 @@ export default function ForgotPasswordPage() {
 
               <AnimatePresence>
                 {error && (
-                  <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-  className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 overflow-hidden">
+                  <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
   <span className="break-words min-w-0">{error}</span>
-</motion.div>
+</div>
                 )}
               </AnimatePresence>
 
