@@ -95,13 +95,27 @@ if (blocked) throw new Error('suspended');
   return true;
 },
 
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role || "USER";
-        token.uid = (user as any).id;
+    async jwt({ token, user, account }) {
+  if (user) {
+    token.role = (user as any).role || "USER";
+    token.uid = (user as any).id;
+  }
+  // For Google sign-in, always fetch fresh role from DB
+  if (account?.provider === "google" && token.email) {
+    try {
+      const client = await clientPromise;
+      const db = client.db(process.env.MONGODB_DB);
+      const dbUser = await db.collection("users").findOne({
+        email: String(token.email).toLowerCase().trim()
+      });
+      if (dbUser) {
+        token.role = String(dbUser.role || "USER");
+        token.uid = String(dbUser._id);
       }
-      return token;
-    },
+    } catch {}
+  }
+  return token;
+},
 
     async session({ session, token }) {
       (session.user as any).role = (token as any).role || "USER";
