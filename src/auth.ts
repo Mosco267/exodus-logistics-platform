@@ -8,6 +8,11 @@ import { sendWelcomeEmail } from "@/lib/sendWelcomeEmail";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
 
+  pages: {
+    signIn: '/en/sign-in',
+    error: '/en/auth/error',
+  },
+
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -50,47 +55,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
 
   callbacks: {
-    async signIn({ user, account }) {
-      // Handle Google sign-in — auto-create or find user in MongoDB
-      if (account?.provider === "google") {
-        try {
-          const client = await clientPromise;
-          const db = client.db(process.env.MONGODB_DB);
+   async signIn({ user, account }) {
+  if (account?.provider === "google") {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
 
-          const email = String(user.email || "").toLowerCase().trim();
-          if (!email) return false;
+    const email = String(user.email || "").toLowerCase().trim();
+    if (!email) return false;
 
-          // Check if blocked
-          const blocked = await db.collection("blocked_emails").findOne({ email });
-if (blocked) throw new Error('banned');
+    const blocked = await db.collection("blocked_emails").findOne({ email });
+    if (blocked) return '/en/auth/error?error=AccessDenied';
 
-          let existing = await db.collection("users").findOne({ email });
+    const existing = await db.collection("users").findOne({ email });
 
-          if (!existing) {
-  // Create new user from Google
-  const result = await db.collection("users").insertOne({
-    name: user.name || "",
-    email,
-    role: "USER",
-    provider: "google",
-    createdAt: new Date(),
-  });
-  (user as any).id = String(result.insertedId);
-  (user as any).role = "USER";
-
-  // Send welcome email to new Google user
-  try {
-  await sendWelcomeEmail(user.name || "there", email);
-} catch (e) {
-  console.error("Google welcome email failed:", e);
-}
-}
-        } catch {
-          return false;
-        }
+    if (!existing) {
+      try {
+        const result = await db.collection("users").insertOne({
+          name: user.name || "",
+          email,
+          role: "USER",
+          provider: "google",
+          createdAt: new Date(),
+        });
+        (user as any).id = String(result.insertedId);
+        (user as any).role = "USER";
+        await sendWelcomeEmail(user.name || "there", email);
+      } catch (e) {
+        console.error("Google new user creation failed:", e);
       }
-      return true;
-    },
+    } else {
+      (user as any).id = String(existing._id);
+      (user as any).role = String(existing.role || "USER");
+    }
+  }
+  return true;
+},
 
     async jwt({ token, user }) {
       if (user) {

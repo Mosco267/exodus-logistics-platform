@@ -93,9 +93,9 @@ const navItems = [
     try {
       const res = await signIn('credentials', { email: rawEmail, password: rawPassword, redirect: false });
       if (!res || res.error) {
-  const errorMsg = res?.error === 'banned'
-    ? 'Your account has been suspended. Please contact support.'
-    : 'Invalid email or password. Please try again.';
+  const errorMsg = res?.error?.includes('suspended') || res?.error?.includes('contact support')
+  ? 'Your account has been suspended. Please contact support@goexoduslogistics.com.'
+  : 'Invalid email or password. Please try again.';
   setErrors({ email: '', password: '', general: errorMsg });
   setIsSubmitting(false);
   window.scrollTo({ top: 0, behavior: 'smooth' });
