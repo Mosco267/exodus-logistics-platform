@@ -16,9 +16,14 @@ export async function POST(req: Request) {
     const db = client.db(process.env.MONGODB_DB);
 
     const user = await db.collection("users").findOne({ email });
-    if (!user) {
-      return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
-    }
+if (!user) {
+  return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
+}
+
+const blocked = await db.collection("blocked_emails").findOne({ email });
+if (blocked) {
+  return NextResponse.json({ error: "This account has been suspended. Please contact support@goexoduslogistics.com." }, { status: 403 });
+}
 
     const token = crypto.randomBytes(32).toString("hex");
     const expiry = new Date(Date.now() + 60 * 60 * 1000);

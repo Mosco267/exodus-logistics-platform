@@ -37,8 +37,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.collection("users").findOne({ email });
         if (!user) return null;
 
-        // Block deleted/banned users
-        if ((user as any).isDeleted) return null;
+       // Block deleted/banned users
+if ((user as any).isDeleted) return null;
+
+// Check blocked_emails collection
+const blocked = await db.collection("blocked_emails").findOne({ email });
+if (blocked) throw new Error('suspended');
 
         const hash = String((user as any).passwordHash || (user as any).password || "");
         const ok = await bcrypt.compare(password, hash);

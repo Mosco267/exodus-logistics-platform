@@ -160,7 +160,10 @@ function ResetPasswordContent() {
         return;
       }
       setSuccess(true);
-      setTimeout(() => { router.push('/en/sign-in'); }, 3000);
+window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+document.documentElement.scrollTop = 0;
+document.body.scrollTop = 0;
+setTimeout(() => { router.push('/en/sign-in'); }, 3000);
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
