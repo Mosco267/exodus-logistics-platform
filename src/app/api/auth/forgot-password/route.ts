@@ -22,7 +22,7 @@ if (!user) {
 
 const blocked = await db.collection("blocked_emails").findOne({ email });
 if (blocked) {
-  return NextResponse.json({ error: "This account has been suspended. Please contact support@goexoduslogistics.com." }, { status: 403 });
+  return NextResponse.json({ error: "This account has been suspended. Contact support to resolve this." }, { status: 403 });
 }
 
     const token = crypto.randomBytes(32).toString("hex");

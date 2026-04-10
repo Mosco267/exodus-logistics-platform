@@ -144,9 +144,10 @@ export default function ForgotPasswordPage() {
               <AnimatePresence>
                 {error && (
                   <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                    className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 overflow-hidden">
-                    <AlertCircle className="w-4 h-4 shrink-0" />{error}
-                  </motion.div>
+  className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 overflow-hidden">
+  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+  <span className="break-words min-w-0">{error}</span>
+</motion.div>
                 )}
               </AnimatePresence>
 
