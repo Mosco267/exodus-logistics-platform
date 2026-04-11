@@ -144,7 +144,7 @@ export default function DashboardHome() {
     <div className="flex flex-col gap-5 pb-8">
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-tour="overview">
         {stats.map(({ title, value, icon: Icon, iconBg, iconColor }) => {
           const lines = Array.isArray(value) ? value : [value];
           return (
@@ -174,8 +174,8 @@ export default function DashboardHome() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-4">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Quick Actions</h3>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-4" data-tour="quick-actions">
+  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {[
             { href: `/${locale}/dashboard/track`, icon: Package, title: 'Track Shipment', desc: 'Search by tracking number', bg: 'bg-blue-600' },

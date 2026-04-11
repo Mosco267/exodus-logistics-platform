@@ -11,6 +11,8 @@ import NotificationsBell from "@/components/NotificationsBell";
 import AdminShell from "@/components/AdminShell";
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import CongratulationsModal from "@/components/CongratulationsModal";
+import OnboardingTour from "@/components/OnboardingTour";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,6 +21,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [darkMode, setDarkMode] = useState(false);
   const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
   const [isNewUser, setIsNewUser] = useState(false);
+const [showCongrats, setShowCongrats] = useState(false);
+const [showTour, setShowTour] = useState(false);
 
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
@@ -48,14 +52,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Check if new user (first login)
   useEffect(() => {
-    if (!session?.user?.email) return;
-    const key = `exodus_visited_${session.user.email}`;
-    const hasVisited = localStorage.getItem(key);
-    if (!hasVisited) {
-      setIsNewUser(true);
-      localStorage.setItem(key, '1');
-    }
-  }, [session?.user?.email]);
+  if (!session?.user?.email) return;
+  const key = `exodus_visited_${session.user.email}`;
+  const hasVisited = localStorage.getItem(key);
+  if (!hasVisited) {
+    setIsNewUser(true);
+    setShowCongrats(true);
+    localStorage.setItem(key, '1');
+  }
+}, [session?.user?.email]);
 
   // Dark mode
   useEffect(() => {
@@ -186,7 +191,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto" data-tour="nav">
           {navItems.map(({ href, label, icon, exact, mobileOnly }) => {
             const isActive = exact
               ? pathname === href
@@ -257,9 +262,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </Link>
 
             {/* Search — desktop */}
-            <div className="hidden md:flex flex-1 mx-6">
-              <SearchBar locale={locale} />
-            </div>
+            <div className="hidden md:flex flex-1 mx-6" data-tour="search">
+  <SearchBar locale={locale} />
+</div>
 
             {/* Spacer on mobile */}
             <div className="flex-1 md:hidden" />
@@ -275,20 +280,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </button>
 
               {/* Notifications */}
-              <div className="h-8 w-8 flex items-center justify-center shrink-0">
-                <NotificationsBell />
-              </div>
+              <div className="h-8 w-8 flex items-center justify-center shrink-0" data-tour="notifications">
+  <NotificationsBell />
+</div>
 
               {/* Create shipment — desktop only */}
               <Link
-                href={`/${locale}/dashboard/shipments/new`}
-                className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer shrink-0">
+  href={`/${locale}/dashboard/shipments/new`}
+  data-tour="create"
+  className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer shrink-0">
                 <PlusCircle className="w-4 h-4" />
                 <span>Create Shipment</span>
               </Link>
 
               {/* Profile */}
-              <div className="relative shrink-0" ref={profileRef}>
+              <div className="relative shrink-0" ref={profileRef} data-tour="profile">
                 <button
                   type="button"
                   onClick={() => setProfileOpen(v => !v)}
@@ -361,6 +367,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         )}
       </div>
+      <CongratulationsModal
+        open={showCongrats}
+        name={greetingName}
+        onClose={() => setShowCongrats(false)}
+        onStartTour={() => setShowTour(true)}
+      />
+      <OnboardingTour
+        active={showTour}
+        onDone={() => setShowTour(false)}
+      />
     </div>
   );
 }
