@@ -246,10 +246,11 @@ const [showTour, setShowTour] = useState(false);
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-600 dark:text-gray-300 shrink-0"
-              onClick={() => setSidebarOpen(true)}>
-              <Menu size={20} />
-            </button>
+  data-tour="mobile-menu"
+  className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-600 dark:text-gray-300 shrink-0"
+  onClick={() => setSidebarOpen(true)}>
+  <Menu size={20} />
+</button>
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
@@ -331,9 +332,9 @@ const [showTour, setShowTour] = useState(false);
           </div>
 
           {/* Mobile search */}
-          <div className="md:hidden px-3 pb-3">
-            <SearchBar locale={locale} />
-          </div>
+          <div className="md:hidden px-3 pb-3" data-tour="search">
+  <SearchBar locale={locale} />
+</div>
         </header>
 
         {/* CONTENT */}
