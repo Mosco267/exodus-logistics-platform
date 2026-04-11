@@ -122,7 +122,7 @@ export default function SearchBar({
   autoCorrect="off"
   autoComplete="off"
   spellCheck={false}
-  className="bg-transparent outline-none w-full text-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 uppercase"
+ className="bg-transparent outline-none w-full text-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 placeholder:normal-case uppercase"
 />
         {loading && (
           <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">Searching…</span>
