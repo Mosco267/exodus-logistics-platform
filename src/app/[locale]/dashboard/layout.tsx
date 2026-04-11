@@ -201,12 +201,11 @@ const toggleDark = () => {
 </Link>
 
 {/* Search — desktop */}
-<div className="hidden md:block flex-1">
+<div className="hidden md:flex flex-1 mx-6">
   <SearchBar locale={locale} />
 </div>
 
-{/* Spacer pushes right items to edge on desktop */}
-<div className="hidden md:flex flex-1" />
+
 
             <div className="flex-1 md:hidden" />
 
@@ -267,7 +266,7 @@ const toggleDark = () => {
           <div className="md:hidden px-3 pb-3">
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/10">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
-              <input placeholder="Search shipment..."
+              <input placeholder="Search Shipment..."
                 className="bg-transparent outline-none w-full text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400" />
             </div>
           </div>
