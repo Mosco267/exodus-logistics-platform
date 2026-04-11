@@ -17,6 +17,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
 
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
@@ -40,18 +41,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Dark mode
   useEffect(() => {
-    const saved = localStorage.getItem('exodus_dark_mode');
+  const saved = localStorage.getItem('exodus_dark_mode');
+  const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
+
+  if (savedSource === 'manual' && saved !== null) {
+    // User manually set it — respect their choice
     const isDark = saved === 'true';
     setDarkMode(isDark);
+    setDarkModeSource('manual');
     document.documentElement.classList.toggle('dark', isDark);
-  }, []);
+  } else {
+    // Auto mode — use time of day
+    const hour = new Date().getHours();
+    const isDark = hour >= 19 || hour < 7; // dark from 7pm to 7am
+    setDarkMode(isDark);
+    setDarkModeSource('auto');
+    document.documentElement.classList.toggle('dark', isDark);
+  }
+}, []);
 
-  const toggleDark = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    localStorage.setItem('exodus_dark_mode', String(next));
-    document.documentElement.classList.toggle('dark', next);
-  };
+const toggleDark = () => {
+  const next = !darkMode;
+  setDarkMode(next);
+  setDarkModeSource('manual');
+  localStorage.setItem('exodus_dark_mode', String(next));
+  localStorage.setItem('exodus_dark_mode_source', 'manual');
+  document.documentElement.classList.toggle('dark', next);
+};
 
   useEffect(() => {
     const onPageShow = (_event: PageTransitionEvent) => {
