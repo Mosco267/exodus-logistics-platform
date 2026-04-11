@@ -121,7 +121,7 @@ const toggleDark = () => {
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center gap-2 min-w-0">
-                  <img src="/logo.svg" alt="Exodus" className="h-7 w-auto" />
+                  <img src="/logo.svg" alt="Exodus" className="h-9 w-auto" />
                 </Link>
                 <button className="p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer" onClick={() => setSidebarOpen(false)}>
                   <X size={17} />
@@ -197,11 +197,11 @@ const toggleDark = () => {
 
             {/* Logo — desktop only */}
 <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
-  <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-10 w-auto" />
+  <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-14 w-auto" />
 </Link>
 
 {/* Search — desktop */}
-<div className="hidden md:block flex-1 max-w-md">
+<div className="hidden md:block flex-1 max-w-2xl">
   <SearchBar locale={locale} />
 </div>
 
@@ -222,7 +222,7 @@ const toggleDark = () => {
               <Link href={`/${locale}/dashboard/shipments/new`}
   className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer">
   <PlusCircle className="w-4 h-4" />
-  <span>Create</span>
+  <span>Create Shipment</span>
 </Link>
 
               <div className="h-8 w-8 flex items-center justify-center shrink-0">
