@@ -182,101 +182,88 @@ const toggleDark = () => {
 
         {/* TOPBAR */}
         <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-  <div className="h-14 px-3 flex items-center gap-2">
+          <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
-    {/* Mobile menu button */}
-    <button
-      className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-600 dark:text-gray-300 shrink-0"
-      onClick={() => setSidebarOpen(true)}>
-      <Menu size={20} />
-    </button>
-
-    {/* Logo — mobile only, constrained width */}
-    <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
-      <img
-        src={darkMode ? '/logo-dark.svg' : '/logo-light.svg'}
-        alt="Exodus"
-        className="h-7 w-auto max-w-[120px] object-contain"
-      />
-    </Link>
-
-    {/* Search — desktop only */}
-    <div className="hidden md:block flex-1 max-w-md">
-      <SearchBar locale={locale} />
-    </div>
-
-    {/* Spacer pushes right items to the end on mobile */}
-    <div className="flex-1 md:hidden" />
-
-    {/* Right actions — always visible */}
-    <div className="flex items-center gap-1.5 shrink-0">
-
-      {/* Dark mode toggle */}
-      <button
-        onClick={toggleDark}
-        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-500 dark:text-gray-300 shrink-0">
-        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-      </button>
-
-      {/* Notifications */}
-      <NotificationsBell />
-
-      {/* Create — desktop only */}
-      <Link
-        href={`/${locale}/dashboard/shipments/new`}
-        className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer shrink-0">
-        <PlusCircle className="w-4 h-4" />
-        <span>Create</span>
-      </Link>
-
-      {/* Profile */}
-      <div className="relative shrink-0" ref={profileRef}>
-        <button
-          type="button"
-          onClick={() => setProfileOpen(v => !v)}
-          className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0b3aa4] to-[#0e7490] flex items-center justify-center text-white font-extrabold cursor-pointer shadow-sm text-xs shrink-0">
-          {initials}
-        </button>
-        {profileOpen && (
-          <div className="absolute right-0 mt-3 w-52 rounded-xl shadow-xl p-2 space-y-1 z-50 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-            <div className="px-3 pt-2 pb-1">
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userName}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session?.user?.email ?? ''}</p>
-            </div>
-            <div className="border-t dark:border-gray-800 my-1" />
-            <Link href={`/${locale}/dashboard/profile`}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10"
-              onClick={() => setProfileOpen(false)}>
-              <User size={15} /> Profile
-            </Link>
-            <Link href={`/${locale}/dashboard/settings`}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10"
-              onClick={() => setProfileOpen(false)}>
-              <Settings size={15} /> Settings
-            </Link>
-            <div className="border-t dark:border-gray-800 my-1" />
-            <button
-              onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
-              <LogOut size={15} /> Logout
+            {/* Mobile menu button */}
+            <button className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-600 dark:text-gray-300"
+              onClick={() => setSidebarOpen(true)}>
+              <Menu size={20} />
             </button>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
 
-  {/* Mobile search bar below header row */}
-  <div className="md:hidden px-3 pb-3">
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/10">
-      <Search className="w-4 h-4 text-gray-400 shrink-0" />
-      <input
-        placeholder="Search shipment..."
-        className="bg-transparent outline-none w-full text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
-      />
-    </div>
-  </div>
-</header>
+            {/* Logo — mobile only */}
+            <Link href={`/${locale}/dashboard`} className="md:hidden">
+              <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-8 w-auto" />
+            </Link>
+
+            {/* Search — desktop */}
+            <div className="hidden md:block flex-1 max-w-md">
+              <SearchBar locale={locale} />
+            </div>
+
+            <div className="flex-1 md:hidden" />
+
+            {/* Right actions */}
+<div className="flex items-center gap-3">
+              {/* Dark mode toggle */}
+              <button onClick={toggleDark}
+  className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-600 dark:text-gray-300 shrink-0">
+  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+</button>
+
+              {/* Create shipment */}
+              <Link href={`/${locale}/dashboard/shipments/new`}
+  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer">
+  <PlusCircle className="w-4 h-4" />
+  <span>Create</span>
+</Link>
+
+              <div className="h-8 w-8 flex items-center justify-center shrink-0">
+  <NotificationsBell />
+</div>
+
+              {/* Profile */}
+              <div className="relative" ref={profileRef}>
+                <button type="button" onClick={() => setProfileOpen(v => !v)}
+                  className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0b3aa4] to-[#0e7490] flex items-center justify-center text-white font-extrabold cursor-pointer shadow-sm text-xs">
+                  {initials}
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 mt-3 w-52 rounded-xl shadow-xl p-2 space-y-1 z-50 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                    <div className="px-3 pt-2 pb-1">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session?.user?.email ?? ''}</p>
+                    </div>
+                    <div className="border-t dark:border-gray-800 my-1" />
+                    <Link href={`/${locale}/dashboard/profile`}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10"
+                      onClick={() => setProfileOpen(false)}>
+                      <User size={15} /> Profile
+                    </Link>
+                    <Link href={`/${locale}/dashboard/settings`}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10"
+                      onClick={() => setProfileOpen(false)}>
+                      <Settings size={15} /> Settings
+                    </Link>
+                    <div className="border-t dark:border-gray-800 my-1" />
+                    <button onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
+                      <LogOut size={15} /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile search */}
+          <div className="md:hidden px-3 pb-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/10">
+              <Search className="w-4 h-4 text-gray-400 shrink-0" />
+              <input placeholder="Search shipment..."
+                className="bg-transparent outline-none w-full text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400" />
+            </div>
+          </div>
+        </header>
 
         {/* CONTENT */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-w-0 text-gray-900 dark:text-gray-100">
