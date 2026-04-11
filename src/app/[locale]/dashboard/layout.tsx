@@ -121,7 +121,7 @@ const toggleDark = () => {
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center gap-2 min-w-0">
-                  <img src="/logo.svg" alt="Exodus" className="h-7 w-auto brightness-0 invert" />
+                  <img src="/logo.svg" alt="Exodus" className="h-7 w-auto" />
                 </Link>
                 <button className="p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer" onClick={() => setSidebarOpen(false)}>
                   <X size={17} />
@@ -192,7 +192,7 @@ const toggleDark = () => {
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden">
-              <img src="/logo.svg" alt="Exodus" className="h-8 w-auto" />
+              <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-8 w-auto" />
             </Link>
 
             {/* Search — desktop */}
