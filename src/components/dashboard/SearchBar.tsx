@@ -14,7 +14,7 @@ type Suggestion = {
 };
 
 export default function SearchBar({
-  placeholder = "Search Shipment ID / Tracking Number...",
+  placeholder = "Search Shipment Number / Tracking Number...",
   locale = "en",
 }: {
   placeholder?: string;
@@ -74,12 +74,11 @@ export default function SearchBar({
     };
   }, [displayValue]);
 
-  const goToResult = (s: Suggestion) => {
-    // ✅ Choose where search should go.
-    // Example: a Track page with query params
-    router.push(`/${locale}/dashboard/track?shipmentId=${encodeURIComponent(s.shipmentId)}&tracking=${encodeURIComponent(s.trackingNumber)}`);
-    setOpen(false);
-  };
+ const goToResult = (s: Suggestion) => {
+  router.push(`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`);
+  setValue('');
+  setOpen(false);
+};
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) setOpen(true);
@@ -113,13 +112,18 @@ export default function SearchBar({
       <div className="flex items-center bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl shadow-inner border border-transparent dark:border-gray-800">
         <Search className="w-4 h-4 text-gray-500 dark:text-gray-300 mr-2" />
         <input
-          value={displayValue}
-          onChange={(e) => setValue(e.target.value)}
-          onFocus={() => displayValue.trim() && setOpen(true)}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          className="bg-transparent outline-none w-full text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 uppercase"
-        />
+  value={displayValue}
+  onChange={(e) => setValue(e.target.value)}
+  onFocus={() => displayValue.trim() && setOpen(true)}
+  onKeyDown={onKeyDown}
+  placeholder={placeholder}
+  style={{ fontSize: '16px' }}
+  autoCapitalize="characters"
+  autoCorrect="off"
+  autoComplete="off"
+  spellCheck={false}
+  className="bg-transparent outline-none w-full text-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 uppercase"
+/>
         {loading && (
           <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">Searching…</span>
         )}
