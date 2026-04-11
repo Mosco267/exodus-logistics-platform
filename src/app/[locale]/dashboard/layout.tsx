@@ -146,7 +146,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo.svg" alt="Exodus" className="h-9 w-auto brightness-0 invert" />
+                  <img src="/logo.svg" alt="Exodus" className="h-9 w-auto" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
