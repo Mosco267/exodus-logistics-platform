@@ -201,7 +201,7 @@ const toggleDark = () => {
 </Link>
 
 {/* Search — desktop */}
-<div className="hidden md:block flex-1 max-w-2xl">
+<div className="hidden md:block flex-1">
   <SearchBar locale={locale} />
 </div>
 
