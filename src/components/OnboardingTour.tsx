@@ -129,8 +129,8 @@ export default function OnboardingTour({
             left: highlightRect.left - 4,
             width: highlightRect.width + 8,
             height: highlightRect.height + 8,
-            border: '2px solid #0b3aa4',
-            boxShadow: '0 0 0 4px rgba(11,58,164,0.3)',
+            border: '2px solid #0e7490',
+boxShadow: '0 0 0 4px rgba(14,116,144,0.3)',
           }}
         />
       )}
@@ -157,7 +157,7 @@ export default function OnboardingTour({
             {/* Header */}
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-xl bg-[#0b3aa4] flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
                   <span className="text-white text-xs font-bold">{step + 1}</span>
                 </div>
                 <p className="text-base font-bold text-gray-900 dark:text-white">{current.title}</p>
@@ -196,7 +196,8 @@ export default function OnboardingTour({
                   </button>
                 )}
                 <button onClick={handleNext}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0b3aa4] text-white text-sm font-bold hover:bg-blue-700 transition cursor-pointer">
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-bold transition cursor-pointer"
+style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
                   {step === STEPS.length - 1
                     ? <><CheckCircle2 size={14} /> Done</>
                     : <>Next <ArrowRight size={14} /></>}

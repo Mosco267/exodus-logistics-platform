@@ -39,12 +39,12 @@ export default function CongratulationsModal({
             <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
 
               {/* Top gradient banner */}
-              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg, #0b3aa4, #0e7490)' }} />
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }} />
 
               <div className="p-8 text-center">
                 {/* Icon */}
                 <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
+                  style={{ background: 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }}>
                   <CheckCircle2 className="w-8 h-8 text-white" />
                 </div>
 
@@ -64,7 +64,7 @@ export default function CongratulationsModal({
                     'Get instant notifications',
                   ].map(feat => (
                     <div key={feat} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-white/5">
-                      <div className="w-5 h-5 rounded-full bg-[#0b3aa4] flex items-center justify-center shrink-0">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
                         <CheckCircle2 className="w-3 h-3 text-white" />
                       </div>
                       <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{feat}</p>
@@ -77,7 +77,7 @@ export default function CongratulationsModal({
                   <button
                     onClick={() => { onClose(); onStartTour(); }}
                     className="cursor-pointer w-full h-11 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-[.98]"
-                    style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
+                   style={{ background: 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }}>
                     <Sparkles className="w-4 h-4" />
                     Take a quick tour
                     <ArrowRight className="w-4 h-4" />

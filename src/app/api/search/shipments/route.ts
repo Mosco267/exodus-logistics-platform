@@ -22,15 +22,29 @@ export async function GET(req: Request) {
 
   // ✅ Assumes you will store shipments in "shipments" collection with fields:
   // shipmentId, trackingNumber, sender, destination, status, date
-  const items = await db
-    .collection("shipments")
-    .find(
-      {
-        $or: [
-          { shipmentId: { $regex: "^" + escaped, $options: "i" } },
-          { trackingNumber: { $regex: "^" + escaped, $options: "i" } },
-        ],
-      },
+  const userId = (session.user as any).id || '';
+const userEmail = (session.user as any).email || '';
+
+const items = await db
+  .collection("shipments")
+  .find(
+    {
+      $and: [
+        {
+          $or: [
+            { createdByUserId: userId },
+            { userId: userId },
+            { userEmail: userEmail.toLowerCase() },
+          ],
+        },
+        {
+          $or: [
+            { shipmentId: { $regex: "^" + escaped, $options: "i" } },
+            { trackingNumber: { $regex: "^" + escaped, $options: "i" } },
+          ],
+        },
+      ],
+    },
       {
         projection: {
           _id: 0,
