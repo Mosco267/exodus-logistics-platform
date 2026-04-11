@@ -192,12 +192,12 @@ const toggleDark = () => {
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden">
-              <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-8 w-auto" />
+              <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-9 w-auto" />
             </Link>
 
             {/* Logo — desktop only */}
 <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
-  <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-14 w-auto" />
+  <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-12 w-auto" />
 </Link>
 
 {/* Search — desktop */}
