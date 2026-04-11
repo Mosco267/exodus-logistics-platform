@@ -14,7 +14,7 @@ type Suggestion = {
 };
 
 export default function SearchBar({
-  placeholder = "Search Shipment Number / Tracking Number...",
+  placeholder = "Search by Shipment or Tracking Number...",
   locale = "en",
 }: {
   placeholder?: string;
