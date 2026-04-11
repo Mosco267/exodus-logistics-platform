@@ -121,7 +121,7 @@ const toggleDark = () => {
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center gap-2 min-w-0">
-                  <img src="/logo.svg" alt="Exodus" className="h-7 w-auto" />
+                  <img src="/logo.svg" alt="Exodus" className="h-7 w-auto brightness-0 invert" />
                 </Link>
                 <button className="p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer" onClick={() => setSidebarOpen(false)}>
                   <X size={17} />
@@ -145,16 +145,18 @@ const toggleDark = () => {
         <nav className="mt-2 px-2 space-y-0.5 flex-1">
           {[
             { href: `/${locale}/dashboard`, label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" />, exact: true },
+            { href: `/${locale}/dashboard/shipments/new`, label: 'New Shipment', icon: <PlusCircle className="w-5 h-5" />, mobileOnly: true },
             { href: `/${locale}/dashboard/track`, label: 'Track', icon: <Package className="w-5 h-5" /> },
             { href: `/${locale}/dashboard/invoices`, label: 'Invoices', icon: <FileText className="w-5 h-5" /> },
             { href: `/${locale}/dashboard/history`, label: 'History', icon: <Clock className="w-5 h-5" /> },
             { href: `/${locale}/dashboard/settings`, label: 'Settings', icon: <Settings className="w-5 h-5" /> },
-          ].map(({ href, label, icon, exact }) => {
+          ].map(({ href, label, icon, exact, mobileOnly }) => {
             const isActive = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
             return (
               <Link key={href} href={href}
                 onClick={() => setSidebarOpen(false)}
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold
+                  ${mobileOnly ? 'md:hidden' : ''}
                   ${sidebarOpen ? '' : 'justify-center'}
                   ${isActive ? 'bg-white text-[#0b3aa4] shadow-sm' : 'hover:bg-white/10 text-white'}`}>
                 <span className={`shrink-0 ${isActive ? 'text-[#0b3aa4]' : 'text-white/90'}`}>{icon}</span>
@@ -190,7 +192,7 @@ const toggleDark = () => {
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden">
-              <img src="/logo.svg" alt="Exodus" className="h-8 w-auto" />
+              <img src="/logo.svg" alt="Exodus" className="h-8 w-auto [filter:brightness(0)_saturate(100%)] dark:brightness-0 dark:invert" />
             </Link>
 
             {/* Search — desktop */}
@@ -210,10 +212,10 @@ const toggleDark = () => {
 
               {/* Create shipment */}
               <Link href={`/${locale}/dashboard/shipments/new`}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-xs sm:text-sm cursor-pointer">
-                <PlusCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Create</span>
-              </Link>
+  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer">
+  <PlusCircle className="w-4 h-4" />
+  <span>Create</span>
+</Link>
 
               <NotificationsBell />
 
