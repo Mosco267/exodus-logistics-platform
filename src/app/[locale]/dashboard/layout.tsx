@@ -192,7 +192,7 @@ const toggleDark = () => {
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden">
-              <img src="/logo.svg" alt="Exodus" className="h-8 w-auto [filter:brightness(0)_saturate(100%)] dark:brightness-0 dark:invert" />
+              <img src="/logo.svg" alt="Exodus" className="h-8 w-auto" />
             </Link>
 
             {/* Search — desktop */}
