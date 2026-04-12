@@ -128,12 +128,38 @@ useEffect(() => {
   };
 
   if (mq.addEventListener) {
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  } else {
-    (mq as any).addListener(onChange);
-    return () => (mq as any).removeListener(onChange);
+  mq.addEventListener('change', onChange);
+} else {
+  (mq as any).addListener(onChange);
+}
+
+// iOS Safari fix — re-check system preference when app becomes visible
+const handleVisibility = () => {
+  if (document.visibilityState === 'visible') {
+    const src = localStorage.getItem('exodus_dark_mode_source');
+    if (src !== 'manual') {
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setDarkMode(systemDark);
+      if (systemDark) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.removeAttribute('data-manual-light');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   }
+};
+
+document.addEventListener('visibilitychange', handleVisibility);
+
+return () => {
+  if (mq.removeEventListener) {
+    mq.removeEventListener('change', onChange);
+  } else {
+    (mq as any).removeListener(onChange);
+  }
+  document.removeEventListener('visibilitychange', handleVisibility);
+};
 }, []);
 
 const toggleDark = () => {
