@@ -341,7 +341,7 @@ const [showTour, setShowTour] = useState(false);
           </div>
 
           {/* Mobile search */}
-          <div className="md:hidden px-3 pb-3" data-tour="search">
+          <div className="md:hidden px-3 pb-3" data-tour="mobile-search">
   <SearchBar locale={locale} />
 </div>
         </header>

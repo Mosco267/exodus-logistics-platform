@@ -27,11 +27,19 @@ const STEPS: Step[] = [
     position: 'top',
   },
   {
-    target: '[data-tour="search"]',
-    title: 'Search Shipments',
-    desc: 'Search for any shipment using the shipment ID or tracking number.',
-    position: 'bottom',
-  },
+  target: '[data-tour="search"]',
+  title: 'Search Shipments',
+  desc: 'Search for any shipment using the shipment ID or tracking number.',
+  position: 'bottom',
+  desktopOnly: true,
+},
+{
+  target: '[data-tour="mobile-search"]',
+  title: 'Search Shipments',
+  desc: 'Search for any shipment using the shipment ID or tracking number.',
+  position: 'bottom',
+  mobileOnly: true,
+},
   {
     target: '[data-tour="dark-toggle"]',
     title: 'Dark and Light Mode',
@@ -242,11 +250,9 @@ export default function OnboardingTour({
   const currentStep = filteredSteps[step];
 
   useEffect(() => {
-    if (!active || !currentStep?.target) return;
+  if (!active || !currentStep?.target) return;
 
-    setRect(null);
-
-    const el = document.querySelector(currentStep.target);
+  const el = document.querySelector(currentStep.target);
     if (!el) return;
 
     // Scroll element into view
