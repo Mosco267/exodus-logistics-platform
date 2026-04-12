@@ -92,10 +92,14 @@ useEffect(() => {
 
   setDarkMode(isDark);
   if (isDark) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
+  document.documentElement.classList.add('dark');
+  document.documentElement.classList.remove('light');
+} else {
+  document.documentElement.classList.remove('dark');
+  if (savedSource === 'manual') {
+    document.documentElement.classList.add('light');
   }
+}
 
   // Listen for system preference changes
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -105,10 +109,11 @@ useEffect(() => {
       setDarkMode(e.matches);
       setDarkModeSource('auto');
       if (e.matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+  document.documentElement.classList.add('dark');
+  document.documentElement.classList.remove('light');
+} else {
+  document.documentElement.classList.remove('dark');
+}
     }
   };
 
@@ -127,7 +132,13 @@ const toggleDark = () => {
   setDarkModeSource('manual');
   localStorage.setItem('exodus_dark_mode', String(next));
   localStorage.setItem('exodus_dark_mode_source', 'manual');
-  document.documentElement.classList.toggle('dark', next);
+  if (next) {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+  }
 };
 
   useEffect(() => {
