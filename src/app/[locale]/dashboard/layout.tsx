@@ -54,11 +54,19 @@ const [showTour, setShowTour] = useState(false);
   useEffect(() => {
   if (!session?.user?.email) return;
   const key = `exodus_visited_${session.user.email}`;
-  const hasVisited = localStorage.getItem(key);
-  if (!hasVisited) {
+  const storedTime = localStorage.getItem(key);
+
+  // Get account creation time from session
+  const createdAt = (session.user as any).createdAt
+    ? new Date((session.user as any).createdAt).getTime()
+    : null;
+
+  const isNew = !storedTime || (createdAt && createdAt > parseInt(storedTime));
+
+  if (isNew) {
     setIsNewUser(true);
     setShowCongrats(true);
-    localStorage.setItem(key, '1');
+    localStorage.setItem(key, String(Date.now()));
   }
 }, [session?.user?.email]);
 

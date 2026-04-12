@@ -49,11 +49,12 @@ if (blocked) throw new Error('suspended');
         if (!ok) return null;
 
         return {
-          id: String(user._id),
-          name: String(user.name || ""),
-          email: String(user.email || ""),
-          role: String(user.role || "USER"),
-        } as any;
+  id: String(user._id),
+  name: String(user.name || ""),
+  email: String(user.email || ""),
+  role: String(user.role || "USER"),
+  createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+} as any;
       },
     }),
   ],
@@ -109,6 +110,7 @@ if (blocked) throw new Error('suspended');
     token.role = (user as any).role || "USER";
     token.uid = (user as any).id || user.id;
     token.email = user.email;
+    token.createdAt = (user as any).createdAt || new Date().toISOString();
   }
   // Always re-fetch role from DB for Google sign-ins to ensure accuracy
   if (account?.provider === "google" && token.email) {
@@ -130,9 +132,10 @@ if (blocked) throw new Error('suspended');
 },
 
     async session({ session, token }) {
-      (session.user as any).role = (token as any).role || "USER";
-      (session.user as any).id = (token as any).uid || (token.sub ?? "");
-      return session;
-    },
+  (session.user as any).role = (token as any).role || "USER";
+  (session.user as any).id = (token as any).uid || (token.sub ?? "");
+  (session.user as any).createdAt = (token as any).createdAt || null;
+  return session;
+},
   },
 });

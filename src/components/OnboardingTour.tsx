@@ -17,13 +17,13 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="overview"]',
     title: 'Dashboard Overview',
-    desc: 'Your shipment stats are shown here — total shipments, pending invoices, deliveries and more.',
+    desc: 'Your shipment stats — total shipments, invoices, deliveries and more.',
     position: 'bottom',
   },
   {
     target: '[data-tour="quick-actions"]',
     title: 'Quick Actions',
-    desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
+    desc: 'Track a shipment, view invoices or check recent activity quickly.',
     position: 'top',
   },
   {
@@ -35,14 +35,14 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="create"]',
     title: 'Create a Shipment',
-    desc: 'Click here to create a new shipment and track it in real time.',
+    desc: 'Create a new shipment and track it in real time.',
     position: 'bottom',
     desktopOnly: true,
   },
   {
     target: '[data-tour="notifications"]',
     title: 'Notifications',
-    desc: 'Stay updated — all your shipment alerts and platform messages appear here.',
+    desc: 'All your shipment alerts and platform messages appear here.',
     position: 'bottom',
   },
   {
@@ -54,31 +54,33 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="nav"]',
     title: 'Navigation',
-    desc: 'Use the sidebar to navigate between Track, Invoices, History and Settings.',
+    desc: 'Navigate between Track, Invoices, History and Settings.',
     position: 'right',
     desktopOnly: true,
   },
   {
     target: '[data-tour="mobile-menu"]',
     title: 'Navigation Menu',
-    desc: 'Tap the menu icon to open the sidebar and navigate between Track, Invoices, History and Settings.',
+    desc: 'Tap the menu icon to open the sidebar and navigate the app.',
     position: 'bottom',
     mobileOnly: true,
   },
 ];
 
+const GRADIENT = 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)';
+
 type Rect = { top: number; left: number; width: number; height: number };
 
-function getRect(selector: string): Rect | null {
+function getElementRect(selector: string): Rect | null {
   const el = document.querySelector(selector);
   if (!el) return null;
   const r = el.getBoundingClientRect();
+  // Only return rect if element is visible in viewport
+  if (r.width === 0 || r.height === 0) return null;
   return { top: r.top, left: r.left, width: r.width, height: r.height };
 }
 
-const GRADIENT = 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)';
-
-// Desktop floating tooltip
+// Desktop floating tooltip — unchanged from your preferred version
 function DesktopTooltip({
   rect, step, stepIndex, total, onNext, onPrev, onSkip,
 }: {
@@ -134,8 +136,9 @@ function DesktopTooltip({
 
       <div className="flex items-center gap-1 mb-3">
         {Array.from({ length: total }).map((_, i) => (
-          <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === stepIndex ? 'w-5' : 'w-1.5 bg-gray-200 dark:bg-white/20'}`}
-            style={i === stepIndex ? { background: GRADIENT, width: 20 } : {}} />
+          <div key={i}
+            className={`h-1 rounded-full transition-all duration-300 ${i !== stepIndex ? 'w-1.5 bg-gray-200 dark:bg-white/20' : ''}`}
+            style={i === stepIndex ? { width: 20, background: GRADIENT } : {}} />
         ))}
       </div>
 
@@ -154,9 +157,7 @@ function DesktopTooltip({
           <button onClick={onNext}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-xs font-bold transition cursor-pointer"
             style={{ background: GRADIENT }}>
-            {stepIndex === total - 1
-              ? <><CheckCircle2 size={12} /> Done</>
-              : <>Next <ArrowRight size={12} /></>}
+            {stepIndex === total - 1 ? <><CheckCircle2 size={12} /> Done</> : <>Next <ArrowRight size={12} /></>}
           </button>
         </div>
       </div>
@@ -164,7 +165,7 @@ function DesktopTooltip({
   );
 }
 
-// Mobile bottom sheet tooltip
+// Mobile compact bottom sheet
 function MobileTooltip({
   step, stepIndex, total, onNext, onPrev, onSkip,
 }: {
@@ -173,69 +174,71 @@ function MobileTooltip({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 80 }}
+      initial={{ opacity: 0, y: 100 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 80 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+      exit={{ opacity: 0, y: 100 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       style={{ zIndex: 9999 }}
-      className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-2"
+      className="fixed bottom-0 left-0 right-0"
       onClick={e => e.stopPropagation()}>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-        {/* Gradient top bar */}
-        <div className="h-1 w-full" style={{ background: GRADIENT }} />
+      <div className="bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border-t border-gray-100 dark:border-white/10 overflow-hidden">
+        {/* Gradient top line */}
+        <div className="h-1" style={{ background: GRADIENT }} />
 
-        <div className="p-5">
-          {/* Handle */}
-          <div className="w-8 h-1 bg-gray-200 dark:bg-white/20 rounded-full mx-auto mb-4" />
+        <div className="px-5 pt-3 pb-6">
+          {/* Handle bar */}
+          <div className="w-8 h-1 bg-gray-200 dark:bg-white/20 rounded-full mx-auto mb-3" />
 
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+          {/* Row: number + title + close */}
+          <div className="flex items-center justify-between gap-3 mb-1.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: GRADIENT }}>
-                <span className="text-white text-xs font-bold">{stepIndex + 1}</span>
+                <span className="text-white text-[10px] font-bold">{stepIndex + 1}</span>
               </div>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{step.title}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{step.title}</p>
             </div>
             <button onClick={onSkip}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer shrink-0 p-1">
-              <X size={16} />
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer shrink-0">
+              <X size={15} />
             </button>
           </div>
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-4 pl-9">
+          {/* Description */}
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3 pl-8">
             {step.desc}
           </p>
 
-          {/* Progress */}
-          <div className="flex items-center gap-1.5 mb-4 pl-9">
-            {Array.from({ length: total }).map((_, i) => (
-              <div key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i !== stepIndex ? 'w-1.5 bg-gray-200 dark:bg-white/20' : ''}`}
-                style={i === stepIndex ? { width: 24, background: GRADIENT } : {}} />
-            ))}
-          </div>
-
-          {/* Buttons */}
+          {/* Progress + buttons on same row */}
           <div className="flex items-center justify-between gap-3">
-            <button onClick={onSkip}
-              className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer font-medium">
-              Skip tour
-            </button>
-            <div className="flex items-center gap-2">
+            {/* Progress dots */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: total }).map((_, i) => (
+                <div key={i}
+                  className={`h-1 rounded-full transition-all duration-300 ${i !== stepIndex ? 'w-1.5 bg-gray-200 dark:bg-white/20' : ''}`}
+                  style={i === stepIndex ? { width: 16, background: GRADIENT } : {}} />
+              ))}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={onSkip}
+                className="text-xs text-gray-400 hover:text-gray-600 transition cursor-pointer font-medium">
+                Skip
+              </button>
               {stepIndex > 0 && (
                 <button onClick={onPrev}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 dark:border-white/15 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
-                  <ArrowLeft size={14} /> Back
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/15 text-xs font-bold text-gray-600 dark:text-gray-300 transition cursor-pointer">
+                  <ArrowLeft size={11} /> Back
                 </button>
               )}
               <button onClick={onNext}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-bold transition cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-white text-xs font-bold transition cursor-pointer"
                 style={{ background: GRADIENT }}>
                 {stepIndex === total - 1
-                  ? <><CheckCircle2 size={14} /> Done</>
-                  : <>Next <ArrowRight size={14} /></>}
+                  ? <><CheckCircle2 size={11} /> Done</>
+                  : <>Next <ArrowRight size={11} /></>}
               </button>
             </div>
           </div>
@@ -256,7 +259,6 @@ export default function OnboardingTour({
   const [rect, setRect] = useState<Rect | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -264,7 +266,6 @@ export default function OnboardingTour({
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Filter steps based on device
   const filteredSteps = STEPS.filter(s => {
     if (s.desktopOnly && isMobile) return false;
     if (s.mobileOnly && !isMobile) return false;
@@ -273,31 +274,39 @@ export default function OnboardingTour({
 
   const currentStep = filteredSteps[step];
 
-  useEffect(() => {
-    if (!active) { setStep(0); return; }
-    if (!currentStep?.target) return;
-
-    const updateRect = () => {
-      const r = getRect(currentStep.target);
-      setRect(r);
-    };
-
-    updateRect();
-    window.addEventListener('resize', updateRect);
-    window.addEventListener('scroll', updateRect, true);
-    return () => {
-      window.removeEventListener('resize', updateRect);
-      window.removeEventListener('scroll', updateRect, true);
-    };
-  }, [step, active, currentStep]);
-
+  // Scroll element into view first, then get rect
   useEffect(() => {
     if (!active || !currentStep?.target) return;
+
     const el = document.querySelector(currentStep.target);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (!el) { setRect(null); return; }
+
+    // Scroll into view
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Wait for scroll to finish then measure
+    const timeout = setTimeout(() => {
+      const r = getElementRect(currentStep.target);
+      setRect(r);
+    }, 400);
+
+    return () => clearTimeout(timeout);
   }, [step, active, currentStep]);
+
+  // Keep rect updated on resize
+  useEffect(() => {
+    if (!active || !currentStep?.target) return;
+    const update = () => {
+      const r = getElementRect(currentStep.target);
+      setRect(r);
+    };
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [step, active, currentStep]);
+
+  useEffect(() => {
+    if (!active) setStep(0);
+  }, [active]);
 
   const handleNext = () => {
     if (step === filteredSteps.length - 1) { onDone(); return; }
@@ -310,38 +319,41 @@ export default function OnboardingTour({
 
   return (
     <>
-      {/* Dark overlay with cutout */}
+      {/* Overlay with cutout hole */}
       <div className="fixed inset-0 z-[9998] pointer-events-none">
-        {rect && (
-          <svg className="absolute inset-0 w-full h-full">
-            <defs>
-              <mask id="tour-mask">
-                <rect width="100%" height="100%" fill="white" />
+        <svg className="absolute inset-0 w-full h-full">
+          <defs>
+            <mask id="tour-mask">
+              <rect width="100%" height="100%" fill="white" />
+              {rect && (
                 <rect
                   x={rect.left - 6} y={rect.top - 6}
                   width={rect.width + 12} height={rect.height + 12}
-                  rx="12" fill="black"
+                  rx="10" fill="black"
                 />
-              </mask>
-            </defs>
-            <rect width="100%" height="100%"
-              fill="rgba(0,0,0,0.55)"
-              mask="url(#tour-mask)" />
-          </svg>
-        )}
+              )}
+            </mask>
+          </defs>
+          <rect width="100%" height="100%"
+            fill="rgba(0,0,0,0.5)"
+            mask="url(#tour-mask)" />
+        </svg>
       </div>
 
       {/* Highlight ring */}
       {rect && (
         <motion.div
-          key={step}
+          key={`ring-${step}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
           style={{
             position: 'fixed',
-            top: rect.top - 6, left: rect.left - 6,
-            width: rect.width + 12, height: rect.height + 12,
-            borderRadius: 12,
+            top: rect.top - 6,
+            left: rect.left - 6,
+            width: rect.width + 12,
+            height: rect.height + 12,
+            borderRadius: 10,
             border: '2px solid #0e7490',
             boxShadow: '0 0 0 4px rgba(14,116,144,0.3)',
             zIndex: 9998,
@@ -350,11 +362,11 @@ export default function OnboardingTour({
         />
       )}
 
-      {/* Tooltip — desktop floating, mobile bottom sheet */}
+      {/* Tooltip */}
       <AnimatePresence mode="wait">
         {isMobile ? (
           <MobileTooltip
-            key={`mobile-${step}`}
+            key={`m-${step}`}
             step={currentStep}
             stepIndex={step}
             total={filteredSteps.length}
@@ -365,7 +377,7 @@ export default function OnboardingTour({
         ) : (
           rect && (
             <DesktopTooltip
-              key={`desktop-${step}`}
+              key={`d-${step}`}
               rect={rect}
               step={currentStep}
               stepIndex={step}
@@ -378,7 +390,7 @@ export default function OnboardingTour({
         )}
       </AnimatePresence>
 
-      {/* Backdrop click to close */}
+      {/* Backdrop */}
       <div className="fixed inset-0 z-[9997]" onClick={onDone} />
     </>
   );
