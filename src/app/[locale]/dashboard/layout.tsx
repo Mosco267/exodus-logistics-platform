@@ -56,13 +56,7 @@ const [showTour, setShowTour] = useState(false);
     return ((parts[0]?.[0] ?? 'U') + (parts[1]?.[0] ?? '')).toUpperCase();
   }, [userName]);
 
-  // Temporary debugger — remove after fixing
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-    document.body.appendChild(script);
-    script.onload = () => (window as any).eruda.init();
-  }, []);
+  
 
   // Check if new user (first login)
   useEffect(() => {
@@ -89,24 +83,24 @@ useEffect(() => {
   const saved = localStorage.getItem('exodus_dark_mode');
   const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
 
-  console.log('=== DARK MODE DEBUG ===');
-  console.log('saved:', saved);
-  console.log('savedSource:', savedSource);
-  console.log('system dark:', window.matchMedia('(prefers-color-scheme: dark)').matches);
+  
 
   let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
-    isDark = saved === 'true';
-    setDarkModeSource('manual');
-    console.log('using manual:', isDark);
+  isDark = saved === 'true';
+  setDarkModeSource('manual');
+  if (!isDark) {
+    document.documentElement.setAttribute('data-manual-light', 'true');
   } else {
-    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setDarkModeSource('auto');
-    console.log('using system:', isDark);
+    document.documentElement.removeAttribute('data-manual-light');
   }
+} else {
+  isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  setDarkModeSource('auto');
+  document.documentElement.removeAttribute('data-manual-light');
+}
 
-  console.log('final isDark:', isDark);
-  console.log('html classes before:', document.documentElement.className);
+ 
 
   setDarkMode(isDark);
   if (isDark) {
@@ -114,9 +108,7 @@ useEffect(() => {
   document.documentElement.classList.remove('light');
 } else {
   document.documentElement.classList.remove('dark');
-  if (savedSource === 'manual') {
-    document.documentElement.classList.add('light');
-  }
+  document.documentElement.classList.remove('light');
 }
 
   // Listen for system preference changes
@@ -151,12 +143,12 @@ const toggleDark = () => {
   localStorage.setItem('exodus_dark_mode', String(next));
   localStorage.setItem('exodus_dark_mode_source', 'manual');
   if (next) {
-    document.documentElement.classList.add('dark');
-    document.documentElement.classList.remove('light');
-  } else {
-    document.documentElement.classList.remove('dark');
-    document.documentElement.classList.add('light');
-  }
+  document.documentElement.classList.add('dark');
+  document.documentElement.removeAttribute('data-manual-light');
+} else {
+  document.documentElement.classList.remove('dark');
+  document.documentElement.setAttribute('data-manual-light', 'true');
+}
 };
 
   useEffect(() => {
