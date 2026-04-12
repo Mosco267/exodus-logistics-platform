@@ -56,6 +56,14 @@ const [showTour, setShowTour] = useState(false);
     return ((parts[0]?.[0] ?? 'U') + (parts[1]?.[0] ?? '')).toUpperCase();
   }, [userName]);
 
+  // Temporary debugger — remove after fixing
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    document.body.appendChild(script);
+    script.onload = () => (window as any).eruda.init();
+  }, []);
+
   // Check if new user (first login)
   useEffect(() => {
   if (!session?.user?.email) return;
@@ -81,14 +89,24 @@ useEffect(() => {
   const saved = localStorage.getItem('exodus_dark_mode');
   const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
 
+  console.log('=== DARK MODE DEBUG ===');
+  console.log('saved:', saved);
+  console.log('savedSource:', savedSource);
+  console.log('system dark:', window.matchMedia('(prefers-color-scheme: dark)').matches);
+
   let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
     isDark = saved === 'true';
     setDarkModeSource('manual');
+    console.log('using manual:', isDark);
   } else {
     isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     setDarkModeSource('auto');
+    console.log('using system:', isDark);
   }
+
+  console.log('final isDark:', isDark);
+  console.log('html classes before:', document.documentElement.className);
 
   setDarkMode(isDark);
   if (isDark) {
