@@ -70,32 +70,49 @@ const [showTour, setShowTour] = useState(false);
   }
 }, [session?.user?.email]);
 
-  // Dark mode
-  useEffect(() => {
-    const saved = localStorage.getItem('exodus_dark_mode');
-    const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
-    if (savedSource === 'manual' && saved !== null) {
-      const isDark = saved === 'true';
-      setDarkMode(isDark);
-      setDarkModeSource('manual');
-      document.documentElement.classList.toggle('dark', isDark);
-    } else {
-      const hour = new Date().getHours();
-      const isDark = hour >= 19 || hour < 7;
-      setDarkMode(isDark);
-      setDarkModeSource('auto');
-      document.documentElement.classList.toggle('dark', isDark);
-    }
-  }, []);
+  // Dark mode — system preference by default
+useEffect(() => {
+  const saved = localStorage.getItem('exodus_dark_mode');
+  const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
 
-  const toggleDark = () => {
-    const next = !darkMode;
-    setDarkMode(next);
+  if (savedSource === 'manual' && saved !== null) {
+    // User manually set it — respect their choice
+    const isDark = saved === 'true';
+    setDarkMode(isDark);
     setDarkModeSource('manual');
-    localStorage.setItem('exodus_dark_mode', String(next));
-    localStorage.setItem('exodus_dark_mode_source', 'manual');
-    document.documentElement.classList.toggle('dark', next);
+    document.documentElement.classList.toggle('dark', isDark);
+  } else {
+    // Auto mode — follow system preference
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDarkMode(systemDark);
+    setDarkModeSource('auto');
+    document.documentElement.classList.toggle('dark', systemDark);
+  }
+
+  // Listen for system preference changes in real time
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handleSystemChange = (e: MediaQueryListEvent) => {
+    const savedSource = localStorage.getItem('exodus_dark_mode_source');
+    if (savedSource !== 'manual') {
+      // Only auto-follow if user hasn't manually set it
+      setDarkMode(e.matches);
+      setDarkModeSource('auto');
+      document.documentElement.classList.toggle('dark', e.matches);
+    }
   };
+
+  mediaQuery.addEventListener('change', handleSystemChange);
+  return () => mediaQuery.removeEventListener('change', handleSystemChange);
+}, []);
+
+const toggleDark = () => {
+  const next = !darkMode;
+  setDarkMode(next);
+  setDarkModeSource('manual');
+  localStorage.setItem('exodus_dark_mode', String(next));
+  localStorage.setItem('exodus_dark_mode_source', 'manual');
+  document.documentElement.classList.toggle('dark', next);
+};
 
   useEffect(() => {
     const onPageShow = (_event: PageTransitionEvent) => {
