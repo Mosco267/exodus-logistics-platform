@@ -18,8 +18,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
+  const [darkMode, setDarkMode] = useState(() => {
+  if (typeof window === 'undefined') return false;
+  const saved = localStorage.getItem('exodus_dark_mode');
+  const savedSource = localStorage.getItem('exodus_dark_mode_source');
+  if (savedSource === 'manual' && saved !== null) return saved === 'true';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+});
+const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
   const [isNewUser, setIsNewUser] = useState(false);
 const [showCongrats, setShowCongrats] = useState(false);
 const [showTour, setShowTour] = useState(false);
@@ -75,34 +81,44 @@ useEffect(() => {
   const saved = localStorage.getItem('exodus_dark_mode');
   const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
 
+  let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
-    // User manually set it — respect their choice
-    const isDark = saved === 'true';
-    setDarkMode(isDark);
+    isDark = saved === 'true';
     setDarkModeSource('manual');
-    document.documentElement.classList.toggle('dark', isDark);
   } else {
-    // Auto mode — follow system preference
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setDarkMode(systemDark);
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     setDarkModeSource('auto');
-    document.documentElement.classList.toggle('dark', systemDark);
   }
 
-  // Listen for system preference changes in real time
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  const handleSystemChange = (e: MediaQueryListEvent) => {
-    const savedSource = localStorage.getItem('exodus_dark_mode_source');
-    if (savedSource !== 'manual') {
-      // Only auto-follow if user hasn't manually set it
+  setDarkMode(isDark);
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+
+  // Listen for system preference changes
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e: MediaQueryListEvent) => {
+    const src = localStorage.getItem('exodus_dark_mode_source');
+    if (src !== 'manual') {
       setDarkMode(e.matches);
       setDarkModeSource('auto');
-      document.documentElement.classList.toggle('dark', e.matches);
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   };
 
-  mediaQuery.addEventListener('change', handleSystemChange);
-  return () => mediaQuery.removeEventListener('change', handleSystemChange);
+  if (mq.addEventListener) {
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  } else {
+    (mq as any).addListener(onChange);
+    return () => (mq as any).removeListener(onChange);
+  }
 }, []);
 
 const toggleDark = () => {
