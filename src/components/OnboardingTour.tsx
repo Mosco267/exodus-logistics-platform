@@ -255,8 +255,6 @@ export default function OnboardingTour({
   const el = document.querySelector(currentStep.target);
   if (!el) return;
 
-  // For header elements (search, dark toggle, notifications, profile, mobile-menu)
-  // scroll to very top so header is fully visible
   const isHeaderElement = [
     '[data-tour="search"]',
     '[data-tour="mobile-search"]',
@@ -268,25 +266,22 @@ export default function OnboardingTour({
   ].includes(currentStep.target);
 
   if (isHeaderElement) {
-  // Force scroll the main scrollable container to top
-  const main = document.querySelector('main');
-  if (main) {
-    main.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-  // Also try the overall page scroll
-  document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-  document.body.scrollTo({ top: 0, behavior: 'smooth' });
-} else {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+    // Header is sticky — measure immediately, no scroll needed
+    const main = document.querySelector('main');
+    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Wait for scroll to complete then measure
-  const t = setTimeout(() => {
+    // Measure right away since header is always visible
     const r = getElementRect(currentStep.target);
     setRect(r);
-  }, 700);
-
-  return () => clearTimeout(t);
+  } else {
+    // Page content — scroll into view then measure
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => {
+      const r = getElementRect(currentStep.target);
+      setRect(r);
+    }, 500);
+    return () => clearTimeout(t);
+  }
 }, [step, active, currentStep]);
 
   // Update on resize
