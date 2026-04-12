@@ -78,103 +78,41 @@ const [showTour, setShowTour] = useState(false);
   }
 }, [session?.user?.email]);
 
-  // Dark mode — system preference by default
+  // Dark mode
 useEffect(() => {
   const saved = localStorage.getItem('exodus_dark_mode');
-  const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
+  const savedSource = localStorage.getItem('exodus_dark_mode_source');
 
-  
-
-  let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
-  isDark = saved === 'true';
-  setDarkModeSource('manual');
-  if (!isDark) {
-    document.documentElement.setAttribute('data-manual-light', 'true');
-  } else {
-    document.documentElement.removeAttribute('data-manual-light');
-  }
-} else {
-  isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  setDarkModeSource('auto');
-  document.documentElement.removeAttribute('data-manual-light');
-}
-
- 
-
-  setDarkMode(isDark);
-  if (isDark) {
-  document.documentElement.classList.add('dark');
-  document.documentElement.classList.remove('light');
-} else {
-  document.documentElement.classList.remove('dark');
-  document.documentElement.classList.remove('light');
-}
-
-  // Listen for system preference changes
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  const onChange = (e: MediaQueryListEvent) => {
-    const src = localStorage.getItem('exodus_dark_mode_source');
-    if (src !== 'manual') {
-      setDarkMode(e.matches);
-      setDarkModeSource('auto');
-      if (e.matches) {
-  document.documentElement.classList.add('dark');
-  document.documentElement.classList.remove('light');
-} else {
-  document.documentElement.classList.remove('dark');
-}
+    const isDark = saved === 'true';
+    setDarkMode(isDark);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-  };
-
-  if (mq.addEventListener) {
-  mq.addEventListener('change', onChange);
-} else {
-  (mq as any).addListener(onChange);
-}
-
-// iOS Safari fix — re-check system preference when app becomes visible
-const handleVisibility = () => {
-  if (document.visibilityState === 'visible') {
-    const src = localStorage.getItem('exodus_dark_mode_source');
-    if (src !== 'manual') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setDarkMode(systemDark);
-      if (systemDark) {
-        document.documentElement.classList.add('dark');
-        document.documentElement.removeAttribute('data-manual-light');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+  } else {
+    // Always re-read system preference
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDarkMode(isDark);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   }
-};
-
-document.addEventListener('visibilitychange', handleVisibility);
-
-return () => {
-  if (mq.removeEventListener) {
-    mq.removeEventListener('change', onChange);
-  } else {
-    (mq as any).removeListener(onChange);
-  }
-  document.removeEventListener('visibilitychange', handleVisibility);
-};
 }, []);
 
 const toggleDark = () => {
   const next = !darkMode;
   setDarkMode(next);
-  setDarkModeSource('manual');
   localStorage.setItem('exodus_dark_mode', String(next));
   localStorage.setItem('exodus_dark_mode_source', 'manual');
   if (next) {
-  document.documentElement.classList.add('dark');
-  document.documentElement.removeAttribute('data-manual-light');
-} else {
-  document.documentElement.classList.remove('dark');
-  document.documentElement.setAttribute('data-manual-light', 'true');
-}
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
 };
 
   useEffect(() => {
