@@ -253,19 +253,37 @@ export default function OnboardingTour({
   if (!active || !currentStep?.target) return;
 
   const el = document.querySelector(currentStep.target);
-    if (!el) return;
+  if (!el) return;
 
-    // Scroll element into view
+  // For header elements (search, dark toggle, notifications, profile, mobile-menu)
+  // scroll to very top so header is fully visible
+  const isHeaderElement = [
+    '[data-tour="search"]',
+    '[data-tour="mobile-search"]',
+    '[data-tour="dark-toggle"]',
+    '[data-tour="notifications"]',
+    '[data-tour="profile"]',
+    '[data-tour="mobile-menu"]',
+    '[data-tour="create"]',
+  ].includes(currentStep.target);
+
+  if (isHeaderElement) {
+    // Scroll main content area to top so header elements are visible
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
-    // Wait for scroll to complete then measure
-    const t = setTimeout(() => {
-      const r = getElementRect(currentStep.target);
-      setRect(r);
-    }, 450);
+  // Wait for scroll to complete then measure
+  const t = setTimeout(() => {
+    const r = getElementRect(currentStep.target);
+    setRect(r);
+  }, 450);
 
-    return () => clearTimeout(t);
-  }, [step, active, currentStep]);
+  return () => clearTimeout(t);
+}, [step, active, currentStep]);
 
   // Update on resize
   useEffect(() => {
@@ -333,20 +351,22 @@ export default function OnboardingTour({
         />
       )}
 
-      {/* Tooltip */}
-      <AnimatePresence mode="wait">
-        <TooltipCard
-          key={`tip-${step}`}
-          rect={rect}
-          step={currentStep}
-          stepIndex={step}
-          total={filteredSteps.length}
-          onNext={handleNext}
-          onPrev={handlePrev}
-          onSkip={onDone}
-          isMobile={isMobile}
-        />
-      </AnimatePresence>
+      {/* Tooltip — only show once rect is measured */}
+<AnimatePresence mode="wait">
+  {rect && (
+    <TooltipCard
+      key={`tip-${step}`}
+      rect={rect}
+      step={currentStep}
+      stepIndex={step}
+      total={filteredSteps.length}
+      onNext={handleNext}
+      onPrev={handlePrev}
+      onSkip={onDone}
+      isMobile={isMobile}
+    />
+  )}
+</AnimatePresence>
 
       {/* Backdrop */}
       <div className="fixed inset-0 z-[9997]" onClick={onDone} />
