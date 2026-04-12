@@ -268,11 +268,15 @@ export default function OnboardingTour({
   ].includes(currentStep.target);
 
   if (isHeaderElement) {
-    // Scroll main content area to top so header elements are visible
-    const main = document.querySelector('main');
-    if (main) main.scrollTop = 0;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
+  // Force scroll the main scrollable container to top
+  const main = document.querySelector('main');
+  if (main) {
+    main.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  // Also try the overall page scroll
+  document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+  document.body.scrollTo({ top: 0, behavior: 'smooth' });
+} else {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
@@ -280,7 +284,7 @@ export default function OnboardingTour({
   const t = setTimeout(() => {
     const r = getElementRect(currentStep.target);
     setRect(r);
-  }, 450);
+  }, 700);
 
   return () => clearTimeout(t);
 }, [step, active, currentStep]);
