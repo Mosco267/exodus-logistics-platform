@@ -283,10 +283,11 @@ const [showTour, setShowTour] = useState(false);
 
               {/* Dark mode toggle */}
               <button
-                onClick={toggleDark}
-                className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-500 dark:text-gray-300 shrink-0">
-                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
+  data-tour="dark-toggle"
+  onClick={toggleDark}
+  className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-500 dark:text-gray-300 shrink-0">
+  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+</button>
 
               {/* Notifications */}
               <div className="h-8 w-8 flex items-center justify-center shrink-0" data-tour="notifications">
