@@ -14,54 +14,39 @@ type Step = {
 };
 
 const STEPS: Step[] = [
+  // ── Desktop only ──
   {
-    target: '[data-tour="overview"]',
-    title: 'Dashboard Overview',
-    desc: 'Your shipment stats are shown here. Total shipments, pending invoices, deliveries and more.',
+    target: '[data-tour="search"]',
+    title: 'Search Shipments',
+    desc: 'Search for any shipment using the shipment ID or tracking number.',
     position: 'bottom',
+    desktopOnly: true,
   },
-  {
-    target: '[data-tour="quick-actions"]',
-    title: 'Quick Actions',
-    desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
-    position: 'top',
-  },
-  {
-  target: '[data-tour="search"]',
-  title: 'Search Shipments',
-  desc: 'Search for any shipment using the shipment ID or tracking number.',
-  position: 'bottom',
-  desktopOnly: true,
-},
-{
-  target: '[data-tour="mobile-search"]',
-  title: 'Search Shipments',
-  desc: 'Search for any shipment using the shipment ID or tracking number.',
-  position: 'bottom',
-  mobileOnly: true,
-},
   {
     target: '[data-tour="dark-toggle"]',
     title: 'Dark and Light Mode',
     desc: 'Switch between dark and light mode. It also changes automatically based on time of day.',
     position: 'bottom',
+    desktopOnly: true,
   },
   {
     target: '[data-tour="notifications"]',
     title: 'Notifications',
     desc: 'Stay updated. All your shipment alerts and platform messages appear here.',
     position: 'bottom',
+    desktopOnly: true,
   },
   {
     target: '[data-tour="profile"]',
     title: 'Your Profile',
     desc: 'Access your profile, settings and logout from here.',
     position: 'bottom',
+    desktopOnly: true,
   },
   {
     target: '[data-tour="create"]',
     title: 'Create a Shipment',
-    desc: 'Click here to create a new shipment and track it in real time.',
+    desc: 'Create a new shipment and track it in real time.',
     position: 'bottom',
     desktopOnly: true,
   },
@@ -73,14 +58,71 @@ const STEPS: Step[] = [
     desktopOnly: true,
   },
   {
+    target: '[data-tour="overview"]',
+    title: 'Dashboard Overview',
+    desc: 'Your shipment stats are shown here. Total shipments, pending invoices, deliveries and more.',
+    position: 'bottom',
+    desktopOnly: true,
+  },
+  {
+    target: '[data-tour="quick-actions"]',
+    title: 'Quick Actions',
+    desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
+    position: 'top',
+    desktopOnly: true,
+  },
+
+  // ── Mobile only — top to bottom ──
+  {
     target: '[data-tour="mobile-menu"]',
     title: 'Navigation Menu',
     desc: 'Tap the menu icon to open the sidebar and navigate the app.',
     position: 'bottom',
     mobileOnly: true,
   },
+  {
+    target: '[data-tour="dark-toggle"]',
+    title: 'Dark and Light Mode',
+    desc: 'Switch between dark and light mode. It also changes automatically based on time of day.',
+    position: 'bottom',
+    mobileOnly: true,
+  },
+  {
+    target: '[data-tour="notifications"]',
+    title: 'Notifications',
+    desc: 'Stay updated. All your shipment alerts and platform messages appear here.',
+    position: 'bottom',
+    mobileOnly: true,
+  },
+  {
+    target: '[data-tour="profile"]',
+    title: 'Your Profile',
+    desc: 'Access your profile, settings and logout from here.',
+    position: 'bottom',
+    mobileOnly: true,
+  },
+  {
+    target: '[data-tour="mobile-search"]',
+    title: 'Search Shipments',
+    desc: 'Search for any shipment using the shipment ID or tracking number.',
+    position: 'bottom',
+    mobileOnly: true,
+  },
+  {
+    target: '[data-tour="overview"]',
+    title: 'Dashboard Overview',
+    desc: 'Your shipment stats are shown here. Total shipments, pending invoices, deliveries and more.',
+    position: 'bottom',
+    mobileOnly: true,
+  },
+  {
+    target: '[data-tour="quick-actions"]',
+    title: 'Quick Actions',
+    desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
+    position: 'top',
+    mobileOnly: true,
+  },
 ];
-
 const GRADIENT = 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)';
 
 type Rect = { top: number; left: number; width: number; height: number };

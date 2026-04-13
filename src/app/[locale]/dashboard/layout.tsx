@@ -308,13 +308,23 @@ const toggleDark = () => {
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
-              <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-9 w-auto" />
-            </Link>
+  <div className="relative h-9" style={{ minWidth: 80 }}>
+    <img src="/logo.svg" alt="Exodus" className="h-9 w-auto absolute top-0 left-0"
+      style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
+    <img src="/logo-dark.svg" alt="Exodus" className="h-9 w-auto opacity-0"
+      style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
+  </div>
+</Link>
 
             {/* Logo — desktop only */}
-            <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
-              <img src={darkMode ? '/logo.svg' : '/logo-dark.svg'} alt="Exodus" className="h-12 w-auto" />
-            </Link>
+           <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
+  <div className="relative h-12" style={{ minWidth: 120 }}>
+    <img src="/logo.svg" alt="Exodus" className="h-12 w-auto absolute top-0 left-0"
+      style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
+    <img src="/logo-dark.svg" alt="Exodus" className="h-12 w-auto"
+      style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
+  </div>
+</Link>
 
             {/* Search — desktop */}
             <div className="hidden md:flex flex-1 mx-6" data-tour="search">
