@@ -79,33 +79,61 @@ const [showTour, setShowTour] = useState(false);
 }, [session?.user?.email]);
 
   // Dark mode
-useEffect(() => {
+  useEffect(() => {
   const saved = localStorage.getItem('exodus_dark_mode');
-  const savedSource = localStorage.getItem('exodus_dark_mode_source');
+  const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
 
+  let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
-    const isDark = saved === 'true';
-    setDarkMode(isDark);
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    isDark = saved === 'true';
+    setDarkModeSource('manual');
   } else {
-    // Always re-read system preference
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setDarkMode(isDark);
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDarkModeSource('auto');
   }
+
+  setDarkMode(isDark);
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e: MediaQueryListEvent) => {
+    const src = localStorage.getItem('exodus_dark_mode_source');
+    if (src !== 'manual') {
+      setDarkMode(e.matches);
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
+  if (mq.addEventListener) {
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  } else {
+    (mq as any).addListener(onChange);
+    return () => (mq as any).removeListener(onChange);
+  }
+}, []);
+
+
+
+// Remove dark class when leaving dashboard
+useEffect(() => {
+  return () => {
+    document.documentElement.classList.remove('dark');
+  };
 }, []);
 
 const toggleDark = () => {
   const next = !darkMode;
   setDarkMode(next);
+  setDarkModeSource('manual');
   localStorage.setItem('exodus_dark_mode', String(next));
   localStorage.setItem('exodus_dark_mode_source', 'manual');
   if (next) {
