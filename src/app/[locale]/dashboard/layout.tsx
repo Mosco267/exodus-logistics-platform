@@ -2,8 +2,8 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Menu, X, Search, LogOut, User, Settings, Package,
-  FileText, Clock, LayoutDashboard, PlusCircle, Moon, Sun, Sparkles,
+  Menu, X, LogOut, User, Settings, Package,
+  FileText, Clock, LayoutDashboard, PlusCircle, Moon, Sun, Sparkles, Palette, Globe,
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from "@/components/dashboard/SearchBar";
@@ -13,16 +13,19 @@ import { usePathname, useParams, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import CongratulationsModal from "@/components/CongratulationsModal";
 import OnboardingTour from "@/components/OnboardingTour";
+import AppearancePanel, { THEMES, ThemeId } from "@/components/AppearancePanel";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [showAppearance, setShowAppearance] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<ThemeId>('default');
   const [darkMode, setDarkMode] = useState(false);
-const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
+  const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
   const [isNewUser, setIsNewUser] = useState(false);
-const [showCongrats, setShowCongrats] = useState(false);
-const [showTour, setShowTour] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const [showTour, setShowTour] = useState(false);
 
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
@@ -34,15 +37,14 @@ const [showTour, setShowTour] = useState(false);
   const { data: session, status } = useSession();
 
   const handleLogout = async () => {
-  localStorage.removeItem('exodus_dark_mode');
-  localStorage.removeItem('exodus_dark_mode_source');
-  document.documentElement.classList.remove('dark');
-  await signOut({ callbackUrl: `/${locale}/sign-in` });
-};
+    localStorage.removeItem('exodus_dark_mode');
+    localStorage.removeItem('exodus_dark_mode_source');
+    document.documentElement.classList.remove('dark');
+    await signOut({ callbackUrl: `/${locale}/sign-in` });
+  };
 
   const userName = (session?.user?.name || 'User').trim();
 
-  // Use last name for greeting, fallback to first name
   const greetingName = useMemo(() => {
     const parts = userName.split(' ').filter(Boolean);
     return parts.length > 1 ? parts[parts.length - 1] : parts[0] || 'User';
@@ -53,99 +55,110 @@ const [showTour, setShowTour] = useState(false);
     return ((parts[0]?.[0] ?? 'U') + (parts[1]?.[0] ?? '')).toUpperCase();
   }, [userName]);
 
-  
+  // Active theme object
+  const activeTheme = THEMES.find(t => t.id === currentTheme) || THEMES[0];
 
-  // Check if new user (first login)
+  // Load theme from DB
   useEffect(() => {
-  if (!session?.user?.email) return;
+    if (!session?.user?.email) return;
+    fetch('/api/user/theme')
+      .then(r => r.json())
+      .then(data => { if (data.theme) setCurrentTheme(data.theme as ThemeId); })
+      .catch(() => {});
+  }, [session?.user?.email]);
 
-  const checkAndMark = async () => {
+  // Save theme to DB
+  const handleThemeChange = async (themeId: ThemeId) => {
+    setCurrentTheme(themeId);
     try {
-      const res = await fetch('/api/auth/check-visited');
-      const data = await res.json();
-
-      if (!data.hasVisited) {
-        setIsNewUser(true);
-        setShowCongrats(true);
-        // Mark as visited in DB
-        await fetch('/api/auth/mark-visited', { method: 'POST' });
-      }
+      await fetch('/api/user/theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: themeId }),
+      });
     } catch {}
   };
 
-  checkAndMark();
-}, [session?.user?.email]);
+  // Check if new user
+  useEffect(() => {
+    if (!session?.user?.email) return;
+    const checkAndMark = async () => {
+      try {
+        const res = await fetch('/api/auth/check-visited');
+        const data = await res.json();
+        if (!data.hasVisited) {
+          setIsNewUser(true);
+          setShowCongrats(true);
+          await fetch('/api/auth/mark-visited', { method: 'POST' });
+        }
+      } catch {}
+    };
+    checkAndMark();
+  }, [session?.user?.email]);
 
   // Dark mode
   useEffect(() => {
-  const saved = localStorage.getItem('exodus_dark_mode');
-  const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
+    const saved = localStorage.getItem('exodus_dark_mode');
+    const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  // Always default to system if no manual preference
-  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let isDark: boolean;
+    if (savedSource === 'manual' && saved !== null) {
+      isDark = saved === 'true';
+      setDarkModeSource('manual');
+    } else {
+      localStorage.removeItem('exodus_dark_mode');
+      localStorage.removeItem('exodus_dark_mode_source');
+      isDark = systemDark;
+      setDarkModeSource('auto');
+    }
 
-  let isDark: boolean;
-  if (savedSource === 'manual' && saved !== null) {
-  isDark = saved === 'true';
-  setDarkModeSource('manual');
-} else {
-  // Clear any stale values and use system
-  localStorage.removeItem('exodus_dark_mode');
-  localStorage.removeItem('exodus_dark_mode_source');
-  isDark = systemDark;
-  setDarkModeSource('auto');
-}
+    setDarkMode(isDark);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
 
-  setDarkMode(isDark);
-  if (isDark) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  const onChange = (e: MediaQueryListEvent) => {
-    const src = localStorage.getItem('exodus_dark_mode_source');
-    if (src !== 'manual') {
-      setDarkMode(e.matches);
-      if (e.matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => {
+      const src = localStorage.getItem('exodus_dark_mode_source');
+      if (src !== 'manual') {
+        setDarkMode(e.matches);
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
       }
+    };
+
+    if (mq.addEventListener) {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    } else {
+      (mq as any).addListener(onChange);
+      return () => (mq as any).removeListener(onChange);
+    }
+  }, []);
+
+  // Remove dark class when leaving dashboard
+  useEffect(() => {
+    return () => { document.documentElement.classList.remove('dark'); };
+  }, []);
+
+  const toggleDark = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    setDarkModeSource('manual');
+    localStorage.setItem('exodus_dark_mode', String(next));
+    localStorage.setItem('exodus_dark_mode_source', 'manual');
+    if (next) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   };
-
-  if (mq.addEventListener) {
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  } else {
-    (mq as any).addListener(onChange);
-    return () => (mq as any).removeListener(onChange);
-  }
-}, []);
-
-
-
-// Remove dark class when leaving dashboard
-useEffect(() => {
-  return () => {
-    document.documentElement.classList.remove('dark');
-  };
-}, []);
-
-const toggleDark = () => {
-  const next = !darkMode;
-  setDarkMode(next);
-  setDarkModeSource('manual');
-  localStorage.setItem('exodus_dark_mode', String(next));
-  localStorage.setItem('exodus_dark_mode_source', 'manual');
-  if (next) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-};
 
   useEffect(() => {
     const onPageShow = (_event: PageTransitionEvent) => {
@@ -184,7 +197,7 @@ const toggleDark = () => {
   ];
 
   return (
-    <div className="min-h-screen flex overflow-x-hidden bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen flex overflow-x-hidden" style={{ background: activeTheme.bg }}>
 
       {/* MOBILE OVERLAY */}
       {sidebarOpen && (
@@ -198,7 +211,7 @@ const toggleDark = () => {
         text-white flex-shrink-0 flex flex-col
         shadow-2xl transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full md:translate-x-0 md:w-16'}
-      `} style={{ background: 'linear-gradient(160deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }}>
+      `} style={{ background: activeTheme.sidebar }}>
 
         {/* Decorative top accent */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-white/20 via-white/40 to-white/20" />
@@ -235,13 +248,13 @@ const toggleDark = () => {
                     <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                     <p className="text-[11px] font-bold text-yellow-300 uppercase tracking-wider">Welcome!</p>
                   </div>
-                  <p className="text-sm font-bold text-white">Congratulations, {greetingName}! 🎉</p>
+                  <p className="text-sm font-bold text-white">Congratulations, {greetingName}!</p>
                   <p className="text-[11px] text-white/60 mt-0.5">Your account is ready to use.</p>
                 </>
               ) : (
                 <>
                   <p className="text-[11px] text-white/60 uppercase tracking-wider font-semibold">Welcome back,</p>
-                  <p className="text-sm font-bold text-white mt-0.5">{greetingName} 👋</p>
+                  <p className="text-sm font-bold text-white mt-0.5">{greetingName}</p>
                 </>
               )}
             </div>
@@ -263,15 +276,13 @@ const toggleDark = () => {
                 className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 font-semibold
                   ${mobileOnly ? 'md:hidden' : ''}
                   ${!sidebarOpen ? 'justify-center' : ''}
-                  ${isActive
-                    ? 'bg-white text-[#0b3aa4] shadow-md'
-                    : 'text-white/80 hover:text-white hover:bg-white/12'
-                  }`}>
-                <span className={`shrink-0 transition-colors ${isActive ? 'text-[#0b3aa4]' : 'text-white/80 group-hover:text-white'}`}>
+                  ${isActive ? 'shadow-md' : 'text-white/80 hover:text-white hover:bg-white/12'}`}
+                style={isActive ? { background: activeTheme.activeLink, color: activeTheme.activeLinkText } : {}}>
+                <span className={`shrink-0 transition-colors ${isActive ? '' : 'text-white/80 group-hover:text-white'}`}
+                  style={isActive ? { color: activeTheme.activeLinkText } : {}}>
                   {icon}
                 </span>
                 {sidebarOpen && <span className="truncate text-sm">{label}</span>}
-                {/* Active indicator dot when collapsed */}
                 {!sidebarOpen && isActive && (
                   <span className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white" />
                 )}
@@ -283,14 +294,14 @@ const toggleDark = () => {
         {/* Bottom section */}
         <div className="p-2 pb-4 mt-2">
           <div className="border-t border-white/15 pt-2">
-           <button
-  onClick={() => setLogoutOpen(true)}
-  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/12 transition-all duration-200 font-semibold cursor-pointer text-sm text-white/80 hover:text-white
-    ${!sidebarOpen ? 'justify-center' : ''}`}
-  title={!sidebarOpen ? 'Logout' : undefined}>
-  <LogOut className="w-5 h-5 shrink-0" />
-  {sidebarOpen && <span>Logout</span>}
-</button>
+            <button
+              onClick={() => setLogoutOpen(true)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/12 transition-all duration-200 font-semibold cursor-pointer text-sm text-white/80 hover:text-white
+                ${!sidebarOpen ? 'justify-center' : ''}`}
+              title={!sidebarOpen ? 'Logout' : undefined}>
+              <LogOut className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span>Logout</span>}
+            </button>
           </div>
         </div>
       </aside>
@@ -299,41 +310,43 @@ const toggleDark = () => {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
 
         {/* TOPBAR */}
-        <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <header className="sticky top-0 z-30 border-b shadow-sm"
+          style={{ background: activeTheme.header, borderColor: activeTheme.headerBorder }}>
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
             {/* Mobile menu button */}
             <button
-  data-tour="mobile-menu"
-  className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-600 dark:text-gray-300 shrink-0"
-  onClick={() => setSidebarOpen(true)}>
-  <Menu size={20} />
-</button>
+              data-tour="mobile-menu"
+              className="md:hidden p-2 rounded-xl transition cursor-pointer shrink-0"
+              style={{ color: activeTheme.text }}
+              onClick={() => setSidebarOpen(true)}>
+              <Menu size={20} />
+            </button>
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
-  <div className="relative h-9" style={{ minWidth: 80 }}>
-    <img src="/logo.svg" alt="Exodus" className="h-9 w-auto absolute top-0 left-0"
-      style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
-    <img src="/logo-dark.svg" alt="Exodus" className="h-9 w-auto opacity-0"
-      style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
-  </div>
-</Link>
+              <div className="relative h-9" style={{ minWidth: 80 }}>
+                <img src="/logo.svg" alt="Exodus" className="h-9 w-auto absolute top-0 left-0"
+                  style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
+                <img src="/logo-dark.svg" alt="Exodus" className="h-9 w-auto"
+                  style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
+              </div>
+            </Link>
 
             {/* Logo — desktop only */}
-           <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
-  <div className="relative h-12" style={{ minWidth: 120 }}>
-    <img src="/logo.svg" alt="Exodus" className="h-12 w-auto absolute top-0 left-0"
-      style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
-    <img src="/logo-dark.svg" alt="Exodus" className="h-12 w-auto"
-      style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
-  </div>
-</Link>
+            <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
+              <div className="relative h-12" style={{ minWidth: 120 }}>
+                <img src="/logo.svg" alt="Exodus" className="h-12 w-auto absolute top-0 left-0"
+                  style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
+                <img src="/logo-dark.svg" alt="Exodus" className="h-12 w-auto"
+                  style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
+              </div>
+            </Link>
 
             {/* Search — desktop */}
             <div className="hidden md:flex flex-1 mx-6" data-tour="search">
-  <SearchBar locale={locale} />
-</div>
+              <SearchBar locale={locale} />
+            </div>
 
             {/* Spacer on mobile */}
             <div className="flex-1 md:hidden" />
@@ -341,24 +354,45 @@ const toggleDark = () => {
             {/* Right actions */}
             <div className="flex items-center gap-2.5">
 
+              {/* Mobile create — shown on themes that support it */}
+              {activeTheme.showMobileCreate && (
+                <Link href={`/${locale}/dashboard/shipments/new`}
+                  className="md:hidden flex items-center justify-center w-8 h-8 rounded-xl text-white shrink-0 shadow-sm"
+                  style={{ background: activeTheme.accent }}>
+                  <PlusCircle size={16} />
+                </Link>
+              )}
+
+              {/* Mobile language — shown on themes that support it */}
+              {activeTheme.showMobileLang && (
+                <button
+                  onClick={() => { setShowAppearance(true); }}
+                  className="md:hidden flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
+                  style={{ color: activeTheme.accent }}>
+                  <Globe size={18} />
+                </button>
+              )}
+
               {/* Dark mode toggle */}
               <button
-  data-tour="dark-toggle"
-  onClick={toggleDark}
-  className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-500 dark:text-gray-300 shrink-0">
-  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-</button>
+                data-tour="dark-toggle"
+                onClick={toggleDark}
+                className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer shrink-0"
+                style={{ color: activeTheme.subtext }}>
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
 
               {/* Notifications */}
               <div className="h-8 w-8 flex items-center justify-center shrink-0" data-tour="notifications">
-  <NotificationsBell />
-</div>
+                <NotificationsBell />
+              </div>
 
               {/* Create shipment — desktop only */}
               <Link
-  href={`/${locale}/dashboard/shipments/new`}
-  data-tour="create"
-  className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#0b3aa4] text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm text-sm cursor-pointer shrink-0">
+                href={`/${locale}/dashboard/shipments/new`}
+                data-tour="create"
+                className="hidden md:flex items-center gap-1.5 px-4 py-2 text-white rounded-xl transition font-bold shadow-sm text-sm cursor-pointer shrink-0 hover:opacity-90"
+                style={{ background: activeTheme.accent }}>
                 <PlusCircle className="w-4 h-4" />
                 <span>Create Shipment</span>
               </Link>
@@ -368,7 +402,8 @@ const toggleDark = () => {
                 <button
                   type="button"
                   onClick={() => setProfileOpen(v => !v)}
-                  className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0b3aa4] to-[#0e7490] flex items-center justify-center text-white font-extrabold cursor-pointer shadow-sm text-xs">
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-white font-extrabold cursor-pointer shadow-sm text-xs"
+                  style={{ background: activeTheme.accent }}>
                   {initials}
                 </button>
                 {profileOpen && (
@@ -388,17 +423,22 @@ const toggleDark = () => {
                       onClick={() => setProfileOpen(false)}>
                       <Settings size={15} /> Settings
                     </Link>
+                    <button
+                      onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 w-full text-left cursor-pointer">
+                      <Palette size={15} /> Appearance & Language
+                    </button>
                     <div className="border-t dark:border-gray-800 my-1" />
                     <button
-  onClick={() => {
-    localStorage.removeItem('exodus_dark_mode');
-    localStorage.removeItem('exodus_dark_mode_source');
-    document.documentElement.classList.remove('dark');
-    signOut({ callbackUrl: `/${locale}/sign-in` });
-  }}
-  className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
-  <LogOut size={15} /> Logout
-</button>
+                      onClick={() => {
+                        localStorage.removeItem('exodus_dark_mode');
+                        localStorage.removeItem('exodus_dark_mode_source');
+                        document.documentElement.classList.remove('dark');
+                        signOut({ callbackUrl: `/${locale}/sign-in` });
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
+                      <LogOut size={15} /> Logout
+                    </button>
                   </div>
                 )}
               </div>
@@ -407,8 +447,8 @@ const toggleDark = () => {
 
           {/* Mobile search */}
           <div className="md:hidden px-3 pb-3" data-tour="mobile-search">
-  <SearchBar locale={locale} />
-</div>
+            <SearchBar locale={locale} />
+          </div>
         </header>
 
         {/* CONTENT */}
@@ -422,9 +462,9 @@ const toggleDark = () => {
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setLogoutOpen(false)} />
             <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
-  style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
-  <span className="text-white font-extrabold text-lg">?</span>
-</div>
+                style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
+                <span className="text-white font-extrabold text-lg">?</span>
+              </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Confirm logout</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Are you sure you want to logout?</p>
               <div className="mt-6 flex gap-3">
@@ -435,7 +475,8 @@ const toggleDark = () => {
                 </button>
                 <button
                   onClick={() => setLogoutOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0b3aa4] text-white hover:bg-blue-700 transition font-semibold cursor-pointer text-sm">
+                  className="flex-1 py-2.5 rounded-xl text-white hover:opacity-90 transition font-semibold cursor-pointer text-sm"
+                  style={{ background: activeTheme.accent }}>
                   Cancel
                 </button>
               </div>
@@ -443,6 +484,7 @@ const toggleDark = () => {
           </div>
         )}
       </div>
+
       <CongratulationsModal
         open={showCongrats}
         name={greetingName}
@@ -452,6 +494,12 @@ const toggleDark = () => {
       <OnboardingTour
         active={showTour}
         onDone={() => setShowTour(false)}
+      />
+      <AppearancePanel
+        open={showAppearance}
+        onClose={() => setShowAppearance(false)}
+        currentTheme={currentTheme}
+        onThemeChange={handleThemeChange}
       />
     </div>
   );
