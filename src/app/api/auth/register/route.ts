@@ -43,6 +43,8 @@ await db.collection("pending_users").insertOne({
   name,
   email,
   passwordHash,
+  phone: String(body.phone || "").trim(),
+  country: String(body.country || "").trim(),
   role: "USER",
   provider: "credentials",
   verificationCode,

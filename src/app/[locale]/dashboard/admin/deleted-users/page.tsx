@@ -11,9 +11,11 @@ type DU = {
   id: string;
   name: string;
   email: string;
+  country?: string;
   createdAt?: string | null;
   deletedAt?: string | null;
   deletedBy?: string;
+  deleteReason?: string;
 };
 
 function fmtDate(iso?: string | null) {
@@ -68,9 +70,11 @@ export default function BannedUsersPage() {
   const restore = async (id: string) => {
     setBusyId(id);
     try {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}/restore`, {
-        method: "PATCH", cache: "no-store",
-      });
+      const res = await fetch(`/api/admin/deleted-users`, {
+  method: "POST",
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: items.find(u => u.id === id)?.email, action: 'restore' }),
+});
       if (!res.ok) {
         const t = await res.text().catch(() => "");
         showMsg(`Restore failed: ${t.slice(0, 100)}`, "error");
@@ -88,8 +92,10 @@ export default function BannedUsersPage() {
   const deleteUser = async (id: string) => {
     setBusyId(id);
     try {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
-  method: "POST", cache: "no-store",
+      const res = await fetch(`/api/admin/deleted-users`, {
+  method: "POST",
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: items.find(u => u.id === id)?.email, action: 'permanent-delete' }),
 });
       const j = await res.json().catch(() => null);
       if (!res.ok) { showMsg(j?.error || "Failed to delete user.", "error"); return; }

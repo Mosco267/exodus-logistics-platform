@@ -135,7 +135,7 @@ export default function AdminShell({ children }: Props) {
     
     {
       href: `/${locale}/dashboard/admin/deleted-users`,
-      label: "Banned Users",
+      label: "Deleted Users",
       icon: <UserX className="w-5 h-5" />,
     },
   ];

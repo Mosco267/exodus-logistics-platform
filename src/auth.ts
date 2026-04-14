@@ -37,8 +37,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.collection("users").findOne({ email });
         if (!user) return null;
 
-       // Block deleted/banned users
-if ((user as any).isDeleted) return null;
+      // Block deleted/banned users
+if ((user as any).deleted === true) return null;
+if ((user as any).isDeleted === true) return null;
 
 // Check blocked_emails collection
 const blocked = await db.collection("blocked_emails").findOne({ email });
@@ -69,9 +70,10 @@ if (blocked) throw new Error('suspended');
     if (!email) return false;
 
     const blocked = await db.collection("blocked_emails").findOne({ email });
-    if (blocked) return '/en/auth/error?error=AccessDenied';
+if (blocked) return '/en/auth/error?error=AccessDenied';
 
-    const existing = await db.collection("users").findOne({ email });
+const existing = await db.collection("users").findOne({ email });
+if (existing?.deleted === true) return '/en/auth/error?error=AccessDenied';
 
     if (!existing) {
       // New user — create account

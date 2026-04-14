@@ -28,6 +28,8 @@ export async function POST(req: Request) {
       name: pending.name,
       email: pending.email,
       passwordHash: pending.passwordHash,
+      phone: pending.phone || '',
+      country: pending.country || '',
       role: pending.role,
       provider: pending.provider,
       emailVerified: true,
