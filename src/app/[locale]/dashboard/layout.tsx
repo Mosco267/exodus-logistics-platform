@@ -85,15 +85,25 @@ const [showTour, setShowTour] = useState(false);
 
   let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
-    isDark = saved === 'true';
+  // Check if system preference matches manual — if not, revert to system
+  const manualDark = saved === 'true';
+  if (manualDark === systemDark) {
+    // Manual matches system — keep manual but it's effectively same as auto
+    isDark = manualDark;
     setDarkModeSource('manual');
   } else {
-    // Clear any stale values and use system
+    // System changed since manual was set — follow system now
     localStorage.removeItem('exodus_dark_mode');
     localStorage.removeItem('exodus_dark_mode_source');
     isDark = systemDark;
     setDarkModeSource('auto');
   }
+} else {
+  localStorage.removeItem('exodus_dark_mode');
+  localStorage.removeItem('exodus_dark_mode_source');
+  isDark = systemDark;
+  setDarkModeSource('auto');
+}
 
   setDarkMode(isDark);
   if (isDark) {
@@ -282,19 +292,14 @@ const toggleDark = () => {
         {/* Bottom section */}
         <div className="p-2 pb-4 mt-2">
           <div className="border-t border-white/15 pt-2">
-            <button
-              onClick={() => {
-    localStorage.removeItem('exodus_dark_mode');
-    localStorage.removeItem('exodus_dark_mode_source');
-    document.documentElement.classList.remove('dark');
-    signOut({ callbackUrl: `/${locale}/sign-in` });
-  }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/12 transition-all duration-200 font-semibold cursor-pointer text-sm text-white/80 hover:text-white
-                ${!sidebarOpen ? 'justify-center' : ''}`}
-              title={!sidebarOpen ? 'Logout' : undefined}>
-              <LogOut className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span>Logout</span>}
-            </button>
+           <button
+  onClick={() => setLogoutOpen(true)}
+  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/12 transition-all duration-200 font-semibold cursor-pointer text-sm text-white/80 hover:text-white
+    ${!sidebarOpen ? 'justify-center' : ''}`}
+  title={!sidebarOpen ? 'Logout' : undefined}>
+  <LogOut className="w-5 h-5 shrink-0" />
+  {sidebarOpen && <span>Logout</span>}
+</button>
           </div>
         </div>
       </aside>
@@ -425,9 +430,10 @@ const toggleDark = () => {
           <div className="fixed inset-0 z-[999] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setLogoutOpen(false)} />
             <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                <LogOut className="w-6 h-6 text-red-600" />
-              </div>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+  style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
+  <span className="text-white font-extrabold text-lg">?</span>
+</div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Confirm logout</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Are you sure you want to logout?</p>
               <div className="mt-6 flex gap-3">
