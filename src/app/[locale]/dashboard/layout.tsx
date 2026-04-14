@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Menu, X, LogOut, User, Settings, Package,
-  FileText, Clock, LayoutDashboard, PlusCircle, Moon, Sun, Sparkles, Palette, Globe,
+  FileText, Clock, LayoutDashboard, PlusCircle, Moon, Sun, Sparkles, Palette, Languages,
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from "@/components/dashboard/SearchBar";
@@ -354,9 +354,9 @@ const toggleDark = () => {
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
               <div className="relative h-9" style={{ minWidth: 80 }}>
                 <img src="/logo.svg" alt="Exodus" className="h-9 w-auto absolute top-0 left-0"
-                  style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
-                <img src="/logo-dark.svg" alt="Exodus" className="h-9 w-auto"
-                  style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
+  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 1 : 0, transition: 'opacity 200ms ease' }} />
+<img src="/logo-dark.svg" alt="Exodus" className="h-9 w-auto"
+  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 0 : 1, transition: 'opacity 200ms ease' }} />
               </div>
             </Link>
 
@@ -364,9 +364,9 @@ const toggleDark = () => {
             <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
               <div className="relative h-12" style={{ minWidth: 120 }}>
                 <img src="/logo.svg" alt="Exodus" className="h-12 w-auto absolute top-0 left-0"
-                  style={{ opacity: darkMode ? 1 : 0, transition: 'opacity 200ms ease' }} />
-                <img src="/logo-dark.svg" alt="Exodus" className="h-12 w-auto"
-                  style={{ opacity: darkMode ? 0 : 1, transition: 'opacity 200ms ease' }} />
+  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 1 : 0, transition: 'opacity 200ms ease' }} />
+<img src="/logo-dark.svg" alt="Exodus" className="h-12 w-auto"
+  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 0 : 1, transition: 'opacity 200ms ease' }} />
               </div>
             </Link>
 
@@ -379,7 +379,7 @@ const toggleDark = () => {
             <div className="flex-1 md:hidden" />
 
             {/* Right actions */}
-            <div className="flex items-center gap-2.5 pr-1 sm:pr-2">
+            <div className="flex items-center gap-1.5 pr-1 sm:pr-2">
 
               
 
@@ -417,40 +417,75 @@ const toggleDark = () => {
                   {initials}
                 </button>
                 {profileOpen && (
-                  <div className="absolute right-0 mt-3 w-52 rounded-xl shadow-xl p-2 space-y-1 z-50 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-                    <div className="px-3 pt-2 pb-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session?.user?.email ?? ''}</p>
-                    </div>
-                    <div className="border-t dark:border-gray-800 my-1" />
-                    <Link href={`/${locale}/dashboard/profile`}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200"
-                      onClick={() => setProfileOpen(false)}>
-                      <User size={15} /> Profile
-                    </Link>
-                    <Link href={`/${locale}/dashboard/settings`}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200"
-                      onClick={() => setProfileOpen(false)}>
-                      <Settings size={15} /> Settings
-                    </Link>
-                    <button
-                      onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 w-full text-left cursor-pointer">
-                      <Palette size={15} /> Appearance & Language
-                    </button>
-                    <div className="border-t dark:border-gray-800 my-1" />
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('exodus_dark_mode');
-                        localStorage.removeItem('exodus_dark_mode_source');
-                        document.documentElement.classList.remove('dark');
-                        signOut({ callbackUrl: `/${locale}/sign-in` });
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
-                      <LogOut size={15} /> Logout
-                    </button>
-                  </div>
-                )}
+  <div className="absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl z-50 bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 overflow-hidden">
+    {/* User info header */}
+    <div className="px-4 pt-4 pb-3" style={{ background: activeTheme.sidebar }}>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shrink-0"
+          style={{ background: 'rgba(255,255,255,0.2)' }}>
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-white truncate">{userName}</p>
+          <p className="text-[11px] text-white/60 truncate">{session?.user?.email ?? ''}</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Links */}
+    <div className="p-2 space-y-0.5">
+      <Link href={`/${locale}/dashboard/profile`}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition group"
+        onClick={() => setProfileOpen(false)}>
+        <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
+          <User size={14} className="text-blue-600 dark:text-blue-400" />
+        </div>
+        Profile
+      </Link>
+      <Link href={`/${locale}/dashboard/settings`}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition group"
+        onClick={() => setProfileOpen(false)}>
+        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-white/10 flex items-center justify-center shrink-0 group-hover:bg-gray-100 dark:group-hover:bg-white/20 transition">
+          <Settings size={14} className="text-gray-600 dark:text-gray-400" />
+        </div>
+        Settings
+      </Link>
+      <button
+        onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition w-full text-left group cursor-pointer">
+        <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0 group-hover:bg-purple-100 dark:group-hover:bg-purple-500/20 transition">
+          <Palette size={14} className="text-purple-600 dark:text-purple-400" />
+        </div>
+        Appearance
+      </button>
+      <Link href={`/${locale === 'en' ? 'en' : locale}/dashboard`}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition group"
+        onClick={() => { setProfileOpen(false); setShowAppearance(true); }}>
+        <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
+          <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
+        </div>
+        Language
+      </Link>
+    </div>
+
+    <div className="mx-2 border-t border-gray-100 dark:border-white/10" />
+
+    <div className="p-2">
+      <button
+        onClick={() => {
+          localStorage.removeItem('exodus_color_mode');
+          document.documentElement.classList.remove('dark');
+          signOut({ callbackUrl: `/${locale}/sign-in` });
+        }}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-sm font-semibold cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition group">
+        <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 transition">
+          <LogOut size={14} className="text-red-600" />
+        </div>
+        Logout
+      </button>
+    </div>
+  </div>
+)}
               </div>
             </div>
           </div>
