@@ -14,6 +14,7 @@ import { signOut, useSession } from 'next-auth/react';
 import CongratulationsModal from "@/components/CongratulationsModal";
 import OnboardingTour from "@/components/OnboardingTour";
 import AppearancePanel, { THEMES, ThemeId, ColorMode } from "@/components/AppearancePanel";
+import LanguageModal from "@/components/LanguageModal";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,6 +27,7 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
   const [isNewUser, setIsNewUser] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [showLanguage, setShowLanguage] = useState(false);
 
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
@@ -444,14 +446,14 @@ const toggleDark = () => {
         </div>
         Appearance
       </button>
-      <Link href={`/${locale === 'en' ? 'en' : locale}/dashboard`}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group"
-        onClick={() => { setProfileOpen(false); setShowAppearance(true); }}>
-        <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
-          <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
-        </div>
-        Language
-      </Link>
+      <button
+  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group w-full text-left cursor-pointer"
+  onClick={() => { setProfileOpen(false); setShowLanguage(true); }}>
+  <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
+    <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
+  </div>
+  Language
+</button>
     </div>
 
     <div className="mx-2 border-t border-gray-100 dark:border-white/10" />
@@ -523,13 +525,17 @@ const toggleDark = () => {
         onDone={() => setShowTour(false)}
       />
       <AppearancePanel
-  open={showAppearance}
-  onClose={() => setShowAppearance(false)}
-  currentTheme={currentTheme}
-  onThemeChange={handleThemeChange}
-  colorMode={colorMode}
-  onColorModeChange={handleColorModeChange}
-/>
+        open={showAppearance}
+        onClose={() => setShowAppearance(false)}
+        currentTheme={currentTheme}
+        onThemeChange={handleThemeChange}
+        colorMode={colorMode}
+        onColorModeChange={handleColorModeChange}
+      />
+      <LanguageModal
+        open={showLanguage}
+        onClose={() => setShowLanguage(false)}
+      />
     </div>
   );
 }
