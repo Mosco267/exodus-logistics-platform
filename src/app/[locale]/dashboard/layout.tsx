@@ -13,7 +13,7 @@ import { usePathname, useParams, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import CongratulationsModal from "@/components/CongratulationsModal";
 import OnboardingTour from "@/components/OnboardingTour";
-import AppearancePanel, { THEMES, ThemeId } from "@/components/AppearancePanel";
+import AppearancePanel, { THEMES, ThemeId, ColorMode } from "@/components/AppearancePanel";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,8 +21,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeId>('default');
-  const [darkMode, setDarkMode] = useState(false);
-  const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
+ const [darkMode, setDarkMode] = useState(false);
+const [colorMode, setColorMode] = useState<ColorMode>('system');
   const [isNewUser, setIsNewUser] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
   const [showTour, setShowTour] = useState(false);
@@ -37,8 +37,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
 
   const handleLogout = async () => {
-    localStorage.removeItem('exodus_dark_mode');
-    localStorage.removeItem('exodus_dark_mode_source');
+    localStorage.removeItem('exodus_color_mode');
     document.documentElement.classList.remove('dark');
     await signOut({ callbackUrl: `/${locale}/sign-in` });
   };
@@ -65,24 +64,34 @@ const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
 
   // Load theme from DB
   useEffect(() => {
-    if (!session?.user?.email) return;
-    fetch('/api/user/theme')
-      .then(r => r.json())
-      .then(data => { if (data.theme) setCurrentTheme(data.theme as ThemeId); })
-      .catch(() => {});
-  }, [session?.user?.email]);
+  if (!session?.user?.email) return;
+  // Check localStorage cache first to prevent flash
+  const cached = localStorage.getItem('exodus_theme_cache');
+  if (cached) setCurrentTheme(cached as ThemeId);
+
+  fetch('/api/user/theme')
+    .then(r => r.json())
+    .then(data => {
+      if (data.theme) {
+        setCurrentTheme(data.theme as ThemeId);
+        localStorage.setItem('exodus_theme_cache', data.theme);
+      }
+    })
+    .catch(() => {});
+}, [session?.user?.email]);
 
   // Save theme to DB
   const handleThemeChange = async (themeId: ThemeId) => {
-    setCurrentTheme(themeId);
-    try {
-      await fetch('/api/user/theme', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: themeId }),
-      });
-    } catch {}
-  };
+  setCurrentTheme(themeId);
+  localStorage.setItem('exodus_theme_cache', themeId);
+  try {
+    await fetch('/api/user/theme', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: themeId }),
+    });
+  } catch {}
+};
 
   // Check if new user
   useEffect(() => {
@@ -103,67 +112,80 @@ const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
 
   // Dark mode
   useEffect(() => {
-    const saved = localStorage.getItem('exodus_dark_mode');
-    const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const savedColorMode = (localStorage.getItem('exodus_color_mode') as ColorMode) || 'system';
+  setColorMode(savedColorMode);
 
-    let isDark: boolean;
-    if (savedSource === 'manual' && saved !== null) {
-      isDark = saved === 'true';
-      setDarkModeSource('manual');
-    } else {
-      localStorage.removeItem('exodus_dark_mode');
-      localStorage.removeItem('exodus_dark_mode_source');
-      isDark = systemDark;
-      setDarkModeSource('auto');
-    }
-
-    setDarkMode(isDark);
-    if (isDark) {
+  const applyMode = (mode: ColorMode) => {
+    if (mode === 'dark') {
+      setDarkMode(true);
       document.documentElement.classList.add('dark');
-    } else {
+    } else if (mode === 'light') {
+      setDarkMode(false);
       document.documentElement.classList.remove('dark');
-    }
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (e: MediaQueryListEvent) => {
-      const src = localStorage.getItem('exodus_dark_mode_source');
-      if (src !== 'manual') {
-        setDarkMode(e.matches);
-        if (e.matches) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }
-    };
-
-    if (mq.addEventListener) {
-      mq.addEventListener('change', onChange);
-      return () => mq.removeEventListener('change', onChange);
     } else {
-      (mq as any).addListener(onChange);
-      return () => (mq as any).removeListener(onChange);
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setDarkMode(systemDark);
+      if (systemDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
-  }, []);
+  };
+
+  applyMode(savedColorMode);
+
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e: MediaQueryListEvent) => {
+    const mode = (localStorage.getItem('exodus_color_mode') as ColorMode) || 'system';
+    if (mode === 'system') {
+      setDarkMode(e.matches);
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
+  if (mq.addEventListener) {
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  } else {
+    (mq as any).addListener(onChange);
+    return () => (mq as any).removeListener(onChange);
+  }
+}, []);
 
   // Remove dark class when leaving dashboard
   useEffect(() => {
     return () => { document.documentElement.classList.remove('dark'); };
   }, []);
 
-  const toggleDark = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    setDarkModeSource('manual');
-    localStorage.setItem('exodus_dark_mode', String(next));
-    localStorage.setItem('exodus_dark_mode_source', 'manual');
-    if (next) {
+  const handleColorModeChange = (mode: ColorMode) => {
+  setColorMode(mode);
+  localStorage.setItem('exodus_color_mode', mode);
+  if (mode === 'dark') {
+    setDarkMode(true);
+    document.documentElement.classList.add('dark');
+  } else if (mode === 'light') {
+    setDarkMode(false);
+    document.documentElement.classList.remove('dark');
+  } else {
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDarkMode(systemDark);
+    if (systemDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  };
+  }
+};
+
+const toggleDark = () => {
+  const next = !darkMode;
+  handleColorModeChange(next ? 'dark' : 'light');
+};
 
   useEffect(() => {
     const onPageShow = (_event: PageTransitionEvent) => {
@@ -359,24 +381,7 @@ const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
             {/* Right actions */}
             <div className="flex items-center gap-2.5 pr-1 sm:pr-2">
 
-              {/* Mobile create — shown on themes that support it */}
-              {activeTheme.showMobileCreate && (
-                <Link href={`/${locale}/dashboard/shipments/new`}
-                  className="md:hidden flex items-center justify-center w-8 h-8 rounded-xl text-white shrink-0 shadow-sm"
-                  style={{ background: activeTheme.accent }}>
-                  <PlusCircle size={16} />
-                </Link>
-              )}
-
-              {/* Mobile language — shown on themes that support it */}
-              {activeTheme.showMobileLang && (
-                <button
-                  onClick={() => { setShowAppearance(true); }}
-                  className="md:hidden flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
-                  style={{ color: activeTheme.accent }}>
-                  <Globe size={18} />
-                </button>
-              )}
+              
 
               {/* Dark mode toggle */}
               <button
@@ -501,11 +506,13 @@ const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
         onDone={() => setShowTour(false)}
       />
       <AppearancePanel
-        open={showAppearance}
-        onClose={() => setShowAppearance(false)}
-        currentTheme={currentTheme}
-        onThemeChange={handleThemeChange}
-      />
+  open={showAppearance}
+  onClose={() => setShowAppearance(false)}
+  currentTheme={currentTheme}
+  onThemeChange={handleThemeChange}
+  colorMode={colorMode}
+  onColorModeChange={handleColorModeChange}
+/>
     </div>
   );
 }
