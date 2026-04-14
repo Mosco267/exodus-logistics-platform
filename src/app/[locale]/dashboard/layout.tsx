@@ -364,27 +364,24 @@ const toggleDark = () => {
 <div className="flex items-center gap-2.5 pr-1 sm:pr-2">
 
   {/* Toggle + Bell grouped — mobile and desktop */}
-  <div className="flex items-center gap-2 h-9 px-1.5 rounded-2xl bg-gray-100/80 dark:bg-white/8 border border-gray-200/60 dark:border-white/10">
-    {/* Dark mode toggle */}
-    <button
-      data-tour="dark-toggle"
-      onClick={toggleDark}
-      className="h-7 w-7 flex items-center justify-center rounded-xl hover:bg-white dark:hover:bg-white/15 transition cursor-pointer shrink-0"
-      style={{ color: pageSubtext }}>
-      {darkMode ? <Sun size={17} /> : <Moon size={17} />}
-    </button>
+  <div className="flex items-center gap-2.5">
+  {/* Dark mode toggle */}
+  <button
+    data-tour="dark-toggle"
+    onClick={toggleDark}
+    className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer shrink-0"
+    style={{ color: pageSubtext }}>
+    {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+  </button>
 
-    {/* Divider */}
-    <div className="w-px h-4 bg-gray-300 dark:bg-white/20 shrink-0" />
-
-    {/* Notifications */}
-    <div className="h-7 w-7 flex items-center justify-center shrink-0"
-      data-tour="notifications">
-      <div className={currentTheme === 'midnight' ? 'dark' : ''}>
-        <NotificationsBell />
-      </div>
+  {/* Notifications */}
+  <div className="h-8 w-8 flex items-center justify-center shrink-0"
+    data-tour="notifications">
+    <div className={currentTheme === 'midnight' ? 'dark' : ''}>
+      <NotificationsBell />
     </div>
   </div>
+</div>
 
   {/* Create shipment — desktop only */}
   <Link
