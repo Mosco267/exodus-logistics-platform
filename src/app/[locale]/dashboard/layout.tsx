@@ -57,6 +57,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Active theme object
   const activeTheme = THEMES.find(t => t.id === currentTheme) || THEMES[0];
+const headerBg = darkMode ? activeTheme.darkHeader : activeTheme.header;
+const headerBorder = darkMode ? activeTheme.darkHeaderBorder : activeTheme.headerBorder;
+const pageBg = darkMode ? activeTheme.darkBg : activeTheme.bg;
+const pageText = darkMode ? activeTheme.darkText : activeTheme.text;
+const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
 
   // Load theme from DB
   useEffect(() => {
@@ -197,7 +202,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen flex overflow-x-hidden" style={{ background: activeTheme.bg }}>
+    <div className="min-h-screen flex overflow-x-hidden" style={{ background: pageBg, color: pageText }}>
 
       {/* MOBILE OVERLAY */}
       {sidebarOpen && (
@@ -311,14 +316,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         {/* TOPBAR */}
         <header className="sticky top-0 z-30 border-b shadow-sm"
-          style={{ background: activeTheme.header, borderColor: activeTheme.headerBorder }}>
+          style={{ background: headerBg, borderColor: headerBorder }}>
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
             {/* Mobile menu button */}
             <button
               data-tour="mobile-menu"
               className="md:hidden p-2 rounded-xl transition cursor-pointer shrink-0"
-              style={{ color: activeTheme.text }}
+              style={{ color: pageText }}
               onClick={() => setSidebarOpen(true)}>
               <Menu size={20} />
             </button>
@@ -352,7 +357,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="flex-1 md:hidden" />
 
             {/* Right actions */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 pr-1 sm:pr-2">
 
               {/* Mobile create — shown on themes that support it */}
               {activeTheme.showMobileCreate && (
@@ -378,7 +383,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 data-tour="dark-toggle"
                 onClick={toggleDark}
                 className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer shrink-0"
-                style={{ color: activeTheme.subtext }}>
+                style={{ color: pageSubtext }}>
                 {darkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
 

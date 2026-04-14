@@ -11,6 +11,7 @@ export type Theme = {
   id: ThemeId;
   name: string;
   desc: string;
+  // Light mode
   sidebar: string;
   header: string;
   headerBorder: string;
@@ -21,6 +22,12 @@ export type Theme = {
   subtext: string;
   activeLink: string;
   activeLinkText: string;
+  // Dark mode overrides
+  darkHeader: string;
+  darkHeaderBorder: string;
+  darkBg: string;
+  darkText: string;
+  darkSubtext: string;
   showMobileCreate?: boolean;
   showMobileLang?: boolean;
   preview: {
@@ -47,6 +54,11 @@ export const THEMES: Theme[] = [
     subtext: '#6b7280',
     activeLink: '#ffffff',
     activeLinkText: '#0b3aa4',
+    darkHeader: '#111827',
+    darkHeaderBorder: '#1f2937',
+    darkBg: '#030712',
+    darkText: '#f9fafb',
+    darkSubtext: '#9ca3af',
     preview: {
       sidebar: 'linear-gradient(160deg, #0b3aa4, #0e7490)',
       header: '#ffffff',
@@ -69,6 +81,11 @@ export const THEMES: Theme[] = [
     subtext: '#0369a1',
     activeLink: '#ffffff',
     activeLinkText: '#0891b2',
+    darkHeader: '#0c2d3d',
+    darkHeaderBorder: '#0e4a61',
+    darkBg: '#071e2a',
+    darkText: '#e0f2fe',
+    darkSubtext: '#7dd3fc',
     showMobileLang: true,
     preview: {
       sidebar: 'linear-gradient(160deg, #0e7490, #06b6d4)',
@@ -92,6 +109,11 @@ export const THEMES: Theme[] = [
     subtext: '#78350f',
     activeLink: '#ffffff',
     activeLinkText: '#f97316',
+    darkHeader: '#1c1108',
+    darkHeaderBorder: '#431407',
+    darkBg: '#0c0a09',
+    darkText: '#fef3c7',
+    darkSubtext: '#fb923c',
     showMobileCreate: true,
     preview: {
       sidebar: 'linear-gradient(160deg, #0b3aa4, #f97316)',
@@ -105,7 +127,7 @@ export const THEMES: Theme[] = [
     id: 'arctic',
     name: 'Arctic',
     desc: 'Minimal white and cyan — light and airy',
-    sidebar: 'linear-gradient(160deg, #ffffff 0%, #e0f2fe 50%, #bae6fd 100%)',
+    sidebar: 'linear-gradient(160deg, #0284c7 0%, #0891b2 50%, #bae6fd 100%)',
     header: '#ffffff',
     headerBorder: '#e0f2fe',
     accent: '#0284c7',
@@ -115,9 +137,14 @@ export const THEMES: Theme[] = [
     subtext: '#64748b',
     activeLink: '#0284c7',
     activeLinkText: '#ffffff',
+    darkHeader: '#0f1e2e',
+    darkHeaderBorder: '#1e3a4f',
+    darkBg: '#070d14',
+    darkText: '#e0f2fe',
+    darkSubtext: '#7dd3fc',
     showMobileLang: true,
     preview: {
-      sidebar: 'linear-gradient(160deg, #e0f2fe, #bae6fd)',
+      sidebar: 'linear-gradient(160deg, #0284c7, #bae6fd)',
       header: '#ffffff',
       accent: '#0284c7',
       bg: '#f8fafc',
@@ -138,6 +165,11 @@ export const THEMES: Theme[] = [
     subtext: '#94a3b8',
     activeLink: '#06b6d4',
     activeLinkText: '#0f172a',
+    darkHeader: '#0f172a',
+    darkHeaderBorder: '#1e293b',
+    darkBg: '#020617',
+    darkText: '#f1f5f9',
+    darkSubtext: '#94a3b8',
     showMobileCreate: true,
     preview: {
       sidebar: 'linear-gradient(160deg, #0f172a, #0e7490)',
