@@ -86,20 +86,10 @@ const [showTour, setShowTour] = useState(false);
 
   let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
-  // Check if system preference matches manual — if not, revert to system
-  const manualDark = saved === 'true';
-  if (manualDark === systemDark) {
-    // Manual matches system — keep manual but it's effectively same as auto
-    isDark = manualDark;
-    setDarkModeSource('manual');
-  } else {
-    // System changed since manual was set — follow system now
-    localStorage.removeItem('exodus_dark_mode');
-    localStorage.removeItem('exodus_dark_mode_source');
-    isDark = systemDark;
-    setDarkModeSource('auto');
-  }
+  isDark = saved === 'true';
+  setDarkModeSource('manual');
 } else {
+  // Clear any stale values and use system
   localStorage.removeItem('exodus_dark_mode');
   localStorage.removeItem('exodus_dark_mode_source');
   isDark = systemDark;
