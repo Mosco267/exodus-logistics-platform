@@ -18,13 +18,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-  if (typeof window === 'undefined') return false;
-  const saved = localStorage.getItem('exodus_dark_mode');
-  const savedSource = localStorage.getItem('exodus_dark_mode_source');
-  if (savedSource === 'manual' && saved !== null) return saved === 'true';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-});
+  const [darkMode, setDarkMode] = useState(false);
 const [darkModeSource, setDarkModeSource] = useState<'auto' | 'manual'>('auto');
   const [isNewUser, setIsNewUser] = useState(false);
 const [showCongrats, setShowCongrats] = useState(false);
@@ -40,8 +34,11 @@ const [showTour, setShowTour] = useState(false);
   const { data: session, status } = useSession();
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: `/${locale}/sign-in` });
-  };
+  localStorage.removeItem('exodus_dark_mode');
+  localStorage.removeItem('exodus_dark_mode_source');
+  document.documentElement.classList.remove('dark');
+  await signOut({ callbackUrl: `/${locale}/sign-in` });
+};
 
   const userName = (session?.user?.name || 'User').trim();
 
@@ -83,12 +80,18 @@ const [showTour, setShowTour] = useState(false);
   const saved = localStorage.getItem('exodus_dark_mode');
   const savedSource = localStorage.getItem('exodus_dark_mode_source') as 'auto' | 'manual' | null;
 
+  // Always default to system if no manual preference
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
   let isDark: boolean;
   if (savedSource === 'manual' && saved !== null) {
     isDark = saved === 'true';
     setDarkModeSource('manual');
   } else {
-    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Clear any stale values and use system
+    localStorage.removeItem('exodus_dark_mode');
+    localStorage.removeItem('exodus_dark_mode_source');
+    isDark = systemDark;
     setDarkModeSource('auto');
   }
 
