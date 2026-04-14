@@ -315,7 +315,7 @@ export default function AppearancePanel({
                         }`}>
                         {icon}
                         <span>{label}</span>
-                        {colorMode === id && <Check size={11} />}
+                        
                       </button>
                     ))}
                   </div>
