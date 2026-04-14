@@ -364,7 +364,7 @@ const toggleDark = () => {
 <div className="flex items-center gap-2.5 pr-1 sm:pr-2">
 
   {/* Toggle + Bell grouped — mobile and desktop */}
-  <div className="flex items-center gap-3.5">
+  <div className="flex items-center gap-2.5">
   {/* Dark mode toggle */}
   <button
     data-tour="dark-toggle"
@@ -394,7 +394,7 @@ const toggleDark = () => {
   </Link>
 
   {/* Profile */}
-  <div className="relative shrink-0" ref={profileRef} data-tour="profile">
+  <div className="relative shrink-0 ml-2" ref={profileRef} data-tour="profile">
                 <button
                   type="button"
                   onClick={() => setProfileOpen(v => !v)}
