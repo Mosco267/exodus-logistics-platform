@@ -364,7 +364,7 @@ const toggleDark = () => {
 <div className="flex items-center gap-2.5 pr-1 sm:pr-2">
 
   {/* Toggle + Bell grouped — mobile and desktop */}
-  <div className="flex items-center gap-2.5">
+  <div className="flex items-center gap-3.5">
   {/* Dark mode toggle */}
   <button
     data-tour="dark-toggle"
