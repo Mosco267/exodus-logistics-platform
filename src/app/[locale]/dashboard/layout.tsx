@@ -421,7 +421,7 @@ const toggleDark = () => {
     {/* Links */}
     <div className="p-2 space-y-0.5">
       <Link href={`/${locale}/dashboard/profile`}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition group"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group"
         onClick={() => setProfileOpen(false)}>
         <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
           <User size={14} className="text-blue-600 dark:text-blue-400" />
@@ -429,23 +429,23 @@ const toggleDark = () => {
         Profile
       </Link>
       <Link href={`/${locale}/dashboard/settings`}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition group"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group"
         onClick={() => setProfileOpen(false)}>
-        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-white/10 flex items-center justify-center shrink-0 group-hover:bg-gray-100 dark:group-hover:bg-white/20 transition">
-          <Settings size={14} className="text-gray-600 dark:text-gray-400" />
+        <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
+          <Settings size={14} className="text-blue-600 dark:text-blue-400" />
         </div>
         Settings
       </Link>
       <button
         onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition w-full text-left group cursor-pointer">
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition w-full text-left group cursor-pointer">
         <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0 group-hover:bg-purple-100 dark:group-hover:bg-purple-500/20 transition">
           <Palette size={14} className="text-purple-600 dark:text-purple-400" />
         </div>
         Appearance
       </button>
       <Link href={`/${locale === 'en' ? 'en' : locale}/dashboard`}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition group"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group"
         onClick={() => { setProfileOpen(false); setShowAppearance(true); }}>
         <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
           <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
@@ -458,12 +458,8 @@ const toggleDark = () => {
 
     <div className="p-2">
       <button
-        onClick={() => {
-          localStorage.removeItem('exodus_color_mode');
-          document.documentElement.classList.remove('dark');
-          signOut({ callbackUrl: `/${locale}/sign-in` });
-        }}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-sm font-semibold cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition group">
+  onClick={() => { setProfileOpen(false); setLogoutOpen(true); }}
+  className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-sm font-semibold cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition group">
         <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 transition">
           <LogOut size={14} className="text-red-600" />
         </div>
