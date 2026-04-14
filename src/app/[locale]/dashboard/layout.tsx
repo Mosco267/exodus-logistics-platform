@@ -58,21 +58,22 @@ const [showTour, setShowTour] = useState(false);
   // Check if new user (first login)
   useEffect(() => {
   if (!session?.user?.email) return;
-  const key = `exodus_visited_${session.user.email}`;
-  const storedTime = localStorage.getItem(key);
 
-  // Get account creation time from session
-  const createdAt = (session.user as any).createdAt
-    ? new Date((session.user as any).createdAt).getTime()
-    : null;
+  const checkAndMark = async () => {
+    try {
+      const res = await fetch('/api/auth/check-visited');
+      const data = await res.json();
 
-  const isNew = !storedTime || (createdAt && createdAt > parseInt(storedTime));
+      if (!data.hasVisited) {
+        setIsNewUser(true);
+        setShowCongrats(true);
+        // Mark as visited in DB
+        await fetch('/api/auth/mark-visited', { method: 'POST' });
+      }
+    } catch {}
+  };
 
-  if (isNew) {
-    setIsNewUser(true);
-    setShowCongrats(true);
-    localStorage.setItem(key, String(Date.now()));
-  }
+  checkAndMark();
 }, [session?.user?.email]);
 
   // Dark mode
