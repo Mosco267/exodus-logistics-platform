@@ -119,7 +119,7 @@ const STEPS: Step[] = [
     target: '[data-tour="quick-actions"]',
     title: 'Quick Actions',
     desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
-    position: 'top',
+    position: 'bottom',
     mobileOnly: true,
   },
 ];

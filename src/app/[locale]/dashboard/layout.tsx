@@ -280,7 +280,12 @@ const toggleDark = () => {
         <div className="p-2 pb-4 mt-2">
           <div className="border-t border-white/15 pt-2">
             <button
-              onClick={() => setLogoutOpen(true)}
+              onClick={() => {
+    localStorage.removeItem('exodus_dark_mode');
+    localStorage.removeItem('exodus_dark_mode_source');
+    document.documentElement.classList.remove('dark');
+    signOut({ callbackUrl: `/${locale}/sign-in` });
+  }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/12 transition-all duration-200 font-semibold cursor-pointer text-sm text-white/80 hover:text-white
                 ${!sidebarOpen ? 'justify-center' : ''}`}
               title={!sidebarOpen ? 'Logout' : undefined}>
@@ -386,10 +391,15 @@ const toggleDark = () => {
                     </Link>
                     <div className="border-t dark:border-gray-800 my-1" />
                     <button
-                      onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
-                      <LogOut size={15} /> Logout
-                    </button>
+  onClick={() => {
+    localStorage.removeItem('exodus_dark_mode');
+    localStorage.removeItem('exodus_dark_mode_source');
+    document.documentElement.classList.remove('dark');
+    signOut({ callbackUrl: `/${locale}/sign-in` });
+  }}
+  className="flex items-center gap-2 px-3 py-2 rounded-lg w-full text-left text-sm cursor-pointer text-red-600 hover:bg-red-50 dark:hover:bg-white/10">
+  <LogOut size={15} /> Logout
+</button>
                   </div>
                 )}
               </div>
