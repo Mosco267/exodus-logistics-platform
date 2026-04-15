@@ -969,6 +969,129 @@ setSavedPhoneNum(phoneNum);
         </div>
       </div>
 
+      {/* EMAIL CHANGE MODAL */}
+{editingEmail && typeof document !== 'undefined' && createPortal(
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }} />
+    <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+
+      {/* Gradient top bar */}
+      <div className="h-1 w-full" style={{ background: accent }} />
+
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: accent }}>
+              <Mail className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                {emailStep === 'input' ? 'Change Email' : 'Verify Code'}
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {emailStep === 'input' ? 'Enter your new email address' : `Code sent to ${newEmail}`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }}
+            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-400">
+            <X size={16} />
+          </button>
+        </div>
+
+        {emailStep === 'input' ? (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">New Email Address</label>
+              <input
+                value={newEmail}
+                onChange={e => { setNewEmail(e.target.value); setEmailError(''); }}
+                placeholder="Enter new email address"
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
+                style={{ fontSize: '16px' }}
+              />
+              {emailError && (
+                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">{emailError}</p>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
+              A 6-digit verification code will be sent to your new email. You will need to enter it to confirm the change.
+            </p>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+                Cancel
+              </button>
+              <button
+                onClick={handleSendEmailCode}
+                disabled={emailSending || !newEmail}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
+                style={{ background: accent }}>
+                {emailSending ? <Loader2 size={14} className="animate-spin" /> : null}
+                {emailSending ? 'Sending...' : 'Send Code'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Verification Code</label>
+              <input
+                value={emailCode}
+                onChange={e => { setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setEmailError(''); }}
+                placeholder="000000"
+                inputMode="numeric"
+                maxLength={6}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-center text-2xl font-bold tracking-[0.4em] text-gray-900 dark:text-white placeholder:text-gray-300 placeholder:tracking-[0.3em] focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
+                style={{ fontSize: '24px' }}
+              />
+              {emailError && (
+                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">{emailError}</p>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
+              Didn't receive the code?{' '}
+              <button
+                onClick={handleSendEmailCode}
+                disabled={emailSending}
+                className="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer hover:underline disabled:opacity-50">
+                Resend
+              </button>
+            </p>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                onClick={() => { setEmailStep('input'); setEmailCode(''); setEmailError(''); }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+                Back
+              </button>
+              <button
+                onClick={handleVerifyEmailCode}
+                disabled={emailSending || emailCode.length < 6}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
+                style={{ background: accent }}>
+                {emailSending ? <Loader2 size={14} className="animate-spin" /> : null}
+                {emailSending ? 'Verifying...' : 'Update Email'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
+
       {/* SUCCESS MODAL */}
 {showSuccess && typeof document !== 'undefined' && createPortal(
   <div className="fixed inset-0 z-[9999] flex items-center justify-center">
