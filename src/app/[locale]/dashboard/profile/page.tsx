@@ -895,62 +895,22 @@ setSavedPhoneNum(phoneNum);
           </div>
 
           {/* Email */}
-          <div>
-            <label className={labelClass}>Email Address</label>
-            {!editingEmail ? (
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input value={profile.email} disabled className={inputClass + " pl-10 opacity-60 cursor-not-allowed"} style={{ fontSize: '16px' }} />
-                </div>
-                <button onClick={() => { setEditingEmail(true); setNewEmail(''); setEmailStep('input'); setEmailError(''); }}
-                  className="h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer shrink-0 flex items-center gap-1.5">
-                  <Pencil size={12} /> Change
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2 p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                {emailStep === 'input' ? (
-                  <>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Enter your new email. A verification code will be sent to it.</p>
-                    <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="New email address"
-                      className={inputClass} style={{ fontSize: '16px' }} autoCapitalize="none" autoCorrect="off" />
-                    {emailError && <p className="text-xs text-red-600 dark:text-red-400">{emailError}</p>}
-                    <div className="flex gap-2">
-                      <button onClick={handleSendEmailCode} disabled={emailSending}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
-                        style={{ background: accent }}>
-                        {emailSending && <Loader2 size={12} className="animate-spin" />} Send Code
-                      </button>
-                      <button onClick={() => setEditingEmail(false)}
-                        className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition">
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Enter the 6-digit code sent to <strong>{newEmail}</strong></p>
-                    <input value={emailCode} onChange={e => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000" inputMode="numeric"
-                      className={inputClass + " tracking-widest text-center font-bold text-lg"} style={{ fontSize: '16px' }} />
-                    {emailError && <p className="text-xs text-red-600 dark:text-red-400">{emailError}</p>}
-                    <div className="flex gap-2">
-                      <button onClick={handleVerifyEmailCode} disabled={emailSending}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
-                        style={{ background: accent }}>
-                        {emailSending && <Loader2 size={12} className="animate-spin" />} Verify
-                      </button>
-                      <button onClick={() => setEmailStep('input')}
-                        className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition">
-                        Back
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+<div>
+  <label className={labelClass}>Email Address</label>
+  <div className="flex items-center gap-2">
+    <div className="relative flex-1">
+      <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      <input value={profile.email} disabled
+        className={inputClass + " pl-10 opacity-60 cursor-not-allowed"}
+        style={{ fontSize: '16px' }} />
+    </div>
+    <button
+      onClick={() => { setEditingEmail(true); setNewEmail(''); setEmailStep('input'); setEmailError(''); }}
+      className="h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer shrink-0 flex items-center gap-1.5">
+      <Pencil size={12} /> Change
+    </button>
+  </div>
+</div>
 
           {/* Country dropdown */}
           <div>
