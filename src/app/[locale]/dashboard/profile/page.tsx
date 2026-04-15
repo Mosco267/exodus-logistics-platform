@@ -473,7 +473,13 @@ function CountryDropdown({
         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white transition hover:border-gray-300 dark:hover:border-white/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-left">
         {selected ? (
   <>
-    <span className="text-xl shrink-0 leading-none">{selected.flag}</span>
+    <img
+  src={`https://flagcdn.com/w20/${selected.code.toLowerCase()}.png`}
+  width="20" height="15"
+  alt={selected.name}
+  className="shrink-0 rounded-sm object-cover"
+  style={{ minWidth: 20 }}
+/>
     <span className="flex-1 truncate">{selected.name}</span>
   </>
 ) : (
@@ -505,9 +511,97 @@ function CountryDropdown({
                   type="button"
                   onClick={() => { onChange(c); setOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer">
-                  <span className="text-lg shrink-0">{c.flag}</span>
+                 <img
+  src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`}
+  width="20" height="15"
+  alt={c.name}
+  className="shrink-0 rounded-sm object-cover"
+  style={{ minWidth: 20 }}
+/>
                   <span className="flex-1 truncate text-gray-900 dark:text-white">{c.name}</span>
                   
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DialCodePicker({
+  selected,
+  onChange,
+}: {
+  selected: typeof COUNTRIES[0] | null;
+  onChange: (c: typeof COUNTRIES[0]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.dial.includes(search)
+  );
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => { setOpen(o => !o); setSearch(''); }}
+        className="h-10 px-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex items-center gap-1.5 cursor-pointer hover:border-gray-300 dark:hover:border-white/20 transition"
+        style={{ minWidth: 80 }}>
+        {selected && (
+          <img
+            src={`https://flagcdn.com/w20/${selected.code.toLowerCase()}.png`}
+            width="18" height="13"
+            alt={selected.name}
+            className="rounded-sm object-cover shrink-0"
+          />
+        )}
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
+          {selected?.dial || '+?'}
+        </span>
+        <ChevronDown size={12} className="text-gray-400" />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden w-64">
+          <div className="p-2 border-b border-gray-100 dark:border-white/10">
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search country..."
+              className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
+              style={{ fontSize: '16px' }}
+            />
+          </div>
+          <ul className="max-h-48 overflow-y-auto">
+            {filtered.map(c => (
+              <li key={c.code}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(c); setOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer">
+                  <img
+                    src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`}
+                    width="18" height="13"
+                    alt={c.name}
+                    className="rounded-sm object-cover shrink-0"
+                  />
+                  <span className="text-gray-900 dark:text-white font-semibold">{c.dial}</span>
+                  <span className="text-gray-400 text-xs truncate">{c.name}</span>
                 </button>
               </li>
             ))}
@@ -757,8 +851,8 @@ if (data.avatarUrl) {
           {/* Name */}
           <div>
             <label className={labelClass}>Full Name</label>
-            <div className="relative">
-              <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <div className="relative flex items-center">
+  <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
               <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                 placeholder="Enter your full name" className={inputClass + " pl-10"} style={{ fontSize: '16px' }} />
             </div>
@@ -837,23 +931,10 @@ if (data.avatarUrl) {
             <div className="flex items-center gap-2">
               {/* Dial code badge */}
               {/* Dial code selector */}
-<select
-  value={selectedCountry?.code || ''}
-  onChange={e => {
-    const found = COUNTRIES.find(c => c.code === e.target.value);
-    if (found) {
-      setSelectedCountry(found);
-      setProfile(p => ({ ...p, country: found.name }));
-    }
-  }}
-  className="h-10 px-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm font-bold text-gray-700 dark:text-gray-200 cursor-pointer focus:outline-none shrink-0"
-  style={{ fontSize: '16px', minWidth: 90 }}>
-  {COUNTRIES.map(c => (
-    <option key={c.code} value={c.code}>
-      {c.flag} {c.dial}
-    </option>
-  ))}
-</select>
+<DialCodePicker
+  selected={selectedCountry}
+  onChange={c => setSelectedCountry(prev => prev ? { ...prev, dial: c.dial } : c)}
+/>
               <input
   value={selectedCountry
     ? applyPattern(phoneNum.replace(/\D/g, ''), getFormat(selectedCountry.code).pattern)
@@ -871,8 +952,8 @@ if (data.avatarUrl) {
           {/* Address */}
           <div>
             <label className={labelClass}>Home Address <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
-            <div className="relative">
-              <MapPin size={15} className="absolute left-3 top-3.5 text-gray-400 pointer-events-none" />
+            <div className="relative flex items-start">
+  <MapPin size={14} className="absolute left-3.5 top-3.5 text-gray-400 pointer-events-none z-10" />
               <textarea value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
                 placeholder="Enter your home address" rows={3}
                 className={inputClass + " pl-10 resize-none"} style={{ fontSize: '16px' }} />
