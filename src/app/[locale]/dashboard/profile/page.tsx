@@ -622,7 +622,8 @@ export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
- useEffect(() => {
+
+useEffect(() => {
   const accents: Record<string, string> = {
     default: 'linear-gradient(135deg, #0b3aa4, #0e7490)',
     ocean: 'linear-gradient(135deg, #0e7490, #06b6d4)',
@@ -649,9 +650,13 @@ export default function ProfilePage() {
 }, []);
 
   const [profile, setProfile] = useState<ProfileData>({
-    name: '', email: '', phone: '', country: '',
-    address: '', avatarUrl: '', createdAt: '', provider: '',
-  });
+  name: '', email: '', phone: '', country: '',
+  address: '', avatarUrl: '', createdAt: '', provider: '',
+});
+const [savedProfile, setSavedProfile] = useState({ name: '', phone: '', address: '', country: '' });
+const [savedDialCode, setSavedDialCode] = useState('');
+const [savedPhoneNum, setSavedPhoneNum] = useState('');
+
   const [selectedCountry, setSelectedCountry] = useState<typeof COUNTRIES[0] | null>(null);
 const [dialCountry, setDialCountry] = useState<typeof COUNTRIES[0] | null>(null);
   const [phoneNum, setPhoneNum] = useState('');
@@ -668,10 +673,17 @@ const [dialCountry, setDialCountry] = useState<typeof COUNTRIES[0] | null>(null)
   const [emailCode, setEmailCode] = useState('');
   const [emailStep, setEmailStep] = useState<'input' | 'verify'>('input');
   const [emailSending, setEmailSending] = useState(false);
-  const [emailError, setEmailError] = useState('');
+const [emailError, setEmailError] = useState('');
 
-  useEffect(() => {
-    fetch('/api/user/profile')
+const profileChanged =
+  profile.name !== savedProfile.name ||
+  profile.address !== savedProfile.address ||
+  profile.country !== savedProfile.country ||
+  phoneNum !== savedPhoneNum ||
+  (dialCountry?.dial || '') !== savedDialCode;
+
+useEffect(() => {
+  fetch('/api/user/profile')
       .then(r => r.json())
       .then(data => {
         setProfile({
@@ -681,6 +693,15 @@ const [dialCountry, setDialCountry] = useState<typeof COUNTRIES[0] | null>(null)
           provider: data.provider || 'credentials',
         });
         setAvatarPreview(data.avatarUrl || '');
+
+        setSavedProfile({
+  name: data.name || '',
+  phone: data.phone || '',
+  address: data.address || '',
+  country: data.country || '',
+});
+
+
 if (data.avatarUrl) {
   localStorage.setItem('exodus_avatar_url', data.avatarUrl);
   window.dispatchEvent(new Event('storage'));
@@ -696,14 +717,15 @@ const dialFound = data.phoneDialCode
   : found;
 if (dialFound) setDialCountry(dialFound);
 
-if (data.phone && dialFound) {
-  const stripped = data.phone.startsWith(dialFound.dial)
+const strippedPhone = data.phone && dialFound
+  ? (data.phone.startsWith(dialFound.dial)
     ? data.phone.slice(dialFound.dial.length).replace(/^\s+/, '')
-    : data.phone;
-  setPhoneNum(stripped);
-} else {
-          setPhoneNum(data.phone || '');
-        }
+    : data.phone)
+  : (data.phone || '');
+
+setPhoneNum(strippedPhone);
+setSavedDialCode(dialFound?.dial || '');
+setSavedPhoneNum(strippedPhone);
       })
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false));
@@ -759,6 +781,11 @@ const dialCode = dialCountry?.code || selectedCountry?.code || '';
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Save failed'); return; }
+
+      setSavedProfile({ name: profile.name, phone: profile.phone, address: profile.address, country: profile.country });
+setSavedDialCode(dialCountry?.dial || '');
+setSavedPhoneNum(phoneNum);
+
       setShowSuccess(true);
     } catch { setError('Failed to save changes'); }
     finally { setSaving(false); }
@@ -973,7 +1000,7 @@ const dialCode = dialCountry?.code || selectedCountry?.code || '';
         {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
 
         <div className="mt-5">
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={handleSave} disabled={saving || !profileChanged}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
             style={{ background: accent }}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}

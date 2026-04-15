@@ -177,8 +177,12 @@ useEffect(() => {
 
   // Notifications
   const [notifs, setNotifs] = useState<NotifSettings>({
-    shipmentUpdates: true, invoiceAlerts: true, deliveryAlerts: true, promotions: false,
-  });
+  shipmentUpdates: true, invoiceAlerts: true, deliveryAlerts: true, promotions: false,
+});
+const [savedNotifs, setSavedNotifs] = useState<NotifSettings>({
+  shipmentUpdates: true, invoiceAlerts: true, deliveryAlerts: true, promotions: false,
+});
+const notifChanged = JSON.stringify(notifs) !== JSON.stringify(savedNotifs);
   const [notifSaving, setNotifSaving] = useState(false);
   const [showNotifSuccess, setShowNotifSuccess] = useState(false);
 
@@ -225,7 +229,8 @@ useEffect(() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notifs),
       });
-      setShowNotifSuccess(true);
+      setSavedNotifs({ ...notifs });
+setShowNotifSuccess(true);
     } catch {}
     finally { setNotifSaving(false); }
   };
@@ -392,7 +397,7 @@ useEffect(() => {
                   <div className="pt-2 border-t border-gray-100 dark:border-white/10 mt-2">
                     <button
                       onClick={handleNotifSave}
-                      disabled={notifSaving}
+                      disabled={notifSaving || !notifChanged}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
                       style={{ background: accent }}>
                       {notifSaving ? <Loader2 size={14} className="animate-spin" /> : <Bell size={14} />}
