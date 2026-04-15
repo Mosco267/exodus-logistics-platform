@@ -8,7 +8,7 @@ import {
   Lock, Bell, Trash2, ChevronRight, Eye, EyeOff,
   Loader2, AlertTriangle, ShieldCheck, CheckCircle2, XCircle,
 } from 'lucide-react';
-
+import { createPortal } from 'react-dom';
 
 type Section = 'security' | 'notifications' | 'danger';
 type NotifSettings = {
@@ -450,50 +450,82 @@ useEffect(() => {
         </div>
       )}
 
-      {showPwSuccess && (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPwSuccess(false)} />
-    <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
-        <CheckCircle2 className="w-6 h-6 text-white" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Password Updated</h3>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your password has been changed successfully.</p>
-      <div className="mt-6">
-        <button onClick={() => setShowPwSuccess(false)} className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition" style={{ background: accent }}>Done</button>
-      </div>
-    </div>
-  </div>
-)}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {showDeleteModal && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+              <div className="relative w-[92%] max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6">
+                <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Final confirmation</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">
+                  Are you absolutely sure? You will be logged out immediately.
+                </p>
+                <div className="mt-6 flex gap-3">
+                  <button onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-white/20 text-gray-700 dark:text-gray-200 font-semibold text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setShowDeleteModal(false); handleDeleteAccount(); }}
+                    disabled={deleting}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm cursor-pointer hover:bg-red-700 transition disabled:opacity-60">
+                    {deleting ? 'Deleting...' : 'Yes, delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-{showNotifSuccess && (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNotifSuccess(false)} />
-    <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
-        <CheckCircle2 className="w-6 h-6 text-white" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Preferences Saved</h3>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your notification preferences have been updated.</p>
-      <div className="mt-6">
-        <button onClick={() => setShowNotifSuccess(false)} className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition" style={{ background: accent }}>Done</button>
-      </div>
-    </div>
-  </div>
-)}
+          {showPwSuccess && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPwSuccess(false)} />
+              <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Password Updated</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your password has been changed successfully.</p>
+                <div className="mt-6">
+                  <button onClick={() => setShowPwSuccess(false)} className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition" style={{ background: accent }}>Done</button>
+                </div>
+              </div>
+            </div>
+          )}
 
-{showDeleteSuccess && (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-    <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
-        <CheckCircle2 className="w-6 h-6 text-white" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Account Deleted</h3>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your account has been deleted. You will be logged out shortly.</p>
-    </div>
-  </div>
-)}
+          {showNotifSuccess && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNotifSuccess(false)} />
+              <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Preferences Saved</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your notification preferences have been updated.</p>
+                <div className="mt-6">
+                  <button onClick={() => setShowNotifSuccess(false)} className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition" style={{ background: accent }}>Done</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showDeleteSuccess && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+              <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Account Deleted</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your account has been deleted. You will be logged out shortly.</p>
+              </div>
+            </div>
+          )}
+        </>,
+        document.body
+      )}
     </div>
   );
 }
