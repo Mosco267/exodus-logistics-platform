@@ -8,7 +8,7 @@ import {
   Lock, Bell, Trash2, ChevronRight, Eye, EyeOff,
   Loader2, AlertTriangle, ShieldCheck, CheckCircle2, XCircle,
 } from 'lucide-react';
-import SuccessModal from '@/components/SuccessModal';
+
 
 type Section = 'security' | 'notifications' | 'danger';
 type NotifSettings = {
@@ -44,15 +44,16 @@ export default function SettingsPage() {
   const locale = (params?.locale as string) || 'en';
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
-  const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+const [pageText, setPageText] = useState('');
 
-  useEffect(() => {
-  const map: Record<string, { gradient: string; solid: string }> = {
-    default:  { gradient: 'linear-gradient(135deg, #0b3aa4, #0e7490)', solid: '#0b3aa4' },
-    ocean:    { gradient: 'linear-gradient(135deg, #0e7490, #06b6d4)', solid: '#0891b2' },
-    sunset:   { gradient: 'linear-gradient(135deg, #0b3aa4, #f97316)', solid: '#f97316' },
-    arctic:   { gradient: 'linear-gradient(135deg, #0284c7, #bae6fd)', solid: '#0284c7' },
-    midnight: { gradient: 'linear-gradient(135deg, #0f172a, #0e7490)', solid: '#06b6d4' },
+useEffect(() => {
+  const map: Record<string, { gradient: string; solid: string; text: string }> = {
+    default:  { gradient: 'linear-gradient(135deg, #0b3aa4, #0e7490)', solid: '#0b3aa4', text: '' },
+    ocean:    { gradient: 'linear-gradient(135deg, #0e7490, #06b6d4)', solid: '#0891b2', text: '' },
+    sunset:   { gradient: 'linear-gradient(135deg, #0b3aa4, #f97316)', solid: '#f97316', text: '' },
+    arctic:   { gradient: 'linear-gradient(135deg, #0284c7, #bae6fd)', solid: '#0284c7', text: '' },
+    midnight: { gradient: 'linear-gradient(135deg, #0f172a, #0e7490)', solid: '#06b6d4', text: '#f1f5f9' },
   };
 
   const apply = () => {
@@ -60,18 +61,14 @@ export default function SettingsPage() {
     if (cached && map[cached]) {
       setAccent(map[cached].gradient);
       setAccentSolid(map[cached].solid);
+      setPageText(map[cached].text);
     }
   };
 
   apply();
-
   window.addEventListener('storage', apply);
   const interval = setInterval(apply, 1000);
-
-  return () => {
-    window.removeEventListener('storage', apply);
-    clearInterval(interval);
-  };
+  return () => { window.removeEventListener('storage', apply); clearInterval(interval); };
 }, []);
 
   const [activeSection, setActiveSection] = useState<Section | null>(null);
@@ -179,8 +176,9 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-10">
       <div className="mb-2">
-        <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Settings</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your account preferences</p>
+        <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
+  style={pageText ? { color: pageText } : {}}>Settings</h1>
+<p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your account preferences</p>
       </div>
 
       {sections.map(section => (

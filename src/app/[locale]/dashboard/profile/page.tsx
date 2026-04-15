@@ -8,6 +8,7 @@ import {
   CheckCircle2, MapPin, Calendar, Pencil, ChevronDown, X
 } from 'lucide-react';
 import { p } from 'framer-motion/client';
+import { createPortal } from 'react-dom';
 
 
 // ─── Countries ───────────────────────────────────────────────
@@ -982,7 +983,7 @@ const dialCode = dialCountry?.code || selectedCountry?.code || '';
       </div>
 
       {/* SUCCESS MODAL */}
-{showSuccess && (
+{showSuccess && typeof document !== 'undefined' && createPortal(
   <div className="fixed inset-0 z-[9999] flex items-center justify-center">
     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSuccess(false)} />
     <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
@@ -1001,7 +1002,8 @@ const dialCode = dialCountry?.code || selectedCountry?.code || '';
         </button>
       </div>
     </div>
-  </div>
+  </div>,
+  document.body
 )}
     </div>
   );
