@@ -47,19 +47,32 @@ export default function SettingsPage() {
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
 
   useEffect(() => {
+  const map: Record<string, { gradient: string; solid: string }> = {
+    default:  { gradient: 'linear-gradient(135deg, #0b3aa4, #0e7490)', solid: '#0b3aa4' },
+    ocean:    { gradient: 'linear-gradient(135deg, #0e7490, #06b6d4)', solid: '#0891b2' },
+    sunset:   { gradient: 'linear-gradient(135deg, #0b3aa4, #f97316)', solid: '#f97316' },
+    arctic:   { gradient: 'linear-gradient(135deg, #0284c7, #bae6fd)', solid: '#0284c7' },
+    midnight: { gradient: 'linear-gradient(135deg, #0f172a, #0e7490)', solid: '#06b6d4' },
+  };
+
+  const apply = () => {
     const cached = localStorage.getItem('exodus_theme_cache');
-    const map: Record<string, { gradient: string; solid: string }> = {
-      default: { gradient: 'linear-gradient(135deg, #0b3aa4, #0e7490)', solid: '#0b3aa4' },
-      ocean:   { gradient: 'linear-gradient(135deg, #0e7490, #06b6d4)', solid: '#0891b2' },
-      sunset:  { gradient: 'linear-gradient(135deg, #0b3aa4, #f97316)', solid: '#f97316' },
-      arctic:  { gradient: 'linear-gradient(135deg, #0284c7, #bae6fd)', solid: '#0284c7' },
-      midnight:{ gradient: 'linear-gradient(135deg, #0f172a, #0e7490)', solid: '#06b6d4' },
-    };
     if (cached && map[cached]) {
       setAccent(map[cached].gradient);
       setAccentSolid(map[cached].solid);
     }
-  }, []);
+  };
+
+  apply();
+
+  window.addEventListener('storage', apply);
+  const interval = setInterval(apply, 1000);
+
+  return () => {
+    window.removeEventListener('storage', apply);
+    clearInterval(interval);
+  };
+}, []);
 
   const [activeSection, setActiveSection] = useState<Section | null>(null);
 

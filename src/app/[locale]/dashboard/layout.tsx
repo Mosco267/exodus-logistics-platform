@@ -28,6 +28,7 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
   const [showCongrats, setShowCongrats] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
@@ -72,10 +73,23 @@ const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
 }, [session?.user?.email]);
 
   // Save theme to DB
- const handleThemeChange = async (themeId: ThemeId) => {
+const handleThemeChange = async (themeId: ThemeId) => {
   setCurrentTheme(themeId);
   localStorage.setItem('exodus_theme_cache', themeId);
+  window.dispatchEvent(new Event('storage'));
 };
+
+useEffect(() => {
+  const stored = localStorage.getItem('exodus_avatar_url');
+  if (stored) setAvatarUrl(stored);
+
+  const onStorage = () => {
+    const url = localStorage.getItem('exodus_avatar_url');
+    if (url) setAvatarUrl(url);
+  };
+  window.addEventListener('storage', onStorage);
+  return () => window.removeEventListener('storage', onStorage);
+}, []);
 
   // Check if new user
   useEffect(() => {
@@ -398,21 +412,25 @@ const toggleDark = () => {
   {/* Profile */}
   <div className="relative shrink-0 ml-2" ref={profileRef} data-tour="profile">
                 <button
-                  type="button"
-                  onClick={() => setProfileOpen(v => !v)}
-                  className="h-8 w-8 rounded-full flex items-center justify-center text-white font-extrabold cursor-pointer shadow-sm text-xs"
-                  style={{ background: activeTheme.accent }}>
-                  {initials}
-                </button>
+  type="button"
+  onClick={() => setProfileOpen(v => !v)}
+  className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-white font-extrabold cursor-pointer shadow-sm text-xs shrink-0"
+  style={{ background: activeTheme.accent }}>
+  {avatarUrl
+    ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+    : initials}
+</button>
                 {profileOpen && (
   <div className="absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl z-50 bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 overflow-hidden">
     {/* User info header */}
     <div className="px-4 pt-4 pb-3" style={{ background: activeTheme.sidebar }}>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shrink-0"
-          style={{ background: 'rgba(255,255,255,0.2)' }}>
-          {initials}
-        </div>
+        <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center text-white font-extrabold text-sm shrink-0"
+  style={{ background: 'rgba(255,255,255,0.2)' }}>
+  {avatarUrl
+    ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+    : initials}
+</div>
         <div className="min-w-0">
           <p className="text-sm font-bold text-white truncate">{userName}</p>
           <p className="text-[11px] text-white/60 truncate">{session?.user?.email ?? ''}</p>

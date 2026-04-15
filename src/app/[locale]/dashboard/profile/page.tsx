@@ -472,14 +472,13 @@ function CountryDropdown({
         onClick={() => { if (!disabled) { setOpen(o => !o); setSearch(''); } }}
         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white transition hover:border-gray-300 dark:hover:border-white/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-left">
         {selected ? (
-          <>
-            <span className="text-lg shrink-0">{selected.flag}</span>
-            <span className="flex-1 truncate">{selected.name}</span>
-            <span className="text-gray-400 text-xs shrink-0">{selected.dial}</span>
-          </>
-        ) : (
-          <span className="text-gray-400 flex-1">Select country</span>
-        )}
+  <>
+    <span className="text-xl shrink-0 leading-none">{selected.flag}</span>
+    <span className="flex-1 truncate">{selected.name}</span>
+  </>
+) : (
+  <span className="text-gray-400 flex-1">Select country</span>
+)}
         <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -508,7 +507,7 @@ function CountryDropdown({
                   className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer">
                   <span className="text-lg shrink-0">{c.flag}</span>
                   <span className="flex-1 truncate text-gray-900 dark:text-white">{c.name}</span>
-                  <span className="text-gray-400 text-xs shrink-0">{c.dial}</span>
+                  
                 </button>
               </li>
             ))}
@@ -527,17 +526,31 @@ export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
-  useEffect(() => {
+ useEffect(() => {
+  const accents: Record<string, string> = {
+    default: 'linear-gradient(135deg, #0b3aa4, #0e7490)',
+    ocean: 'linear-gradient(135deg, #0e7490, #06b6d4)',
+    sunset: 'linear-gradient(135deg, #0b3aa4, #f97316)',
+    arctic: 'linear-gradient(135deg, #0284c7, #bae6fd)',
+    midnight: 'linear-gradient(135deg, #0f172a, #0e7490)',
+  };
+
+  const apply = () => {
     const cached = localStorage.getItem('exodus_theme_cache');
-    const accents: Record<string, string> = {
-      default: 'linear-gradient(135deg, #0b3aa4, #0e7490)',
-      ocean: 'linear-gradient(135deg, #0e7490, #06b6d4)',
-      sunset: 'linear-gradient(135deg, #0b3aa4, #f97316)',
-      arctic: 'linear-gradient(135deg, #0284c7, #bae6fd)',
-      midnight: 'linear-gradient(135deg, #0f172a, #0e7490)',
-    };
     if (cached && accents[cached]) setAccent(accents[cached]);
-  }, []);
+  };
+
+  apply();
+
+  window.addEventListener('storage', apply);
+  // Also poll every second in case same-tab storage event doesn't fire
+  const interval = setInterval(apply, 1000);
+
+  return () => {
+    window.removeEventListener('storage', apply);
+    clearInterval(interval);
+  };
+}, []);
 
   const [profile, setProfile] = useState<ProfileData>({
     name: '', email: '', phone: '', country: '',
@@ -571,6 +584,10 @@ export default function ProfilePage() {
           provider: data.provider || 'credentials',
         });
         setAvatarPreview(data.avatarUrl || '');
+if (data.avatarUrl) {
+  localStorage.setItem('exodus_avatar_url', data.avatarUrl);
+  window.dispatchEvent(new Event('storage'));
+}
 
         // Set selected country
         const found = findCountry(data.country || '');
@@ -609,9 +626,11 @@ export default function ProfilePage() {
       const res = await fetch('/api/user/avatar', { method: 'POST', body: form });
       const data = await res.json();
       if (data.url) {
-        setAvatarPreview(data.url);
-        setProfile(p => ({ ...p, avatarUrl: data.url }));
-      } else {
+  setAvatarPreview(data.url);
+  setProfile(p => ({ ...p, avatarUrl: data.url }));
+  localStorage.setItem('exodus_avatar_url', data.url);
+  window.dispatchEvent(new Event('storage'));
+} else {
         setError(data.error || 'Upload failed');
       }
     } catch { setError('Upload failed'); }
@@ -739,9 +758,9 @@ export default function ProfilePage() {
           <div>
             <label className={labelClass}>Full Name</label>
             <div className="relative">
-              <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                placeholder="Enter your full name" className={inputClass + " pl-9"} style={{ fontSize: '16px' }} />
+                placeholder="Enter your full name" className={inputClass + " pl-10"} style={{ fontSize: '16px' }} />
             </div>
           </div>
 
@@ -751,8 +770,8 @@ export default function ProfilePage() {
             {!editingEmail ? (
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input value={profile.email} disabled className={inputClass + " pl-9 opacity-60 cursor-not-allowed"} style={{ fontSize: '16px' }} />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <input value={profile.email} disabled className={inputClass + " pl-10 opacity-60 cursor-not-allowed"} style={{ fontSize: '16px' }} />
                 </div>
                 <button onClick={() => { setEditingEmail(true); setNewEmail(''); setEmailStep('input'); setEmailError(''); }}
                   className="h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer shrink-0 flex items-center gap-1.5">
@@ -817,12 +836,24 @@ export default function ProfilePage() {
             <label className={labelClass}>Phone Number</label>
             <div className="flex items-center gap-2">
               {/* Dial code badge */}
-              <div className="h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/10 flex items-center gap-1.5 shrink-0">
-                {selectedCountry && <span className="text-base">{selectedCountry.flag}</span>}
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
-                  {selectedCountry?.dial || '+?'}
-                </span>
-              </div>
+              {/* Dial code selector */}
+<select
+  value={selectedCountry?.code || ''}
+  onChange={e => {
+    const found = COUNTRIES.find(c => c.code === e.target.value);
+    if (found) {
+      setSelectedCountry(found);
+      setProfile(p => ({ ...p, country: found.name }));
+    }
+  }}
+  className="h-10 px-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm font-bold text-gray-700 dark:text-gray-200 cursor-pointer focus:outline-none shrink-0"
+  style={{ fontSize: '16px', minWidth: 90 }}>
+  {COUNTRIES.map(c => (
+    <option key={c.code} value={c.code}>
+      {c.flag} {c.dial}
+    </option>
+  ))}
+</select>
               <input
   value={selectedCountry
     ? applyPattern(phoneNum.replace(/\D/g, ''), getFormat(selectedCountry.code).pattern)
@@ -841,10 +872,10 @@ export default function ProfilePage() {
           <div>
             <label className={labelClass}>Home Address <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
             <div className="relative">
-              <MapPin size={15} className="absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" />
+              <MapPin size={15} className="absolute left-3 top-3.5 text-gray-400 pointer-events-none" />
               <textarea value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
                 placeholder="Enter your home address" rows={3}
-                className={inputClass + " pl-9 resize-none"} style={{ fontSize: '16px' }} />
+                className={inputClass + " pl-10 resize-none"} style={{ fontSize: '16px' }} />
             </div>
           </div>
         </div>
