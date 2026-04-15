@@ -651,6 +651,7 @@ export default function ProfilePage() {
     address: '', avatarUrl: '', createdAt: '', provider: '',
   });
   const [selectedCountry, setSelectedCountry] = useState<typeof COUNTRIES[0] | null>(null);
+const [dialCountry, setDialCountry] = useState<typeof COUNTRIES[0] | null>(null);
   const [phoneNum, setPhoneNum] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -685,7 +686,7 @@ if (data.avatarUrl) {
 
         // Set selected country
         const found = findCountry(data.country || '');
-        if (found) setSelectedCountry(found);
+        if (found) { setSelectedCountry(found); setDialCountry(found); }
 
         // Parse phone: strip dial code prefix
         if (data.phone && found) {
@@ -702,10 +703,11 @@ if (data.avatarUrl) {
   }, []);
 
   const handleCountryChange = (c: typeof COUNTRIES[0]) => {
-    setSelectedCountry(c);
-    setProfile(p => ({ ...p, country: c.name }));
-    setPhoneNum(''); // reset phone when country changes
-  };
+  setSelectedCountry(c);
+  setDialCountry(c);
+  setProfile(p => ({ ...p, country: c.name }));
+  setPhoneNum('');
+};
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -735,9 +737,7 @@ if (data.avatarUrl) {
     setSaving(true);
     setError('');
     try {
-      const fullPhone = phoneNum
-        ? `${selectedCountry?.dial || ''}${phoneNum.replace(/\D/g, '')}`
-        : '';
+      const fullPhone = phoneNum ? `${dialCountry?.dial || ''}${phoneNum.replace(/\D/g, '')}` : '';
       const res = await fetch('/api/user/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -932,15 +932,15 @@ if (data.avatarUrl) {
               {/* Dial code badge */}
               {/* Dial code selector */}
 <DialCodePicker
-  selected={selectedCountry}
-  onChange={c => setSelectedCountry(prev => prev ? { ...prev, dial: c.dial } : c)}
+  selected={dialCountry}
+  onChange={c => { setDialCountry(c); setPhoneNum(''); }}
 />
               <input
-  value={selectedCountry
-    ? applyPattern(phoneNum.replace(/\D/g, ''), getFormat(selectedCountry.code).pattern)
-    : phoneNum}
+  value={dialCountry
+  ? applyPattern(phoneNum.replace(/\D/g, ''), getFormat(dialCountry.code).pattern)
+  : phoneNum}
   onChange={e => setPhoneNum(e.target.value.replace(/\D/g, ''))}
-  placeholder={selectedCountry ? getFormat(selectedCountry.code).placeholder : '123 456 7890'}
+  placeholder={dialCountry ? getFormat(dialCountry.code).placeholder : '123 456 7890'}
   inputMode="numeric"
   className={inputClass + " flex-1"}
   style={{ fontSize: '16px' }}
