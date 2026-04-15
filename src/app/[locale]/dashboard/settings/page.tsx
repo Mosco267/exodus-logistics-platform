@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -18,24 +18,112 @@ type NotifSettings = {
   promotions: boolean;
 };
 
-// Password strength checker
-function getPasswordStrength(pw: string): {
-  score: number;
-  label: string;
-  color: string;
-  checks: { label: string; pass: boolean }[];
-} {
+
+
+function PasswordStrength({ password }: { password: string }) {
   const checks = [
-    { label: 'At least 8 characters', pass: pw.length >= 8 },
-    { label: 'Uppercase letter (A-Z)', pass: /[A-Z]/.test(pw) },
-    { label: 'Lowercase letter (a-z)', pass: /[a-z]/.test(pw) },
-    { label: 'Number (0-9)', pass: /[0-9]/.test(pw) },
-    { label: 'Special character (!@#$...)', pass: /[^A-Za-z0-9]/.test(pw) },
+    { label: 'At least 8 characters', pass: password.length >= 8 },
+    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
+    { label: 'Number', pass: /[0-9]/.test(password) },
+    { label: 'Special character', pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter(c => c.pass).length;
-  const label = score <= 1 ? 'Weak' : score <= 3 ? 'Fair' : score === 4 ? 'Good' : 'Strong';
-  const color = score <= 1 ? '#ef4444' : score <= 3 ? '#f97316' : score === 4 ? '#3b82f6' : '#10b981';
-  return { score, label, color, checks };
+  const barColor = score <= 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : score === 3 ? 'bg-blue-400' : 'bg-emerald-500';
+  const label = ['', 'Weak', 'Fair', 'Good', 'Strong'][score];
+  const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-blue-600', 'text-emerald-600'][score];
+  if (!password) return null;
+  return (
+    <div className="mt-2.5 space-y-2">
+      <div className="flex items-center gap-1.5">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i < score ? barColor : 'bg-gray-200'}`} />
+        ))}
+        {label && <span className={`text-xs font-bold ml-1 ${labelColor}`}>{label}</span>}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {checks.map(({ label, pass }) => (
+          <span key={label} className={`text-[11px] flex items-center gap-1 font-medium transition ${pass ? 'text-emerald-600' : 'text-gray-400'}`}>
+            <CheckCircle2 className="w-3 h-3" />{label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PasswordField({ value, onChange, placeholder, autoComplete }: {
+  value: string; onChange: (v: string) => void; placeholder: string; autoComplete: string;
+}) {
+  const [showPw, setShowPw] = useState(false);
+  const [pwLength, setPwLength] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const border = focused ? '1px solid #3b82f6' : '1px solid #e5e7eb';
+  const shadow = focused ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none';
+
+  return (
+    <div style={{ position: 'relative', height: '48px', borderRadius: '12px', backgroundColor: 'var(--pw-bg, #ffffff)', border, boxShadow: shadow, transition: 'border-color 0.2s, box-shadow 0.2s', overflow: 'hidden' }}
+      className="bg-white dark:bg-gray-800">
+      {!showPw ? (
+        <input ref={ref} type="text" inputMode="text" autoComplete={autoComplete} placeholder={placeholder}
+          autoCorrect="off" autoCapitalize="off" spellCheck={false}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          onChange={e => {
+            const added = e.target.value.length - pwLength;
+            let real = ref.current?.dataset.real || '';
+            real = added > 0 ? real + e.target.value.slice(pwLength) : real.slice(0, e.target.value.length);
+            ref.current!.dataset.real = real;
+            e.target.value = '•'.repeat(e.target.value.length);
+            setPwLength(e.target.value.length);
+            onChange(real);
+          }}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
+            paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
+            fontSize: '16px', backgroundColor: 'transparent',
+            color: pwLength > 0 ? 'var(--pw-text, #111827)' : '#9ca3af',
+            caretColor: '#3b82f6', outline: 'none',
+            boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
+            letterSpacing: pwLength > 0 ? '0.2em' : 'normal',
+          }}
+        />
+      ) : (
+        <input ref={ref} type="text" autoComplete={autoComplete} placeholder={placeholder}
+          autoCorrect="off" autoCapitalize="off" spellCheck={false}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          onChange={e => { const val = e.target.value; ref.current!.dataset.real = val; setPwLength(val.length); onChange(val); }}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
+            paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
+            fontSize: '16px', backgroundColor: 'transparent', color: 'var(--pw-text, #111827)',
+            caretColor: '#1d4ed8', outline: 'none',
+            boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
+          }}
+        />
+      )}
+      <button type="button" tabIndex={-1}
+        onClick={() => {
+          const real = ref.current?.dataset.real || '';
+          setShowPw(prev => {
+            const next = !prev;
+            setTimeout(() => {
+              if (ref.current) {
+                ref.current.value = next ? real : '•'.repeat(real.length);
+                ref.current.dataset.real = real;
+                setPwLength(real.length);
+                ref.current.focus();
+              }
+            }, 10);
+            return next;
+          });
+        }}
+        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af', zIndex: 4 }}>
+        {showPw
+          ? <EyeOff size={16} />
+          : <Eye size={16} />}
+      </button>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -77,15 +165,15 @@ useEffect(() => {
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState('');
   const [showPwSuccess, setShowPwSuccess] = useState(false);
 
-  const pwStrength = getPasswordStrength(newPw);
-  const allChecksPassed = pwStrength.score === 5;
+  const allChecksPassed =
+  newPw.length >= 8 &&
+  /[A-Z]/.test(newPw) &&
+  /[0-9]/.test(newPw) &&
+  /[^A-Za-z0-9]/.test(newPw);
 
   // Notifications
   const [notifs, setNotifs] = useState<NotifSettings>({
@@ -219,97 +307,46 @@ useEffect(() => {
                       </div>
 
                       {/* Current password */}
-                      <div>
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block">Current Password</label>
-                        <div className="relative">
-                          <input
-                            type={showCurrent ? 'text' : 'password'}
-                            value={currentPw}
-                            onChange={e => setCurrentPw(e.target.value)}
-                            placeholder="Enter current password"
-                            className={inputClass + " pr-10"}
-                            style={{ fontSize: '16px' }}
-                          />
-                          <button type="button" onClick={() => setShowCurrent(v => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition">
-                            {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                      </div>
+<div>
+  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block">Current Password</label>
+  <PasswordField
+    value={currentPw}
+    onChange={v => setCurrentPw(v)}
+    placeholder="Enter current password"
+    autoComplete="current-password"
+  />
+</div>
 
-                      {/* New password */}
-                      <div>
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block">New Password</label>
-                        <div className="relative">
-                          <input
-                            type={showNew ? 'text' : 'password'}
-                            value={newPw}
-                            onChange={e => setNewPw(e.target.value)}
-                            placeholder="Min. 8 characters"
-                            className={inputClass + " pr-10"}
-                            style={{ fontSize: '16px' }}
-                          />
-                          <button type="button" onClick={() => setShowNew(v => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition">
-                            {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
+{/* New password */}
+<div>
+  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block">New Password</label>
+  <PasswordField
+    value={newPw}
+    onChange={v => setNewPw(v)}
+    placeholder="Create a strong password"
+    autoComplete="new-password"
+  />
+  <PasswordStrength password={newPw} />
+</div>
 
-                        {/* Strength bar */}
-                        {newPw.length > 0 && (
-                          <div className="mt-2 space-y-2">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">Password strength</span>
-                              <span className="text-xs font-bold" style={{ color: pwStrength.color }}>{pwStrength.label}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              {[1, 2, 3, 4, 5].map(i => (
-                                <div key={i} className="flex-1 h-1.5 rounded-full transition-all duration-300"
-                                  style={{ background: i <= pwStrength.score ? pwStrength.color : '#e5e7eb' }} />
-                              ))}
-                            </div>
-                            <div className="space-y-1 mt-2">
-                              {pwStrength.checks.map(({ label, pass }) => (
-                                <div key={label} className="flex items-center gap-2">
-                                  {pass
-                                    ? <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
-                                    : <XCircle size={12} className="text-gray-300 dark:text-gray-600 shrink-0" />}
-                                  <span className={`text-xs ${pass ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                                    {label}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Confirm password */}
-                      <div>
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block">Confirm New Password</label>
-                        <div className="relative">
-                          <input
-                            type={showConfirm ? 'text' : 'password'}
-                            value={confirmPw}
-                            onChange={e => setConfirmPw(e.target.value)}
-                            placeholder="Re-enter new password"
-                            className={inputClass + " pr-10"}
-                            style={{ fontSize: '16px' }}
-                          />
-                          <button type="button" onClick={() => setShowConfirm(v => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition">
-                            {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                        {confirmPw.length > 0 && newPw !== confirmPw && (
-                          <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
-                        )}
-                        {confirmPw.length > 0 && newPw === confirmPw && (
-                          <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1">
-                            <CheckCircle2 size={11} /> Passwords match
-                          </p>
-                        )}
-                      </div>
+{/* Confirm password */}
+<div>
+  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block">Confirm New Password</label>
+  <PasswordField
+    value={confirmPw}
+    onChange={v => setConfirmPw(v)}
+    placeholder="Re-enter new password"
+    autoComplete="new-password"
+  />
+  {confirmPw.length > 0 && newPw !== confirmPw && (
+    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+  )}
+  {confirmPw.length > 0 && newPw === confirmPw && (
+    <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1">
+      <CheckCircle2 size={11} /> Passwords match
+    </p>
+  )}
+</div>
 
                       {pwError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{pwError}</p>}
 
