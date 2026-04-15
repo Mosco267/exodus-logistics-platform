@@ -5,9 +5,10 @@ import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 import {
   Camera, Save, Loader2, User, Mail, Phone,
-  Globe, MapPin, Calendar, Pencil, ChevronDown, X
+  CheckCircle2, MapPin, Calendar, Pencil, ChevronDown, X
 } from 'lucide-react';
-import SuccessModal from '@/components/SuccessModal';
+import { p } from 'framer-motion/client';
+
 
 // ─── Countries ───────────────────────────────────────────────
 const COUNTRIES = [
@@ -686,15 +687,20 @@ if (data.avatarUrl) {
 
         // Set selected country
         const found = findCountry(data.country || '');
-        if (found) { setSelectedCountry(found); setDialCountry(found); }
+        if (found) setSelectedCountry(found);
 
-        // Parse phone: strip dial code prefix
-        if (data.phone && found) {
-          const stripped = data.phone.startsWith(found.dial)
-            ? data.phone.slice(found.dial.length).replace(/^\s+/, '')
-            : data.phone;
-          setPhoneNum(stripped);
-        } else {
+// Use saved dial code if different from country
+const dialFound = data.phoneDialCode
+  ? COUNTRIES.find(c => c.code === data.phoneDialCode) || found
+  : found;
+if (dialFound) setDialCountry(dialFound);
+
+if (data.phone && dialFound) {
+  const stripped = data.phone.startsWith(dialFound.dial)
+    ? data.phone.slice(dialFound.dial.length).replace(/^\s+/, '')
+    : data.phone;
+  setPhoneNum(stripped);
+} else {
           setPhoneNum(data.phone || '');
         }
       })
@@ -738,6 +744,7 @@ if (data.avatarUrl) {
     setError('');
     try {
       const fullPhone = phoneNum ? `${dialCountry?.dial || ''}${phoneNum.replace(/\D/g, '')}` : '';
+const dialCode = dialCountry?.code || selectedCountry?.code || '';
       const res = await fetch('/api/user/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -746,6 +753,7 @@ if (data.avatarUrl) {
           phone: fullPhone,
           address: profile.address,
           country: profile.country,
+          phoneDialCode: dialCode,
         }),
       });
       const data = await res.json();
@@ -973,7 +981,28 @@ if (data.avatarUrl) {
         </div>
       </div>
 
-      <SuccessModal open={showSuccess} title="Profile Updated" message="Your profile has been saved successfully." onClose={() => setShowSuccess(false)} />
+      {/* SUCCESS MODAL */}
+{showSuccess && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSuccess(false)} />
+    <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        style={{ background: accent }}>
+        <CheckCircle2 className="w-6 h-6 text-white" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Profile Updated</h3>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your profile has been saved successfully.</p>
+      <div className="mt-6">
+        <button
+          onClick={() => setShowSuccess(false)}
+          className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition"
+          style={{ background: accent }}>
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
