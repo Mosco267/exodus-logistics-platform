@@ -404,7 +404,7 @@ const toggleDark = () => {
     href={`/${locale}/dashboard/shipments/new`}
     data-tour="create"
     className="hidden md:flex items-center gap-1.5 px-4 py-2 text-white rounded-xl transition font-bold shadow-sm text-sm cursor-pointer shrink-0 hover:opacity-90"
-    style={{ background: activeTheme.accent }}>
+style={{ background: activeTheme.sidebar }}>
     <PlusCircle className="w-4 h-4" />
     <span>Create Shipment</span>
   </Link>
@@ -509,9 +509,9 @@ const toggleDark = () => {
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setLogoutOpen(false)} />
             <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
-                <span className="text-white font-extrabold text-lg">?</span>
-              </div>
+  style={{ background: activeTheme.sidebar }}>
+  <span className="text-white font-extrabold text-lg">?</span>
+</div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Confirm logout</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Are you sure you want to logout?</p>
               <div className="mt-6 flex gap-3">
@@ -523,8 +523,8 @@ const toggleDark = () => {
                 <button
                   onClick={() => setLogoutOpen(false)}
                   className="flex-1 py-2.5 rounded-xl text-white hover:opacity-90 transition font-semibold cursor-pointer text-sm"
-                  style={{ background: activeTheme.accent }}>
-                  Cancel
+style={{ background: activeTheme.sidebar }}>
+Cancel
                 </button>
               </div>
             </div>
