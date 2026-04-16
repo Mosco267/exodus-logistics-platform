@@ -16,6 +16,7 @@ import OnboardingTour from "@/components/OnboardingTour";
 import AppearancePanel, { THEMES, ThemeId, ColorMode } from "@/components/AppearancePanel";
 import LanguageModal from "@/components/LanguageModal";
 
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);

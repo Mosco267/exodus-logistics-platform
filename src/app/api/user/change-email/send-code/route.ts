@@ -69,30 +69,30 @@ export async function POST(req: Request) {
   `).join("");
 
   const bodyHtml = `
-    <p style="margin:0 0 16px 0;font-size:17px;line-height:28px;color:#111827;">
+    <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;">
   Hello <strong style="color:#111827;">${session.user.name || 'there'}</strong>,
 </p>
-    <p style="margin:0 0 14px 0;font-size:17px;line-height:28px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;">
       You requested to change the email address on your Exodus Logistics account to
       <strong style="color:#1d4ed8;">${normalizedNew}</strong>.
     </p>
-    <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#374151;">
+    <p style="margin:0 0 24px 0;font-size:17px;line-height:24px;color:#374151;">
       Enter the 6-digit verification code below in the app to confirm this change.
       This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
     </p>
 
     <!-- Code box -->
     <div style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;border:1px solid #e0e8ff;">
-      <p style="margin:0 0 16px 0;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your verification code</p>
+      <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your verification code</p>
       <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
         <tr>${codeBoxesHtml}</tr>
       </table>
-      <p style="margin:16px 0 0 0;font-size:13px;color:#9ca3af;">
+      <p style="margin:16px 0 0 0;font-size:14px;color:#9ca3af;">
         Expires in <strong style="color:#ef4444;">10 minutes</strong>
       </p>
     </div>
 
-    <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
+    <p style="margin:0;font-size:14px;line-height:20px;color:#9ca3af;text-align:center;">
       If you did not request this change, you can safely ignore this email.
       Your account and current email remain secure.
     </p>

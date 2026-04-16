@@ -90,32 +90,32 @@ export async function POST(req: Request) {
     `).join("");
 
     const bodyHtml = `
-      <p style="margin:0 0 16px 0;font-size:17px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;">
         Hi <strong style="color:#111827;">${name}</strong>,
       </p>
-      <p style="margin:0 0 14px 0;font-size:17px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;">
         Welcome to Exodus Logistics! Thank you for signing up. To complete your
         registration and activate your account, please enter the verification
         code below.
       </p>
-      <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#374151;">
+      <p style="margin:0 0 24px 0;font-size:17px;line-height:24px;color:#374151;">
         This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
       </p>
 
       <!-- Code box -->
       <div style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;border:1px solid #e0e8ff;">
-        <p style="margin:0 0 16px 0;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your verification code</p>
+        <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your verification code</p>
         <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
           <tr>${codeBoxesHtml}</tr>
         </table>
-        <p style="margin:16px 0 0 0;font-size:13px;color:#9ca3af;">
+        <p style="margin:16px 0 0 0;font-size:14px;color:#9ca3af;">
           Expires in <strong style="color:#ef4444;">10 minutes</strong>
         </p>
       </div>
 
       <!-- What's next -->
       <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1d4ed8;">
-        <p style="margin:0 0 10px 0;font-size:12px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">What you can do with Exodus Logistics:</p>
+        <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">What you can do with Exodus Logistics:</p>
         <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Track shipments in real time across 120+ countries</p>
         <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Generate and manage invoices automatically</p>
         <p style="margin:0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Access our global logistics network instantly</p>

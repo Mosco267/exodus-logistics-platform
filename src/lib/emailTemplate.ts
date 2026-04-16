@@ -80,17 +80,18 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
           <tr>
             <td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:36px 40px;text-align:center;">
               <img
-                src="${logoUrl}"
-                alt="Exodus Logistics"
-                style="height:80px;width:auto;display:block;margin:0 auto;border:0;"
-              />
+  src="${logoUrl}"
+  alt="Exodus Logistics"
+  width="320"
+  style="height:auto;width:320px;max-width:100%;display:block;margin:0 auto;border:0;"
+/>
             </td>
           </tr>
 
           <!-- BODY -->
           <tr>
             <td style="background:#ffffff;padding:36px 40px 28px 40px;">
-              <h1 style="margin:0 0 6px 0;font-size:26px;line-height:34px;font-weight:800;color:#111827;">
+              <h1 style="margin:0 0 6px 0;font-size:30px;line-height:40px;font-weight:800;color:#111827;">
                 ${esc(params.title)}
               </h1>
 
