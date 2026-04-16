@@ -2,24 +2,17 @@ type EmailTemplateParams = {
   subject: string;
   title: string;
   preheader?: string;
-  // Body content you pass in (HTML). Keep it simple: <p>...</p><p>...</p>
   bodyHtml: string;
-
-  // Optional callout box
   calloutHtml?: string;
-
-  // Optional button
   button?: { text: string; href: string };
-
-  // Branding
-  appUrl: string; // e.g. https://goexoduslogistics.com
-  logoPath?: string; // default /logo.png
+  appUrl: string;
+  logoPath?: string;
   supportEmail: string;
-  sentTo?: string; // optional footer line
+  sentTo?: string;
 };
 
 function esc(s: string) {
-  return s
+  return String(s || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -29,145 +22,210 @@ function esc(s: string) {
 
 export function renderEmailTemplate(params: EmailTemplateParams) {
   const year = new Date().getFullYear();
-
   const appUrl = params.appUrl.replace(/\/$/, "");
-  const logoPath = params.logoPath || "/logo.png";
-const logoUrl = `https://www.goexoduslogistics.com/logo.png`;
+  const logoUrl = `${appUrl}/logo-transparent.png`;
 
   const preheader =
-    params.preheader ||
-    "You have a new message from Exodus Logistics.";
-
-  const outerPad = 24;
-  const innerPad = 20;
+    params.preheader || "You have a new message from Exodus Logistics.";
 
   const buttonHtml = params.button
-    ? `<div style="padding:18px 0 6px 0;">
-         <a href="${params.button.href}"
-           style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;
-           padding:12px 18px;border-radius:10px;font-size:15px;font-weight:800;">
-           ${esc(params.button.text)}
-         </a>
-       </div>`
+    ? `
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:22px 0 6px 0;">
+  <tr>
+    <td>
+      <a href="${params.button.href}"
+        style="display:inline-block;background:linear-gradient(135deg,#0b3aa4 0%,#0e7490 100%);color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:0.2px;">
+        ${esc(params.button.text)}
+      </a>
+    </td>
+  </tr>
+</table>`
     : "";
 
   const calloutHtml = params.calloutHtml
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-          style="background:#eff6ff;border:1px solid #dbeafe;border-radius:12px;margin-top:2px;">
-          <tr>
-            <td style="padding:12px 14px;font-size:14px;line-height:20px;color:#1e3a8a;">
-              ${params.calloutHtml}
-            </td>
-          </tr>
-        </table>`
+        style="background:#eff6ff;border:1px solid #dbeafe;border-radius:12px;margin-top:16px;">
+        <tr>
+          <td style="padding:14px 16px;font-size:14px;line-height:22px;color:#1e3a8a;">
+            ${params.calloutHtml}
+          </td>
+        </tr>
+      </table>`
     : "";
 
   const sentToLine = params.sentTo
-    ? `<tr>
-         <td style="padding:10px 10px 0 10px;font-size:11px;line-height:16px;color:#9ca3af;text-align:center;">
-           This message was sent to ${esc(params.sentTo)}.
-         </td>
-       </tr>`
+    ? `<p style="margin:6px 0 0 0;font-size:11px;line-height:16px;color:#9ca3af;text-align:center;">
+        This message was sent to ${esc(params.sentTo)}.
+      </p>`
     : "";
 
-  const html = `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${esc(params.subject)}</title>
-  </head>
-  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-      ${esc(preheader)}
-    </div>
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>${esc(params.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#111827;">
 
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f3f4f6;">
-      <tr>
-        <td style="background:#0b3aa4;height:6px;line-height:6px;font-size:0;">&nbsp;</td>
-      </tr>
+  <!-- Preheader -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;font-size:1px;">
+    ${esc(preheader)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
 
-      <tr>
-        <td align="center" style="padding:28px 16px;">
-          <table role="presentation" width="100%"
-  style="max-width:600px;margin:0 auto;" cellspacing="0" cellpadding="0" style="width:600px;max-width:600px;">
-            <tr>
-              <td style="padding:0;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                  style="background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f5f9;width:100%;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
 
-                  <tr>
-                    <td style="padding:${outerPad}px ${outerPad}px 14px ${outerPad}px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                        <tr>
-                          <td align="left" style="vertical-align:middle;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;">
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#ffffff;border-radius:20px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+
+              <!-- HEADER: gradient background with logo -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#0b3aa4 0%,#0c52c4 40%,#0e7490 100%);padding:28px 32px;border-radius:20px 20px 0 0;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td>
+                          <img
+                            src="${logoUrl}"
+                            alt="Exodus Logistics"
+                            width="180"
+                            height="auto"
+                            style="display:block;width:180px;max-width:180px;height:auto;border:0;outline:none;text-decoration:none;"
+                          />
+                        </td>
+                        <td align="right" style="vertical-align:middle;">
+                          <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;">Logistics Platform</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Title bar -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:28px 32px 0 32px;">
+                    <h1 style="margin:0;font-size:24px;line-height:32px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;">
+                      ${esc(params.title)}
+                    </h1>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:16px 32px 0 32px;">
+                    <div style="height:1px;background:linear-gradient(90deg,#e2e8f0 0%,#f1f5f9 100%);font-size:0;line-height:0;">&nbsp;</div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Body -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:24px 32px 0 32px;">
+                    ${params.bodyHtml}
+                    ${calloutHtml}
+                    ${buttonHtml}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Regards -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:24px 32px 0 32px;">
+                    <p style="margin:0;font-size:15px;line-height:24px;color:#374151;">
+                      Regards,<br />
+                      <strong style="color:#0f172a;">Exodus Logistics Support</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer divider -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:24px 32px 0 32px;">
+                    <div style="height:1px;background:#e2e8f0;font-size:0;line-height:0;">&nbsp;</div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:20px 32px 28px 32px;">
+
+                    <!-- Footer logo row -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px;">
+                      <tr>
+                        <td align="center">
+                          <div style="display:inline-block;background:linear-gradient(135deg,#0b3aa4 0%,#0e7490 100%);border-radius:10px;padding:8px 16px;">
                             <img
                               src="${logoUrl}"
                               alt="Exodus Logistics"
-                              width="220"
-                              height="50"
-                              style="display:block;width:220px;height:50px;border:0;outline:none;text-decoration:none;"
+                              width="120"
+                              height="auto"
+                              style="display:block;width:120px;height:auto;border:0;"
                             />
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
 
-                  <tr>
-                    <td style="padding:0 ${outerPad}px;">
-                      <div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>
-                    </td>
-                  </tr>
+                    <!-- Footer links -->
+                    <p style="margin:0 0 8px 0;font-size:12px;line-height:18px;color:#94a3b8;text-align:center;">
+                      <a href="${appUrl}" style="color:#64748b;text-decoration:none;font-weight:600;">Website</a>
+                      &nbsp;&bull;&nbsp;
+                      <a href="mailto:${params.supportEmail}" style="color:#64748b;text-decoration:none;font-weight:600;">Support</a>
+                      &nbsp;&bull;&nbsp;
+                      <a href="${appUrl}/en/privacy" style="color:#64748b;text-decoration:none;font-weight:600;">Privacy</a>
+                      &nbsp;&bull;&nbsp;
+                      <a href="${appUrl}/en/terms" style="color:#64748b;text-decoration:none;font-weight:600;">Terms</a>
+                    </p>
 
-                  <tr>
-                    <td style="padding:${innerPad}px ${outerPad}px;">
-                      <h1 style="margin:0 0 12px 0;font-size:24px;line-height:30px;font-weight:800;color:#0f172a;">
-                        ${esc(params.title)}
-                      </h1>
+                    <!-- Copyright -->
+                    <p style="margin:0 0 6px 0;font-size:11px;line-height:17px;color:#94a3b8;text-align:center;">
+                      &copy; ${year} Exodus Logistics Ltd. All rights reserved.
+                    </p>
 
-                      ${params.bodyHtml}
+                    <!-- Support email -->
+                    <p style="margin:0;font-size:11px;line-height:17px;color:#94a3b8;text-align:center;">
+                      Need help?&nbsp;
+                      <a href="mailto:${params.supportEmail}" style="color:#0b3aa4;text-decoration:none;font-weight:700;">${params.supportEmail}</a>
+                    </p>
 
-                      ${calloutHtml}
+                    ${sentToLine}
+                  </td>
+                </tr>
+              </table>
 
-                      ${buttonHtml}
+            </td>
+          </tr>
 
-                      <p style="margin:14px 0 0 0;font-size:16px;line-height:24px;color:#111827;">
-                        Regards,<br />
-                        <strong>Exodus Logistics Support</strong>
-                      </p>
-                    </td>
-                  </tr>
+          <!-- Bottom spacer tag -->
+          <tr>
+            <td style="padding:16px 0 0 0;">
+              <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center;">
+                Exodus Logistics &mdash; Simplifying Global Shipping
+              </p>
+            </td>
+          </tr>
 
-                  <tr>
-                    <td style="padding:0 ${outerPad}px;">
-                      <div style="height:1px;background:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>
-                    </td>
-                  </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 
-                  <tr>
-                    <td style="padding:14px ${outerPad}px ${outerPad}px ${outerPad}px;">
-                      <p style="margin:0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
-                        Support: <a href="mailto:${params.supportEmail}" style="color:#2563eb;text-decoration:none;">${params.supportEmail}</a>
-                      </p>
-                      <p style="margin:6px 0 0 0;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
-                        © ${year} Exodus Logistics. All rights reserved.
-                      </p>
-                    </td>
-                  </tr>
-
-                </table>
-              </td>
-            </tr>
-
-            ${sentToLine}
-
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+</body>
 </html>`;
-
-  return html;
 }
