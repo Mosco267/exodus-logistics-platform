@@ -78,14 +78,14 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
 
          <!-- HEADER -->
 <tr>
-  <td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:0;margin:0;line-height:0;font-size:0;text-align:center;display:block;overflow:hidden;">
-    <img
-      src="${logoUrl}"
-      alt="Exodus Logistics"
-      width="560"
-      style="width:100%;max-width:560px;height:auto;display:block;margin:0 auto;border:0;line-height:0;font-size:0;"
-    />
-  </td>
+  <td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:28px 40px;text-align:center;">
+  <img
+    src="${logoUrl}"
+    alt="Exodus Logistics"
+    width="200"
+    style="width:200px;max-width:100%;height:auto;display:block;margin:0 auto;border:0;"
+  />
+</td>
 </tr>
 
           <!-- BODY -->
