@@ -82,8 +82,8 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
   <img
     src="${logoUrl}"
     alt="Exodus Logistics"
-    width="200"
-    style="width:200px;max-width:100%;height:auto;display:block;margin:0 auto;border:0;"
+    width="240"
+style="width:240px;max-width:100%;height:auto;display:block;margin:0 0 0 20px;border:0;"
   />
 </td>
 </tr>
