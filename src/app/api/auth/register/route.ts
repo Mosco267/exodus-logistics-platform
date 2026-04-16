@@ -90,15 +90,15 @@ export async function POST(req: Request) {
     `).join("");
 
     const bodyHtml = `
-      <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+      <p style="margin:0 0 16px 0;font-size:17px;line-height:28px;color:#111827;">
         Hi <strong style="color:#111827;">${name}</strong>,
       </p>
-      <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      <p style="margin:0 0 14px 0;font-size:17px;line-height:28px;color:#111827;">
         Welcome to Exodus Logistics! Thank you for signing up. To complete your
         registration and activate your account, please enter the verification
         code below.
       </p>
-      <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#374151;">
+      <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#374151;">
         This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
       </p>
 

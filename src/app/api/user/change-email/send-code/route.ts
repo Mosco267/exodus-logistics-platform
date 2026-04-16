@@ -69,14 +69,14 @@ export async function POST(req: Request) {
   `).join("");
 
   const bodyHtml = `
-    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
-      Hello,
-    </p>
-    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    <p style="margin:0 0 16px 0;font-size:17px;line-height:28px;color:#111827;">
+  Hello <strong style="color:#111827;">${session.user.name || 'there'}</strong>,
+</p>
+    <p style="margin:0 0 14px 0;font-size:17px;line-height:28px;color:#111827;">
       You requested to change the email address on your Exodus Logistics account to
       <strong style="color:#1d4ed8;">${normalizedNew}</strong>.
     </p>
-    <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#374151;">
+    <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#374151;">
       Enter the 6-digit verification code below in the app to confirm this change.
       This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
     </p>
