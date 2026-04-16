@@ -58,26 +58,24 @@ export async function POST(req: Request) {
       <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;">
         Hi <strong style="color:#111827;">${user.name || "there"}</strong>,
       </p>
-      <p style="margin:0 0 20px 0;font-size:18px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;">
         We received a request to reset the password for your Exodus Logistics account.
         Click the button below to create a new password. This link expires in
         <strong style="color:#ef4444;">1 hour</strong>.
       </p>
+      <p style="margin:0 0 24px 0;font-size:17px;line-height:24px;color:#374151;">
+        If you did not request this, you can safely ignore this email. Your account remains secure.
+      </p>
 
       <!-- Security notice -->
-      <div style="background:#fff7ed;border-radius:12px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #f97316;">
-        <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Security Notice</p>
-        <p style="margin:0 0 6px 0;font-size:15px;color:#78350f;">
-          If you did not request a password reset, please ignore this email.
-          Your account remains secure and no changes have been made.
-        </p>
-        <p style="margin:0;font-size:15px;color:#78350f;">
-          If you are concerned about your account security, contact us immediately at
-          <a href="mailto:${SUPPORT_EMAIL}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">${SUPPORT_EMAIL}</a>
-        </p>
+      <div style="background:#fff7ed;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f97316;">
+        <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Security Notice</p>
+        <p style="margin:0 0 6px 0;font-size:13px;color:#78350f;">&#x2713;&nbsp; This link expires in 1 hour and can only be used once</p>
+        <p style="margin:0 0 6px 0;font-size:13px;color:#78350f;">&#x2713;&nbsp; Never share this link with anyone, including Exodus Logistics staff</p>
+        <p style="margin:0;font-size:13px;color:#78350f;">&#x2713;&nbsp; If you are concerned, contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">${SUPPORT_EMAIL}</a></p>
       </div>
 
-      <p style="margin:0 0 6px 0;font-size:14px;color:#9ca3af;text-align:center;">
+      <p style="margin:0 0 6px 0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
         If the button below does not work, copy and paste this link into your browser:
       </p>
       <p style="margin:0;font-size:12px;color:#1d4ed8;text-align:center;word-break:break-all;">

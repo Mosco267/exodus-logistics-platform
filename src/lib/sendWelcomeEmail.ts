@@ -21,29 +21,32 @@ export async function sendWelcomeEmail(name: string, email: string) {
     <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;">
       Congratulations, <strong style="color:#111827;">${name}</strong>!
     </p>
-    <p style="margin:0 0 20px 0;font-size:18px;line-height:28px;color:#111827;">
+    <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;">
       Your Exodus Logistics account is now fully activated. Welcome to a smarter
-      way to manage shipments, invoices, and global logistics — all in one place.
+      way to manage shipments, invoices, and global logistics all in one place.
+    </p>
+    <p style="margin:0 0 24px 0;font-size:17px;line-height:24px;color:#374151;">
+      Your dashboard is ready and waiting. Click the button below to get started.
     </p>
 
     <!-- Getting started card -->
-    <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #1d4ed8;">
-      <p style="margin:0 0 12px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">Getting started is easy:</p>
-      <p style="margin:0 0 8px 0;font-size:15px;color:#374151;">&#x1F4E6;&nbsp; Create your first shipment and track it in real time</p>
-      <p style="margin:0 0 8px 0;font-size:15px;color:#374151;">&#x1F4CB;&nbsp; View and manage invoices from your dashboard</p>
-      <p style="margin:0 0 8px 0;font-size:15px;color:#374151;">&#x1F514;&nbsp; Set your notification preferences to stay updated</p>
-      <p style="margin:0;font-size:15px;color:#374151;">&#x1F310;&nbsp; Ship to 120+ countries through our global network</p>
+    <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1d4ed8;">
+      <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">Getting started is easy:</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Create your first shipment and track it in real time</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; View and manage invoices from your dashboard</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Set your notification preferences to stay updated</p>
+      <p style="margin:0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Ship to 120+ countries through our global network</p>
     </div>
 
-    <p style="margin:0 0 20px 0;font-size:16px;line-height:26px;color:#374151;">
-      Your dashboard is ready and waiting. Click the button below to get started.
+    <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
+      If you did not create this account, you can safely ignore this email. No action is needed.
     </p>
   `;
 
   const html = renderEmailTemplate({
     subject: "Welcome to Exodus Logistics — Your account is ready!",
-    title: `Welcome aboard, ${name}!`,
-    preheader: `Your Exodus Logistics account is now active. Let's get started.`,
+    title: "Welcome to Exodus Logistics!",
+    preheader: `Congratulations ${name}, your Exodus Logistics account is now active.`,
     bodyHtml,
     button: {
       text: "Go to My Dashboard",
