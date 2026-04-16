@@ -33,52 +33,37 @@ export async function POST(req: Request) {
   const currentEmail = (session.user.email || "").toLowerCase();
 
   if (normalizedNew === currentEmail)
-    return NextResponse.json(
-      { error: "This is already your current email" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "This is already your current email" }, { status: 400 });
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
   const existing = await db.collection("users").findOne({ email: normalizedNew });
   if (existing)
-    return NextResponse.json(
-      { error: "This email is already in use" },
-      { status: 409 }
-    );
+    return NextResponse.json({ error: "This email is already in use" }, { status: 409 });
 
-  // Generate 6-digit code
   const code = crypto.randomInt(100000, 999999).toString();
   const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
   await db.collection("users").updateOne(
     { email: currentEmail },
-    {
-      $set: {
-        emailChangeCode: code,
-        emailChangeExpiry: expiry,
-        emailChangePending: normalizedNew,
-      },
-    }
+    { $set: { emailChangeCode: code, emailChangeExpiry: expiry, emailChangePending: normalizedNew } }
   );
 
-  // Build the 6 code boxes
-  const codeBoxes = code.split("").map(digit => `
-    <td style="padding:0 4px;">
+  // 6 individual digit boxes
+  const codeBoxesHtml = code.split("").map(digit => `
+    <td style="padding:0 5px;">
       <div style="
-        width:44px;
-        height:52px;
-        background:#f8fafc;
-        border:2px solid #e2e8f0;
+        width:46px;height:56px;
+        background:#f0f4ff;
+        border:2px solid #e0e8ff;
         border-radius:12px;
         text-align:center;
-        line-height:52px;
-        font-size:26px;
+        line-height:56px;
+        font-size:28px;
         font-weight:900;
-        color:#0b3aa4;
-        font-family:monospace;
-        letter-spacing:0;
+        color:#1d4ed8;
+        font-family:'Courier New',Courier,monospace;
       ">${digit}</div>
     </td>
   `).join("");
@@ -87,34 +72,36 @@ export async function POST(req: Request) {
     <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
       Hello,
     </p>
-
     <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
-      You requested to change your Exodus Logistics account email to
-      <strong>${normalizedNew}</strong>.
+      You requested to change the email address on your Exodus Logistics account to
+      <strong style="color:#1d4ed8;">${normalizedNew}</strong>.
+    </p>
+    <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#374151;">
+      Enter the 6-digit verification code below in the app to confirm this change.
+      This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
     </p>
 
-    <p style="margin:0 0 20px 0;font-size:15px;line-height:24px;color:#374151;">
-      Enter the verification code below in the app to confirm the change.
-      This code expires in <strong>10 minutes</strong>.
-    </p>
+    <!-- Code box -->
+    <div style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;border:1px solid #e0e8ff;">
+      <p style="margin:0 0 16px 0;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your verification code</p>
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+        <tr>${codeBoxesHtml}</tr>
+      </table>
+      <p style="margin:16px 0 0 0;font-size:13px;color:#9ca3af;">
+        Expires in <strong style="color:#ef4444;">10 minutes</strong>
+      </p>
+    </div>
 
-    <!-- Code boxes -->
-    <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto 24px auto;">
-      <tr>
-        ${codeBoxes}
-      </tr>
-    </table>
-
-    <p style="margin:0 0 14px 0;font-size:13px;line-height:20px;color:#6b7280;text-align:center;">
+    <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
       If you did not request this change, you can safely ignore this email.
-      Your account remains secure.
+      Your account and current email remain secure.
     </p>
   `;
 
   const html = renderEmailTemplate({
     subject: "Verify your new email address",
     title: "Email Verification Code",
-    preheader: `Your Exodus Logistics verification code is ${code}`,
+    preheader: `Your Exodus Logistics email verification code is ${code}`,
     bodyHtml,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
