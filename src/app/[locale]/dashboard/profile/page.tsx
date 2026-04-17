@@ -675,6 +675,8 @@ const [dialCountry, setDialCountry] = useState<typeof COUNTRIES[0] | null>(null)
   const [emailSending, setEmailSending] = useState(false);
 const [emailError, setEmailError] = useState('');
 
+const [countdown, setCountdown] = useState(0);
+
 const profileChanged =
   profile.name !== savedProfile.name ||
   profile.address !== savedProfile.address ||
@@ -792,19 +794,28 @@ setSavedPhoneNum(phoneNum);
   };
 
   const handleSendEmailCode = async () => {
-    if (!newEmail || !/^\S+@\S+\.\S+$/.test(newEmail)) { setEmailError('Enter a valid email address'); return; }
-    setEmailSending(true); setEmailError('');
-    try {
-      const res = await fetch('/api/user/change-email/send-code', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newEmail }),
+  if (!newEmail || !/^\S+@\S+\.\S+$/.test(newEmail)) { setEmailError('Enter a valid email address'); return; }
+  setEmailSending(true); setEmailError('');
+  try {
+    const res = await fetch('/api/user/change-email/send-code', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newEmail }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setEmailError(data.error || 'Failed to send code'); return; }
+    setEmailStep('verify');
+    setEmailCode('');
+    // Start 60 second countdown
+    setCountdown(60);
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
       });
-      const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Failed to send code'); return; }
-      setEmailStep('verify');
-    } catch { setEmailError('Failed to send code'); }
-    finally { setEmailSending(false); }
-  };
+    }, 1000);
+  } catch { setEmailError('Failed to send code'); }
+  finally { setEmailSending(false); }
+};
 
   const handleVerifyEmailCode = async () => {
     if (!emailCode) { setEmailError('Enter the verification code'); return; }
@@ -812,7 +823,7 @@ setSavedPhoneNum(phoneNum);
     try {
       const res = await fetch('/api/user/change-email/verify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newEmail, code: emailCode }),
+        body: JSON.stringify({ newEmail, code: emailCode.replace(/\D/g, '') }),
       });
       const data = await res.json();
       if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
@@ -972,8 +983,16 @@ setSavedPhoneNum(phoneNum);
       {/* EMAIL CHANGE MODAL */}
 {editingEmail && typeof document !== 'undefined' && createPortal(
   <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-      onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }} />
+    <div
+      className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      onClick={() => {
+        setEditingEmail(false);
+        setEmailStep('input');
+        setEmailError('');
+        setEmailCode('');
+        setCountdown(0);
+      }}
+    />
     <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
 
       {/* Gradient top bar */}
@@ -983,8 +1002,7 @@ setSavedPhoneNum(phoneNum);
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: accent }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent }}>
               <Mail className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -997,7 +1015,13 @@ setSavedPhoneNum(phoneNum);
             </div>
           </div>
           <button
-            onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }}
+            onClick={() => {
+              setEditingEmail(false);
+              setEmailStep('input');
+              setEmailError('');
+              setEmailCode('');
+              setCountdown(0);
+            }}
             className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-400">
             <X size={16} />
           </button>
@@ -1016,15 +1040,11 @@ setSavedPhoneNum(phoneNum);
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
                 style={{ fontSize: '16px' }}
               />
-              {emailError && (
-                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">{emailError}</p>
-              )}
+              {emailError && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">{emailError}</p>}
             </div>
-
             <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
-              A 6-digit verification code will be sent to your new email. You will need to enter it to confirm the change.
+              A 6-digit verification code will be sent to your new email address.
             </p>
-
             <div className="flex gap-2.5 pt-1">
               <button
                 onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }}
@@ -1043,41 +1063,86 @@ setSavedPhoneNum(phoneNum);
           </div>
         ) : (
           <div className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Verification Code</label>
-              <input
-                value={emailCode}
-                onChange={e => { setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setEmailError(''); }}
-                placeholder="000000"
-                inputMode="numeric"
-                maxLength={6}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-center text-2xl font-bold tracking-[0.4em] text-gray-900 dark:text-white placeholder:text-gray-300 placeholder:tracking-[0.3em] focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
-                style={{ fontSize: '24px' }}
-              />
-              {emailError && (
-                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">{emailError}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Enter the 6-digit code sent to <strong className="text-gray-700 dark:text-gray-200">{newEmail}</strong>
+            </p>
+
+            {/* 6 individual code boxes */}
+            <div className="flex items-center justify-center gap-2">
+              {[0,1,2,3,4,5].map(i => (
+                <input
+                  key={i}
+                  id={`email-code-box-${i}`}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={emailCode[i] || ''}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (!val) {
+                      const arr = emailCode.split('');
+                      arr[i] = '';
+                      setEmailCode(arr.join(''));
+                      return;
+                    }
+                    const arr = emailCode.split('');
+                    arr[i] = val[val.length - 1];
+                    setEmailCode(arr.join(''));
+                    setEmailError('');
+                    // Move to next box
+                    if (i < 5) {
+                      const next = document.getElementById(`email-code-box-${i + 1}`);
+                      if (next) (next as HTMLInputElement).focus();
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Backspace' && !emailCode[i] && i > 0) {
+                      const prev = document.getElementById(`email-code-box-${i - 1}`);
+                      if (prev) (prev as HTMLInputElement).focus();
+                    }
+                  }}
+                  onPaste={e => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                    setEmailCode(pasted.padEnd(6, '').slice(0, 6));
+                    const last = Math.min(pasted.length, 5);
+                    const box = document.getElementById(`email-code-box-${last}`);
+                    if (box) (box as HTMLInputElement).focus();
+                  }}
+                  className="w-11 h-13 text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
+                  style={{ fontSize: '20px', height: '52px', width: '44px' }}
+                />
+              ))}
+            </div>
+
+            {emailError && <p className="text-xs text-red-600 dark:text-red-400 font-medium text-center">{emailError}</p>}
+
+            {/* Countdown / Resend */}
+            <div className="text-center">
+              {countdown > 0 ? (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Resend code in <strong className="text-gray-600 dark:text-gray-300">{countdown}s</strong>
+                </p>
+              ) : (
+                <button
+                  onClick={handleSendEmailCode}
+                  disabled={emailSending}
+                  className="text-xs font-semibold cursor-pointer hover:underline disabled:opacity-50"
+                  style={{ color: accent.includes('gradient') ? '#0b3aa4' : accent }}>
+                  Resend code
+                </button>
               )}
             </div>
 
-            <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
-              Didn't receive the code?{' '}
-              <button
-                onClick={handleSendEmailCode}
-                disabled={emailSending}
-                className="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer hover:underline disabled:opacity-50">
-                Resend
-              </button>
-            </p>
-
             <div className="flex gap-2.5 pt-1">
               <button
-                onClick={() => { setEmailStep('input'); setEmailCode(''); setEmailError(''); }}
+                onClick={() => { setEmailStep('input'); setEmailCode(''); setEmailError(''); setCountdown(0); }}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
                 Back
               </button>
               <button
                 onClick={handleVerifyEmailCode}
-                disabled={emailSending || emailCode.length < 6}
+                disabled={emailSending || emailCode.replace(/\D/g, '').length < 6}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
                 style={{ background: accent }}>
                 {emailSending ? <Loader2 size={14} className="animate-spin" /> : null}
