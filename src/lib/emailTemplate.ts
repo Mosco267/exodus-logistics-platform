@@ -32,7 +32,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
   <tr>
     <td>
       <a href="${params.button.href}"
-        style="display:inline-block;background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:0.2px;">
+        style="display:inline-block;background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:0.2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
         ${esc(params.button.text)}
       </a>
     </td>
@@ -44,7 +44,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"
         style="background:#eff6ff;border:1px solid #dbeafe;border-radius:12px;margin-top:16px;">
         <tr>
-          <td style="padding:14px 16px;font-size:14px;line-height:22px;color:#1e3a8a;">
+          <td style="padding:14px 16px;font-size:14px;line-height:22px;color:#1e3a8a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
             ${params.calloutHtml}
           </td>
         </tr>
@@ -52,7 +52,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
     : "";
 
   const sentToLine = params.sentTo
-    ? `<p class="footer-text" style="margin:6px 0 0 0;font-size:11px;line-height:16px;color:rgba(255,255,255,0.3);text-align:center;">
+    ? `<p class="footer-text" style="margin:6px 0 0 0;font-size:11px;line-height:16px;color:rgba(255,255,255,0.3);text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
         Sent to ${esc(params.sentTo)}
       </p>`
     : "";
@@ -65,14 +65,15 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
   <title>${esc(params.subject)}</title>
   <style>
     @media only screen and (max-width: 600px) {
+      .email-wrapper { padding: 20px 8px !important; }
       .email-container { width: 100% !important; }
-      .logo-img { width: 150px !important; max-width: 150px !important; }
-      .header-td { padding: 18px 20px !important; }
+      .logo-img { width: 180px !important; max-width: 180px !important; margin: 0 auto 0 30px !important; }
+      .header-td { padding: 20px 24px !important; }
       .body-td { padding: 24px 20px !important; }
       .footer-td { padding: 18px 20px !important; }
       .footer-text { font-size: 10px !important; line-height: 15px !important; }
       .footer-links { font-size: 10px !important; }
-      h1 { font-size: 20px !important; line-height: 28px !important; }
+      h1 { font-size: 22px !important; line-height: 30px !important; }
     }
   </style>
 </head>
@@ -83,14 +84,14 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
     ${esc(preheader)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f0f4ff;padding:40px 16px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="email-wrapper" style="background:#f0f4ff;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table class="email-container" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;">
+        <table class="email-container" role="presentation" cellspacing="0" cellpadding="0" style="width:560px;max-width:560px;">
 
           <!-- HEADER -->
           <tr>
-            <td class="header-td" style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:28px 40px;text-align:center;">
+            <td class="header-td" style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:28px 40px;">
               <img
                 src="${logoUrl}"
                 alt="Exodus Logistics"
@@ -103,8 +104,8 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
 
           <!-- BODY -->
           <tr>
-            <td class="body-td" style="background:#ffffff;padding:36px 40px 28px 40px;">
-              <h1 style="margin:0 0 6px 0;font-size:26px;line-height:34px;font-weight:800;color:#111827;">
+            <td class="body-td" style="background:#ffffff;padding:36px 40px 28px 40px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+              <h1 style="margin:0 0 6px 0;font-size:26px;line-height:34px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
                 ${esc(params.title)}
               </h1>
 
@@ -114,7 +115,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
               ${calloutHtml}
               ${buttonHtml}
 
-              <p style="margin:24px 0 0 0;font-size:15px;line-height:24px;color:#374151;">
+              <p style="margin:24px 0 0 0;font-size:15px;line-height:24px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
                 Regards,<br />
                 <strong style="color:#111827;">Exodus Logistics Support</strong>
               </p>
@@ -123,19 +124,19 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
 
           <!-- FOOTER -->
           <tr>
-            <td class="footer-td" style="background:#1e293b;padding:24px 40px;text-align:center;border-radius:0 0 20px 20px;">
-              <p class="footer-text" style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#ffffff;">Exodus Logistics Ltd.</p>
-              <p class="footer-text" style="margin:0 0 10px 0;font-size:11px;color:rgba(255,255,255,0.5);">Your trusted global shipping partner</p>
-              <p class="footer-links" style="margin:0 0 8px 0;font-size:11px;color:rgba(255,255,255,0.4);">
-                <a href="${appUrl}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Website</a>
+            <td class="footer-td" style="background:#1e293b;padding:24px 40px;text-align:center;border-radius:0 0 20px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+              <p class="footer-text" style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Exodus Logistics Ltd.</p>
+              <p class="footer-text" style="margin:0 0 10px 0;font-size:11px;color:rgba(255,255,255,0.5);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Your trusted global shipping partner</p>
+              <p class="footer-links" style="margin:0 0 8px 0;font-size:11px;color:rgba(255,255,255,0.4);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+                <a href="${appUrl}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Website</a>
                 &bull;
-                <a href="mailto:${params.supportEmail}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Support</a>
+                <a href="mailto:${params.supportEmail}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Support</a>
                 &bull;
-                <a href="${appUrl}/en/privacy" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Privacy</a>
+                <a href="${appUrl}/en/privacy" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Privacy</a>
                 &bull;
-                <a href="${appUrl}/en/terms" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Terms</a>
+                <a href="${appUrl}/en/terms" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Terms</a>
               </p>
-              <p class="footer-text" style="margin:0;font-size:10px;color:rgba(255,255,255,0.3);">
+              <p class="footer-text" style="margin:0;font-size:10px;color:rgba(255,255,255,0.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
                 &copy; ${year} Exodus Logistics Ltd. All rights reserved.
               </p>
               ${sentToLine}

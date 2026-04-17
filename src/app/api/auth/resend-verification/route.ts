@@ -19,6 +19,8 @@ const SUPPORT_EMAIL =
 const RESEND_FROM =
   process.env.RESEND_FROM || `Exodus Logistics <${SUPPORT_EMAIL}>`;
 
+const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
@@ -43,51 +45,42 @@ export async function POST(req: Request) {
 
     const codeBoxesHtml = verificationCode.split("").map(digit => `
       <td style="padding:0 5px;">
-        <div style="
-          width:52px;height:64px;
-          background:#f0f4ff;
-          border:2px solid #e0e8ff;
-          border-radius:12px;
-          text-align:center;
-          line-height:64px;
-          font-size:32px;
-          font-weight:900;
-          color:#1d4ed8;
-          font-family:'Courier New',Courier,monospace;
-        ">${digit}</div>
+        <div style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
       </td>
     `).join("");
 
     const bodyHtml = `
-      <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;font-family:${FONT};">
         Hi <strong style="color:#111827;">${user.name || "there"}</strong>,
       </p>
-      <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;font-family:${FONT};">
         You requested a new verification code for your Exodus Logistics account.
         Use the code below to complete your email verification.
         This code is valid for <strong style="color:#ef4444;">10 minutes</strong>.
       </p>
 
-      <!-- Code box -->
-      <div style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;margin:24px 0;border:1px solid #e0e8ff;">
-        <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your new verification code</p>
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
-          <tr>${codeBoxesHtml}</tr>
-        </table>
-        <p style="margin:16px 0 0 0;font-size:14px;color:#9ca3af;">
-          Expires in <strong style="color:#ef4444;">10 minutes</strong>
-        </p>
-      </div>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
+        <tr>
+          <td style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;border:1px solid #e0e8ff;">
+            <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Your new verification code</p>
+            <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+              <tr>${codeBoxesHtml}</tr>
+            </table>
+            <p style="margin:16px 0 0 0;font-size:14px;color:#9ca3af;font-family:${FONT};">
+              Expires in <strong style="color:#ef4444;">10 minutes</strong>
+            </p>
+          </td>
+        </tr>
+      </table>
 
-      <!-- Security note -->
       <div style="background:#fff7ed;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f97316;">
-        <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;">Security reminder</p>
-        <p style="margin:0 0 6px 0;font-size:14px;color:#78350f;">Never share this code with anyone, including Exodus Logistics staff.</p>
-        <p style="margin:0 0 6px 0;font-size:14px;color:#78350f;">This code is single-use and expires in 10 minutes.</p>
-        <p style="margin:0;font-size:14px;color:#78350f;">If you did not request this, please secure your account immediately.</p>
+        <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Security reminder</p>
+        <p style="margin:0 0 6px 0;font-size:13px;color:#78350f;font-family:${FONT};">Never share this code with anyone, including Exodus Logistics staff.</p>
+        <p style="margin:0 0 6px 0;font-size:13px;color:#78350f;font-family:${FONT};">This code is single-use and expires in 10 minutes.</p>
+        <p style="margin:0;font-size:13px;color:#78350f;font-family:${FONT};">If you did not request this, please secure your account immediately.</p>
       </div>
 
-      <p style="margin:0;font-size:14px;line-height:20px;color:#9ca3af;text-align:center;">
+      <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;font-family:${FONT};">
         If you did not request this code, you can safely ignore this email.
       </p>
     `;
@@ -103,11 +96,9 @@ export async function POST(req: Request) {
     });
 
     await resend.emails.send({
-      from: RESEND_FROM,
-      to: email,
+      from: RESEND_FROM, to: email,
       subject: "Your new verification code — Exodus Logistics",
-      html,
-      replyTo: SUPPORT_EMAIL,
+      html, replyTo: SUPPORT_EMAIL,
     });
 
     return NextResponse.json({ ok: true });

@@ -20,6 +20,8 @@ const SUPPORT_EMAIL =
 const RESEND_FROM =
   process.env.RESEND_FROM || `Exodus Logistics <${SUPPORT_EMAIL}>`;
 
+const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -40,88 +42,66 @@ export async function POST(req: Request) {
 
     const blocked = await db.collection("blocked_emails").findOne({ email });
     if (blocked)
-      return NextResponse.json(
-        { error: "This email address is not eligible for registration." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "This email address is not eligible for registration." }, { status: 403 });
 
     const existing = await db.collection("users").findOne({ email });
     if (existing)
-      return NextResponse.json(
-        { error: "An account with this email already exists." },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
 
     const passwordHash = await bcrypt.hash(password, 12);
-
     const verificationCode = crypto.randomInt(100000, 999999).toString();
     const verificationExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
     await db.collection("pending_users").deleteMany({ email });
     await db.collection("pending_users").insertOne({
-      name,
-      email,
-      passwordHash,
+      name, email, passwordHash,
       phone: String(body.phone || "").trim(),
       country: String(body.country || "").trim(),
-      role: "USER",
-      provider: "credentials",
-      verificationCode,
-      verificationExpiry,
+      role: "USER", provider: "credentials",
+      verificationCode, verificationExpiry,
       createdAt: new Date(),
     });
 
-    // 6 individual digit boxes
     const codeBoxesHtml = verificationCode.split("").map(digit => `
       <td style="padding:0 5px;">
-        <div style="
-          width:46px;height:56px;
-          background:#f0f4ff;
-          border:2px solid #e0e8ff;
-          border-radius:12px;
-          text-align:center;
-          line-height:56px;
-          font-size:28px;
-          font-weight:900;
-          color:#1d4ed8;
-          font-family:'Courier New',Courier,monospace;
-        ">${digit}</div>
+        <div style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
       </td>
     `).join("");
 
     const bodyHtml = `
-      <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 16px 0;font-size:18px;line-height:28px;color:#111827;font-family:${FONT};">
         Hi <strong style="color:#111827;">${name}</strong>,
       </p>
-      <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;">
+      <p style="margin:0 0 14px 0;font-size:18px;line-height:28px;color:#111827;font-family:${FONT};">
         Welcome to Exodus Logistics! Thank you for signing up. To complete your
-        registration and activate your account, please enter the verification
-        code below.
+        registration and activate your account, please enter the verification code below.
       </p>
-      <p style="margin:0 0 24px 0;font-size:17px;line-height:24px;color:#374151;">
+      <p style="margin:0 0 24px 0;font-size:17px;line-height:24px;color:#374151;font-family:${FONT};">
         This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
       </p>
 
-      <!-- Code box -->
-      <div style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;border:1px solid #e0e8ff;">
-        <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;">Your verification code</p>
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
-          <tr>${codeBoxesHtml}</tr>
-        </table>
-        <p style="margin:16px 0 0 0;font-size:14px;color:#9ca3af;">
-          Expires in <strong style="color:#ef4444;">10 minutes</strong>
-        </p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;border:1px solid #e0e8ff;">
+            <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Your verification code</p>
+            <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+              <tr>${codeBoxesHtml}</tr>
+            </table>
+            <p style="margin:16px 0 0 0;font-size:14px;color:#9ca3af;font-family:${FONT};">
+              Expires in <strong style="color:#ef4444;">10 minutes</strong>
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-top:20px;border-left:4px solid #1d4ed8;">
+        <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">What you can do with Exodus Logistics:</p>
+        <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Track shipments in real time across 120+ countries</p>
+        <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Generate and manage invoices automatically</p>
+        <p style="margin:0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Access our global logistics network instantly</p>
       </div>
 
-      <!-- What's next -->
-      <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1d4ed8;">
-        <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;">What you can do with Exodus Logistics:</p>
-        <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Track shipments in real time across 120+ countries</p>
-        <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Generate and manage invoices automatically</p>
-        <p style="margin:0;font-size:13px;color:#6b7280;">&#x2713;&nbsp; Access our global logistics network instantly</p>
-      </div>
-
-      <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
+      <p style="margin:20px 0 0 0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;font-family:${FONT};">
         If you didn't create this account, you can safely ignore this email. No action is needed.
       </p>
     `;
@@ -137,11 +117,9 @@ export async function POST(req: Request) {
     });
 
     await resend.emails.send({
-      from: RESEND_FROM,
-      to: email,
+      from: RESEND_FROM, to: email,
       subject: "Verify your Exodus Logistics account",
-      html,
-      replyTo: SUPPORT_EMAIL,
+      html, replyTo: SUPPORT_EMAIL,
     });
 
     return NextResponse.json({ ok: true });
