@@ -616,7 +616,7 @@ function DialCodePicker({
 
 // ─── Main Page ────────────────────────────────────────────────
 export default function ProfilePage() {
-  const { data: session } = useSession();
+ const { data: session, update: updateSession } = useSession();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const fileRef = useRef<HTMLInputElement>(null);
@@ -818,21 +818,30 @@ setSavedPhoneNum(phoneNum);
 };
 
   const handleVerifyEmailCode = async () => {
-    if (!emailCode) { setEmailError('Enter the verification code'); return; }
-    setEmailSending(true); setEmailError('');
-    try {
-      const res = await fetch('/api/user/change-email/verify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newEmail, code: emailCode.replace(/\D/g, '') }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
-      setProfile(p => ({ ...p, email: newEmail }));
-      setEditingEmail(false); setEmailStep('input'); setEmailCode(''); setNewEmail('');
-      setShowSuccess(true);
-    } catch { setEmailError('Verification failed'); }
-    finally { setEmailSending(false); }
-  };
+  if (!emailCode) { setEmailError('Enter the verification code'); return; }
+  setEmailSending(true); setEmailError('');
+  try {
+    const res = await fetch('/api/user/change-email/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newEmail, code: emailCode.replace(/\D/g, '') }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
+
+    // Update session with new email so all subsequent API calls use it
+    await updateSession({ email: newEmail });
+
+    setProfile(p => ({ ...p, email: newEmail }));
+    setSavedProfile(p => ({ ...p, email: newEmail }));
+    setEditingEmail(false);
+    setEmailStep('input');
+    setEmailCode('');
+    setNewEmail('');
+    setCountdown(0);
+    setShowSuccess(true);
+  } catch { setEmailError('Verification failed'); }
+  finally { setEmailSending(false); }
+};
 
   const initials = profile.name
     ? profile.name.split(' ').filter(Boolean).map(p => p[0]).join('').toUpperCase().slice(0, 2)
