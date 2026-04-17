@@ -52,8 +52,8 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
     : "";
 
   const sentToLine = params.sentTo
-    ? `<p style="margin:6px 0 0 0;font-size:11px;line-height:16px;color:#9ca3af;text-align:center;">
-        This message was sent to ${esc(params.sentTo)}.
+    ? `<p class="footer-text" style="margin:6px 0 0 0;font-size:11px;line-height:16px;color:rgba(255,255,255,0.3);text-align:center;">
+        Sent to ${esc(params.sentTo)}
       </p>`
     : "";
 
@@ -63,6 +63,18 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>${esc(params.subject)}</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .logo-img { width: 150px !important; max-width: 150px !important; }
+      .header-td { padding: 18px 20px !important; }
+      .body-td { padding: 24px 20px !important; }
+      .footer-td { padding: 18px 20px !important; }
+      .footer-text { font-size: 10px !important; line-height: 15px !important; }
+      .footer-links { font-size: 10px !important; }
+      h1 { font-size: 20px !important; line-height: 28px !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background:#f0f4ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111827;">
 
@@ -74,24 +86,25 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f0f4ff;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;">
+        <table class="email-container" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;">
 
-         <!-- HEADER -->
-<tr>
-  <td style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:28px 40px;text-align:center;">
-  <img
-    src="${logoUrl}"
-    alt="Exodus Logistics"
-    width="240"
-style="width:240px;max-width:100%;height:auto;display:block;margin:0 auto 0 48px;border:0;"
-  />
-</td>
-</tr>
+          <!-- HEADER -->
+          <tr>
+            <td class="header-td" style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:28px 40px;text-align:center;">
+              <img
+                src="${logoUrl}"
+                alt="Exodus Logistics"
+                class="logo-img"
+                width="240"
+                style="width:240px;max-width:240px;height:auto;display:block;margin:0 auto 0 48px;border:0;"
+              />
+            </td>
+          </tr>
 
           <!-- BODY -->
           <tr>
-            <td style="background:#ffffff;padding:36px 40px 28px 40px;">
-              <h1 style="margin:0 0 6px 0;font-size:30px;line-height:40px;font-weight:800;color:#111827;">
+            <td class="body-td" style="background:#ffffff;padding:36px 40px 28px 40px;">
+              <h1 style="margin:0 0 6px 0;font-size:26px;line-height:34px;font-weight:800;color:#111827;">
                 ${esc(params.title)}
               </h1>
 
@@ -110,22 +123,22 @@ style="width:240px;max-width:100%;height:auto;display:block;margin:0 auto 0 48px
 
           <!-- FOOTER -->
           <tr>
-            <td style="background:#1e293b;padding:24px 40px;text-align:center;border-radius:0 0 20px 20px;">
-              <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#ffffff;">Exodus Logistics Ltd.</p>
-              <p style="margin:0 0 10px 0;font-size:12px;color:rgba(255,255,255,0.5);">Your trusted global shipping partner</p>
-              <p style="margin:0 0 8px 0;font-size:12px;color:rgba(255,255,255,0.4);">
-                <a href="${appUrl}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 6px;">Website</a>
+            <td class="footer-td" style="background:#1e293b;padding:24px 40px;text-align:center;border-radius:0 0 20px 20px;">
+              <p class="footer-text" style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#ffffff;">Exodus Logistics Ltd.</p>
+              <p class="footer-text" style="margin:0 0 10px 0;font-size:11px;color:rgba(255,255,255,0.5);">Your trusted global shipping partner</p>
+              <p class="footer-links" style="margin:0 0 8px 0;font-size:11px;color:rgba(255,255,255,0.4);">
+                <a href="${appUrl}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Website</a>
                 &bull;
-                <a href="mailto:${params.supportEmail}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 6px;">Support</a>
+                <a href="mailto:${params.supportEmail}" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Support</a>
                 &bull;
-                <a href="${appUrl}/en/privacy" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 6px;">Privacy</a>
+                <a href="${appUrl}/en/privacy" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Privacy</a>
                 &bull;
-                <a href="${appUrl}/en/terms" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 6px;">Terms</a>
+                <a href="${appUrl}/en/terms" style="color:rgba(255,255,255,0.5);text-decoration:none;margin:0 5px;">Terms</a>
               </p>
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.3);">
+              <p class="footer-text" style="margin:0;font-size:10px;color:rgba(255,255,255,0.3);">
                 &copy; ${year} Exodus Logistics Ltd. All rights reserved.
               </p>
-              ${sentToLine ? `<p style="margin:6px 0 0 0;font-size:11px;color:rgba(255,255,255,0.3);">${params.sentTo ? `Sent to ${esc(params.sentTo)}` : ''}</p>` : ''}
+              ${sentToLine}
             </td>
           </tr>
 
