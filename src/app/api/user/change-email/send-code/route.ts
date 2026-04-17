@@ -55,9 +55,9 @@ export async function POST(req: Request) {
   const name = session.user.name || "there";
 
   const codeBoxesHtml = code.split("").map(digit => `
-    <td style="padding:0 5px;">
-      <div style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
-    </td>
+    <td class="code-cell" style="padding:0 5px;">
+  <div class="code-box" style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
+</td>
   `).join("");
 
   const bodyHtml = `

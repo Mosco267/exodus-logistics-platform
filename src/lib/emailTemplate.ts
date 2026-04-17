@@ -74,6 +74,8 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
       .footer-text { font-size: 10px !important; line-height: 15px !important; }
       .footer-links { font-size: 10px !important; }
       h1 { font-size: 22px !important; line-height: 30px !important; }
+      .code-box { width: 32px !important; height: 40px !important; font-size: 20px !important; line-height: 40px !important; }
+     .code-cell { padding: 0 3px !important; }
     }
   </style>
 </head>
