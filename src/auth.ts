@@ -121,8 +121,9 @@ if (token.uid) {
     const db = client.db(process.env.MONGODB_DB);
     const { ObjectId } = require('mongodb');
     const dbUser = await db.collection("users").findOne({ _id: new ObjectId(String(token.uid)) });
-    if (dbUser?.email) {
+    if (dbUser) {
       token.email = dbUser.email;
+      token.name = dbUser.name;
     }
   } catch {}
 }
@@ -150,6 +151,8 @@ if (token.uid) {
   (session.user as any).role = (token as any).role || "USER";
   (session.user as any).id = (token as any).uid || (token.sub ?? "");
   (session.user as any).createdAt = (token as any).createdAt || null;
+  if (token.name) session.user.name = token.name as string;
+  if (token.email) session.user.email = token.email as string;
   return session;
 },
   },

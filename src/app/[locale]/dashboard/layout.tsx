@@ -54,9 +54,16 @@ useEffect(() => {
   const userName = (session?.user?.name || 'User').trim();
 
   const greetingName = useMemo(() => {
-    const parts = userName.split(' ').filter(Boolean);
-    return parts.length > 1 ? parts[parts.length - 1] : parts[0] || 'User';
-  }, [userName]);
+  const parts = userName.split(' ').filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1] : parts[0] || 'User';
+}, [userName]);
+
+const timeGreeting = useMemo(() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}, []);
 
   const initials = useMemo(() => {
     const parts = userName.split(' ').filter(Boolean);
@@ -105,21 +112,24 @@ useEffect(() => {
 }, []);
 
   // Check if new user
-  useEffect(() => {
-    if (!session?.user?.email) return;
-    const checkAndMark = async () => {
-      try {
-        const res = await fetch('/api/auth/check-visited');
-        const data = await res.json();
-        if (!data.hasVisited) {
-          setIsNewUser(true);
-          setShowCongrats(true);
-          await fetch('/api/auth/mark-visited', { method: 'POST' });
-        }
-      } catch {}
-    };
-    checkAndMark();
-  }, [session?.user?.email]);
+  const hasCheckedVisited = useRef(false);
+
+useEffect(() => {
+  if (!session?.user?.email || hasCheckedVisited.current) return;
+  hasCheckedVisited.current = true;
+  const checkAndMark = async () => {
+    try {
+      const res = await fetch('/api/auth/check-visited');
+      const data = await res.json();
+      if (!data.hasVisited) {
+        setIsNewUser(true);
+        setShowCongrats(true);
+        await fetch('/api/auth/mark-visited', { method: 'POST' });
+      }
+    } catch {}
+  };
+  checkAndMark();
+}, [session?.user?.email]);
 
   // Dark mode
   useEffect(() => {
@@ -291,8 +301,8 @@ const toggleDark = () => {
                 </>
               ) : (
                 <>
-                  <p className="text-[11px] text-white/60 uppercase tracking-wider font-semibold">Welcome back,</p>
-                  <p className="text-sm font-bold text-white mt-0.5">{greetingName}</p>
+                  <p className="text-[11px] text-white/60 uppercase tracking-wider font-semibold">{timeGreeting},</p>
+<p className="text-sm font-bold text-white mt-0.5">{greetingName}</p>
                 </>
               )}
             </div>

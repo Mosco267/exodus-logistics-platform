@@ -829,7 +829,7 @@ setSavedPhoneNum(phoneNum);
     if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
 
     // Update session with new email so all subsequent API calls use it
-    await updateSession({ email: newEmail });
+    await updateSession();
 window.dispatchEvent(new CustomEvent('emailUpdated', { detail: { email: newEmail } }));
 setProfile(p => ({ ...p, email: newEmail }));
     setSavedProfile(p => ({ ...p, email: newEmail }));
