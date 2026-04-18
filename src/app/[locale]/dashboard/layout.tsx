@@ -30,6 +30,7 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
   const [showTour, setShowTour] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+const [displayEmail, setDisplayEmail] = useState('');
 
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
@@ -39,6 +40,10 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
   const profileRef = useRef<HTMLDivElement>(null);
 
   const { data: session, status } = useSession();
+
+useEffect(() => {
+  if (session?.user?.email) setDisplayEmail(session.user.email);
+}, [session?.user?.email]);
 
   const handleLogout = async () => {
     localStorage.removeItem('exodus_color_mode');
@@ -89,7 +94,14 @@ useEffect(() => {
     if (url) setAvatarUrl(url);
   };
   window.addEventListener('storage', onStorage);
-  return () => window.removeEventListener('storage', onStorage);
+
+  const onEmailUpdated = (e: any) => setDisplayEmail(e.detail.email);
+  window.addEventListener('emailUpdated', onEmailUpdated);
+
+  return () => {
+    window.removeEventListener('storage', onStorage);
+    window.removeEventListener('emailUpdated', onEmailUpdated);
+  };
 }, []);
 
   // Check if new user
@@ -434,7 +446,7 @@ style={{ background: activeTheme.sidebar }}>
 </div>
         <div className="min-w-0">
           <p className="text-sm font-bold text-white truncate">{userName}</p>
-          <p className="text-[11px] text-white/60 truncate">{session?.user?.email ?? ''}</p>
+          <p className="text-[11px] text-white/60 truncate">{displayEmail || session?.user?.email || ''}</p>
         </div>
       </div>
     </div>

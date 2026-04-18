@@ -830,8 +830,8 @@ setSavedPhoneNum(phoneNum);
 
     // Update session with new email so all subsequent API calls use it
     await updateSession({ email: newEmail });
-
-    setProfile(p => ({ ...p, email: newEmail }));
+window.dispatchEvent(new CustomEvent('emailUpdated', { detail: { email: newEmail } }));
+setProfile(p => ({ ...p, email: newEmail }));
     setSavedProfile(p => ({ ...p, email: newEmail }));
     setEditingEmail(false);
     setEmailStep('input');

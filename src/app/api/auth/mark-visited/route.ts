@@ -9,10 +9,16 @@ export async function POST() {
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
-  await db.collection("users").updateOne(
-    { email: (session.user.email || '').toLowerCase() },
-    { $set: { hasVisitedDashboard: true } }
-  );
+  const sessionEmail = (session.user.email || '').toLowerCase();
+const sessionId = (session.user as any).id || '';
+const { ObjectId } = require('mongodb');
+
+await db.collection("users").updateOne(
+  sessionId
+    ? { $or: [{ email: sessionEmail }, { _id: new ObjectId(sessionId) }] }
+    : { email: sessionEmail },
+  { $set: { hasVisitedDashboard: true } }
+);
 
   return NextResponse.json({ ok: true });
 }

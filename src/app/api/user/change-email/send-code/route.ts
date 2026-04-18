@@ -22,11 +22,23 @@ export async function POST(req: Request) {
   if (!newEmail || !/^\S+@\S+\.\S+$/.test(newEmail)) return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
 
   const normalizedNew = newEmail.toLowerCase().trim();
-  const currentEmail = (session.user.email || "").toLowerCase();
-  if (normalizedNew === currentEmail) return NextResponse.json({ error: "This is already your current email" }, { status: 400 });
+  const sessionId = (session.user as any).id || '';
+const { ObjectId } = require('mongodb');
 
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB);
+const client = await clientPromise;
+const db = client.db(process.env.MONGODB_DB);
+
+// Always get the REAL current email from DB using user ID
+const dbUser = sessionId
+  ? await db.collection("users").findOne({ _id: new ObjectId(sessionId) })
+  : await db.collection("users").findOne({ email: (session.user.email || '').toLowerCase() });
+
+if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+const currentEmail = dbUser.email.toLowerCase();
+
+if (normalizedNew === currentEmail)
+  return NextResponse.json({ error: "This is already your current email" }, { status: 400 });
 
   const existing = await db.collection("users").findOne({ email: normalizedNew });
   if (existing) return NextResponse.json({ error: "This email is already in use" }, { status: 409 });
@@ -35,9 +47,9 @@ export async function POST(req: Request) {
   const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
   await db.collection("users").updateOne(
-    { email: currentEmail },
-    { $set: { emailChangeCode: code, emailChangeExpiry: expiry, emailChangePending: normalizedNew } }
-  );
+  { _id: dbUser._id },
+  { $set: { emailChangeCode: code, emailChangeExpiry: expiry, emailChangePending: normalizedNew } }
+);
 
   const name = session.user.name || "there";
 

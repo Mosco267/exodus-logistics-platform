@@ -10,14 +10,21 @@ export async function POST(req: Request) {
   if (!newEmail || !code)
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-  const currentEmail = (session.user.email || '').toLowerCase();
   const normalizedNew = newEmail.toLowerCase().trim();
 
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB);
+const client = await clientPromise;
+const db = client.db(process.env.MONGODB_DB);
 
-  const user = await db.collection("users").findOne({ email: currentEmail });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+const sessionId = (session.user as any).id || '';
+const { ObjectId } = require('mongodb');
+
+const user = sessionId
+  ? await db.collection("users").findOne({ _id: new ObjectId(sessionId) })
+  : await db.collection("users").findOne({ email: (session.user.email || '').toLowerCase() });
+
+if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+const currentEmail = user.email.toLowerCase();
 
   if (user.emailChangeCode !== code)
     return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
@@ -30,7 +37,7 @@ export async function POST(req: Request) {
 
   // Update email
   await db.collection("users").updateOne(
-    { email: currentEmail },
+  { _id: user._id },
     {
       $set: { email: normalizedNew },
       $unset: { emailChangeCode: 1, emailChangeExpiry: 1, emailChangePending: 1 },
