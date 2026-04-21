@@ -306,7 +306,7 @@ style={{
               ) : (
                 <>
                   <p className="text-[11px] text-white/60 uppercase tracking-wider font-semibold">{timeGreeting},</p>
-<p className="text-sm font-bold text-white mt-0.5">👋 {greetingName}</p>
+<p className="text-sm font-bold text-white mt-0.5">{greetingName} 👋</p>
                 </>
               )}
             </div>
