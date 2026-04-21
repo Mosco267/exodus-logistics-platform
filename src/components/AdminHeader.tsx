@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PlusCircle, Search, UserCircle, LogOut, KeyRound, Image as ImageIcon } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import NotificationsBell from "@/components/NotificationsBell";
 
 type Suggestion = {
   shipmentId: string;
@@ -196,17 +197,20 @@ export default function AdminHeader() {
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/${locale}/dashboard/admin/shipments/new`}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl
-                       hover:bg-blue-700 transition font-semibold shadow-sm cursor-pointer"
-          >
-            <PlusCircle className="w-5 h-5" />
-            Create Shipment
-          </Link>
+<div className="flex items-center gap-3">
+  <Link
+    href={`/${locale}/dashboard/admin/shipments/new`}
+    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl
+               hover:bg-blue-700 transition font-semibold shadow-sm cursor-pointer"
+  >
+    <PlusCircle className="w-5 h-5" />
+    Create Shipment
+  </Link>
 
-          {/* Admin Profile */}
+  {/* Notifications */}
+  <NotificationsBell />
+
+  {/* Admin Profile */}
           <div className="relative" ref={profileRef}>
             <button
               type="button"

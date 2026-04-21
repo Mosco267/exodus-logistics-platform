@@ -145,9 +145,10 @@ export default function NotificationsBell() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-bold text-gray-900 dark:text-gray-100 truncate">
-                      {n.title || "Notification"}
-                    </p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1.5">
+  {n.title?.includes('Payment') || n.title?.includes('Receipt') ? '💳' : ''}
+  {n.title || "Notification"}
+</p>
                     <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                       {timeAgo(n.createdAt)}
                     </span>
