@@ -113,21 +113,26 @@ if (existing?.deleted === true) return '/en/auth/error?error=AccessDenied';
     token.uid = (user as any).id || user.id;
     token.email = user.email;
     token.createdAt = (user as any).createdAt || new Date().toISOString();
-
-    // Re-fetch email from DB in case it was changed
-if (token.uid) {
-  try {
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
-    const { ObjectId } = require('mongodb');
-    const dbUser = await db.collection("users").findOne({ _id: new ObjectId(String(token.uid)) });
-    if (dbUser) {
-      token.email = dbUser.email;
-      token.name = dbUser.name;
-    }
-  } catch {}
-}
   }
+
+  // Always re-fetch name and email from DB on every token refresh
+  if (token.uid) {
+    try {
+      const client = await clientPromise;
+      const db = client.db(process.env.MONGODB_DB);
+      const { ObjectId } = require('mongodb');
+      const dbUser = await db.collection("users").findOne(
+        { _id: new ObjectId(String(token.uid)) },
+        { projection: { email: 1, name: 1, role: 1 } }
+      );
+      if (dbUser) {
+        token.email = dbUser.email;
+        token.name = dbUser.name;
+        token.role = dbUser.role || token.role;
+      }
+    } catch {}
+  }
+
   // Always re-fetch role from DB for Google sign-ins to ensure accuracy
   if (account?.provider === "google" && token.email) {
     try {
