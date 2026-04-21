@@ -622,6 +622,89 @@ function DialCodePicker({
   );
 }
 
+
+function StateDropdown({ value, onChange, states }: {
+  value: string;
+  onChange: (s: string) => void;
+  states: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const filtered = states.filter(s =>
+    s.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (states.length === 0) {
+    return (
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder="State / Province"
+        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
+        style={{ fontSize: '16px' }}
+      />
+    );
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => { setOpen(o => !o); setSearch(''); }}
+        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white transition hover:border-gray-300 dark:hover:border-white/20 cursor-pointer text-left">
+        <span className="flex-1 truncate">
+          {value || <span className="text-gray-400">Select state…</span>}
+        </span>
+        <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100 dark:border-white/10">
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search state..."
+              className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
+              style={{ fontSize: '16px' }}
+            />
+          </div>
+          <ul className="max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-4 py-3 text-sm text-gray-400 text-center">No results</li>
+            ) : filtered.map(s => (
+              <li key={s}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(s); setOpen(false); setSearch(''); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer ${
+                    value === s
+                      ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold'
+                      : 'text-gray-800 dark:text-gray-200'
+                  }`}>
+                  {s}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // ─── Main Page ────────────────────────────────────────────────
 export default function ProfilePage() {
  const { data: session, update: updateSession } = useSession();
@@ -1034,23 +1117,11 @@ setProfile(p => ({ ...p, email: newEmail }));
   </div>
 
   {/* State */}
-  {statesForCountry.length > 0 ? (
-    <select
-      value={profile.addressState}
-      onChange={e => setProfile(p => ({ ...p, addressState: e.target.value }))}
-      className={inputClass + ' cursor-pointer'}>
-      <option value="">Select state…</option>
-      {statesForCountry.map((s: string) => <option key={s} value={s}>{s}</option>)}
-    </select>
-  ) : (
-    <input
-      value={profile.addressState}
-      onChange={e => setProfile(p => ({ ...p, addressState: e.target.value }))}
-      placeholder="State / Province"
-      className={inputClass}
-      style={{ fontSize: '16px' }}
-    />
-  )}
+  <StateDropdown
+  value={profile.addressState}
+  onChange={s => setProfile(p => ({ ...p, addressState: s }))}
+  states={statesForCountry}
+/>
 </div>
         </div>
 
