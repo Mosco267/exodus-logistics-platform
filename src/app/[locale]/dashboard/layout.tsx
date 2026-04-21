@@ -81,6 +81,15 @@ const pageSubtext = darkMode ? activeTheme.darkSubtext : activeTheme.subtext;
   // Load theme from DB
  useEffect(() => {
   if (!session?.user?.email) return;
+  const sessionId = (session.user as any).id || '';
+  const storedId = localStorage.getItem('exodus_session_user_id');
+
+  if (storedId && storedId !== sessionId) {
+    // New user on this device — reset to default theme
+    setCurrentTheme('default');
+    return;
+  }
+
   const cached = localStorage.getItem('exodus_theme_cache');
   if (cached) setCurrentTheme(cached as ThemeId);
 }, [session?.user?.email]);
@@ -110,6 +119,24 @@ useEffect(() => {
     window.removeEventListener('emailUpdated', onEmailUpdated);
   };
 }, []);
+
+useEffect(() => {
+  if (!session?.user) return;
+  const sessionId = (session.user as any).id;
+  const storedId = localStorage.getItem('exodus_session_user_id');
+
+  if (storedId && storedId !== sessionId) {
+    // Different user logged in — clear all user-specific cache
+    localStorage.removeItem('exodus_avatar_url');
+    localStorage.removeItem('exodus_theme_cache');
+    localStorage.removeItem('exodus_color_mode');
+    localStorage.removeItem('exodus_seen_themes');
+    setAvatarUrl('');
+    setCurrentTheme('default');
+  }
+
+  localStorage.setItem('exodus_session_user_id', sessionId);
+}, [session?.user]);
 
   // Check if new user
   const hasCheckedVisited = useRef(false);

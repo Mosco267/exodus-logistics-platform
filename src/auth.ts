@@ -55,6 +55,7 @@ if (blocked) throw new Error('suspended');
   email: String(user.email || ""),
   role: String(user.role || "USER"),
   createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+  isNewAccount: !user.hasVisitedDashboard,
 } as any;
       },
     }),
