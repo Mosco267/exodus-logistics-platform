@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { p } from 'framer-motion/client';
 import { createPortal } from 'react-dom';
+import { COUNTRIES_WITH_STATES } from '@/lib/countriesData';
 
 
 // ─── Countries ───────────────────────────────────────────────
@@ -209,6 +210,8 @@ const COUNTRIES = [
   { name: 'Zambia', code: 'ZM', flag: '🇿🇲', dial: '+260' },
   { name: 'Zimbabwe', code: 'ZW', flag: '🇿🇼', dial: '+263' },
 ];
+
+// Use COUNTRIES_WITH_STATES for state dropdown — it has the same structure plus states[]
 
 // ─── Phone formats ────────────────────────────────────────────
 const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = {
@@ -437,7 +440,12 @@ function findCountry(nameOrCode: string) {
 // ─── Types ────────────────────────────────────────────────────
 type ProfileData = {
   name: string; email: string; phone: string; country: string;
-  address: string; avatarUrl: string; createdAt: string; provider: string;
+  address: string;
+  addressStreet: string;
+  addressCity: string;
+  addressState: string;
+  addressPostalCode: string;
+  avatarUrl: string; createdAt: string; provider: string;
 };
 
 // ─── Country Dropdown Component ───────────────────────────────
@@ -651,9 +659,11 @@ useEffect(() => {
 
   const [profile, setProfile] = useState<ProfileData>({
   name: '', email: '', phone: '', country: '',
-  address: '', avatarUrl: '', createdAt: '', provider: '',
+  address: '',
+  addressStreet: '', addressCity: '', addressState: '', addressPostalCode: '',
+  avatarUrl: '', createdAt: '', provider: '',
 });
-const [savedProfile, setSavedProfile] = useState({ name: '', phone: '', address: '', country: '' });
+const [savedProfile, setSavedProfile] = useState({ name: '', phone: '', country: '', addressStreet: '', addressCity: '', addressState: '', addressPostalCode: '' });
 const [savedDialCode, setSavedDialCode] = useState('');
 const [savedPhoneNum, setSavedPhoneNum] = useState('');
 
@@ -680,7 +690,10 @@ const [countdown, setCountdown] = useState(0);
 
 const profileChanged =
   profile.name !== savedProfile.name ||
-  profile.address !== savedProfile.address ||
+  profile.addressStreet !== savedProfile.addressStreet ||
+  profile.addressCity !== savedProfile.addressCity ||
+  profile.addressState !== savedProfile.addressState ||
+  profile.addressPostalCode !== savedProfile.addressPostalCode ||
   profile.country !== savedProfile.country ||
   phoneNum !== savedPhoneNum ||
   (dialCountry?.dial || '') !== savedDialCode;
@@ -690,19 +703,26 @@ useEffect(() => {
       .then(r => r.json())
       .then(data => {
         setProfile({
-          name: data.name || '', email: data.email || '', phone: data.phone || '',
-          country: data.country || '', address: data.address || '',
-          avatarUrl: data.avatarUrl || '', createdAt: data.createdAt || '',
-          provider: data.provider || 'credentials',
-        });
+  name: data.name || '', email: data.email || '', phone: data.phone || '',
+  country: data.country || '', address: data.address || '',
+  addressStreet: data.addressStreet || '',
+  addressCity: data.addressCity || '',
+  addressState: data.addressState || '',
+  addressPostalCode: data.addressPostalCode || '',
+  avatarUrl: data.avatarUrl || '', createdAt: data.createdAt || '',
+  provider: data.provider || 'credentials',
+});
        const dbAvatar = data.avatarUrl || '';
 setAvatarPreview(dbAvatar);
 
 setSavedProfile({
   name: data.name || '',
   phone: data.phone || '',
-  address: data.address || '',
   country: data.country || '',
+  addressStreet: data.addressStreet || '',
+  addressCity: data.addressCity || '',
+  addressState: data.addressState || '',
+  addressPostalCode: data.addressPostalCode || '',
 });
 
 localStorage.setItem('exodus_avatar_url', dbAvatar);
@@ -735,7 +755,7 @@ setSavedPhoneNum(strippedPhone);
   const handleCountryChange = (c: typeof COUNTRIES[0]) => {
   setSelectedCountry(c);
   setDialCountry(c);
-  setProfile(p => ({ ...p, country: c.name }));
+  setProfile(p => ({ ...p, country: c.name, addressState: '' }));
   setPhoneNum('');
 };
 
@@ -773,17 +793,26 @@ const dialCode = dialCountry?.code || selectedCountry?.code || '';
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: profile.name,
-          phone: fullPhone,
-          address: profile.address,
-          country: profile.country,
-          phoneDialCode: dialCode,
-        }),
+  name: profile.name,
+  phone: fullPhone,
+  country: profile.country,
+  phoneDialCode: dialCode,
+  addressStreet: profile.addressStreet,
+  addressCity: profile.addressCity,
+  addressState: profile.addressState,
+  addressPostalCode: profile.addressPostalCode,
+  address: [profile.addressStreet, profile.addressCity, profile.addressState, profile.addressPostalCode, profile.country]
+    .filter(Boolean).join(', '),
+}),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Save failed'); return; }
 
-      setSavedProfile({ name: profile.name, phone: profile.phone, address: profile.address, country: profile.country });
+      setSavedProfile({
+  name: profile.name, phone: profile.phone, country: profile.country,
+  addressStreet: profile.addressStreet, addressCity: profile.addressCity,
+  addressState: profile.addressState, addressPostalCode: profile.addressPostalCode,
+});
 setSavedDialCode(dialCountry?.dial || '');
 setSavedPhoneNum(phoneNum);
 
@@ -857,6 +886,12 @@ setProfile(p => ({ ...p, email: newEmail }));
       <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
     </div>
   );
+
+  const statesForCountry = (() => {
+  if (!profile.country) return [];
+  const entry = COUNTRIES_WITH_STATES.find(c => c.name.toLowerCase() === profile.country.toLowerCase());
+  return (entry as any)?.states || [];
+})();
 
   const inputClass = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition";
   const labelClass = "text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block";
@@ -966,16 +1001,57 @@ setProfile(p => ({ ...p, email: newEmail }));
             <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
           </div>
 
-          {/* Address */}
-          <div>
-            <label className={labelClass}>Home Address <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
-            <div className="relative flex items-start">
-  <MapPin size={14} className="absolute left-3.5 top-3.5 text-gray-400 pointer-events-none z-10" />
-              <textarea value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
-                placeholder="Enter your home address" rows={3}
-                className={inputClass + " pl-10 resize-none"} style={{ fontSize: '16px' }} />
-            </div>
-          </div>
+          {/* Address — structured */}
+<div className="space-y-3">
+  <label className={labelClass}>Home Address <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
+
+  {/* Street */}
+  <input
+    value={profile.addressStreet}
+    onChange={e => setProfile(p => ({ ...p, addressStreet: e.target.value }))}
+    placeholder="Street address (e.g. 123 Main Street)"
+    className={inputClass}
+    style={{ fontSize: '16px' }}
+  />
+
+  {/* City + Postal */}
+  <div className="grid grid-cols-2 gap-3">
+    <input
+      value={profile.addressCity}
+      onChange={e => setProfile(p => ({ ...p, addressCity: e.target.value }))}
+      placeholder="City"
+      className={inputClass}
+      style={{ fontSize: '16px' }}
+    />
+    <input
+      value={profile.addressPostalCode}
+      onChange={e => setProfile(p => ({ ...p, addressPostalCode: e.target.value.replace(/\D/g, '') }))}
+      placeholder="Postal code"
+      inputMode="numeric"
+      className={inputClass}
+      style={{ fontSize: '16px' }}
+    />
+  </div>
+
+  {/* State */}
+  {statesForCountry.length > 0 ? (
+    <select
+      value={profile.addressState}
+      onChange={e => setProfile(p => ({ ...p, addressState: e.target.value }))}
+      className={inputClass + ' cursor-pointer'}>
+      <option value="">Select state…</option>
+      {statesForCountry.map((s: string) => <option key={s} value={s}>{s}</option>)}
+    </select>
+  ) : (
+    <input
+      value={profile.addressState}
+      onChange={e => setProfile(p => ({ ...p, addressState: e.target.value }))}
+      placeholder="State / Province"
+      className={inputClass}
+      style={{ fontSize: '16px' }}
+    />
+  )}
+</div>
         </div>
 
         {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
