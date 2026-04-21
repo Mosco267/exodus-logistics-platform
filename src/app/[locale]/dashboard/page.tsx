@@ -15,6 +15,9 @@ type Shipment = {
   status: ShipmentStatus | string;
   statusColor?: string;
   createdAt?: string;
+  receiverName?: string;
+  receiverEmail?: string;
+  invoice?: { invoiceNumber?: string };
 };
 
 type DashStats = {
@@ -235,7 +238,7 @@ function ShipmentsSection({ title, locale, loading, shipments, statusMap }: {
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
-                  {['Shipment ID', 'Tracking #', 'Route', 'Status', 'Date'].map(h => (
+                  {['Shipment Number', 'Tracking Number', 'Receiver', 'Invoice Number', 'Route', 'Status', 'Date'].map(h => (
                     <th key={h} className="py-2.5 px-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -249,9 +252,16 @@ function ShipmentsSection({ title, locale, loading, shipments, statusMap }: {
                     <tr key={`${s.shipmentId}-${idx}`} className="border-b border-gray-50 dark:border-white/5 hover:bg-blue-50/30 dark:hover:bg-white/5 transition-colors">
                       <td className="py-3 px-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap text-xs">{s.shipmentId}</td>
                       <td className="py-3 px-4 text-gray-500 dark:text-gray-400 whitespace-nowrap font-mono text-xs">{s.trackingNumber}</td>
-                      <td className="py-3 px-4 whitespace-nowrap text-xs font-semibold text-gray-500 dark:text-gray-400">
-                        {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
-                      </td>
+<td className="py-3 px-4 whitespace-nowrap text-xs">
+  <p className="font-semibold text-gray-800 dark:text-gray-200">{s.receiverName || '—'}</p>
+  <p className="text-gray-400 dark:text-gray-500">{s.receiverEmail || ''}</p>
+</td>
+<td className="py-3 px-4 whitespace-nowrap text-xs font-mono text-gray-500 dark:text-gray-400">
+  {s.invoice?.invoiceNumber || '—'}
+</td>
+<td className="py-3 px-4 whitespace-nowrap text-xs font-semibold text-gray-500 dark:text-gray-400">
+  {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
+</td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         <Link href={`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`}>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold cursor-pointer hover:opacity-80 transition ${pillClass}`}>
@@ -288,14 +298,24 @@ function ShipmentsSection({ title, locale, loading, shipments, statusMap }: {
                       </span>
                     </Link>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-400 dark:text-gray-500 font-semibold">
-                      {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
-                    </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                    </span>
-                  </div>
+                 {(s.receiverName || s.receiverEmail) && (
+  <div className="mt-1.5">
+    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{s.receiverName || ''}</p>
+    <p className="text-xs text-gray-400 dark:text-gray-500">{s.receiverEmail || ''}</p>
+  </div>
+)}
+{s.invoice?.invoiceNumber && (
+  <p className="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1">{s.invoice.invoiceNumber}</p>
+)}
+<div className="flex items-center justify-between mt-2">
+  <span className="text-xs text-gray-400 dark:text-gray-500 font-semibold">
+    {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
+  </span>
+  <span className="text-xs text-gray-400 dark:text-gray-500">
+    {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+  </span>
+</div>
+                  
                 </div>
               );
             })}

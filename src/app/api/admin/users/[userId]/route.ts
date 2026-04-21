@@ -70,6 +70,7 @@ export async function DELETE(_req: Request, ctx: any) {
     if (email) {
       await db.collection("notifications").insertOne({
         userEmail: email,
+        userId: String(user._id),
         title: "Account access removed",
         message:
           "Your account access has been removed. If you believe this was a mistake, contact support.",

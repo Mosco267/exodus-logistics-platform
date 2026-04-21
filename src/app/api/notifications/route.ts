@@ -6,14 +6,12 @@ import { ObjectId } from "mongodb";
 export async function GET(req: Request) {
   try {
     const session = await auth();
-    const email = String((session as any)?.user?.email || "")
-      .toLowerCase()
-      .trim();
+    const email = String((session as any)?.user?.email || "").toLowerCase().trim();
+const userId = String((session as any)?.user?.id || "");
 
-    // Not logged in -> return empty (not error)
-    if (!email) {
-      return NextResponse.json({ notifications: [], unreadCount: 0 });
-    }
+if (!email) {
+  return NextResponse.json({ notifications: [], unreadCount: 0 });
+}
 
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get("limit") || "5"), 200);
@@ -22,8 +20,11 @@ export async function GET(req: Request) {
     const db = client.db(process.env.MONGODB_DB);
 
     const raw = await db
-      .collection("notifications")
-      .find({ userEmail: email })
+  .collection("notifications")
+  .find(userId
+    ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
+    : { userEmail: email }
+  )
       .sort({ createdAt: -1 })
       .limit(limit)
       .toArray();
@@ -34,9 +35,11 @@ export async function GET(req: Request) {
     }));
 
     const unreadCount = await db.collection("notifications").countDocuments({
-      userEmail: email,
-      read: false,
-    });
+  ...(userId
+    ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
+    : { userEmail: email }),
+  read: false,
+});
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (err) {
@@ -51,9 +54,8 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const session = await auth();
-    const email = String((session as any)?.user?.email || "")
-      .toLowerCase()
-      .trim();
+    const email = String((session as any)?.user?.email || "").toLowerCase().trim();
+    const userId = String((session as any)?.user?.id || "");
 
     if (!email) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

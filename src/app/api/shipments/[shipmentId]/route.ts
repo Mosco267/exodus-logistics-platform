@@ -584,10 +584,14 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
   }
 }
 
-    await db.collection("notifications").insertOne({
-      userEmail: String((updated as any)?.senderEmail || (updated as any)?.receiverEmail || (updated as any)?.createdByEmail || (existing as any)?.senderEmail || (existing as any)?.receiverEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase(),
-      title, message, shipmentId, read: false, createdAt: new Date(),
-    });
+    const notifEmail = String((updated as any)?.senderEmail || (updated as any)?.receiverEmail || (updated as any)?.createdByEmail || (existing as any)?.senderEmail || (existing as any)?.receiverEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase();
+const notifUserId = String((updated as any)?.createdByUserId || (existing as any)?.createdByUserId || "").trim();
+
+await db.collection("notifications").insertOne({
+  userEmail: notifEmail,
+  userId: notifUserId || undefined,
+  title, message, shipmentId, read: false, createdAt: new Date(),
+});
 
     return NextResponse.json({ ok: true, shipment: updated });
   } catch (error) {

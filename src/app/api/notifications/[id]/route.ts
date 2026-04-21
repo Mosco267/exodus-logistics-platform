@@ -7,6 +7,7 @@ export async function DELETE(_req: Request, ctx: any) {
   try {
     const session = await auth();
     const email = String((session as any)?.user?.email || "").toLowerCase().trim();
+const userId = String((session as any)?.user?.id || "");
 
     if (!email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

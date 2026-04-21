@@ -44,6 +44,7 @@ export async function PATCH(_req: Request, ctx: any) {
     if (email) {
       await db.collection("notifications").insertOne({
         userEmail: email,
+        userId: String(user._id),
         title: "Account restored",
         message:
           "Your account has been restored. You can now log in again. If you need help, contact support.",
