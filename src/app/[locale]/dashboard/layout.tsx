@@ -255,11 +255,15 @@ const toggleDark = () => {
 
       {/* SIDEBAR */}
       <aside className={`
-        fixed md:sticky top-0 h-screen z-50
-        text-white flex-shrink-0 flex flex-col
-        shadow-2xl transition-all duration-300 ease-in-out
-        ${sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full md:translate-x-0 md:w-16'}
-      `} style={{ background: activeTheme.sidebar }}>
+  fixed md:sticky top-0 h-screen z-50
+  text-white flex-shrink-0 flex flex-col
+  shadow-2xl
+  ${sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full md:translate-x-0 md:w-16'}
+`}
+style={{
+  ...({ background: activeTheme.sidebar }),
+  transition: 'width 350ms cubic-bezier(0.4,0,0.2,1), transform 350ms cubic-bezier(0.4,0,0.2,1)',
+}} >
 
         {/* Decorative top accent */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-white/20 via-white/40 to-white/20" />
@@ -296,13 +300,13 @@ const toggleDark = () => {
                     <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                     <p className="text-[11px] font-bold text-yellow-300 uppercase tracking-wider">Welcome!</p>
                   </div>
-                  <p className="text-sm font-bold text-white">Congratulations, {greetingName}!</p>
+                  <p className="text-sm font-bold text-white">🎉 Congratulations, {greetingName}!</p>
                   <p className="text-[11px] text-white/60 mt-0.5">Your account is ready to use.</p>
                 </>
               ) : (
                 <>
                   <p className="text-[11px] text-white/60 uppercase tracking-wider font-semibold">{timeGreeting},</p>
-<p className="text-sm font-bold text-white mt-0.5">{greetingName}</p>
+<p className="text-sm font-bold text-white mt-0.5">👋 {greetingName}</p>
                 </>
               )}
             </div>

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   // Mark user as deleted in users collection (keep record, block login)
   await db.collection("users").updateOne(
     { email },
-    { $set: { deleted: true, deletedAt: new Date(), deletedBy: "self" } }
+    { $set: { deleted: true, deletedAt: new Date(), deletedBy: "self", avatarUrl: '' } }
   );
 
   // Block email from login

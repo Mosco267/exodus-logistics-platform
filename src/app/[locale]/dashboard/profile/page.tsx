@@ -666,6 +666,7 @@ const [dialCountry, setDialCountry] = useState<typeof COUNTRIES[0] | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('');
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [sessionRefreshing, setSessionRefreshing] = useState(false);
 
   // Email change
   const [editingEmail, setEditingEmail] = useState(false);
@@ -694,20 +695,18 @@ useEffect(() => {
           avatarUrl: data.avatarUrl || '', createdAt: data.createdAt || '',
           provider: data.provider || 'credentials',
         });
-        setAvatarPreview(data.avatarUrl || '');
+       const dbAvatar = data.avatarUrl || '';
+setAvatarPreview(dbAvatar);
 
-        setSavedProfile({
+setSavedProfile({
   name: data.name || '',
   phone: data.phone || '',
   address: data.address || '',
   country: data.country || '',
 });
 
-
-if (data.avatarUrl) {
-  localStorage.setItem('exodus_avatar_url', data.avatarUrl);
-  window.dispatchEvent(new Event('storage'));
-}
+localStorage.setItem('exodus_avatar_url', dbAvatar);
+window.dispatchEvent(new Event('storage'));
 
         // Set selected country
         const found = findCountry(data.country || '');
@@ -829,7 +828,9 @@ setSavedPhoneNum(phoneNum);
     if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
 
     // Update session with new email so all subsequent API calls use it
-    await updateSession();
+   setSessionRefreshing(true);
+await updateSession();
+setSessionRefreshing(false);
 window.dispatchEvent(new CustomEvent('emailUpdated', { detail: { email: newEmail } }));
 setProfile(p => ({ ...p, email: newEmail }));
     setSavedProfile(p => ({ ...p, email: newEmail }));
@@ -1161,6 +1162,16 @@ setProfile(p => ({ ...p, email: newEmail }));
           </div>
         )}
       </div>
+    </div>
+  </div>,
+  document.body
+)}
+
+{sessionRefreshing && typeof document !== 'undefined' && createPortal(
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-gray-950">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Updating email...</p>
     </div>
   </div>,
   document.body

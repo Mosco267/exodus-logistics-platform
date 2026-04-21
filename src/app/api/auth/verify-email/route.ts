@@ -25,16 +25,18 @@ export async function POST(req: Request) {
 
     // Now create the real user
     await db.collection("users").insertOne({
-      name: pending.name,
-      email: pending.email,
-      passwordHash: pending.passwordHash,
-      phone: pending.phone || '',
-      country: pending.country || '',
-      role: pending.role,
-      provider: pending.provider,
-      emailVerified: true,
-      createdAt: pending.createdAt,
-    });
+  name: pending.name,
+  email: pending.email,
+  passwordHash: pending.passwordHash,
+  phone: pending.phone || '',
+  country: pending.country || '',
+  role: pending.role,
+  provider: pending.provider,
+  emailVerified: true,
+  avatarUrl: '',
+  hasVisitedDashboard: false,
+  createdAt: pending.createdAt,
+});
 
     // Remove from pending
     await db.collection("pending_users").deleteMany({ email });
