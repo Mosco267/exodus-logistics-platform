@@ -648,7 +648,7 @@ useEffect(() => {
 // ─── Section wrapper ──────────────────────────────────────────
 function Section({ title, children, accent }: { title: string; children: React.ReactNode; accent: string }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm">
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100 dark:border-white/10">
         <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
         <h3 className="text-sm font-bold text-gray-900 dark:text-white">{title}</h3>
@@ -1043,6 +1043,7 @@ const effectiveShipmentType = useMemo(() => {
             setSenderStreet(profileAddress.street); setSenderCity(profileAddress.city);
             setSenderState(profileAddress.state); setSenderPostal(profileAddress.postal);
             setAddressManuallyChanged(false);
+            setSaveAsHome(false);
           } else {
             setSenderStreet(''); setSenderCity('');
             setSenderState(''); setSenderPostal('');
@@ -1053,11 +1054,13 @@ const effectiveShipmentType = useMemo(() => {
       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Use my home address</span>
     </label>
   )}
-  <label className="flex items-center gap-2.5 cursor-pointer select-none">
-    <input type="checkbox" checked={saveAsHome} onChange={e => setSaveAsHome(e.target.checked)}
-      className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
-    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Save as my home address</span>
-  </label>
+  {!useDefaultAddress && (
+    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+      <input type="checkbox" checked={saveAsHome} onChange={e => setSaveAsHome(e.target.checked)}
+        className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
+      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Save as my home address</span>
+    </label>
+  )}
 </div>
       </Section>
 
