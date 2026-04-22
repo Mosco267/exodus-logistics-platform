@@ -693,8 +693,21 @@ export default function NewShipmentPage() {
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
-  useEffect(() => {
-    const map: Record<string, { g: string; s: string }> = {
+
+const [isDarkTheme, setIsDarkTheme] = useState(false);
+useEffect(() => {
+  const check = () => {
+    const t = localStorage.getItem('exodus_theme_cache');
+    setIsDarkTheme(t === 'midnight');
+  };
+  check();
+  window.addEventListener('storage', check);
+  const i = setInterval(check, 1000);
+  return () => { window.removeEventListener('storage', check); clearInterval(i); };
+}, []);
+
+useEffect(() => {
+  const map: Record<string, { g: string; s: string }> = {
       default: { g: 'linear-gradient(135deg, #0b3aa4, #0e7490)', s: '#0b3aa4' },
       ocean: { g: 'linear-gradient(135deg, #0e7490, #06b6d4)', s: '#0891b2' },
       sunset: { g: 'linear-gradient(135deg, #0b3aa4, #f97316)', s: '#f97316' },
@@ -961,16 +974,10 @@ const effectiveShipmentType = useMemo(() => {
     <div className="max-w-2xl mx-auto pb-10 space-y-4">
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
-          <ArrowLeft size={16} className="text-gray-600 dark:text-gray-300" />
-        </button>
-        <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">New Shipment</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Fill in the details below to create your shipment</p>
-        </div>
-      </div>
+      <div className="text-center">
+  <h1 className="text-xl font-extrabold" style={{ color: isDarkTheme ? '#ffffff' : undefined }}>New Shipment</h1>
+  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Fill in the details below to create your shipment</p>
+</div>
 
       {/* Fix 1: Scope toggle using theme color */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-4">
@@ -1255,7 +1262,7 @@ const effectiveShipmentType = useMemo(() => {
         </div>
       )}
 
-      <button onClick={handleSubmit} disabled={loading || (!pricing && !pricingError)}
+      <button onClick={handleSubmit} disabled={loading || (!pricing && !pricingError) || (!isValid && attempted)}
         className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
         style={{ background: accent }}>
         {loading
