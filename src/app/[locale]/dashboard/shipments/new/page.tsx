@@ -381,6 +381,8 @@ function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4' 
   );
 }
 
+
+
 // ─── Phone input ──────────────────────────────────────────────
 const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = {
   AF:{placeholder:'70 123 4567',pattern:'## ### ####'},
@@ -589,26 +591,82 @@ function applyPhonePattern(digits: string, pattern: string): string {
   return result;
 }
 
+function DialDropdown({ dial, flag, onChange }: {
+  dial: string; flag: string; onChange: (dial: string, flag: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const filtered = useMemo(() =>
+    COUNTRIES_WITH_STATES.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.dial.includes(search)
+    ), [search]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" onClick={() => { setOpen(v => !v); setSearch(''); }}
+        className="flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 h-full min-h-[48px] cursor-pointer hover:border-gray-300 dark:hover:border-white/20 transition">
+        <img src={`https://flagcdn.com/w20/${flag}.png`} width="18" height="13" alt="" className="rounded-sm shrink-0" />
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 min-w-[36px]">{dial}</span>
+        <ChevronDown size={12} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-64 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100 dark:border-white/10">
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search country or code…" style={{ fontSize: '16px' }}
+              className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.map(c => (
+              <button key={c.code} type="button"
+                onMouseDown={() => { onChange(c.dial, c.code.toLowerCase()); setOpen(false); setSearch(''); }}
+                className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
+                <img src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`} width="18" height="13" alt="" className="rounded-sm shrink-0" />
+                <span className="font-semibold text-gray-700 dark:text-gray-200 w-10 shrink-0">{c.dial}</span>
+                <span className="text-gray-500 dark:text-gray-400 truncate">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PhoneInput({ countryCode, value, onChange, label }: {
   countryCode: string; value: string; onChange: (v: string) => void; label: string;
 }) {
   const entry = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
   const fmt = PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
   const [dial, setDial] = useState(entry?.dial || '');
+  const [flagCode, setFlagCode] = useState(entry?.code.toLowerCase() || 'us');
   const [local, setLocal] = useState('');
+  const [dialInitialized, setDialInitialized] = useState(false);
 
-  // Only set dial on first load of a country — user can change it freely after
-const [dialInitialized, setDialInitialized] = useState(false);
-useEffect(() => {
-  if (!dialInitialized && countryCode) {
-    const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
-    if (d) { setDial(d); setDialInitialized(true); }
-  }
-}, [countryCode, dialInitialized]);
-
-  // Pre-fill local number from value prop (profile phone)
+  // Set dial only on first country load
   useEffect(() => {
-    if (!value) return;
+    if (!dialInitialized && countryCode) {
+      const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
+      if (e) {
+        setDial(e.dial);
+        setFlagCode(e.code.toLowerCase());
+        setDialInitialized(true);
+      }
+    }
+  }, [countryCode, dialInitialized]);
+
+  // Pre-fill local number from profile
+  useEffect(() => {
+    if (!value) { setLocal(''); return; }
     const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
     if (d && value.startsWith(d)) {
       setLocal(value.slice(d.length).trim().replace(/\D/g, ''));
@@ -623,11 +681,15 @@ useEffect(() => {
     <div>
       <Label>{label}</Label>
       <div className="flex gap-2">
-        <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-3 shrink-0">
-          {entry && <img src={`https://flagcdn.com/w20/${entry.code.toLowerCase()}.png`} width="18" height="13" alt="" className="rounded-sm" />}
-          <input value={dial} onChange={e => { setDial(e.target.value); onChange(`${e.target.value} ${local}`.trim()); }}
-            className="w-14 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none" />
-        </div>
+        <DialDropdown
+          dial={dial}
+          flag={flagCode}
+          onChange={(newDial, newFlag) => {
+            setDial(newDial);
+            setFlagCode(newFlag);
+            onChange(`${newDial} ${local}`.trim());
+          }}
+        />
         <input
           value={displayLocal}
           onChange={e => {
