@@ -177,7 +177,7 @@ function CurrencySelect({ value, onChange }: { value: string; onChange: (v: stri
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-72 right-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        <div className="absolute z-50 bottom-full mb-1 w-72 right-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search currency…" style={{ fontSize: '16px' }}
@@ -245,7 +245,7 @@ function CustomSelect({ value, onChange, options, placeholder, disabled, accentS
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && !disabled && (
-        <div className="absolute z-50 mt-1 w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto max-h-52">
           {options.map(o => (
             <button key={o.value} type="button"
               onMouseDown={() => { onChange(o.value); setOpen(false); }}
@@ -261,9 +261,9 @@ style={value === o.value ? { background: `${accentSolid}15`, color: accentSolid 
 }
 
 // ─── Country dropdown ─────────────────────────────────────────
-function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode }: {
+function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode, accentSolid = '#0b3aa4' }: {
   value: string; onChange: (name: string) => void; onEntry?: (e: CountryEntry) => void;
-  label: string; disabled?: boolean; excludeCode?: string;
+  label: string; disabled?: boolean; excludeCode?: string; accentSolid?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -297,7 +297,7 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode 
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && !disabled && (
-        <div className="fixed z-[999] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" style={{ width: ref.current?.offsetWidth, top: (ref.current?.getBoundingClientRect().bottom || 0) + 4, left: ref.current?.getBoundingClientRect().left }}>
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search country…" style={{ fontSize: '16px' }}
@@ -307,7 +307,8 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode 
             {filtered.map(c => (
               <button key={c.code} type="button"
                 onMouseDown={() => { onChange(c.name); onEntry?.(c); setOpen(false); setSearch(''); }}
-                className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer ${value === c.name ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold' : 'text-gray-800 dark:text-gray-200'}`}>
+                className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition cursor-pointer ${value === c.name ? 'font-semibold' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10'}`}
+                style={value === c.name ? { background: `${accentSolid}15`, color: accentSolid } : {}}>
                 <img src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`} width="20" height="15" alt={c.name} className="rounded-sm shrink-0" />
                 <span>{c.name}</span>
               </button>
@@ -321,8 +322,8 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode 
 }
 
 // ─── State dropdown ───────────────────────────────────────────
-function StateSelect({ country, value, onChange, label }: {
-  country: string; value: string; onChange: (v: string) => void; label: string;
+function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4' }: {
+  country: string; value: string; onChange: (v: string) => void; label: string; accentSolid?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -357,7 +358,7 @@ function StateSelect({ country, value, onChange, label }: {
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="fixed z-[999] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" style={{ width: ref.current?.offsetWidth, top: (ref.current?.getBoundingClientRect().bottom || 0) + 4, left: ref.current?.getBoundingClientRect().left }}>
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search state…" style={{ fontSize: '16px' }}
@@ -367,7 +368,8 @@ function StateSelect({ country, value, onChange, label }: {
             {filtered.map(s => (
               <button key={s} type="button"
                 onMouseDown={() => { onChange(s); setOpen(false); setSearch(''); }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer ${value === s ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold' : 'text-gray-800 dark:text-gray-200'}`}>
+                className={`w-full text-left px-4 py-2.5 text-sm transition cursor-pointer ${value === s ? 'font-semibold' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10'}`}
+               style={value === s ? { background: `${accentSolid}15`, color: accentSolid } : {}}>
                 {s}
               </button>
             ))}
@@ -595,11 +597,14 @@ function PhoneInput({ countryCode, value, onChange, label }: {
   const [dial, setDial] = useState(entry?.dial || '');
   const [local, setLocal] = useState('');
 
-  // Sync dial code when country changes
-  useEffect(() => {
+  // Only set dial on first load of a country — user can change it freely after
+const [dialInitialized, setDialInitialized] = useState(false);
+useEffect(() => {
+  if (!dialInitialized && countryCode) {
     const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
-    setDial(d);
-  }, [countryCode]);
+    if (d) { setDial(d); setDialInitialized(true); }
+  }
+}, [countryCode, dialInitialized]);
 
   // Pre-fill local number from value prop (profile phone)
   useEffect(() => {
@@ -790,24 +795,29 @@ export default function NewShipmentPage() {
 
   // Lock receiver country for local
   useEffect(() => {
-    if (scope === 'local') {
-      setReceiverCountry(senderCountry);
-      setReceiverCountryCode(senderCountryCode);
-    }
-  }, [scope, senderCountry, senderCountryCode]);
+  if (scope === 'local') {
+    setReceiverCountry(senderCountry);
+    setReceiverCountryCode(senderCountryCode);
+  } else {
+    setReceiverCountry('');
+    setReceiverCountryCode('');
+    setReceiverState('');
+  }
+}, [scope]); // eslint-disable-line
 
   const weight = parseFloat(weightKg) || 0;
 
   // Fix 6: force sea + standard if weight >= 300kg
-  const effectiveServiceLevel: ServiceLevel = useMemo(() => {
-    if (scope === 'international' && weight >= 300) return 'Standard';
-    return serviceLevel;
-  }, [scope, weight, serviceLevel]);
+  const isBulkOrContainer = packageType === 'Container' || packageType === 'Bulk / Pallet';
 
-  const effectiveShipmentType = useMemo(() => {
-    if (scope === 'international' && weight >= 300) return 'Bulk / Pallet' as ShipmentType;
-    return packageType as ShipmentType;
-  }, [scope, weight, packageType]);
+const effectiveServiceLevel: ServiceLevel = useMemo(() => {
+  if (isBulkOrContainer || (scope === 'international' && weight >= 300)) return 'Standard';
+  return serviceLevel;
+}, [scope, weight, serviceLevel, isBulkOrContainer]);
+
+const effectiveShipmentType = useMemo(() => {
+  return packageType as ShipmentType;
+}, [packageType]);
 
   const means: ShipmentMeans = useMemo(() =>
     autoSelectMeans(scope, effectiveServiceLevel, weight, effectiveShipmentType),
@@ -872,10 +882,10 @@ export default function NewShipmentPage() {
     postal: field === 'postal' ? value : senderPostal,
   };
   const matchesProfile =
-    next.street === profileAddress.street &&
-    next.city === profileAddress.city &&
-    next.state === profileAddress.state &&
-    next.postal === profileAddress.postal;
+  next.street.trim() === profileAddress.street.trim() &&
+  next.city.trim() === profileAddress.city.trim() &&
+  next.state.trim() === profileAddress.state.trim() &&
+  next.postal.trim() === profileAddress.postal.trim();
 
   if (profileHasAddress && matchesProfile) {
     setAddressManuallyChanged(false);
@@ -914,7 +924,7 @@ export default function NewShipmentPage() {
     if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
     setLoading(true);
     try {
-      if (saveAsHome || isHomeAddress) {
+      if (saveAsHome) {
         await fetch('/api/user/profile', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: senderName, phone: senderPhone, country: senderCountry, addressStreet: senderStreet, addressCity: senderCity, addressState: senderState, addressPostalCode: senderPostal }),
@@ -999,7 +1009,7 @@ export default function NewShipmentPage() {
               type="email" placeholder="Email address" className={inputCls} style={{ fontSize: '16px' }} />
           </div>
         </div>
-        <CountrySelect label="Country" value={senderCountry}
+        <CountrySelect label="Country" value={senderCountry} accentSolid={accentSolid}
           onChange={name => { const e = getCountryByName(name); if (e) handleSenderCountryChange(e.name, e.code); }}
           onEntry={e => handleSenderCountryChange(e.name, e.code)} />
         <div>
@@ -1019,43 +1029,36 @@ export default function NewShipmentPage() {
               placeholder="Postal code" inputMode="numeric" className={inputCls} style={{ fontSize: '16px' }} />
           </div>
         </div>
-        <StateSelect country={senderCountry} value={senderState}
+        <StateSelect country={senderCountry} value={senderState} accentSolid={accentSolid}
           onChange={v => handleSenderAddressChange('state', v)} label="State / Province" />
         <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label="Phone" />
 
-        {showDefaultCheckbox && (
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input type="checkbox" checked={useDefaultAddress}
-              onChange={e => {
-  setUseDefaultAddress(e.target.checked);
-  if (e.target.checked) {
-    setSenderStreet(profileAddress.street); setSenderCity(profileAddress.city);
-    setSenderState(profileAddress.state); setSenderPostal(profileAddress.postal);
-    setAddressManuallyChanged(false);
-  } else {
-    setSenderStreet(''); setSenderCity('');
-    setSenderState(''); setSenderPostal('');
-    setAddressManuallyChanged(true);
-  }
-}}
-              className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
-            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Use my default address</span>
-          </label>
-        )}
-        {showTwoCheckboxes && (
-          <div className="space-y-2">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input type="checkbox" checked={isHomeAddress} onChange={e => setIsHomeAddress(e.target.checked)}
-                className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
-              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">This is a home address</span>
-            </label>
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input type="checkbox" checked={saveAsHome} onChange={e => setSaveAsHome(e.target.checked)}
-                className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
-              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Save as my home address</span>
-            </label>
-          </div>
-        )}
+        <div className="space-y-2">
+  {profileHasAddress && (
+    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+      <input type="checkbox" checked={useDefaultAddress}
+        onChange={e => {
+          setUseDefaultAddress(e.target.checked);
+          if (e.target.checked) {
+            setSenderStreet(profileAddress.street); setSenderCity(profileAddress.city);
+            setSenderState(profileAddress.state); setSenderPostal(profileAddress.postal);
+            setAddressManuallyChanged(false);
+          } else {
+            setSenderStreet(''); setSenderCity('');
+            setSenderState(''); setSenderPostal('');
+            setAddressManuallyChanged(true);
+          }
+        }}
+        className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
+      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Use my home address</span>
+    </label>
+  )}
+  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+    <input type="checkbox" checked={saveAsHome} onChange={e => setSaveAsHome(e.target.checked)}
+      className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
+    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Save as my home address</span>
+  </label>
+</div>
       </Section>
 
       {/* Receiver */}
@@ -1072,7 +1075,7 @@ export default function NewShipmentPage() {
               type="email" placeholder="Email address" className={inputCls} style={{ fontSize: '16px' }} />
           </div>
         </div>
-        <CountrySelect label="Country" value={receiverCountry}
+        <CountrySelect label="Country" value={receiverCountry} accentSolid={accentSolid}
           disabled={scope === 'local'}
           excludeCode={scope === 'international' ? senderCountryCode : undefined}
           onChange={name => { const e = getCountryByName(name); if (e) { setReceiverCountry(e.name); setReceiverCountryCode(e.code); setReceiverState(''); } }}
@@ -1099,7 +1102,7 @@ export default function NewShipmentPage() {
               placeholder="Postal code" inputMode="numeric" className={inputCls} style={{ fontSize: '16px' }} />
           </div>
         </div>
-        <StateSelect country={receiverCountry} value={receiverState} onChange={setReceiverState} label="State / Province" />
+        <StateSelect country={receiverCountry} value={receiverState} accentSolid={accentSolid} onChange={setReceiverState} label="State / Province" />
         <PhoneInput countryCode={receiverCountryCode} value={receiverPhone} onChange={setReceiverPhone} label="Phone" />
       </Section>
 
@@ -1107,9 +1110,14 @@ export default function NewShipmentPage() {
       <Section title="Package Details" accent={accent}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label>Package Type</Label>
-            <CustomSelect value={packageType} onChange={setPackageType} options={PACKAGE_TYPES} accentSolid={accentSolid} />
-          </div>
+  <Label>Package Type</Label>
+  <CustomSelect value={packageType} onChange={setPackageType} options={PACKAGE_TYPES} accentSolid={accentSolid} />
+  {isBulkOrContainer && (
+    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+      <Info size={11} /> This package type uses Sea Freight automatically
+    </p>
+  )}
+</div>
           {packageType === 'Other' && (
             <div>
               <Label>Specify Package Type</Label>
@@ -1123,7 +1131,7 @@ export default function NewShipmentPage() {
               value={effectiveServiceLevel}
               onChange={v => setServiceLevel(v as ServiceLevel)}
               options={SERVICE_LEVELS}
-              disabled={means === 'sea' || (scope === 'international' && weight >= 300)}
+              disabled={means === 'sea'}
               accentSolid={accentSolid}
             />
             {means === 'sea' && weight < 300 && (
@@ -1136,11 +1144,11 @@ export default function NewShipmentPage() {
   <Label>Weight (kg)</Label>
   <input value={weightKg} onChange={e => setWeightKg(e.target.value.replace(/[^0-9.]/g, ''))}
     inputMode="decimal" placeholder="e.g. 2.5" className={inputCls} style={{ fontSize: '16px' }} />
-  {scope === 'international' && weight >= 300 && (
-    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-      <Info size={11} /> Auto-switched to Sea Freight (Standard)
-    </p>
-  )}
+  {scope === 'international' && weight >= 300 && !isBulkOrContainer && (
+  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+    <Info size={11} /> Auto-switched to Sea Freight (Standard)
+  </p>
+)}
 </div>
           <div className="sm:col-span-2">
             <Label>Dimensions (cm) — L × W × H</Label>
@@ -1164,7 +1172,7 @@ export default function NewShipmentPage() {
         </div>
 
         {/* Auto-selected means — Fix 7: date range */}
-        {weight > 0 && (
+        {(weight > 0 || isBulkOrContainer) && (
           <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 overflow-hidden">
             <div className="flex items-center gap-3 p-3.5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-white/10 shadow-sm">
