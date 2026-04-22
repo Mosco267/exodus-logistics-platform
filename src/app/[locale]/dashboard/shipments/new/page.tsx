@@ -977,7 +977,7 @@ const effectiveShipmentType = useMemo(() => {
         <Label>Shipment Type</Label>
         <div className="grid grid-cols-2 gap-3 mt-1">
           {([
-            { v: 'international' as ShipmentScope, label: '🌍 International', sub: 'Cross-border delivery' },
+            { v: 'international' as ShipmentScope, label: '🌍 International', sub: 'Cross-border' },
             { v: 'local' as ShipmentScope, label: '🚛 Local', sub: 'Within your country' },
           ]).map(s => (
             <button key={s.v} type="button"
