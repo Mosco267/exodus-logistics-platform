@@ -179,7 +179,7 @@ function CurrencySelect({ value, onChange }: { value: string; onChange: (v: stri
       {open && (
         <div className="absolute z-50 mt-1 w-72 right-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
-            <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search currency…" style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
@@ -218,10 +218,10 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Custom Select Dropdown ───────────────────────────────────
-function CustomSelect({ value, onChange, options, placeholder, disabled }: {
+function CustomSelect({ value, onChange, options, placeholder, disabled, accentSolid = '#0b3aa4' }: {
   value: string; onChange: (v: string) => void;
   options: { value: string; label: string }[];
-  placeholder?: string; disabled?: boolean;
+  placeholder?: string; disabled?: boolean; accentSolid?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -249,7 +249,8 @@ function CustomSelect({ value, onChange, options, placeholder, disabled }: {
           {options.map(o => (
             <button key={o.value} type="button"
               onMouseDown={() => { onChange(o.value); setOpen(false); }}
-              className={`w-full text-left px-4 py-3 text-sm hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer ${value === o.value ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-800 dark:text-gray-200'}`}>
+              className={`w-full text-left px-4 py-3 text-sm transition cursor-pointer ${value === o.value ? 'font-bold' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10'}`}
+style={value === o.value ? { background: `${accentSolid}15`, color: accentSolid } : {}}>
               {o.label}
             </button>
           ))}
@@ -298,7 +299,7 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode 
       {open && !disabled && (
         <div className="fixed z-[999] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" style={{ width: ref.current?.offsetWidth, top: (ref.current?.getBoundingClientRect().bottom || 0) + 4, left: ref.current?.getBoundingClientRect().left }}>
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
-            <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search country…" style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
@@ -358,7 +359,7 @@ function StateSelect({ country, value, onChange, label }: {
       {open && (
         <div className="fixed z-[999] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" style={{ width: ref.current?.offsetWidth, top: (ref.current?.getBoundingClientRect().bottom || 0) + 4, left: ref.current?.getBoundingClientRect().left }}>
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
-            <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search state…" style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
@@ -379,43 +380,239 @@ function StateSelect({ country, value, onChange, label }: {
 }
 
 // ─── Phone input ──────────────────────────────────────────────
-const PHONE_FORMATS: Record<string, { placeholder: string; maxLen: number }> = {
-  US: { placeholder: '(201) 555-0123', maxLen: 10 },
-  GB: { placeholder: '7400 123456', maxLen: 10 },
-  NG: { placeholder: '802 341 6524', maxLen: 10 },
-  IN: { placeholder: '98765 43210', maxLen: 10 },
-  CN: { placeholder: '131 2345 6789', maxLen: 11 },
-  DE: { placeholder: '151 12345678', maxLen: 11 },
-  FR: { placeholder: '6 12 34 56 78', maxLen: 9 },
-  AU: { placeholder: '412 345 678', maxLen: 9 },
-  AE: { placeholder: '50 123 4567', maxLen: 9 },
-  BR: { placeholder: '11 99999-9999', maxLen: 11 },
-  ZA: { placeholder: '71 234 5678', maxLen: 9 },
-  GH: { placeholder: '24 123 4567', maxLen: 9 },
-  KE: { placeholder: '712 345678', maxLen: 9 },
+const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = {
+  AF:{placeholder:'70 123 4567',pattern:'## ### ####'},
+  AL:{placeholder:'66 123 4567',pattern:'## ### ####'},
+  DZ:{placeholder:'551 23 45 67',pattern:'### ## ## ##'},
+  AD:{placeholder:'312 345',pattern:'### ###'},
+  AO:{placeholder:'923 123 456',pattern:'### ### ###'},
+  AG:{placeholder:'(268) 234-5678',pattern:'(###) ###-####'},
+  AR:{placeholder:'11 1234-5678',pattern:'## ####-####'},
+  AM:{placeholder:'77 123 456',pattern:'## ### ###'},
+  AU:{placeholder:'412 345 678',pattern:'### ### ###'},
+  AT:{placeholder:'664 1234567',pattern:'### #######'},
+  AZ:{placeholder:'50 123 45 67',pattern:'## ### ## ##'},
+  BS:{placeholder:'(242) 234-5678',pattern:'(###) ###-####'},
+  BH:{placeholder:'3600 1234',pattern:'#### ####'},
+  BD:{placeholder:'1712-345678',pattern:'####-######'},
+  BB:{placeholder:'(246) 234-5678',pattern:'(###) ###-####'},
+  BY:{placeholder:'29 123-45-67',pattern:'## ###-##-##'},
+  BE:{placeholder:'472 12 34 56',pattern:'### ## ## ##'},
+  BZ:{placeholder:'622 3456',pattern:'### ####'},
+  BJ:{placeholder:'90 12 34 56',pattern:'## ## ## ##'},
+  BT:{placeholder:'17 123 456',pattern:'## ### ###'},
+  BO:{placeholder:'7123 4567',pattern:'#### ####'},
+  BA:{placeholder:'61 123 456',pattern:'## ### ###'},
+  BW:{placeholder:'71 234 567',pattern:'## ### ###'},
+  BR:{placeholder:'(11) 99999-9999',pattern:'(##) #####-####'},
+  BN:{placeholder:'712 3456',pattern:'### ####'},
+  BG:{placeholder:'87 123 4567',pattern:'## ### ####'},
+  BF:{placeholder:'70 12 34 56',pattern:'## ## ## ##'},
+  BI:{placeholder:'79 12 34 56',pattern:'## ## ## ##'},
+  CV:{placeholder:'991 23 45',pattern:'### ## ##'},
+  KH:{placeholder:'12 345 678',pattern:'## ### ###'},
+  CM:{placeholder:'6712 3456',pattern:'#### ####'},
+  CA:{placeholder:'(416) 555-0123',pattern:'(###) ###-####'},
+  CF:{placeholder:'75 04 12 34',pattern:'## ## ## ##'},
+  TD:{placeholder:'63 01 23 45',pattern:'## ## ## ##'},
+  CL:{placeholder:'9 1234 5678',pattern:'# #### ####'},
+  CN:{placeholder:'131 2345 6789',pattern:'### #### ####'},
+  CO:{placeholder:'310 123 4567',pattern:'### ### ####'},
+  KM:{placeholder:'321 23 45',pattern:'### ## ##'},
+  CG:{placeholder:'6 123 4567',pattern:'# ### ####'},
+  CD:{placeholder:'812 345 678',pattern:'### ### ###'},
+  CR:{placeholder:'8312 3456',pattern:'#### ####'},
+  HR:{placeholder:'91 234 5678',pattern:'## ### ####'},
+  CU:{placeholder:'5 1234567',pattern:'# #######'},
+  CY:{placeholder:'96 123456',pattern:'## ######'},
+  CZ:{placeholder:'601 123 456',pattern:'### ### ###'},
+  DK:{placeholder:'20 12 34 56',pattern:'## ## ## ##'},
+  DJ:{placeholder:'77 83 12 34',pattern:'## ## ## ##'},
+  DM:{placeholder:'(767) 234-5678',pattern:'(###) ###-####'},
+  DO:{placeholder:'(809) 234-5678',pattern:'(###) ###-####'},
+  EC:{placeholder:'99 123 4567',pattern:'## ### ####'},
+  EG:{placeholder:'100 123 4567',pattern:'### ### ####'},
+  SV:{placeholder:'7012 3456',pattern:'#### ####'},
+  GQ:{placeholder:'222 123 456',pattern:'### ### ###'},
+  ER:{placeholder:'7 123 456',pattern:'# ### ###'},
+  EE:{placeholder:'5123 4567',pattern:'#### ####'},
+  SZ:{placeholder:'7612 3456',pattern:'#### ####'},
+  ET:{placeholder:'91 123 4567',pattern:'## ### ####'},
+  FJ:{placeholder:'701 2345',pattern:'### ####'},
+  FI:{placeholder:'41 2345678',pattern:'## #######'},
+  FR:{placeholder:'6 12 34 56 78',pattern:'# ## ## ## ##'},
+  GA:{placeholder:'6 12 34 56',pattern:'# ## ## ##'},
+  GM:{placeholder:'301 2345',pattern:'### ####'},
+  GE:{placeholder:'555 12 34 56',pattern:'### ## ## ##'},
+  DE:{placeholder:'151 12345678',pattern:'### ########'},
+  GH:{placeholder:'24 123 4567',pattern:'## ### ####'},
+  GR:{placeholder:'694 123 4567',pattern:'### ### ####'},
+  GD:{placeholder:'(473) 234-5678',pattern:'(###) ###-####'},
+  GT:{placeholder:'5123 4567',pattern:'#### ####'},
+  GN:{placeholder:'622 12 34 56',pattern:'### ## ## ##'},
+  GW:{placeholder:'955 123 456',pattern:'### ### ###'},
+  GY:{placeholder:'609 1234',pattern:'### ####'},
+  HT:{placeholder:'34 12 3456',pattern:'## ## ####'},
+  HN:{placeholder:'9812-3456',pattern:'####-####'},
+  HU:{placeholder:'20 123 4567',pattern:'## ### ####'},
+  IS:{placeholder:'611 1234',pattern:'### ####'},
+  IN:{placeholder:'98765 43210',pattern:'##### #####'},
+  ID:{placeholder:'812-3456-7890',pattern:'###-####-####'},
+  IR:{placeholder:'912 345 6789',pattern:'### ### ####'},
+  IQ:{placeholder:'791 123 4567',pattern:'### ### ####'},
+  IE:{placeholder:'87 123 4567',pattern:'## ### ####'},
+  IL:{placeholder:'50-123-4567',pattern:'##-###-####'},
+  IT:{placeholder:'312 345 6789',pattern:'### ### ####'},
+  CI:{placeholder:'7 12 34 56 78',pattern:'# ## ## ## ##'},
+  JM:{placeholder:'(876) 234-5678',pattern:'(###) ###-####'},
+  JP:{placeholder:'90-1234-5678',pattern:'##-####-####'},
+  JO:{placeholder:'7 9012 3456',pattern:'# #### ####'},
+  KZ:{placeholder:'700 123 45 67',pattern:'### ### ## ##'},
+  KE:{placeholder:'712 345678',pattern:'### ######'},
+  KI:{placeholder:'72012345',pattern:'########'},
+  KP:{placeholder:'192 123 4567',pattern:'### ### ####'},
+  KR:{placeholder:'10-1234-5678',pattern:'##-####-####'},
+  KW:{placeholder:'500 12345',pattern:'### #####'},
+  KG:{placeholder:'700 123 456',pattern:'### ### ###'},
+  LA:{placeholder:'20 5512 3456',pattern:'## #### ####'},
+  LV:{placeholder:'2123 4567',pattern:'#### ####'},
+  LB:{placeholder:'3 123 456',pattern:'# ### ###'},
+  LS:{placeholder:'5012 3456',pattern:'#### ####'},
+  LR:{placeholder:'77 012 3456',pattern:'## ### ####'},
+  LY:{placeholder:'91 123 4567',pattern:'## ### ####'},
+  LI:{placeholder:'660 1234',pattern:'### ####'},
+  LT:{placeholder:'612 34567',pattern:'### #####'},
+  LU:{placeholder:'628 123 456',pattern:'### ### ###'},
+  MG:{placeholder:'32 12 345 67',pattern:'## ## ### ##'},
+  MW:{placeholder:'991 23 45 67',pattern:'### ## ## ##'},
+  MY:{placeholder:'12-345 6789',pattern:'##-### ####'},
+  MV:{placeholder:'777-1234',pattern:'###-####'},
+  ML:{placeholder:'65 12 34 56',pattern:'## ## ## ##'},
+  MT:{placeholder:'9961 2345',pattern:'#### ####'},
+  MH:{placeholder:'235-1234',pattern:'###-####'},
+  MR:{placeholder:'22 12 34 56',pattern:'## ## ## ##'},
+  MU:{placeholder:'5252 1234',pattern:'#### ####'},
+  MX:{placeholder:'55 1234 5678',pattern:'## #### ####'},
+  FM:{placeholder:'350 1234',pattern:'### ####'},
+  MD:{placeholder:'621 12 345',pattern:'### ## ###'},
+  MC:{placeholder:'6 12 34 56 78',pattern:'# ## ## ## ##'},
+  MN:{placeholder:'9912 3456',pattern:'#### ####'},
+  ME:{placeholder:'67 123 456',pattern:'## ### ###'},
+  MA:{placeholder:'612-345678',pattern:'###-######'},
+  MZ:{placeholder:'82 123 4567',pattern:'## ### ####'},
+  MM:{placeholder:'9 123 456 789',pattern:'# ### ### ###'},
+  NA:{placeholder:'81 123 4567',pattern:'## ### ####'},
+  NR:{placeholder:'444 1234',pattern:'### ####'},
+  NP:{placeholder:'84-1234567',pattern:'##-#######'},
+  NL:{placeholder:'6 12345678',pattern:'# ########'},
+  NZ:{placeholder:'21 234 5678',pattern:'## ### ####'},
+  NI:{placeholder:'8412 3456',pattern:'#### ####'},
+  NE:{placeholder:'93 12 34 56',pattern:'## ## ## ##'},
+  NG:{placeholder:'802 341 6524',pattern:'### ### ####'},
+  NO:{placeholder:'412 34 567',pattern:'### ## ###'},
+  OM:{placeholder:'9212 3456',pattern:'#### ####'},
+  PK:{placeholder:'301-2345678',pattern:'###-#######'},
+  PW:{placeholder:'775 1234',pattern:'### ####'},
+  PS:{placeholder:'59 123 4567',pattern:'## ### ####'},
+  PA:{placeholder:'6123-4567',pattern:'####-####'},
+  PG:{placeholder:'7012 3456',pattern:'#### ####'},
+  PY:{placeholder:'981 234 567',pattern:'### ### ###'},
+  PE:{placeholder:'912 345 678',pattern:'### ### ###'},
+  PH:{placeholder:'917 123 4567',pattern:'### ### ####'},
+  PL:{placeholder:'512 345 678',pattern:'### ### ###'},
+  PT:{placeholder:'912 345 678',pattern:'### ### ###'},
+  QA:{placeholder:'3312 3456',pattern:'#### ####'},
+  RO:{placeholder:'712 345 678',pattern:'### ### ###'},
+  RU:{placeholder:'912 345-67-89',pattern:'### ###-##-##'},
+  RW:{placeholder:'721 123 456',pattern:'### ### ###'},
+  KN:{placeholder:'(869) 234-5678',pattern:'(###) ###-####'},
+  LC:{placeholder:'(758) 234-5678',pattern:'(###) ###-####'},
+  VC:{placeholder:'(784) 234-5678',pattern:'(###) ###-####'},
+  WS:{placeholder:'72 12345',pattern:'## #####'},
+  SM:{placeholder:'66 66 12 34',pattern:'## ## ## ##'},
+  ST:{placeholder:'981 2345',pattern:'### ####'},
+  SA:{placeholder:'50 123 4567',pattern:'## ### ####'},
+  SN:{placeholder:'77 123 45 67',pattern:'## ### ## ##'},
+  RS:{placeholder:'60 1234567',pattern:'## #######'},
+  SC:{placeholder:'2 512 345',pattern:'# ### ###'},
+  SL:{placeholder:'25 123456',pattern:'## ######'},
+  SG:{placeholder:'9123 4567',pattern:'#### ####'},
+  SK:{placeholder:'912 123 456',pattern:'### ### ###'},
+  SI:{placeholder:'40 123 456',pattern:'## ### ###'},
+  SB:{placeholder:'74 12345',pattern:'## #####'},
+  SO:{placeholder:'61 234 567',pattern:'## ### ###'},
+  ZA:{placeholder:'71 234 5678',pattern:'## ### ####'},
+  SS:{placeholder:'977 123 456',pattern:'### ### ###'},
+  ES:{placeholder:'612 345 678',pattern:'### ### ###'},
+  LK:{placeholder:'71 234 5678',pattern:'## ### ####'},
+  SD:{placeholder:'91 123 4567',pattern:'## ### ####'},
+  SR:{placeholder:'741 2345',pattern:'### ####'},
+  SE:{placeholder:'70 123 45 67',pattern:'## ### ## ##'},
+  CH:{placeholder:'76 123 45 67',pattern:'## ### ## ##'},
+  SY:{placeholder:'944 123 456',pattern:'### ### ###'},
+  TW:{placeholder:'912-345-678',pattern:'###-###-###'},
+  TJ:{placeholder:'917 12 3456',pattern:'### ## ####'},
+  TZ:{placeholder:'712 345 678',pattern:'### ### ###'},
+  TH:{placeholder:'81 234 5678',pattern:'## ### ####'},
+  TL:{placeholder:'7712 3456',pattern:'#### ####'},
+  TG:{placeholder:'90 12 34 56',pattern:'## ## ## ##'},
+  TO:{placeholder:'7715 123',pattern:'#### ###'},
+  TT:{placeholder:'(868) 234-5678',pattern:'(###) ###-####'},
+  TN:{placeholder:'20 123 456',pattern:'## ### ###'},
+  TR:{placeholder:'532 123 45 67',pattern:'### ### ## ##'},
+  TM:{placeholder:'8 65 123456',pattern:'# ## ######'},
+  TV:{placeholder:'901 234',pattern:'### ###'},
+  UG:{placeholder:'712 345678',pattern:'### ######'},
+  UA:{placeholder:'50 123 4567',pattern:'## ### ####'},
+  AE:{placeholder:'50 123 4567',pattern:'## ### ####'},
+  GB:{placeholder:'7400 123456',pattern:'#### ######'},
+  US:{placeholder:'(201) 555-0123',pattern:'(###) ###-####'},
+  UY:{placeholder:'94 123 456',pattern:'## ### ###'},
+  UZ:{placeholder:'90 123 45 67',pattern:'## ### ## ##'},
+  VU:{placeholder:'591 2345',pattern:'### ####'},
+  VA:{placeholder:'6 698 12345',pattern:'# ### #####'},
+  VE:{placeholder:'412-123 4567',pattern:'###-### ####'},
+  VN:{placeholder:'91 234 56 78',pattern:'## ### ## ##'},
+  YE:{placeholder:'712 123 456',pattern:'### ### ###'},
+  ZM:{placeholder:'95 123 4567',pattern:'## ### ####'},
+  ZW:{placeholder:'71 234 5678',pattern:'## ### ####'},
 };
+
+function applyPhonePattern(digits: string, pattern: string): string {
+  let result = ''; let di = 0;
+  for (let i = 0; i < pattern.length && di < digits.length; i++) {
+    if (pattern[i] === '#') result += digits[di++];
+    else result += pattern[i];
+  }
+  return result;
+}
 
 function PhoneInput({ countryCode, value, onChange, label }: {
   countryCode: string; value: string; onChange: (v: string) => void; label: string;
 }) {
   const entry = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
-  const fmt = PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', maxLen: 12 };
+  const fmt = PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
   const [dial, setDial] = useState(entry?.dial || '');
   const [local, setLocal] = useState('');
 
+  // Sync dial code when country changes
   useEffect(() => {
     const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
     setDial(d);
-    setLocal('');
-    onChange(d);
-  }, [countryCode]); // eslint-disable-line
+  }, [countryCode]);
 
-  // Pre-fill if value already has a number
+  // Pre-fill local number from value prop (profile phone)
   useEffect(() => {
-    if (value && entry?.dial && value.startsWith(entry.dial)) {
-      setLocal(value.slice(entry.dial.length).trim().replace(/\D/g, ''));
+    if (!value) return;
+    const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
+    if (d && value.startsWith(d)) {
+      setLocal(value.slice(d.length).trim().replace(/\D/g, ''));
+    } else {
+      setLocal(value.replace(/\D/g, ''));
     }
-  }, []); // eslint-disable-line
+  }, [value, countryCode]); // eslint-disable-line
+
+  const displayLocal = applyPhonePattern(local, fmt.pattern);
 
   return (
     <div>
@@ -426,10 +623,18 @@ function PhoneInput({ countryCode, value, onChange, label }: {
           <input value={dial} onChange={e => { setDial(e.target.value); onChange(`${e.target.value} ${local}`.trim()); }}
             className="w-14 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none" />
         </div>
-        <input value={local}
-          onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, fmt.maxLen); setLocal(v); onChange(`${dial} ${v}`.trim()); }}
-          inputMode="numeric" placeholder={fmt.placeholder}
-          className={`${inputCls} flex-1`} style={{ fontSize: '16px' }} />
+        <input
+          value={displayLocal}
+          onChange={e => {
+            const digits = e.target.value.replace(/\D/g, '');
+            setLocal(digits);
+            onChange(`${dial} ${digits}`.trim());
+          }}
+          inputMode="numeric"
+          placeholder={fmt.placeholder}
+          className={`${inputCls} flex-1`}
+          style={{ fontSize: '16px' }}
+        />
       </div>
     </div>
   );
@@ -457,21 +662,21 @@ const MEANS_CONFIG: Record<ShipmentMeans, { label: string; emoji: string; color:
 
 // ─── Package types ────────────────────────────────────────────
 const PACKAGE_TYPES = [
-  { value: 'Documents', label: '📄 Documents' },
-  { value: 'Parcel', label: '📦 Parcel' },
-  { value: 'Electronics', label: '💻 Electronics' },
-  { value: 'Clothing', label: '👕 Clothing' },
-  { value: 'Food & Perishables', label: '🥩 Food & Perishables' },
-  { value: 'Furniture', label: '🛋️ Furniture' },
-  { value: 'Machinery', label: '⚙️ Machinery' },
-  { value: 'Bulk / Pallet', label: '🏗️ Bulk / Pallet' },
-  { value: 'Container', label: '🚢 Container' },
-  { value: 'Other', label: '📝 Other' },
+  { value: 'Documents', label: 'Documents' },
+  { value: 'Parcel', label: 'Parcel' },
+  { value: 'Electronics', label: 'Electronics' },
+  { value: 'Clothing', label: 'Clothing' },
+  { value: 'Food & Perishables', label: 'Food & Perishables' },
+  { value: 'Furniture', label: 'Furniture' },
+  { value: 'Machinery', label: 'Machinery' },
+  { value: 'Bulk / Pallet', label: 'Bulk / Pallet' },
+  { value: 'Container', label: 'Container' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const SERVICE_LEVELS = [
-  { value: 'Express', label: '⚡ Express — Fastest available' },
-  { value: 'Standard', label: '📅 Standard — Economy speed' },
+  { value: 'Express', label: 'Express — Fastest available' },
+  { value: 'Standard', label: 'Standard — Economy speed' },
 ];
 
 // ─── Main page ────────────────────────────────────────────────
@@ -654,12 +859,32 @@ export default function NewShipmentPage() {
   const showTwoCheckboxes = !profileHasAddress || addressManuallyChanged;
 
   const handleSenderAddressChange = (field: string, value: string) => {
-    setAddressManuallyChanged(true); setUseDefaultAddress(false);
-    if (field === 'street') setSenderStreet(value);
-    if (field === 'city') setSenderCity(value);
-    if (field === 'state') setSenderState(value);
-    if (field === 'postal') setSenderPostal(value);
+  if (field === 'street') setSenderStreet(value);
+  if (field === 'city') setSenderCity(value);
+  if (field === 'state') setSenderState(value);
+  if (field === 'postal') setSenderPostal(value);
+
+  // Check if all fields match the profile address — if so revert to default checkbox
+  const next = {
+    street: field === 'street' ? value : senderStreet,
+    city: field === 'city' ? value : senderCity,
+    state: field === 'state' ? value : senderState,
+    postal: field === 'postal' ? value : senderPostal,
   };
+  const matchesProfile =
+    next.street === profileAddress.street &&
+    next.city === profileAddress.city &&
+    next.state === profileAddress.state &&
+    next.postal === profileAddress.postal;
+
+  if (profileHasAddress && matchesProfile) {
+    setAddressManuallyChanged(false);
+    setUseDefaultAddress(true);
+  } else {
+    setAddressManuallyChanged(true);
+    setUseDefaultAddress(false);
+  }
+};
 
   const handleSenderCountryChange = (name: string, code: string) => {
     setSenderCountry(name); setSenderCountryCode(code);
@@ -802,9 +1027,17 @@ export default function NewShipmentPage() {
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <input type="checkbox" checked={useDefaultAddress}
               onChange={e => {
-                setUseDefaultAddress(e.target.checked);
-                if (e.target.checked) { setSenderStreet(profileAddress.street); setSenderCity(profileAddress.city); setSenderState(profileAddress.state); setSenderPostal(profileAddress.postal); setAddressManuallyChanged(false); }
-              }}
+  setUseDefaultAddress(e.target.checked);
+  if (e.target.checked) {
+    setSenderStreet(profileAddress.street); setSenderCity(profileAddress.city);
+    setSenderState(profileAddress.state); setSenderPostal(profileAddress.postal);
+    setAddressManuallyChanged(false);
+  } else {
+    setSenderStreet(''); setSenderCity('');
+    setSenderState(''); setSenderPostal('');
+    setAddressManuallyChanged(true);
+  }
+}}
               className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
             <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Use my default address</span>
           </label>
@@ -875,7 +1108,7 @@ export default function NewShipmentPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>Package Type</Label>
-            <CustomSelect value={packageType} onChange={setPackageType} options={PACKAGE_TYPES} />
+            <CustomSelect value={packageType} onChange={setPackageType} options={PACKAGE_TYPES} accentSolid={accentSolid} />
           </div>
           {packageType === 'Other' && (
             <div>
@@ -891,18 +1124,24 @@ export default function NewShipmentPage() {
               onChange={v => setServiceLevel(v as ServiceLevel)}
               options={SERVICE_LEVELS}
               disabled={means === 'sea' || (scope === 'international' && weight >= 300)}
+              accentSolid={accentSolid}
             />
-            {(means === 'sea' || (scope === 'international' && weight >= 300)) && (
-              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                <Info size={11} /> {weight >= 300 ? 'Auto-set to Standard for heavy shipments' : 'Sea freight is always Standard'}
-              </p>
-            )}
+            {means === 'sea' && weight < 300 && (
+  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+    <Info size={11} /> Sea freight is always Standard
+  </p>
+)}
           </div>
           <div>
-            <Label>Weight (kg)</Label>
-            <input value={weightKg} onChange={e => setWeightKg(e.target.value.replace(/[^0-9.]/g, ''))}
-              inputMode="decimal" placeholder="e.g. 2.5" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
+  <Label>Weight (kg)</Label>
+  <input value={weightKg} onChange={e => setWeightKg(e.target.value.replace(/[^0-9.]/g, ''))}
+    inputMode="decimal" placeholder="e.g. 2.5" className={inputCls} style={{ fontSize: '16px' }} />
+  {scope === 'international' && weight >= 300 && (
+    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+      <Info size={11} /> Auto-switched to Sea Freight (Standard)
+    </p>
+  )}
+</div>
           <div className="sm:col-span-2">
             <Label>Dimensions (cm) — L × W × H</Label>
             <div className="grid grid-cols-3 gap-2">
@@ -940,12 +1179,7 @@ export default function NewShipmentPage() {
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-200 mt-0.5">{deliveryDateStr}</p>
               </div>
             </div>
-            {scope === 'international' && weight >= 300 && (
-              <div className="px-3.5 pb-3 flex items-center gap-1.5">
-                <Info size={11} className="text-amber-500 shrink-0" />
-                <p className="text-xs text-amber-600 dark:text-amber-400">Weight ≥ 300kg — automatically switched to Sea Freight (Standard)</p>
-              </div>
-            )}
+            
           </div>
         )}
       </Section>
@@ -967,11 +1201,7 @@ export default function NewShipmentPage() {
       </Section>
 
       {/* Invoice breakdown — Fix 9 */}
-      {pricingError && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-sm text-amber-700 dark:text-amber-400">
-          <AlertCircle size={14} className="shrink-0" /> Pricing settings not configured. Contact your admin.
-        </div>
-      )}
+      
       {pricing && !breakdown && weight > 0 && senderCountryCode && receiverCountryCode && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm text-gray-500">
           <Loader2 size={14} className="animate-spin shrink-0" /> Calculating invoice…
