@@ -12,7 +12,7 @@ import { createPortal } from 'react-dom';
 import { COUNTRIES_WITH_STATES, getCountryByName, type CountryEntry } from '@/lib/countriesData';
 import {
   autoSelectMeans, getDeliveryDays, getEstimatedDeliveryDate,
-  computeInvoice, type PricingProfiles, type ShipmentScope,
+  computeInvoice, DEFAULT_PRICING, type PricingProfiles, type ShipmentScope,
   type ServiceLevel, type ShipmentType, type ShipmentMeans,
 } from '@/lib/pricing';
 
@@ -648,12 +648,11 @@ function DialDropdown({ dial, flag, onChange }: {
 function PhoneInput({ countryCode, value, onChange, label }: {
   countryCode: string; value: string; onChange: (v: string) => void; label: string;
 }) {
-  const entry = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
-  const fmt = PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
   const [dial, setDial] = useState('');
-const [flagCode, setFlagCode] = useState('');
-const [local, setLocal] = useState('');
-const [dialInitialized, setDialInitialized] = useState(false);
+  const [flagCode, setFlagCode] = useState('');
+  const [dialCountryCode, setDialCountryCode] = useState('');
+  const [local, setLocal] = useState('');
+  const [dialInitialized, setDialInitialized] = useState(false);
 
   // Set dial only on first country load
   useEffect(() => {
@@ -662,22 +661,24 @@ const [dialInitialized, setDialInitialized] = useState(false);
       if (e) {
         setDial(e.dial);
         setFlagCode(e.code.toLowerCase());
+        setDialCountryCode(e.code);
         setDialInitialized(true);
       }
     }
   }, [countryCode, dialInitialized]);
 
-  // Pre-fill local number from profile
+  // Pre-fill local from profile value
   useEffect(() => {
     if (!value) { setLocal(''); return; }
     const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
-    if (d && value.startsWith(d)) {
-      setLocal(value.slice(d.length).trim().replace(/\D/g, ''));
-    } else {
-      setLocal(value.replace(/\D/g, ''));
-    }
-  }, [value, countryCode]); // eslint-disable-line
+    const digits = d && value.startsWith(d)
+      ? value.slice(d.length).trim().replace(/\D/g, '')
+      : value.replace(/\D/g, '');
+    setLocal(digits);
+  }, [value]); // eslint-disable-line
 
+  // Use dial country code for formatting pattern
+  const fmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
   const displayLocal = applyPhonePattern(local, fmt.pattern);
 
   return (
@@ -685,15 +686,17 @@ const [dialInitialized, setDialInitialized] = useState(false);
       <Label>{label}</Label>
       <div className="flex gap-2">
         <DialDropdown
-  dial={dial}
-  flag={flagCode}
-  onChange={(newDial, newFlag) => {
-    setDial(newDial);
-    setFlagCode(newFlag);
-    setLocal('');
-    onChange(newDial);
-  }}
-/>
+          dial={dial}
+          flag={flagCode}
+          onChange={(newDial, newFlag) => {
+            const newCode = COUNTRIES_WITH_STATES.find(c => c.code.toLowerCase() === newFlag)?.code || '';
+            setDial(newDial);
+            setFlagCode(newFlag);
+            setDialCountryCode(newCode);
+            setLocal('');
+            onChange(newDial);
+          }}
+        />
         <input
           value={displayLocal}
           onChange={e => {
@@ -953,18 +956,29 @@ const effectiveShipmentType = useMemo(() => {
 
   const breakdown = useMemo(() => {
     if (!pricing || !senderCountryCode || !receiverCountryCode || weight <= 0) return null;
-    try {
-      return computeInvoice({
-        scope, means, serviceLevel: effectiveServiceLevel,
-        weightKg: weight,
-        declaredValue: parseFloat(declaredValue) || 0,
-        currency,
-        senderCountryCode, receiverCountryCode,
-        senderCity, senderState,
-        receiverCity, receiverState,
-        pricing,
-      });
-    } catch { return null; }
+   try {
+    // Merge with defaults to fill any missing air/sea/land fields
+    const safePricing = {
+      ...DEFAULT_PRICING,
+      ...pricing,
+      air: { ...DEFAULT_PRICING.air, ...(pricing.air || {}) },
+      sea: { ...DEFAULT_PRICING.sea, ...(pricing.sea || {}) },
+      land: { ...DEFAULT_PRICING.land, ...(pricing.land || {}) },
+    };
+    return computeInvoice({
+      scope, means, serviceLevel: effectiveServiceLevel,
+      weightKg: weight,
+      declaredValue: parseFloat(declaredValue) || 0,
+      currency,
+      senderCountryCode, receiverCountryCode,
+      senderCity, senderState,
+      receiverCity, receiverState,
+      pricing: safePricing,
+    });
+  } catch (e) {
+    console.error('Invoice error:', e);
+    return null;
+  }
   }, [pricing, scope, means, effectiveServiceLevel, weight, declaredValue, currency,
       senderCountryCode, receiverCountryCode, senderCity, senderState, receiverCity, receiverState]);
 
@@ -1005,7 +1019,11 @@ const effectiveShipmentType = useMemo(() => {
     const c = COUNTRY_CURRENCY[code]; if (c) setCurrency(c);
   };
 
-  const requiredFields = [
+  const requiredFields: {
+  v: string;
+  l: string;
+  ref: React.MutableRefObject<HTMLDivElement | null>;
+}[] = [
   { v: senderName, l: 'Sender full name', ref: refSenderName },
   { v: senderEmail, l: 'Sender email', ref: refSenderEmail },
   { v: senderCountry, l: 'Sender country', ref: refSenderCountry },
@@ -1035,10 +1053,19 @@ const isValid = !firstMissing;
   const finalPackageType = packageType === 'Other' ? (customPackageType || 'Other') : packageType;
 
   const handleSubmit = async () => {
-    setAttempted(true); setError('');
-    if (!isValid) { setError(`${firstMissing} is required.`); return; }
-    const dv = parseFloat(declaredValue);
-    if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
+  setAttempted(true);
+  setError('');
+
+  const missing = requiredFields.find(f => !f.v?.trim());
+  if (missing) {
+    setError(`${missing.l} is required.`);
+    missing.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const dv = parseFloat(declaredValue);
+  if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
+  // ... rest of your existing submit code unchanged
     setLoading(true);
     try {
       if (saveAsHome) {
