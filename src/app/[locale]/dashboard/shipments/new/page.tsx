@@ -614,8 +614,11 @@ function DialDropdown({ dial, flag, onChange }: {
     <div ref={ref} className="relative shrink-0">
       <button type="button" onClick={() => { setOpen(v => !v); setSearch(''); }}
         className="flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 h-full min-h-[48px] cursor-pointer hover:border-gray-300 dark:hover:border-white/20 transition">
-        <img src={`https://flagcdn.com/w20/${flag}.png`} width="18" height="13" alt="" className="rounded-sm shrink-0" />
-        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 min-w-[36px]">{dial}</span>
+        {flag
+  ? <img src={`https://flagcdn.com/w20/${flag}.png`} width="18" height="13" alt="" className="rounded-sm shrink-0" />
+  : <span className="w-5 h-3.5 rounded-sm bg-gray-200 dark:bg-white/20 shrink-0 block" />
+}
+<span className="text-sm font-semibold text-gray-700 dark:text-gray-200 min-w-[36px]">{dial || '+?'}</span>
         <ChevronDown size={12} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -647,10 +650,10 @@ function PhoneInput({ countryCode, value, onChange, label }: {
 }) {
   const entry = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
   const fmt = PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
-  const [dial, setDial] = useState(entry?.dial || '');
-  const [flagCode, setFlagCode] = useState(entry?.code.toLowerCase() || 'us');
-  const [local, setLocal] = useState('');
-  const [dialInitialized, setDialInitialized] = useState(false);
+  const [dial, setDial] = useState('');
+const [flagCode, setFlagCode] = useState('');
+const [local, setLocal] = useState('');
+const [dialInitialized, setDialInitialized] = useState(false);
 
   // Set dial only on first country load
   useEffect(() => {
@@ -682,14 +685,15 @@ function PhoneInput({ countryCode, value, onChange, label }: {
       <Label>{label}</Label>
       <div className="flex gap-2">
         <DialDropdown
-          dial={dial}
-          flag={flagCode}
-          onChange={(newDial, newFlag) => {
-            setDial(newDial);
-            setFlagCode(newFlag);
-            onChange(`${newDial} ${local}`.trim());
-          }}
-        />
+  dial={dial}
+  flag={flagCode}
+  onChange={(newDial, newFlag) => {
+    setDial(newDial);
+    setFlagCode(newFlag);
+    setLocal('');
+    onChange(newDial);
+  }}
+/>
         <input
           value={displayLocal}
           onChange={e => {
@@ -838,6 +842,30 @@ useEffect(() => {
   const [createdId, setCreatedId] = useState('');
   const [attempted, setAttempted] = useState(false);
 
+  // Field refs for scroll-to-error
+const refSenderName = useRef<HTMLDivElement>(null);
+const refSenderEmail = useRef<HTMLDivElement>(null);
+const refSenderCountry = useRef<HTMLDivElement>(null);
+const refSenderStreet = useRef<HTMLDivElement>(null);
+const refSenderCity = useRef<HTMLDivElement>(null);
+const refSenderPostal = useRef<HTMLDivElement>(null);
+const refSenderState = useRef<HTMLDivElement>(null);
+const refSenderPhone = useRef<HTMLDivElement>(null);
+const refReceiverName = useRef<HTMLDivElement>(null);
+const refReceiverEmail = useRef<HTMLDivElement>(null);
+const refReceiverCountry = useRef<HTMLDivElement>(null);
+const refReceiverStreet = useRef<HTMLDivElement>(null);
+const refReceiverCity = useRef<HTMLDivElement>(null);
+const refReceiverPostal = useRef<HTMLDivElement>(null);
+const refReceiverState = useRef<HTMLDivElement>(null);
+const refReceiverPhone = useRef<HTMLDivElement>(null);
+const refWeightKg = useRef<HTMLDivElement>(null);
+const refLengthCm = useRef<HTMLDivElement>(null);
+const refWidthCm = useRef<HTMLDivElement>(null);
+const refHeightCm = useRef<HTMLDivElement>(null);
+const refPackageDescription = useRef<HTMLDivElement>(null);
+const refDeclaredValue = useRef<HTMLDivElement>(null);
+
   // Load profile
   useEffect(() => {
     fetch('/api/user/profile')
@@ -978,17 +1006,31 @@ const effectiveShipmentType = useMemo(() => {
   };
 
   const requiredFields = [
-    { v: senderName, l: 'Sender name' }, { v: senderEmail, l: 'Sender email' },
-    { v: senderCountry, l: 'Sender country' }, { v: senderState, l: 'Sender state' },
-    { v: senderCity, l: 'Sender city' }, { v: senderStreet, l: 'Sender address' },
-    { v: senderPhone, l: 'Sender phone' }, { v: receiverName, l: 'Receiver name' },
-    { v: receiverEmail, l: 'Receiver email' }, { v: receiverCountry, l: 'Receiver country' },
-    { v: receiverState, l: 'Receiver state' }, { v: receiverCity, l: 'Receiver city' },
-    { v: receiverStreet, l: 'Receiver address' }, { v: receiverPhone, l: 'Receiver phone' },
-    { v: weightKg, l: 'Weight' }, { v: declaredValue, l: 'Declared value' },
-  ];
-  const firstMissing = requiredFields.find(f => !f.v?.trim())?.l || '';
-  const isValid = !firstMissing;
+  { v: senderName, l: 'Sender full name', ref: refSenderName },
+  { v: senderEmail, l: 'Sender email', ref: refSenderEmail },
+  { v: senderCountry, l: 'Sender country', ref: refSenderCountry },
+  { v: senderStreet, l: 'Sender street address', ref: refSenderStreet },
+  { v: senderCity, l: 'Sender city', ref: refSenderCity },
+  { v: senderPostal, l: 'Sender postal code', ref: refSenderPostal },
+  { v: senderState, l: 'Sender state / province', ref: refSenderState },
+  { v: senderPhone, l: 'Sender phone number', ref: refSenderPhone },
+  { v: receiverName, l: 'Receiver full name', ref: refReceiverName },
+  { v: receiverEmail, l: 'Receiver email', ref: refReceiverEmail },
+  { v: receiverCountry, l: 'Receiver country', ref: refReceiverCountry },
+  { v: receiverStreet, l: 'Receiver street address', ref: refReceiverStreet },
+  { v: receiverCity, l: 'Receiver city', ref: refReceiverCity },
+  { v: receiverPostal, l: 'Receiver postal code', ref: refReceiverPostal },
+  { v: receiverState, l: 'Receiver state / province', ref: refReceiverState },
+  { v: receiverPhone, l: 'Receiver phone number', ref: refReceiverPhone },
+  { v: weightKg, l: 'Weight', ref: refWeightKg },
+  { v: lengthCm, l: 'Length', ref: refLengthCm },
+  { v: widthCm, l: 'Width', ref: refWidthCm },
+  { v: heightCm, l: 'Height', ref: refHeightCm },
+  { v: packageDescription, l: 'Package description', ref: refPackageDescription },
+  { v: declaredValue, l: 'Declared value', ref: refDeclaredValue },
+];
+const firstMissing = requiredFields.find(f => !f.v?.trim());
+const isValid = !firstMissing;
 
   const finalPackageType = packageType === 'Other' ? (customPackageType || 'Other') : packageType;
 
@@ -1067,40 +1109,65 @@ const effectiveShipmentType = useMemo(() => {
       {/* Sender */}
       <Section title="Sender Information" accent={accent}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label>Full Name</Label>
-            <input value={senderName} onChange={e => setSenderName(e.target.value)}
-              placeholder="Full name" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
-          <div>
-            <Label>Email</Label>
-            <input value={senderEmail} onChange={e => setSenderEmail(e.target.value)}
-              type="email" placeholder="Email address" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
+          <div ref={refSenderName}>
+  <Label>Full Name</Label>
+  <input value={senderName} onChange={e => setSenderName(e.target.value)}
+    placeholder="Full name"
+    className={`${inputCls} ${attempted && !senderName.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !senderName.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
+          <div ref={refSenderEmail}>
+  <Label>Email</Label>
+  <input value={senderEmail} onChange={e => setSenderEmail(e.target.value)}
+    type="email" placeholder="Email address"
+    className={`${inputCls} ${attempted && !senderEmail.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !senderEmail.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
         </div>
-        <CountrySelect label="Country" value={senderCountry} accentSolid={accentSolid}
-          onChange={name => { const e = getCountryByName(name); if (e) handleSenderCountryChange(e.name, e.code); }}
-          onEntry={e => handleSenderCountryChange(e.name, e.code)} />
-        <div>
-          <Label>Street Address</Label>
-          <input value={senderStreet} onChange={e => handleSenderAddressChange('street', e.target.value)}
-            placeholder="Street address" className={inputCls} style={{ fontSize: '16px' }} />
-        </div>
+        <div ref={refSenderCountry}>
+  <CountrySelect label="Country" value={senderCountry} accentSolid={accentSolid}
+    onChange={name => { const e = getCountryByName(name); if (e) handleSenderCountryChange(e.name, e.code); }}
+    onEntry={e => handleSenderCountryChange(e.name, e.code)} />
+  {attempted && !senderCountry && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
+        <div ref={refSenderStreet}>
+  <Label>Street Address</Label>
+  <input value={senderStreet} onChange={e => handleSenderAddressChange('street', e.target.value)}
+    placeholder="Street address"
+    className={`${inputCls} ${attempted && !senderStreet.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !senderStreet.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>City</Label>
-            <input value={senderCity} onChange={e => handleSenderAddressChange('city', e.target.value)}
-              placeholder="City" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
-          <div>
-            <Label>Postal Code</Label>
-            <input value={senderPostal} onChange={e => handleSenderAddressChange('postal', e.target.value.replace(/\D/g, ''))}
-              placeholder="Postal code" inputMode="numeric" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
-        </div>
-        <StateSelect country={senderCountry} value={senderState} accentSolid={accentSolid}
-          onChange={v => handleSenderAddressChange('state', v)} label="State / Province" />
-        <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label="Phone" />
+  <div ref={refSenderCity}>
+    <Label>City</Label>
+    <input value={senderCity} onChange={e => handleSenderAddressChange('city', e.target.value)}
+      placeholder="City"
+      className={`${inputCls} ${attempted && !senderCity.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+      style={{ fontSize: '16px' }} />
+    {attempted && !senderCity.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  </div>
+  <div ref={refSenderPostal}>
+    <Label>Postal Code</Label>
+    <input value={senderPostal} onChange={e => handleSenderAddressChange('postal', e.target.value.replace(/\D/g, ''))}
+      placeholder="Postal code" inputMode="numeric"
+      className={`${inputCls} ${attempted && !senderPostal.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+      style={{ fontSize: '16px' }} />
+    {attempted && !senderPostal.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  </div>
+</div>
+        <div ref={refSenderState}>
+  <StateSelect country={senderCountry} value={senderState} accentSolid={accentSolid}
+    onChange={v => handleSenderAddressChange('state', v)} label="State / Province" />
+  {attempted && !senderState.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
+
+<div ref={refSenderPhone}>
+  <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label="Phone" />
+  {attempted && !senderPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
 
         <div className="space-y-2">
   {profileHasAddress && (
@@ -1136,46 +1203,71 @@ const effectiveShipmentType = useMemo(() => {
       {/* Receiver */}
       <Section title="Receiver Information" accent={accent}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label>Full Name</Label>
-            <input value={receiverName} onChange={e => setReceiverName(e.target.value)}
-              placeholder="Full name" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
-          <div>
-            <Label>Email</Label>
-            <input value={receiverEmail} onChange={e => setReceiverEmail(e.target.value)}
-              type="email" placeholder="Email address" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
+          <div ref={refReceiverName}>
+  <Label>Full Name</Label>
+  <input value={receiverName} onChange={e => setReceiverName(e.target.value)}
+    placeholder="Full name"
+    className={`${inputCls} ${attempted && !receiverName.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !receiverName.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
+          <div ref={refReceiverEmail}>
+  <Label>Email</Label>
+  <input value={receiverEmail} onChange={e => setReceiverEmail(e.target.value)}
+    type="email" placeholder="Email address"
+    className={`${inputCls} ${attempted && !receiverEmail.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !receiverEmail.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
         </div>
-        <CountrySelect label="Country" value={receiverCountry} accentSolid={accentSolid}
-          disabled={scope === 'local'}
-          excludeCode={scope === 'international' ? senderCountryCode : undefined}
-          onChange={name => { const e = getCountryByName(name); if (e) { setReceiverCountry(e.name); setReceiverCountryCode(e.code); setReceiverState(''); } }}
-          onEntry={e => { setReceiverCountry(e.name); setReceiverCountryCode(e.code); }} />
+        <div ref={refReceiverCountry}>
+  <CountrySelect label="Country" value={receiverCountry} accentSolid={accentSolid}
+    disabled={scope === 'local'}
+    excludeCode={scope === 'international' ? senderCountryCode : undefined}
+    onChange={name => { const e = getCountryByName(name); if (e) { setReceiverCountry(e.name); setReceiverCountryCode(e.code); setReceiverState(''); } }}
+    onEntry={e => { setReceiverCountry(e.name); setReceiverCountryCode(e.code); }} />
+  {attempted && !receiverCountry && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
         {scope === 'local' && (
           <p className="text-xs flex items-center gap-1.5 -mt-2" style={{ color: accentSolid }}>
             <Info size={12} /> Same country as sender for local shipments
           </p>
         )}
-        <div>
-          <Label>Street Address</Label>
-          <input value={receiverStreet} onChange={e => setReceiverStreet(e.target.value)}
-            placeholder="Street address" className={inputCls} style={{ fontSize: '16px' }} />
-        </div>
+        <div ref={refReceiverStreet}>
+  <Label>Street Address</Label>
+  <input value={receiverStreet} onChange={e => setReceiverStreet(e.target.value)}
+    placeholder="Street address"
+    className={`${inputCls} ${attempted && !receiverStreet.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !receiverStreet.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>City</Label>
-            <input value={receiverCity} onChange={e => setReceiverCity(e.target.value)}
-              placeholder="City" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
-          <div>
-            <Label>Postal Code</Label>
-            <input value={receiverPostal} onChange={e => setReceiverPostal(e.target.value.replace(/\D/g, ''))}
-              placeholder="Postal code" inputMode="numeric" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
-        </div>
-        <StateSelect country={receiverCountry} value={receiverState} accentSolid={accentSolid} onChange={setReceiverState} label="State / Province" />
-        <PhoneInput countryCode={receiverCountryCode} value={receiverPhone} onChange={setReceiverPhone} label="Phone" />
+  <div ref={refReceiverCity}>
+    <Label>City</Label>
+    <input value={receiverCity} onChange={e => setReceiverCity(e.target.value)}
+      placeholder="City"
+      className={`${inputCls} ${attempted && !receiverCity.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+      style={{ fontSize: '16px' }} />
+    {attempted && !receiverCity.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  </div>
+  <div ref={refReceiverPostal}>
+    <Label>Postal Code</Label>
+    <input value={receiverPostal} onChange={e => setReceiverPostal(e.target.value.replace(/\D/g, ''))}
+      placeholder="Postal code" inputMode="numeric"
+      className={`${inputCls} ${attempted && !receiverPostal.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+      style={{ fontSize: '16px' }} />
+    {attempted && !receiverPostal.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  </div>
+</div>
+        <div ref={refReceiverState}>
+  <StateSelect country={receiverCountry} value={receiverState} accentSolid={accentSolid}
+    onChange={setReceiverState} label="State / Province" />
+  {attempted && !receiverState.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
+       <div ref={refReceiverPhone}>
+  <PhoneInput countryCode={receiverCountryCode} value={receiverPhone} onChange={setReceiverPhone} label="Phone" />
+  {attempted && !receiverPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
       </Section>
 
       {/* Package */}
@@ -1212,35 +1304,53 @@ const effectiveShipmentType = useMemo(() => {
   </p>
 )}
           </div>
-          <div>
+          <div ref={refWeightKg}>
   <Label>Weight (kg)</Label>
   <input value={weightKg} onChange={e => setWeightKg(e.target.value.replace(/[^0-9.]/g, ''))}
-    inputMode="decimal" placeholder="e.g. 2.5" className={inputCls} style={{ fontSize: '16px' }} />
+    inputMode="decimal" placeholder="e.g. 2.5"
+    className={`${inputCls} ${attempted && !weightKg.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
   {scope === 'international' && weight >= 300 && !isBulkOrContainer && (
-  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-    <Info size={11} /> Auto-switched to Sea Freight (Standard)
-  </p>
-)}
+    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+      <Info size={11} /> 299+ kg uses Sea Freight (Standard) automatically.
+    </p>
+  )}
 </div>
           <div className="sm:col-span-2">
-            <Label>Dimensions (cm) — L × W × H</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { val: lengthCm, set: setLengthCm, ph: 'Length' },
-                { val: widthCm, set: setWidthCm, ph: 'Width' },
-                { val: heightCm, set: setHeightCm, ph: 'Height' },
-              ].map(({ val, set, ph }) => (
-                <input key={ph} value={val} onChange={e => set(e.target.value.replace(/[^0-9.]/g, ''))}
-                  inputMode="decimal" placeholder={ph}
-                  className={inputCls} style={{ fontSize: '16px' }} />
-              ))}
-            </div>
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Package Description</Label>
-            <input value={packageDescription} onChange={e => setPackageDescription(e.target.value)}
-              placeholder="e.g. Electronics, Clothing, Documents..." className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
+  <Label>Dimensions (cm) — L × W × H</Label>
+  <div className="grid grid-cols-3 gap-2">
+    <div ref={refLengthCm}>
+      <input value={lengthCm} onChange={e => setLengthCm(e.target.value.replace(/[^0-9.]/g, ''))}
+        inputMode="decimal" placeholder="Length"
+        className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+        style={{ fontSize: '16px' }} />
+      {attempted && !lengthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    </div>
+    <div ref={refWidthCm}>
+      <input value={widthCm} onChange={e => setWidthCm(e.target.value.replace(/[^0-9.]/g, ''))}
+        inputMode="decimal" placeholder="Width"
+        className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+        style={{ fontSize: '16px' }} />
+      {attempted && !widthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    </div>
+    <div ref={refHeightCm}>
+      <input value={heightCm} onChange={e => setHeightCm(e.target.value.replace(/[^0-9.]/g, ''))}
+        inputMode="decimal" placeholder="Height"
+        className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+        style={{ fontSize: '16px' }} />
+      {attempted && !heightCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    </div>
+  </div>
+</div>
+          <div ref={refPackageDescription} className="sm:col-span-2">
+  <Label>Package Description</Label>
+  <input value={packageDescription} onChange={e => setPackageDescription(e.target.value)}
+    placeholder="e.g. Electronics, Clothing, Documents..."
+    className={`${inputCls} ${attempted && !packageDescription.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !packageDescription.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
         </div>
 
         {/* Auto-selected means — Fix 7: date range */}
@@ -1268,11 +1378,14 @@ const effectiveShipmentType = useMemo(() => {
       <Section title="Declared Value" accent={accent}>
         <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Used to calculate insurance and freight charges.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label>Declared Value</Label>
-            <input value={declaredValue} onChange={e => setDeclaredValue(e.target.value.replace(/[^0-9.]/g, ''))}
-              inputMode="decimal" placeholder="e.g. 500" className={inputCls} style={{ fontSize: '16px' }} />
-          </div>
+         <div ref={refDeclaredValue}>
+  <Label>Declared Value</Label>
+  <input value={declaredValue} onChange={e => setDeclaredValue(e.target.value.replace(/[^0-9.]/g, ''))}
+    inputMode="decimal" placeholder="e.g. 500"
+    className={`${inputCls} ${attempted && !declaredValue.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+    style={{ fontSize: '16px' }} />
+  {attempted && !declaredValue.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+</div>
           <div>
             <Label>Currency</Label>
             <CurrencySelect value={currency} onChange={setCurrency} />
@@ -1361,5 +1474,6 @@ const effectiveShipmentType = useMemo(() => {
         document.body
       )}
     </div>
+
   );
 }
