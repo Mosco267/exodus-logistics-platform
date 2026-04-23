@@ -655,17 +655,16 @@ function PhoneInput({ countryCode, value, onChange, label }: {
   const [dialInitialized, setDialInitialized] = useState(false);
 
   // Set dial only on first country load
-  useEffect(() => {
-    if (!dialInitialized && countryCode) {
-      const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
-      if (e) {
-        setDial(e.dial);
-        setFlagCode(e.code.toLowerCase());
-        setDialCountryCode(e.code);
-        setDialInitialized(true);
-      }
+ useEffect(() => {
+  if (countryCode) {
+    const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
+    if (e) {
+      setDial(e.dial);
+      setFlagCode(e.code.toLowerCase());
+      setDialCountryCode(e.code);
     }
-  }, [countryCode, dialInitialized]);
+  }
+}, [countryCode]);
 
   // Pre-fill local from profile value
   useEffect(() => {
@@ -689,20 +688,22 @@ function PhoneInput({ countryCode, value, onChange, label }: {
           dial={dial}
           flag={flagCode}
           onChange={(newDial, newFlag) => {
-            const newCode = COUNTRIES_WITH_STATES.find(c => c.code.toLowerCase() === newFlag)?.code || '';
-            setDial(newDial);
-            setFlagCode(newFlag);
-            setDialCountryCode(newCode);
-            setLocal('');
-            onChange(newDial);
-          }}
+  const newCode = COUNTRIES_WITH_STATES.find(c => c.code.toLowerCase() === newFlag)?.code || '';
+  
+  setDial(newDial);
+  setFlagCode(newFlag);
+  setDialCountryCode(newCode);
+
+  setLocal('');
+  onChange(''); // ✅ CLEAR instead of inserting dial
+}}
         />
         <input
           value={displayLocal}
           onChange={e => {
             const digits = e.target.value.replace(/\D/g, '');
             setLocal(digits);
-            onChange(`${dial} ${digits}`.trim());
+            onChange(digits ? `${dial} ${digits}` : '');
           }}
           inputMode="numeric"
           placeholder={fmt.placeholder}
@@ -901,15 +902,36 @@ const refDeclaredValue = useRef<HTMLDivElement>(null);
 
   // Lock receiver country for local
   useEffect(() => {
+  // Reset receiver fields
+  setReceiverName('');
+  setReceiverEmail('');
+  setReceiverCountry('');
+  setReceiverCountryCode('');
+  setReceiverState('');
+  setReceiverCity('');
+  setReceiverStreet('');
+  setReceiverPostal('');
+  setReceiverPhone('');
+
+  // Reset package details
+  setWeightKg('');
+  setLengthCm('');
+  setWidthCm('');
+  setHeightCm('');
+  setPackageDescription('');
+  setDeclaredValue('');
+
+  // Reset selections
+  setPackageType('Parcel');
+  setCustomPackageType('');
+  setServiceLevel('Express');
+
+  // If local → lock receiver country
   if (scope === 'local') {
     setReceiverCountry(senderCountry);
     setReceiverCountryCode(senderCountryCode);
-  } else {
-    setReceiverCountry('');
-    setReceiverCountryCode('');
-    setReceiverState('');
   }
-}, [scope]); // eslint-disable-line
+}, [scope]);
 
   const weight = parseFloat(weightKg) || 0;
 
@@ -1458,11 +1480,7 @@ const isValid = !firstMissing;
         </Section>
       )}
 
-      {attempted && error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-sm text-red-700 dark:text-red-400 font-medium">
-          <AlertCircle size={14} className="shrink-0" /> {error}
-        </div>
-      )}
+      
 
       <button onClick={handleSubmit} disabled={loading || (!pricing && !pricingError) || (!isValid && attempted)}
         className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
