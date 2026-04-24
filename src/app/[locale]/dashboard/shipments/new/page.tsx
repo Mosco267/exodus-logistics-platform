@@ -652,31 +652,48 @@ function PhoneInput({ countryCode, value, onChange, label }: {
   const [flagCode, setFlagCode] = useState('');
   const [dialCountryCode, setDialCountryCode] = useState('');
   const [local, setLocal] = useState('');
-  const [dialInitialized, setDialInitialized] = useState(false);
+  const initializedRef = useRef(false);
+  const prevCountryRef = useRef('');
 
-  // Set dial only on first country load
- useEffect(() => {
-  if (countryCode) {
+  // When country changes externally, update dial ONLY if user hasn't manually changed it
+  useEffect(() => {
+    if (!countryCode) return;
+    const isFirstLoad = !initializedRef.current;
+    const countryActuallyChanged = prevCountryRef.current !== countryCode;
+    prevCountryRef.current = countryCode;
+
+    if (isFirstLoad || countryActuallyChanged) {
+      const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
+      if (e) {
+        setDial(e.dial);
+        setFlagCode(e.code.toLowerCase());
+        setDialCountryCode(e.code);
+        initializedRef.current = true;
+      }
+    }
+  }, [countryCode]);
+
+  // Pre-fill from profile — runs only once when value first arrives
+  const valueInitRef = useRef(false);
+  useEffect(() => {
+    if (valueInitRef.current) return;
+    if (!value) return;
+    valueInitRef.current = true;
+    const digits = value.replace(/\D/g, '');
+    // Strip leading dial digits if they match
     const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
     if (e) {
-      setDial(e.dial);
-      setFlagCode(e.code.toLowerCase());
-      setDialCountryCode(e.code);
+      const dialDigits = e.dial.replace(/\D/g, '');
+      if (digits.startsWith(dialDigits)) {
+        setLocal(digits.slice(dialDigits.length));
+      } else {
+        setLocal(digits);
+      }
+    } else {
+      setLocal(digits);
     }
-  }
-}, [countryCode]);
+  }, [value, countryCode]);
 
-  // Pre-fill local from profile value
-  useEffect(() => {
-    if (!value) { setLocal(''); return; }
-    const d = COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
-    const digits = d && value.startsWith(d)
-      ? value.slice(d.length).trim().replace(/\D/g, '')
-      : value.replace(/\D/g, '');
-    setLocal(digits);
-  }, [value]); // eslint-disable-line
-
-  // Use dial country code for formatting pattern
   const fmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
   const displayLocal = applyPhonePattern(local, fmt.pattern);
 
@@ -688,15 +705,13 @@ function PhoneInput({ countryCode, value, onChange, label }: {
           dial={dial}
           flag={flagCode}
           onChange={(newDial, newFlag) => {
-  const newCode = COUNTRIES_WITH_STATES.find(c => c.code.toLowerCase() === newFlag)?.code || '';
-  
-  setDial(newDial);
-  setFlagCode(newFlag);
-  setDialCountryCode(newCode);
-
-  setLocal('');
-  onChange(''); // ✅ CLEAR instead of inserting dial
-}}
+            const newCode = COUNTRIES_WITH_STATES.find(c => c.code.toLowerCase() === newFlag)?.code || '';
+            setDial(newDial);
+            setFlagCode(newFlag);
+            setDialCountryCode(newCode);
+            setLocal('');
+            onChange('');
+          }}
         />
         <input
           value={displayLocal}
@@ -902,8 +917,11 @@ const refDeclaredValue = useRef<HTMLDivElement>(null);
 
   // Lock receiver country for local
   useEffect(() => {
+  setAttempted(false);
+  setError('');
   // Reset receiver fields
   setReceiverName('');
+  // ... rest unchanged
   setReceiverEmail('');
   setReceiverCountry('');
   setReceiverCountryCode('');
@@ -977,7 +995,8 @@ const effectiveShipmentType = useMemo(() => {
   const deliveryDateISO = useMemo(() => getEstimatedDeliveryDate(means, effectiveServiceLevel), [means, effectiveServiceLevel]);
 
   const breakdown = useMemo(() => {
-    if (!pricing || !senderCountryCode || !receiverCountryCode || weight <= 0) return null;
+    const effectiveReceiverCode = receiverCountryCode || (scope === 'local' ? senderCountryCode : '');
+if (!pricing || !senderCountryCode || !effectiveReceiverCode || weight <= 0) return null;
    try {
     // Merge with defaults to fill any missing air/sea/land fields
     const safePricing = {
@@ -988,15 +1007,16 @@ const effectiveShipmentType = useMemo(() => {
       land: { ...DEFAULT_PRICING.land, ...(pricing.land || {}) },
     };
     return computeInvoice({
-      scope, means, serviceLevel: effectiveServiceLevel,
-      weightKg: weight,
-      declaredValue: parseFloat(declaredValue) || 0,
-      currency,
-      senderCountryCode, receiverCountryCode,
-      senderCity, senderState,
-      receiverCity, receiverState,
-      pricing: safePricing,
-    });
+  scope, means, serviceLevel: effectiveServiceLevel,
+  weightKg: weight,
+  declaredValue: parseFloat(declaredValue) || 0,
+  currency,
+  senderCountryCode,
+  receiverCountryCode: effectiveReceiverCode,
+  senderCity, senderState,
+  receiverCity, receiverState,
+  pricing: safePricing,
+});
   } catch (e) {
     console.error('Invoice error:', e);
     return null;
@@ -1444,7 +1464,7 @@ const isValid = !firstMissing;
 
       {/* Invoice breakdown — Fix 9 */}
       
-      {pricing && !breakdown && weight > 0 && senderCountryCode && receiverCountryCode && (
+      {pricing && !breakdown && weight > 0 && senderCountryCode && (receiverCountryCode || scope === 'local') && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm text-gray-500">
           <Loader2 size={14} className="animate-spin shrink-0" /> Calculating invoice…
         </div>
@@ -1482,7 +1502,7 @@ const isValid = !firstMissing;
 
       
 
-      <button onClick={handleSubmit} disabled={loading || (!pricing && !pricingError) || (!isValid && attempted)}
+      <button onClick={handleSubmit} disabled={loading || (!pricing && !pricingError)}
         className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
         style={{ background: accent }}>
         {loading
