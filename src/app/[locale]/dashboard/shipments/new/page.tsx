@@ -645,8 +645,9 @@ function DialDropdown({ dial, flag, onChange }: {
   );
 }
 
-function PhoneInput({ countryCode, value, onChange, label }: {
+function PhoneInput({ countryCode, value, onChange, label, initialDial, initialFlag }: {
   countryCode: string; value: string; onChange: (v: string) => void; label: string;
+  initialDial?: string; initialFlag?: string;
 }) {
   const [dial, setDial] = useState('');
   const [flagCode, setFlagCode] = useState('');
@@ -657,12 +658,15 @@ function PhoneInput({ countryCode, value, onChange, label }: {
 
   // When country changes externally, update dial ONLY if user hasn't manually changed it
   useEffect(() => {
-    if (!countryCode) return;
-    const isFirstLoad = !initializedRef.current;
-    const countryActuallyChanged = prevCountryRef.current !== countryCode;
-    prevCountryRef.current = countryCode;
-
-    if (isFirstLoad || countryActuallyChanged) {
+    if (initializedRef.current) return;
+    // Use profile's saved dial if provided, otherwise use country
+    if (initialDial && initialFlag) {
+      setDial(initialDial);
+      setFlagCode(initialFlag);
+      const code = COUNTRIES_WITH_STATES.find(c => c.code.toLowerCase() === initialFlag)?.code || '';
+      setDialCountryCode(code);
+      initializedRef.current = true;
+    } else if (countryCode) {
       const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
       if (e) {
         setDial(e.dial);
@@ -671,7 +675,7 @@ function PhoneInput({ countryCode, value, onChange, label }: {
         initializedRef.current = true;
       }
     }
-  }, [countryCode]);
+  }, [countryCode, initialDial, initialFlag]);
 
   // Pre-fill from profile — runs only once when value first arrives
   const valueInitRef = useRef(false);
@@ -829,6 +833,9 @@ useEffect(() => {
   const [senderStreet, setSenderStreet] = useState('');
   const [senderPostal, setSenderPostal] = useState('');
   const [senderPhone, setSenderPhone] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+const [profileDialCode, setProfileDialCode] = useState('');
+const [profileDialFlag, setProfileDialFlag] = useState('');
 
   const [profileHasAddress, setProfileHasAddress] = useState(false);
   const [useDefaultAddress, setUseDefaultAddress] = useState(false);
@@ -900,7 +907,18 @@ const refDeclaredValue = useRef<HTMLDivElement>(null);
           const countryCurrency = COUNTRY_CURRENCY[entry.code];
           if (countryCurrency) setCurrency(countryCurrency);
         }
-        if (data.phone) setSenderPhone(data.phone);
+       if (data.phone) {
+  setSenderPhone(data.phone);
+  setProfilePhone(data.phone);
+}
+// Save profile dial code separately
+if (data.phoneDialCode) {
+  const dialEntry = COUNTRIES_WITH_STATES.find(c => c.code === data.phoneDialCode);
+  if (dialEntry) {
+    setProfileDialCode(dialEntry.dial);
+    setProfileDialFlag(dialEntry.code.toLowerCase());
+  }
+}
 
         const hasAddr = !!(data.addressStreet || data.addressCity);
         setProfileHasAddress(hasAddr);
@@ -1234,7 +1252,8 @@ const isValid = !firstMissing;
 </div>
 
 <div ref={refSenderPhone}>
-  <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label="Phone" />
+  <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label="Phone"
+    initialDial={profileDialCode || undefined} initialFlag={profileDialFlag || undefined} />
   {attempted && !senderPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
 
@@ -1334,7 +1353,7 @@ const isValid = !firstMissing;
   {attempted && !receiverState.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
        <div ref={refReceiverPhone}>
-  <PhoneInput countryCode={receiverCountryCode} value={receiverPhone} onChange={setReceiverPhone} label="Phone" />
+  <PhoneInput countryCode={receiverCountryCode} value="" onChange={setReceiverPhone} label="Phone" />
   {attempted && !receiverPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
       </Section>
