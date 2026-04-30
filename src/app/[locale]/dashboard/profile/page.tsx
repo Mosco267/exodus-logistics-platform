@@ -727,7 +727,7 @@ function ProfilePhoneInput({ countryCode, value, onChange, inputClass }: {
   const formatted = applyPattern(digits, dynamicPattern);
 
   // Calculate approximate pixel width of fixed prefix
-  const prefixPx = fixedPrefix.length * 7.5 + 12;
+  const prefixPx = fixedPrefix.length * 7 + 8;
 
   return (
     <div className="relative flex-1">
