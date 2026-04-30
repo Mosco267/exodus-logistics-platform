@@ -686,26 +686,30 @@ function PhoneInput({ countryCode, value, onChange, label, initialDial, initialF
 useEffect(() => {
   if (valueInitRef.current) return;
   if (!value) return;
+  if (!initializedRef.current) return;
   valueInitRef.current = true;
+
   const digits = value.replace(/\D/g, '');
+
+  // Strip dial code digits from front
   const dialToStrip = initialDial || COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
   const dialDigits = dialToStrip.replace(/\D/g, '');
-
   let remaining = dialDigits && digits.startsWith(dialDigits)
     ? digits.slice(dialDigits.length)
     : digits;
 
-  // Also strip area code prefix from pattern (e.g. "246" from "(246) ###-####")
-  const currentFmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { pattern: '### ### ####', placeholder: '' };
+  // Strip area code prefix digits from pattern (e.g. "246" from "(246) ###-####")
+  const activeFmtCode = dialCountryCode || countryCode;
+  const currentFmt = PHONE_FORMATS[activeFmtCode] || { pattern: '### ### ####', placeholder: '' };
   const prefixMatch = currentFmt.pattern.match(/^([^#]*)/);
-  const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
-  const prefixDigits = fixedPrefix.replace(/\D/g, '');
+  const rawPrefix = prefixMatch ? prefixMatch[1] : '';
+  const prefixDigits = rawPrefix.replace(/\D/g, '');
   if (prefixDigits && remaining.startsWith(prefixDigits)) {
     remaining = remaining.slice(prefixDigits.length);
   }
 
   setLocal(remaining);
-}, [value]); // eslint-disable-line
+}, [value, initializedRef.current]); // eslint-disable-line
 
   const fmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
 
@@ -815,6 +819,8 @@ export default function NewShipmentPage() {
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
   const { data: session } = useSession();
+
+  
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');

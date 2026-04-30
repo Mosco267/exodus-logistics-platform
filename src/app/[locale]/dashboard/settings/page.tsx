@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-type Section = 'security' | 'notifications' | 'danger';
+type Section = 'security' | 'notifications' | 'twofa' | 'danger';
 type NotifSettings = {
   shipmentUpdates: boolean;
   invoiceAlerts: boolean;
@@ -135,6 +135,23 @@ export default function SettingsPage() {
 const [accentSolid, setAccentSolid] = useState('#0b3aa4');
 const [pageText, setPageText] = useState('');
 
+const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [twoFaStep, setTwoFaStep] = useState<'idle' | 'setup' | 'confirm' | 'disable'>('idle');
+  const [twoFaQr, setTwoFaQr] = useState('');
+  const [twoFaSecret, setTwoFaSecret] = useState('');
+  const [twoFaCode, setTwoFaCode] = useState('');
+  const [twoFaError, setTwoFaError] = useState('');
+  const [twoFaSuccess, setTwoFaSuccess] = useState('');
+  const [twoFaCopied, setTwoFaCopied] = useState(false);
+
+useEffect(() => {
+    fetch('/api/user/2fa/status')
+      .then(r => r.json())
+      .then(d => setTwoFaEnabled(!!d.enabled))
+      .catch(() => {});
+  }, []);
+
 useEffect(() => {
   const map: Record<string, { gradient: string; solid: string; text: string }> = {
     default:  { gradient: 'linear-gradient(135deg, #0b3aa4, #0e7490)', solid: '#0b3aa4', text: '' },
@@ -235,6 +252,53 @@ setShowNotifSuccess(true);
     finally { setNotifSaving(false); }
   };
 
+  const handleTwoFaSetup = async () => {
+    setTwoFaLoading(true); setTwoFaError(''); setTwoFaCode('');
+    try {
+      const res = await fetch('/api/user/2fa/setup', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setTwoFaError(data.error || 'Failed to start setup'); return; }
+      setTwoFaQr(data.qrCodeDataUrl);
+      setTwoFaSecret(data.manualEntryKey);
+      setTwoFaStep('setup');
+    } catch { setTwoFaError('Something went wrong'); }
+    finally { setTwoFaLoading(false); }
+  };
+
+  const handleTwoFaConfirm = async () => {
+    if (twoFaCode.replace(/\s/g, '').length < 6) { setTwoFaError('Enter the 6-digit code'); return; }
+    setTwoFaLoading(true); setTwoFaError('');
+    try {
+      const res = await fetch('/api/user/2fa/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: twoFaCode, purpose: 'setup' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setTwoFaError(data.error || 'Invalid code'); return; }
+      setTwoFaEnabled(true); setTwoFaStep('idle'); setTwoFaCode('');
+      setTwoFaSuccess('2FA enabled successfully');
+      setTimeout(() => setTwoFaSuccess(''), 3000);
+    } catch { setTwoFaError('Something went wrong'); }
+    finally { setTwoFaLoading(false); }
+  };
+
+  const handleTwoFaDisable = async () => {
+    if (twoFaCode.replace(/\s/g, '').length < 6) { setTwoFaError('Enter the 6-digit code to confirm'); return; }
+    setTwoFaLoading(true); setTwoFaError('');
+    try {
+      const res = await fetch('/api/user/2fa/disable', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: twoFaCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setTwoFaError(data.error || 'Invalid code'); return; }
+      setTwoFaEnabled(false); setTwoFaStep('idle'); setTwoFaCode('');
+      setTwoFaSuccess('2FA disabled');
+      setTimeout(() => setTwoFaSuccess(''), 3000);
+    } catch { setTwoFaError('Something went wrong'); }
+    finally { setTwoFaLoading(false); }
+  };
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') { setDeleteError('Please type DELETE to confirm'); return; }
     setDeleting(true);
@@ -261,6 +325,7 @@ setShowNotifSuccess(true);
   const sections = [
     { id: 'security' as Section, icon: <Lock size={18} />, title: 'Security', desc: isGoogleUser ? 'Manage your account security' : 'Change your password', iconBg: 'bg-blue-50 dark:bg-blue-500/10', iconColor: 'text-blue-600 dark:text-blue-400' },
     { id: 'notifications' as Section, icon: <Bell size={18} />, title: 'Notifications', desc: 'Control what emails you receive', iconBg: 'bg-amber-50 dark:bg-amber-500/10', iconColor: 'text-amber-600 dark:text-amber-400' },
+    { id: 'twofa' as Section, icon: <ShieldCheck size={18} />, title: 'Two-Factor Authentication', desc: 'Add an extra layer of security', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400' },
     { id: 'danger' as Section, icon: <Trash2 size={18} />, title: 'Delete Account', desc: 'Permanently disable your account', iconBg: 'bg-red-50 dark:bg-red-500/10', iconColor: 'text-red-600 dark:text-red-400' },
   ];
 
@@ -406,6 +471,117 @@ setShowNotifSuccess(true);
                   </div>
                 </div>
               )}
+
+              {section.id === 'twofa' && (
+    <div className="space-y-5">
+      <div className={`flex items-center gap-3 p-4 rounded-xl border ${twoFaEnabled ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10'}`}>
+        <ShieldCheck size={18} className={twoFaEnabled ? 'text-emerald-600' : 'text-gray-400'} />
+        <div className="flex-1">
+          <p className={`text-sm font-bold ${twoFaEnabled ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}>
+            {twoFaEnabled ? '2FA is Enabled' : '2FA is Disabled'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            {twoFaEnabled ? 'Your account is protected with an authenticator app.' : 'Enable 2FA to secure your shipments.'}
+          </p>
+        </div>
+        {twoFaEnabled && twoFaStep === 'idle' && (
+          <button onClick={() => { setTwoFaStep('disable'); setTwoFaCode(''); setTwoFaError(''); }}
+            className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline cursor-pointer">
+            Disable
+          </button>
+        )}
+      </div>
+
+      {twoFaSuccess && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+          <CheckCircle2 size={13} /> {twoFaSuccess}
+        </p>
+      )}
+
+      {twoFaStep === 'idle' && !twoFaEnabled && (
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Use an authenticator app like <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong> to generate one-time codes.
+          </p>
+          <button onClick={handleTwoFaSetup} disabled={twoFaLoading}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
+            style={{ background: accent }}>
+            {twoFaLoading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+            {twoFaLoading ? 'Setting up...' : 'Set Up 2FA'}
+          </button>
+        </div>
+      )}
+
+      {twoFaStep === 'setup' && (
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">Step 1 — Scan this QR code with your authenticator app</p>
+            <div className="flex justify-center">
+              <div className="p-3 bg-white rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm inline-block">
+                <img src={twoFaQr} alt="QR Code" className="w-44 h-44" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Or enter this key manually</p>
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3">
+              <span className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 tracking-widest break-all">{twoFaSecret}</span>
+              <button onClick={() => { navigator.clipboard.writeText(twoFaSecret); setTwoFaCopied(true); setTimeout(() => setTwoFaCopied(false), 2000); }}
+                className="text-xs font-bold cursor-pointer shrink-0"
+                style={{ color: accentSolid }}>
+                {twoFaCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Step 2 — Enter the 6-digit code from your app</p>
+            <input value={twoFaCode} onChange={e => { setTwoFaCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTwoFaError(''); }}
+              placeholder="000 000" inputMode="numeric" maxLength={7}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-center font-mono tracking-[0.4em] text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none transition"
+              style={{ fontSize: '20px' }} />
+            {twoFaError && <p className="text-xs text-red-500 mt-1.5">{twoFaError}</p>}
+          </div>
+
+          <div className="flex gap-2.5">
+            <button onClick={() => { setTwoFaStep('idle'); setTwoFaCode(''); setTwoFaError(''); }}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+              Cancel
+            </button>
+            <button onClick={handleTwoFaConfirm} disabled={twoFaLoading || twoFaCode.length < 6}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
+              style={{ background: accent }}>
+              {twoFaLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+              {twoFaLoading ? 'Verifying...' : 'Activate 2FA'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {twoFaStep === 'disable' && (
+        <div className="space-y-4">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Enter the 6-digit code from your authenticator app to disable 2FA.</p>
+          <input value={twoFaCode} onChange={e => { setTwoFaCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTwoFaError(''); }}
+            placeholder="000 000" inputMode="numeric" maxLength={7}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-center font-mono tracking-[0.4em] text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none transition"
+            style={{ fontSize: '20px' }} />
+          {twoFaError && <p className="text-xs text-red-500 mt-1.5">{twoFaError}</p>}
+          <div className="flex gap-2.5">
+            <button onClick={() => { setTwoFaStep('idle'); setTwoFaCode(''); setTwoFaError(''); }}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+              Cancel
+            </button>
+            <button onClick={handleTwoFaDisable} disabled={twoFaLoading || twoFaCode.length < 6}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold transition hover:bg-red-700 cursor-pointer disabled:opacity-50">
+              {twoFaLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+              {twoFaLoading ? 'Disabling...' : 'Disable 2FA'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )}
 
               {/* DANGER */}
               {section.id === 'danger' && (
