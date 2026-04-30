@@ -727,16 +727,16 @@ function ProfilePhoneInput({ countryCode, value, onChange, inputClass }: {
   const formatted = applyPattern(digits, dynamicPattern);
 
   // Calculate approximate pixel width of fixed prefix
-  const prefixPx = fixedPrefix.length * 8.2 + 16;
+  const prefixPx = fixedPrefix.length * 7.5 + 12;
 
   return (
     <div className="relative flex-1">
       {fixedPrefix && (
         <span
-          className="absolute top-1/2 -translate-y-1/2 text-sm text-gray-900 dark:text-white pointer-events-none select-none z-10"
-          style={{ left: '16px' }}>
-          {fixedPrefix}
-        </span>
+  className="absolute top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-900 dark:text-white pointer-events-none select-none z-10"
+  style={{ left: '16px' }}>
+  {fixedPrefix}
+</span>
       )}
       <input
         value={formatted}
