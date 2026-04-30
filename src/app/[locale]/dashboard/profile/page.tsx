@@ -733,8 +733,8 @@ function ProfilePhoneInput({ countryCode, value, onChange, inputClass }: {
     <div className="relative flex-1">
       {fixedPrefix && (
         <span
-  className="absolute top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-900 dark:text-white pointer-events-none select-none z-10"
-  style={{ left: '16px' }}>
+  className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
+  style={{ left: '16px', lineHeight: 'normal' }}>
   {fixedPrefix}
 </span>
       )}

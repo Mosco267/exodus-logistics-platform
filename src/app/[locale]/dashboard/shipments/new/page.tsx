@@ -682,31 +682,40 @@ function PhoneInput({ countryCode, value, onChange, label, initialDial, initialF
   }, [countryCode, initialDial, initialFlag]);
 
   // Pre-fill from profile — runs only once when value first arrives
-  const valueInitRef = useRef(false);
+ const valueInitRef = useRef(false);
 useEffect(() => {
   if (valueInitRef.current) return;
   if (!value) return;
   valueInitRef.current = true;
-
-  // Get raw digits from the full phone value
-  const allDigits = value.replace(/\D/g, '');
-
-  // Try to strip the dial code digits from the front
+  const digits = value.replace(/\D/g, '');
   const dialToStrip = initialDial || COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
   const dialDigits = dialToStrip.replace(/\D/g, '');
 
-  if (dialDigits && allDigits.startsWith(dialDigits)) {
-    setLocal(allDigits.slice(dialDigits.length));
-  } else {
-    setLocal(allDigits);
+  let remaining = dialDigits && digits.startsWith(dialDigits)
+    ? digits.slice(dialDigits.length)
+    : digits;
+
+  // Also strip area code prefix from pattern (e.g. "246" from "(246) ###-####")
+  const currentFmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { pattern: '### ### ####', placeholder: '' };
+  const prefixMatch = currentFmt.pattern.match(/^([^#]*)/);
+  const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
+  const prefixDigits = fixedPrefix.replace(/\D/g, '');
+  if (prefixDigits && remaining.startsWith(prefixDigits)) {
+    remaining = remaining.slice(prefixDigits.length);
   }
+
+  setLocal(remaining);
 }, [value]); // eslint-disable-line
 
   const fmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
 
 // Split into fixed prefix and dynamic part
 const prefixMatch = fmt.pattern.match(/^([^#]*)/);
-const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
+const rawPrefix = prefixMatch ? prefixMatch[1] : '';
+// Only treat as fixed prefix if it contains actual digits (real area code like "(246) ")
+// A lone "(" or "-" without digits is not a real fixed prefix
+const prefixDigits = rawPrefix.replace(/\D/g, '');
+const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
 const dynamicPattern = fmt.pattern.slice(fixedPrefix.length);
 const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
 const prefixPx = fixedPrefix.length * 7.5 + 12;
@@ -732,7 +741,7 @@ const displayLocal = applyPhonePattern(local, dynamicPattern);
         <div className="relative flex-1">
   {fixedPrefix && (
     <span
-      className="absolute top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-900 dark:text-white pointer-events-none select-none z-10"
+      className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
       style={{ left: '16px' }}>
       {fixedPrefix}
     </span>
