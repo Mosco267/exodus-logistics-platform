@@ -717,8 +717,12 @@ function ProfilePhoneInput({ countryCode, value, onChange, inputClass }: {
 
   // Split pattern into fixed prefix and dynamic part
   // e.g. "(246) ###-####" → prefix="(246) ", dynamic="###-####"
-  const prefixMatch = pattern.match(/^([^#]*)/);
-  const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
+  const prefixMatch = fmt.pattern.match(/^([^#]*)/);
+const rawPrefix = prefixMatch ? prefixMatch[1] : '';
+// Only treat as fixed prefix if it contains actual digits (real area code like "(246) ")
+// A lone "(" or "-" without digits is not a real fixed prefix
+const prefixDigits = rawPrefix.replace(/\D/g, '');
+const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
   const dynamicPattern = pattern.slice(fixedPrefix.length);
   const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
 
