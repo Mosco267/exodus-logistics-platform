@@ -1014,7 +1014,7 @@ const effectiveShipmentType = useMemo(() => {
 
   const breakdown = useMemo(() => {
     const effectiveReceiverCode = receiverCountryCode || (scope === 'local' ? senderCountryCode : '');
-if (!pricing || !senderCountryCode || !effectiveReceiverCode || weight <= 0) return null;
+  if (!pricing || !senderCountryCode || !effectiveReceiverCode || weight <= 0) return null;
    try {
     // Merge with defaults to fill any missing air/sea/land fields
     const safePricing = {
@@ -1041,6 +1041,21 @@ if (!pricing || !senderCountryCode || !effectiveReceiverCode || weight <= 0) ret
   }
   }, [pricing, scope, means, effectiveServiceLevel, weight, declaredValue, currency,
       senderCountryCode, receiverCountryCode, senderCity, senderState, receiverCity, receiverState]);
+
+      useEffect(() => {
+  console.log('Invoice debug:', {
+    hasPricing: !!pricing,
+    senderCountryCode,
+    receiverCountryCode,
+    effectiveReceiverCode: receiverCountryCode || (scope === 'local' ? senderCountryCode : ''),
+    weight,
+    scope,
+    means,
+    breakdown,
+    pricingKeys: pricing ? Object.keys(pricing) : [],
+    airExists: !!(pricing as any)?.air,
+  });
+}, [pricing, senderCountryCode, receiverCountryCode, weight, breakdown]);
 
   const showDefaultCheckbox = profileHasAddress && !addressManuallyChanged;
   const showTwoCheckboxes = !profileHasAddress || addressManuallyChanged;
