@@ -709,7 +709,7 @@ const prefixMatch = fmt.pattern.match(/^([^#]*)/);
 const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
 const dynamicPattern = fmt.pattern.slice(fixedPrefix.length);
 const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
-const prefixPx = fixedPrefix.length * 7 + 8;
+const prefixPx = fixedPrefix.length * 7.5 + 12;
 
 const displayLocal = applyPhonePattern(local, dynamicPattern);
 
