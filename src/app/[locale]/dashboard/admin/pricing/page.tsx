@@ -78,7 +78,6 @@ export default function AdminPricingPage() {
   const save = async () => {
   if (!settings) return;
   setSaving(true); setMsg('');
-  console.log('Saving settings:', JSON.stringify(settings, null, 2)); // ADD THIS
   const res = await fetch('/api/admin/pricing', {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings }),

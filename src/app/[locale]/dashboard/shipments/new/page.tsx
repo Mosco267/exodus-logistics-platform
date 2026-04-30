@@ -679,24 +679,24 @@ function PhoneInput({ countryCode, value, onChange, label, initialDial, initialF
 
   // Pre-fill from profile — runs only once when value first arrives
   const valueInitRef = useRef(false);
-  useEffect(() => {
-    if (valueInitRef.current) return;
-    if (!value) return;
-    valueInitRef.current = true;
-    const digits = value.replace(/\D/g, '');
-    // Strip leading dial digits if they match
-    const e = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
-    if (e) {
-      const dialDigits = e.dial.replace(/\D/g, '');
-      if (digits.startsWith(dialDigits)) {
-        setLocal(digits.slice(dialDigits.length));
-      } else {
-        setLocal(digits);
-      }
-    } else {
-      setLocal(digits);
-    }
-  }, [value, countryCode]);
+useEffect(() => {
+  if (valueInitRef.current) return;
+  if (!value) return;
+  valueInitRef.current = true;
+
+  // Get raw digits from the full phone value
+  const allDigits = value.replace(/\D/g, '');
+
+  // Try to strip the dial code digits from the front
+  const dialToStrip = initialDial || COUNTRIES_WITH_STATES.find(c => c.code === countryCode)?.dial || '';
+  const dialDigits = dialToStrip.replace(/\D/g, '');
+
+  if (dialDigits && allDigits.startsWith(dialDigits)) {
+    setLocal(allDigits.slice(dialDigits.length));
+  } else {
+    setLocal(allDigits);
+  }
+}, [value]); // eslint-disable-line
 
   const fmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
   const displayLocal = applyPhonePattern(local, fmt.pattern);
@@ -1353,7 +1353,13 @@ const isValid = !firstMissing;
   {attempted && !receiverState.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
        <div ref={refReceiverPhone}>
-  <PhoneInput countryCode={receiverCountryCode} value="" onChange={setReceiverPhone} label="Phone" />
+  <PhoneInput
+    key={`${scope}-${receiverCountryCode}`}
+    countryCode={receiverCountryCode}
+    value=""
+    onChange={setReceiverPhone}
+    label="Phone"
+  />
   {attempted && !receiverPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
       </Section>

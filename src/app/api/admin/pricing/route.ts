@@ -20,6 +20,9 @@ export type PricingSettings = {
 export type PricingProfiles = {
   international: PricingSettings;
   local: PricingSettings;
+  air?: any;
+  sea?: any;
+  land?: any;
 };
 
 // ✅ DEFAULTS
@@ -102,6 +105,10 @@ function normalizeProfiles(s: any): PricingProfiles {
       s?.local ?? DEFAULT_PRICING.local,
       DEFAULT_PRICING.local
     ),
+    // Preserve air/sea/land as-is — they have their own structure
+    ...(s?.air ? { air: s.air } : {}),
+    ...(s?.sea ? { sea: s.sea } : {}),
+    ...(s?.land ? { land: s.land } : {}),
   };
 }
 
