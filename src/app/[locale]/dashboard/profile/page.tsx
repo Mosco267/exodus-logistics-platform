@@ -706,6 +706,61 @@ style={value === s ? { background: `${accentColor}20`, color: accentColor } : {}
   );
 }
 
+function ProfilePhoneInput({ countryCode, value, onChange, inputClass }: {
+  countryCode: string;
+  value: string;
+  onChange: (v: string) => void;
+  inputClass: string;
+}) {
+  const fmt = PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
+  const pattern = fmt.pattern;
+
+  // Split pattern into fixed prefix and dynamic part
+  // e.g. "(246) ###-####" → prefix="(246) ", dynamic="###-####"
+  const prefixMatch = pattern.match(/^([^#]*)/);
+  const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
+  const dynamicPattern = pattern.slice(fixedPrefix.length);
+  const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
+
+  // Only store/show digits for the dynamic part
+  const digits = value.replace(/\D/g, '');
+  const formatted = applyPattern(digits, dynamicPattern);
+
+  // Calculate approximate pixel width of fixed prefix
+  const prefixPx = fixedPrefix.length * 8.2 + 16;
+
+  return (
+    <div className="relative flex-1">
+      {fixedPrefix && (
+        <span
+          className="absolute top-1/2 -translate-y-1/2 text-sm text-gray-900 dark:text-white pointer-events-none select-none z-10"
+          style={{ left: '16px' }}>
+          {fixedPrefix}
+        </span>
+      )}
+      <input
+        value={formatted}
+        onChange={e => {
+          // Strip all non-digits from what user typed
+          const raw = e.target.value.replace(/\D/g, '');
+          onChange(raw);
+        }}
+        onKeyDown={e => {
+          // Prevent deleting below 0 digits
+          if (e.key === 'Backspace' && digits.length === 0) e.preventDefault();
+        }}
+        placeholder={dynamicPlaceholder}
+        inputMode="numeric"
+        className={inputClass + ' flex-1 w-full'}
+        style={{
+          fontSize: '16px',
+          paddingLeft: fixedPrefix ? `${prefixPx}px` : undefined,
+        }}
+      />
+    </div>
+  );
+}
+
 
 // ─── Main Page ────────────────────────────────────────────────
 export default function ProfilePage() {
@@ -1089,28 +1144,22 @@ setProfile(p => ({ ...p, email: newEmail }));
           </div>
 
           {/* Phone */}
-          <div>
-            <label className={labelClass}>Phone Number</label>
-            <div className="flex items-center gap-2">
-              {/* Dial code badge */}
-              {/* Dial code selector */}
-<DialCodePicker
-  selected={dialCountry}
-  onChange={c => { setDialCountry(c); setPhoneNum(''); }}
-/>
-              <input
-  value={dialCountry
-  ? applyPattern(phoneNum.replace(/\D/g, ''), getFormat(dialCountry.code).pattern)
-  : phoneNum}
-  onChange={e => setPhoneNum(e.target.value.replace(/\D/g, ''))}
-  placeholder={dialCountry ? getFormat(dialCountry.code).placeholder : '123 456 7890'}
-  inputMode="numeric"
-  className={inputClass + " flex-1"}
-  style={{ fontSize: '16px' }}
-/>
-            </div>
-            <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
-          </div>
+<div>
+  <label className={labelClass}>Phone Number</label>
+  <div className="flex items-center gap-2">
+    <DialCodePicker
+      selected={dialCountry}
+      onChange={c => { setDialCountry(c); setPhoneNum(''); }}
+    />
+    <ProfilePhoneInput
+      countryCode={dialCountry?.code || ''}
+      value={phoneNum}
+      onChange={setPhoneNum}
+      inputClass={inputClass}
+    />
+  </div>
+  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+</div>
 
           {/* Address — structured */}
 <div className="space-y-3">
