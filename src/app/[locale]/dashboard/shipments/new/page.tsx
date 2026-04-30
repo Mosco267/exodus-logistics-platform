@@ -703,7 +703,15 @@ useEffect(() => {
 }, [value]); // eslint-disable-line
 
   const fmt = PHONE_FORMATS[dialCountryCode] || PHONE_FORMATS[countryCode] || { placeholder: '123 456 7890', pattern: '### ### ####' };
-  const displayLocal = applyPhonePattern(local, fmt.pattern);
+
+// Split into fixed prefix and dynamic part
+const prefixMatch = fmt.pattern.match(/^([^#]*)/);
+const fixedPrefix = prefixMatch ? prefixMatch[1] : '';
+const dynamicPattern = fmt.pattern.slice(fixedPrefix.length);
+const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
+const prefixPx = fixedPrefix.length * 7 + 8;
+
+const displayLocal = applyPhonePattern(local, dynamicPattern);
 
   return (
     <div>
@@ -721,18 +729,33 @@ useEffect(() => {
             onChange('');
           }}
         />
-        <input
-          value={displayLocal}
-          onChange={e => {
-            const digits = e.target.value.replace(/\D/g, '');
-            setLocal(digits);
-            onChange(digits ? `${dial} ${digits}` : '');
-          }}
-          inputMode="numeric"
-          placeholder={fmt.placeholder}
-          className={`${inputCls} flex-1`}
-          style={{ fontSize: '16px' }}
-        />
+        <div className="relative flex-1">
+  {fixedPrefix && (
+    <span
+      className="absolute top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-900 dark:text-white pointer-events-none select-none z-10"
+      style={{ left: '16px' }}>
+      {fixedPrefix}
+    </span>
+  )}
+  <input
+    value={displayLocal}
+    onChange={e => {
+      const digits = e.target.value.replace(/\D/g, '');
+      setLocal(digits);
+      onChange(digits ? `${dial} ${digits}` : '');
+    }}
+    onKeyDown={e => {
+      if (e.key === 'Backspace' && local.length === 0) e.preventDefault();
+    }}
+    inputMode="numeric"
+    placeholder={dynamicPlaceholder}
+    className={`${inputCls} flex-1 w-full`}
+    style={{
+      fontSize: '16px',
+      paddingLeft: fixedPrefix ? `${prefixPx}px` : undefined,
+    }}
+  />
+</div>
       </div>
     </div>
   );
