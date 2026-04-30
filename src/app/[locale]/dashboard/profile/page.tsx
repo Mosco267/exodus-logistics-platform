@@ -450,11 +450,12 @@ type ProfileData = {
 
 // ─── Country Dropdown Component ───────────────────────────────
 function CountryDropdown({
-  value, onChange, disabled
+  value, onChange, disabled, accentColor = '#0b3aa4'
 }: {
   value: string;
   onChange: (c: typeof COUNTRIES[0]) => void;
   disabled?: boolean;
+  accentColor?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -520,7 +521,8 @@ function CountryDropdown({
                 <button
                   type="button"
                   onClick={() => { onChange(c); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer">
+                 className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left transition cursor-pointer ${selected?.code === c.code ? 'font-semibold' : 'hover:bg-gray-50 dark:hover:bg-white/10'}`}
+style={selected?.code === c.code ? { background: `${accentColor}20`, color: accentColor } : {}}>
                  <img
   src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`}
   width="20" height="15"
@@ -603,7 +605,7 @@ function DialCodePicker({
                 <button
                   type="button"
                   onClick={() => { onChange(c); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer">
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
                   <img
                     src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`}
                     width="18" height="13"
@@ -623,10 +625,12 @@ function DialCodePicker({
 }
 
 
-function StateDropdown({ value, onChange, states }: {
+
+function StateDropdown({ value, onChange, states, accentColor = '#0b3aa4' }: {
   value: string;
   onChange: (s: string) => void;
   states: string[];
+  accentColor?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -662,6 +666,7 @@ function StateDropdown({ value, onChange, states }: {
         type="button"
         onClick={() => { setOpen(o => !o); setSearch(''); }}
         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white transition hover:border-gray-300 dark:hover:border-white/20 cursor-pointer text-left">
+
         <span className="flex-1 truncate">
           {value || <span className="text-gray-400">Select state…</span>}
         </span>
@@ -689,7 +694,7 @@ function StateDropdown({ value, onChange, states }: {
                   type="button"
                   onClick={() => { onChange(s); setOpen(false); setSearch(''); }}
                   className={`w-full text-left px-4 py-2.5 text-sm transition cursor-pointer ${value === s ? 'font-semibold' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10'}`}
-style={value === s ? { background: `rgba(11,58,164,0.1)`, color: '#0b3aa4' } : {}}>
+style={value === s ? { background: `${accentColor}20`, color: accentColor } : {}}>
                   {s}
                 </button>
               </li>
@@ -710,6 +715,15 @@ export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
+
+  const accentSolid = (() => {
+  const map: Record<string, string> = {
+    default: '#0b3aa4', ocean: '#0891b2', sunset: '#f97316',
+    arctic: '#0284c7', midnight: '#06b6d4',
+  };
+  const cached = typeof window !== 'undefined' ? localStorage.getItem('exodus_theme_cache') : null;
+  return map[cached || 'default'] || '#0b3aa4';
+})();
 
 useEffect(() => {
   const accents: Record<string, string> = {
@@ -818,11 +832,22 @@ const dialFound = data.phoneDialCode
   : found;
 if (dialFound) setDialCountry(dialFound);
 
-const strippedPhone = data.phone && dialFound
+// Strip dial code, then strip any area code prefix that's in the pattern
+const rawAfterDial = data.phone && dialFound
   ? (data.phone.startsWith(dialFound.dial)
     ? data.phone.slice(dialFound.dial.length).replace(/^\s+/, '')
     : data.phone)
   : (data.phone || '');
+
+// Strip non-digit prefix from pattern (e.g. "(242) " from "(242) ###-####")
+const fmt = PHONE_FORMATS[dialFound?.code || ''];
+const patternPrefix = fmt?.pattern.replace(/^([^#]*).*/, '$1') || '';
+const patternPrefixDigits = patternPrefix.replace(/\D/g, '');
+
+let strippedPhone = rawAfterDial.replace(/\D/g, '');
+if (patternPrefixDigits && strippedPhone.startsWith(patternPrefixDigits)) {
+  strippedPhone = strippedPhone.slice(patternPrefixDigits.length);
+}
 
 setPhoneNum(strippedPhone);
 setSavedDialCode(dialFound?.dial || '');
@@ -867,7 +892,12 @@ setSavedPhoneNum(strippedPhone);
     setSaving(true);
     setError('');
     try {
-      const fullPhone = phoneNum ? `${dialCountry?.dial || ''}${phoneNum.replace(/\D/g, '')}` : '';
+      // Get area code digits from pattern prefix
+const dialFmt = PHONE_FORMATS[dialCountry?.code || ''];
+const prefix = dialFmt?.pattern.replace(/^([^#]*).*/, '$1').replace(/\D/g, '') || '';
+const localDigits = phoneNum.replace(/\D/g, '');
+const fullPhone = phoneNum ? `${dialCountry?.dial || ''}${prefix}${localDigits}` : '';
+
 const dialCode = dialCountry?.code || selectedCountry?.code || '';
       const res = await fetch('/api/user/profile', {
         method: 'POST',
@@ -973,7 +1003,7 @@ setProfile(p => ({ ...p, email: newEmail }));
   return (entry as any)?.states || [];
 })();
 
-  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition";
+  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition";
   const labelClass = "text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block";
 
   return (
@@ -1051,10 +1081,11 @@ setProfile(p => ({ ...p, email: newEmail }));
           {/* Country dropdown */}
           <div>
             <label className={labelClass}>Country</label>
-            <CountryDropdown
-              value={profile.country}
-              onChange={handleCountryChange}
-            />
+           <CountryDropdown
+  value={profile.country}
+  onChange={handleCountryChange}
+  accentColor={accentSolid}
+/>
           </div>
 
           {/* Phone */}
@@ -1118,6 +1149,7 @@ setProfile(p => ({ ...p, email: newEmail }));
   value={profile.addressState}
   onChange={s => setProfile(p => ({ ...p, addressState: s }))}
   states={statesForCountry}
+  accentColor={accentSolid}
 />
 </div>
         </div>
