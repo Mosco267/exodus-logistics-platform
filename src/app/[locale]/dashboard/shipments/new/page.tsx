@@ -813,10 +813,10 @@ useEffect(() => {
   const [pricing, setPricing] = useState<PricingProfiles | null>(null);
   const [pricingError, setPricingError] = useState(false);
   useEffect(() => {
-    fetch('/api/admin/pricing', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(d => { if (d?.settings) setPricing(d.settings); else setPricingError(true); })
-      .catch(() => setPricingError(true));
+    fetch('/api/pricing', { cache: 'no-store' })
+  .then(r => r.json())
+  .then(d => { if (d?.settings) setPricing(d.settings); else setPricingError(true); })
+  .catch(() => setPricingError(true));
   }, []);
 
   const [scope, setScope] = useState<ShipmentScope>('international');
@@ -1042,20 +1042,7 @@ const effectiveShipmentType = useMemo(() => {
   }, [pricing, scope, means, effectiveServiceLevel, weight, declaredValue, currency,
       senderCountryCode, receiverCountryCode, senderCity, senderState, receiverCity, receiverState]);
 
-      useEffect(() => {
-  console.log('Invoice debug:', {
-    hasPricing: !!pricing,
-    senderCountryCode,
-    receiverCountryCode,
-    effectiveReceiverCode: receiverCountryCode || (scope === 'local' ? senderCountryCode : ''),
-    weight,
-    scope,
-    means,
-    breakdown,
-    pricingKeys: pricing ? Object.keys(pricing) : [],
-    airExists: !!(pricing as any)?.air,
-  });
-}, [pricing, senderCountryCode, receiverCountryCode, weight, breakdown]);
+      
 
   const showDefaultCheckbox = profileHasAddress && !addressManuallyChanged;
   const showTwoCheckboxes = !profileHasAddress || addressManuallyChanged;
