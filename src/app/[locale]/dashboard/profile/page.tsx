@@ -19,16 +19,16 @@ const COUNTRIES = [
   { name: 'Algeria', code: 'DZ', flag: '🇩🇿', dial: '+213' },
   { name: 'Andorra', code: 'AD', flag: '🇦🇩', dial: '+376' },
   { name: 'Angola', code: 'AO', flag: '🇦🇴', dial: '+244' },
-  { name: 'Antigua and Barbuda', code: 'AG', flag: '🇦🇬', dial: '+1-268' },
+  { name: 'Antigua and Barbuda', code: 'AG', flag: '🇦🇬', dial: '+1' },
   { name: 'Argentina', code: 'AR', flag: '🇦🇷', dial: '+54' },
   { name: 'Armenia', code: 'AM', flag: '🇦🇲', dial: '+374' },
   { name: 'Australia', code: 'AU', flag: '🇦🇺', dial: '+61' },
   { name: 'Austria', code: 'AT', flag: '🇦🇹', dial: '+43' },
   { name: 'Azerbaijan', code: 'AZ', flag: '🇦🇿', dial: '+994' },
-  { name: 'Bahamas', code: 'BS', flag: '🇧🇸', dial: '+1-242' },
+  { name: 'Bahamas', code: 'BS', flag: '🇧🇸', dial: '+1' },
   { name: 'Bahrain', code: 'BH', flag: '🇧🇭', dial: '+973' },
   { name: 'Bangladesh', code: 'BD', flag: '🇧🇩', dial: '+880' },
-  { name: 'Barbados', code: 'BB', flag: '🇧🇧', dial: '+1-246' },
+  { name: 'Barbados', code: 'BB', flag: '🇧🇧', dial: '+1' },
   { name: 'Belarus', code: 'BY', flag: '🇧🇾', dial: '+375' },
   { name: 'Belgium', code: 'BE', flag: '🇧🇪', dial: '+32' },
   { name: 'Belize', code: 'BZ', flag: '🇧🇿', dial: '+501' },
@@ -61,8 +61,8 @@ const COUNTRIES = [
   { name: 'Czech Republic', code: 'CZ', flag: '🇨🇿', dial: '+420' },
   { name: 'Denmark', code: 'DK', flag: '🇩🇰', dial: '+45' },
   { name: 'Djibouti', code: 'DJ', flag: '🇩🇯', dial: '+253' },
-  { name: 'Dominica', code: 'DM', flag: '🇩🇲', dial: '+1-767' },
-  { name: 'Dominican Republic', code: 'DO', flag: '🇩🇴', dial: '+1-809' },
+  { name: 'Dominica', code: 'DM', flag: '🇩🇲', dial: '+1' },
+  { name: 'Dominican Republic', code: 'DO', flag: '🇩🇴', dial: '+1' },
   { name: 'Ecuador', code: 'EC', flag: '🇪🇨', dial: '+593' },
   { name: 'Egypt', code: 'EG', flag: '🇪🇬', dial: '+20' },
   { name: 'El Salvador', code: 'SV', flag: '🇸🇻', dial: '+503' },
@@ -80,7 +80,7 @@ const COUNTRIES = [
   { name: 'Germany', code: 'DE', flag: '🇩🇪', dial: '+49' },
   { name: 'Ghana', code: 'GH', flag: '🇬🇭', dial: '+233' },
   { name: 'Greece', code: 'GR', flag: '🇬🇷', dial: '+30' },
-  { name: 'Grenada', code: 'GD', flag: '🇬🇩', dial: '+1-473' },
+  { name: 'Grenada', code: 'GD', flag: '🇬🇩', dial: '+1' },
   { name: 'Guatemala', code: 'GT', flag: '🇬🇹', dial: '+502' },
   { name: 'Guinea', code: 'GN', flag: '🇬🇳', dial: '+224' },
   { name: 'Guinea-Bissau', code: 'GW', flag: '🇬🇼', dial: '+245' },
@@ -96,7 +96,7 @@ const COUNTRIES = [
   { name: 'Ireland', code: 'IE', flag: '🇮🇪', dial: '+353' },
   { name: 'Israel', code: 'IL', flag: '🇮🇱', dial: '+972' },
   { name: 'Italy', code: 'IT', flag: '🇮🇹', dial: '+39' },
-  { name: 'Jamaica', code: 'JM', flag: '🇯🇲', dial: '+1-876' },
+  { name: 'Jamaica', code: 'JM', flag: '🇯🇲', dial: '+1' },
   { name: 'Japan', code: 'JP', flag: '🇯🇵', dial: '+81' },
   { name: 'Jordan', code: 'JO', flag: '🇯🇴', dial: '+962' },
   { name: 'Kazakhstan', code: 'KZ', flag: '🇰🇿', dial: '+7' },
@@ -157,9 +157,9 @@ const COUNTRIES = [
   { name: 'Romania', code: 'RO', flag: '🇷🇴', dial: '+40' },
   { name: 'Russia', code: 'RU', flag: '🇷🇺', dial: '+7' },
   { name: 'Rwanda', code: 'RW', flag: '🇷🇼', dial: '+250' },
-  { name: 'Saint Kitts and Nevis', code: 'KN', flag: '🇰🇳', dial: '+1-869' },
-  { name: 'Saint Lucia', code: 'LC', flag: '🇱🇨', dial: '+1-758' },
-  { name: 'Saint Vincent and the Grenadines', code: 'VC', flag: '🇻🇨', dial: '+1-784' },
+  { name: 'Saint Kitts and Nevis', code: 'KN', flag: '🇰🇳', dial: '+1' },
+  { name: 'Saint Lucia', code: 'LC', flag: '🇱🇨', dial: '+1' },
+  { name: 'Saint Vincent and the Grenadines', code: 'VC', flag: '🇻🇨', dial: '+1' },
   { name: 'Samoa', code: 'WS', flag: '🇼🇸', dial: '+685' },
   { name: 'San Marino', code: 'SM', flag: '🇸🇲', dial: '+378' },
   { name: 'Sao Tome and Principe', code: 'ST', flag: '🇸🇹', dial: '+239' },
@@ -190,7 +190,7 @@ const COUNTRIES = [
   { name: 'Timor-Leste', code: 'TL', flag: '🇹🇱', dial: '+670' },
   { name: 'Togo', code: 'TG', flag: '🇹🇬', dial: '+228' },
   { name: 'Tonga', code: 'TO', flag: '🇹🇴', dial: '+676' },
-  { name: 'Trinidad and Tobago', code: 'TT', flag: '🇹🇹', dial: '+1-868' },
+  { name: 'Trinidad and Tobago', code: 'TT', flag: '🇹🇹', dial: '+1' },
   { name: 'Tunisia', code: 'TN', flag: '🇹🇳', dial: '+216' },
   { name: 'Turkey', code: 'TR', flag: '🇹🇷', dial: '+90' },
   { name: 'Turkmenistan', code: 'TM', flag: '🇹🇲', dial: '+993' },
@@ -385,18 +385,18 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   GT: { placeholder: '5123 4567', pattern: '#### ####' },
   BZ: { placeholder: '622 3456', pattern: '### ####' },
   CU: { placeholder: '5 1234567', pattern: '# #######' },
-  DO: { placeholder: '(809) 234-5678', pattern: '(###) ###-####' },
+  DO: { placeholder: '(809) 234-5678', pattern: '(809) ###-####' },
   HT: { placeholder: '34 12 3456', pattern: '## ## ####' },
-  JM: { placeholder: '(876) 234-5678', pattern: '(###) ###-####' },
-  TT: { placeholder: '(868) 234-5678', pattern: '(###) ###-####' },
-  BB: { placeholder: '(246) 234-5678', pattern: '(###) ###-####' },
-  BS: { placeholder: '(242) 234-5678', pattern: '(###) ###-####' },
-  AG: { placeholder: '(268) 234-5678', pattern: '(###) ###-####' },
-  DM: { placeholder: '(767) 234-5678', pattern: '(###) ###-####' },
-  GD: { placeholder: '(473) 234-5678', pattern: '(###) ###-####' },
-  KN: { placeholder: '(869) 234-5678', pattern: '(###) ###-####' },
-  LC: { placeholder: '(758) 234-5678', pattern: '(###) ###-####' },
-  VC: { placeholder: '(784) 234-5678', pattern: '(###) ###-####' },
+  JM: { placeholder: '(876) 234-5678', pattern: '(876) ###-####' },
+  TT: { placeholder: '(868) 234-5678', pattern: '(868) ###-####' },
+  BB: { placeholder: '(246) 234-5678', pattern: '(246) ###-####' },
+  BS: { placeholder: '(242) 234-5678', pattern: '(242) ###-####' },
+  AG: { placeholder: '(268) 234-5678', pattern: '(268) ###-####' },
+  DM: { placeholder: '(767) 234-5678', pattern: '(767) ###-####' },
+  GD: { placeholder: '(473) 234-5678', pattern: '(473) ###-####' },
+  KN: { placeholder: '(869) 234-5678', pattern: '(869) ###-####' },
+  LC: { placeholder: '(758) 234-5678', pattern: '(758) ###-####' },
+  VC: { placeholder: '(784) 234-5678', pattern: '(784) ###-####' },
   AU: { placeholder: '412 345 678', pattern: '### ### ###' },
   NZ: { placeholder: '21 234 5678', pattern: '## ### ####' },
   FJ: { placeholder: '701 2345', pattern: '### ####' },
@@ -669,7 +669,7 @@ function StateDropdown({ value, onChange, states }: {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="absolute bottom-full left-0 right-0 mb-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input
               autoFocus
@@ -688,11 +688,8 @@ function StateDropdown({ value, onChange, states }: {
                 <button
                   type="button"
                   onClick={() => { onChange(s); setOpen(false); setSearch(''); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer ${
-                    value === s
-                      ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold'
-                      : 'text-gray-800 dark:text-gray-200'
-                  }`}>
+                  className={`w-full text-left px-4 py-2.5 text-sm transition cursor-pointer ${value === s ? 'font-semibold' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10'}`}
+style={value === s ? { background: `rgba(11,58,164,0.1)`, color: '#0b3aa4' } : {}}>
                   {s}
                 </button>
               </li>

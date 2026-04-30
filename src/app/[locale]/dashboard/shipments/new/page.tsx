@@ -149,7 +149,7 @@ const ALL_CURRENCIES = [
 ].sort((a, b) => a.code.localeCompare(b.code));
 
 // ─── Currency dropdown ────────────────────────────────────────
-function CurrencySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function CurrencySelect({ value, onChange, accentSolid = '#0b3aa4' }: { value: string; onChange: (v: string) => void; accentSolid?: string }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -192,11 +192,15 @@ function CurrencySelect({ value, onChange }: { value: string; onChange: (v: stri
                   {showDivider && <div className="h-px bg-gray-100 dark:bg-white/10 mx-3" />}
                   <button type="button"
                     onMouseDown={() => { onChange(c.code); setOpen(false); setSearch(''); }}
-                    className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-white/10 transition cursor-pointer ${value === c.code ? 'bg-blue-50 dark:bg-blue-500/10' : ''}`}>
+                    className={`w-full text-left px-4 py-2.5 transition cursor-pointer ${value === c.code ? '' : 'hover:bg-gray-50 dark:hover:bg-white/10'}`}
+style={value === c.code ? { background: `${accentSolid}15` } : {}}>
                     {i === 0 || filtered[i-1].country !== c.country ? (
                       <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">{c.country}</p>
                     ) : null}
-                    <p className={`text-sm font-bold ${value === c.code ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}>{c.code}</p>
+                    <p className={`text-sm font-bold ${value === c.code ? '' : 'text-gray-900 dark:text-white'}`}
+  style={value === c.code ? { color: accentSolid } : {}}>
+  {c.code}
+</p>
                   </button>
                 </div>
               );
@@ -390,16 +394,16 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   DZ:{placeholder:'551 23 45 67',pattern:'### ## ## ##'},
   AD:{placeholder:'312 345',pattern:'### ###'},
   AO:{placeholder:'923 123 456',pattern:'### ### ###'},
-  AG:{placeholder:'(268) 234-5678',pattern:'(###) ###-####'},
+  AG:{placeholder:'(268) 234-5678',pattern:'(268) ###-####'},
   AR:{placeholder:'11 1234-5678',pattern:'## ####-####'},
   AM:{placeholder:'77 123 456',pattern:'## ### ###'},
   AU:{placeholder:'412 345 678',pattern:'### ### ###'},
   AT:{placeholder:'664 1234567',pattern:'### #######'},
   AZ:{placeholder:'50 123 45 67',pattern:'## ### ## ##'},
-  BS:{placeholder:'(242) 234-5678',pattern:'(###) ###-####'},
+  BS:{placeholder:'(242) 234-5678',pattern:'(242) ###-####'},
   BH:{placeholder:'3600 1234',pattern:'#### ####'},
   BD:{placeholder:'1712-345678',pattern:'####-######'},
-  BB:{placeholder:'(246) 234-5678',pattern:'(###) ###-####'},
+  BB:{placeholder:'(246) 234-5678',pattern:'(246) ###-####'},
   BY:{placeholder:'29 123-45-67',pattern:'## ###-##-##'},
   BE:{placeholder:'472 12 34 56',pattern:'### ## ## ##'},
   BZ:{placeholder:'622 3456',pattern:'### ####'},
@@ -432,8 +436,8 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   CZ:{placeholder:'601 123 456',pattern:'### ### ###'},
   DK:{placeholder:'20 12 34 56',pattern:'## ## ## ##'},
   DJ:{placeholder:'77 83 12 34',pattern:'## ## ## ##'},
-  DM:{placeholder:'(767) 234-5678',pattern:'(###) ###-####'},
-  DO:{placeholder:'(809) 234-5678',pattern:'(###) ###-####'},
+  DM:{placeholder:'(767) 234-5678',pattern:'(767) ###-####'},
+  DO:{placeholder:'(809) 234-5678',pattern:'(809) ###-####'},
   EC:{placeholder:'99 123 4567',pattern:'## ### ####'},
   EG:{placeholder:'100 123 4567',pattern:'### ### ####'},
   SV:{placeholder:'7012 3456',pattern:'#### ####'},
@@ -451,7 +455,7 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   DE:{placeholder:'151 12345678',pattern:'### ########'},
   GH:{placeholder:'24 123 4567',pattern:'## ### ####'},
   GR:{placeholder:'694 123 4567',pattern:'### ### ####'},
-  GD:{placeholder:'(473) 234-5678',pattern:'(###) ###-####'},
+  GD:{placeholder:'(473) 234-5678',pattern:'(473) ###-####'},
   GT:{placeholder:'5123 4567',pattern:'#### ####'},
   GN:{placeholder:'622 12 34 56',pattern:'### ## ## ##'},
   GW:{placeholder:'955 123 456',pattern:'### ### ###'},
@@ -468,7 +472,7 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   IL:{placeholder:'50-123-4567',pattern:'##-###-####'},
   IT:{placeholder:'312 345 6789',pattern:'### ### ####'},
   CI:{placeholder:'7 12 34 56 78',pattern:'# ## ## ## ##'},
-  JM:{placeholder:'(876) 234-5678',pattern:'(###) ###-####'},
+  JM:{placeholder:'(876) 234-5678',pattern:'(876) ###-####'},
   JP:{placeholder:'90-1234-5678',pattern:'##-####-####'},
   JO:{placeholder:'7 9012 3456',pattern:'# #### ####'},
   KZ:{placeholder:'700 123 45 67',pattern:'### ### ## ##'},
@@ -529,9 +533,9 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   RO:{placeholder:'712 345 678',pattern:'### ### ###'},
   RU:{placeholder:'912 345-67-89',pattern:'### ###-##-##'},
   RW:{placeholder:'721 123 456',pattern:'### ### ###'},
-  KN:{placeholder:'(869) 234-5678',pattern:'(###) ###-####'},
-  LC:{placeholder:'(758) 234-5678',pattern:'(###) ###-####'},
-  VC:{placeholder:'(784) 234-5678',pattern:'(###) ###-####'},
+  KN:{placeholder:'(869) 234-5678',pattern:'(869) ###-####'},
+  LC:{placeholder:'(758) 234-5678',pattern:'(758) ###-####'},
+  VC:{placeholder:'(784) 234-5678',pattern:'(784) ###-####'},
   WS:{placeholder:'72 12345',pattern:'## #####'},
   SM:{placeholder:'66 66 12 34',pattern:'## ## ## ##'},
   ST:{placeholder:'981 2345',pattern:'### ####'},
@@ -561,7 +565,7 @@ const PHONE_FORMATS: Record<string, { placeholder: string; pattern: string }> = 
   TL:{placeholder:'7712 3456',pattern:'#### ####'},
   TG:{placeholder:'90 12 34 56',pattern:'## ## ## ##'},
   TO:{placeholder:'7715 123',pattern:'#### ###'},
-  TT:{placeholder:'(868) 234-5678',pattern:'(###) ###-####'},
+  TT:{placeholder:'(868) 234-5678',pattern:'(868) ###-####'},
   TN:{placeholder:'20 123 456',pattern:'## ### ###'},
   TR:{placeholder:'532 123 45 67',pattern:'### ### ## ##'},
   TM:{placeholder:'8 65 123456',pattern:'# ## ######'},
@@ -1484,7 +1488,7 @@ const isValid = !firstMissing;
 </div>
           <div>
             <Label>Currency</Label>
-            <CurrencySelect value={currency} onChange={setCurrency} />
+            <CurrencySelect value={currency} onChange={setCurrency} accentSolid={accentSolid} />
           </div>
         </div>
       </Section>
