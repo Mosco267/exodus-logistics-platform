@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Camera, Save, Loader2, User, Mail, Phone,
   CheckCircle2, MapPin, Calendar, Pencil, ChevronDown, X
@@ -738,7 +738,7 @@ const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
       {fixedPrefix && (
         <span
   className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
-  style={{ left: '16px', lineHeight: 'normal' }}>
+  style={{ left: '16px', lineHeight: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center' }}>
   {fixedPrefix}
 </span>
       )}
@@ -771,6 +771,7 @@ export default function ProfilePage() {
  const { data: session, update: updateSession } = useSession();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
+  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
@@ -955,7 +956,7 @@ setSavedPhoneNum(strippedPhone);
 const dialFmt = PHONE_FORMATS[dialCountry?.code || ''];
 const prefix = dialFmt?.pattern.replace(/^([^#]*).*/, '$1').replace(/\D/g, '') || '';
 const localDigits = phoneNum.replace(/\D/g, '');
-const fullPhone = phoneNum ? `${dialCountry?.dial || ''}${prefix}${localDigits}` : '';
+const fullPhone = phoneNum ? `${dialCountry?.dial || ''}${phoneNum.replace(/\D/g, '')}` : '';
 
 const dialCode = dialCountry?.code || selectedCountry?.code || '';
       const res = await fetch('/api/user/profile', {
@@ -1130,7 +1131,7 @@ setProfile(p => ({ ...p, email: newEmail }));
         style={{ fontSize: '16px' }} />
     </div>
     <button
-      onClick={() => { setEditingEmail(true); setNewEmail(''); setEmailStep('input'); setEmailError(''); }}
+      onClick={() => router.push(`/${locale}/dashboard/profile/change-email`)}
       className="h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer shrink-0 flex items-center gap-1.5">
       <Pencil size={12} /> Change
     </button>

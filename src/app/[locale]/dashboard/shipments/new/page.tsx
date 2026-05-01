@@ -15,6 +15,7 @@ import {
   computeInvoice, DEFAULT_PRICING, type PricingProfiles, type ShipmentScope,
   type ServiceLevel, type ShipmentType, type ShipmentMeans,
 } from '@/lib/pricing';
+import TwoFaShipmentModal from '@/components/TwoFaShipmentModal';
 
 // ─── Country → Currency map ───────────────────────────────────
 const COUNTRY_CURRENCY: Record<string, string> = {
@@ -745,8 +746,8 @@ const displayLocal = applyPhonePattern(local, dynamicPattern);
         <div className="relative flex-1">
   {fixedPrefix && (
     <span
-      className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
-      style={{ left: '16px' }}>
+  className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
+  style={{ left: '16px', lineHeight: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center' }}>
       {fixedPrefix}
     </span>
   )}
@@ -820,10 +821,15 @@ export default function NewShipmentPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
+
+
   
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+
+  const [showTwoFaModal, setShowTwoFaModal] = useState(false);
+const [pendingSubmit, setPendingSubmit] = useState(false);
 
 const [isDarkTheme, setIsDarkTheme] = useState(false);
 useEffect(() => {
@@ -1156,7 +1162,44 @@ const isValid = !firstMissing;
 
   const finalPackageType = packageType === 'Other' ? (customPackageType || 'Other') : packageType;
 
-  const handleSubmit = async () => {
+  const proceedWithSubmit = async () => {
+  const dv = parseFloat(declaredValue);
+  setLoading(true);
+  try {
+    if (saveAsHome) {
+      await fetch('/api/user/profile', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: senderName, phone: senderPhone, country: senderCountry, addressStreet: senderStreet, addressCity: senderCity, addressState: senderState, addressPostalCode: senderPostal }),
+      });
+    }
+    const res = await fetch('/api/shipments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        senderCountryCode, destinationCountryCode: receiverCountryCode,
+        senderName, senderEmail, senderCountry, senderState, senderCity,
+        senderAddress: senderStreet, senderPostalCode: senderPostal, senderPhone,
+        receiverName, receiverEmail, receiverCountry, receiverState, receiverCity,
+        receiverAddress: receiverStreet, receiverPostalCode: receiverPostal, receiverPhone,
+        shipmentScope: scope, serviceLevel: effectiveServiceLevel,
+        shipmentType: finalPackageType, shipmentMeans: MEANS_CONFIG[means].label,
+        packageDescription, estimatedDeliveryDate: deliveryDateISO,
+        weightKg: weight,
+        dimensionsCm: lengthCm || widthCm || heightCm ? { length: parseFloat(lengthCm)||0, width: parseFloat(widthCm)||0, height: parseFloat(heightCm)||0 } : null,
+        declaredValue: dv, declaredValueCurrency: currency,
+        createdByUserId: (session?.user as any)?.id || '',
+        createdByEmail: session?.user?.email || '',
+        status: 'Created',
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setError(json?.error || 'Failed to create shipment.'); return; }
+    setCreatedId(json?.shipment?.shipmentId || '');
+    setShowSuccess(true);
+  } catch (e: any) { setError(e?.message || 'Something went wrong.'); }
+  finally { setLoading(false); }
+};
+
+const handleSubmit = async () => {
   setAttempted(true);
   setError('');
 
@@ -1169,41 +1212,18 @@ const isValid = !firstMissing;
 
   const dv = parseFloat(declaredValue);
   if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
-  // ... rest of your existing submit code unchanged
-    setLoading(true);
-    try {
-      if (saveAsHome) {
-        await fetch('/api/user/profile', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: senderName, phone: senderPhone, country: senderCountry, addressStreet: senderStreet, addressCity: senderCity, addressState: senderState, addressPostalCode: senderPostal }),
-        });
-      }
-      const res = await fetch('/api/shipments', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderCountryCode, destinationCountryCode: receiverCountryCode,
-          senderName, senderEmail, senderCountry, senderState, senderCity,
-          senderAddress: senderStreet, senderPostalCode: senderPostal, senderPhone,
-          receiverName, receiverEmail, receiverCountry, receiverState, receiverCity,
-          receiverAddress: receiverStreet, receiverPostalCode: receiverPostal, receiverPhone,
-          shipmentScope: scope, serviceLevel: effectiveServiceLevel,
-          shipmentType: finalPackageType, shipmentMeans: MEANS_CONFIG[means].label,
-          packageDescription, estimatedDeliveryDate: deliveryDateISO,
-          weightKg: weight,
-          dimensionsCm: lengthCm || widthCm || heightCm ? { length: parseFloat(lengthCm)||0, width: parseFloat(widthCm)||0, height: parseFloat(heightCm)||0 } : null,
-          declaredValue: dv, declaredValueCurrency: currency,
-          createdByUserId: (session?.user as any)?.id || '',
-          createdByEmail: session?.user?.email || '',
-          status: 'Created',
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) { setError(json?.error || 'Failed to create shipment.'); return; }
-      setCreatedId(json?.shipment?.shipmentId || '');
-      setShowSuccess(true);
-    } catch (e: any) { setError(e?.message || 'Something went wrong.'); }
-    finally { setLoading(false); }
-  };
+
+  // Check if 2FA is needed
+  try {
+    const twoFaStatus = await fetch('/api/user/2fa/status-full').then(r => r.json());
+    if (twoFaStatus.emailEnabled || twoFaStatus.appEnabled) {
+      setShowTwoFaModal(true);
+      return;
+    }
+  } catch {}
+
+  await proceedWithSubmit();
+};
 
   return (
     <div className="max-w-2xl mx-auto pb-10 space-y-4">
@@ -1580,6 +1600,14 @@ const isValid = !firstMissing;
           ? <><Loader2 size={16} className="animate-spin" /> Loading pricing…</>
           : <><Send size={16} /> Create Order</>}
       </button>
+
+      {showTwoFaModal && (
+  <TwoFaShipmentModal
+    accent={accent}
+    onSuccess={() => { setShowTwoFaModal(false); proceedWithSubmit(); }}
+    onClose={() => { setShowTwoFaModal(false); setPendingSubmit(false); }}
+  />
+)}
 
       {showSuccess && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
