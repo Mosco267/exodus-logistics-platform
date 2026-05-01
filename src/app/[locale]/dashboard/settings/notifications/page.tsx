@@ -14,6 +14,8 @@ export default function NotificationsPage() {
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+  const [isMidnight, setIsMidnight] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const map: Record<string, { g: string; s: string }> = {
@@ -23,8 +25,14 @@ export default function NotificationsPage() {
       arctic: { g: 'linear-gradient(135deg, #0284c7, #bae6fd)', s: '#0284c7' },
       midnight: { g: 'linear-gradient(135deg, #0f172a, #0e7490)', s: '#06b6d4' },
     };
-    const apply = () => { const c = localStorage.getItem('exodus_theme_cache'); if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); } };
-    apply(); window.addEventListener('storage', apply); const t = setInterval(apply, 1000);
+    const apply = () => {
+      const c = localStorage.getItem('exodus_theme_cache');
+      if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
+      setIsMidnight(c === 'midnight');
+    };
+    apply();
+    window.addEventListener('storage', apply);
+    const t = setInterval(apply, 1000);
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
@@ -34,10 +42,25 @@ export default function NotificationsPage() {
   const [success, setSuccess] = useState(false);
   const changed = JSON.stringify(notifs) !== JSON.stringify(saved);
 
+  useEffect(() => {
+    fetch('/api/user/notifications')
+      .then(r => r.json())
+      .then(d => {
+        if (d && typeof d === 'object' && 'shipmentUpdates' in d) {
+          setNotifs(d); setSaved(d);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setReady(true));
+  }, []);
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch('/api/user/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(notifs) });
+      await fetch('/api/user/notifications', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notifs),
+      });
       setSaved({ ...notifs }); setSuccess(true); setTimeout(() => setSuccess(false), 3000);
     } catch {}
     finally { setSaving(false); }
@@ -50,6 +73,13 @@ export default function NotificationsPage() {
     { key: 'promotions' as keyof NotifSettings, label: 'Promotions', desc: 'Receive news, tips and promotional offers' },
   ];
 
+  if (!ready) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+        style={{ borderTopColor: accentSolid }} />
+    </div>
+  );
+
   return (
     <div className="max-w-2xl mx-auto space-y-5 pb-10">
       <div className="flex items-center gap-3">
@@ -58,7 +88,8 @@ export default function NotificationsPage() {
           <ArrowLeft size={16} className="text-gray-600 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Notifications</h1>
+          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
+            style={isMidnight ? { color: '#ffffff' } : {}}>Notifications</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Control what emails and alerts you receive</p>
         </div>
       </div>
@@ -75,7 +106,8 @@ export default function NotificationsPage() {
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{label}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
               </div>
-              <button onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
+              <button
+                onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
                 className="relative rounded-full transition-all duration-200 cursor-pointer shrink-0 mt-0.5"
                 style={{ width: 42, height: 24, background: notifs[key] ? accentSolid : '#d1d5db' }}>
                 <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
@@ -84,7 +116,11 @@ export default function NotificationsPage() {
             </div>
           ))}
 
-          {success && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 size={13} />Preferences saved</p>}
+          {success && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+              <CheckCircle2 size={13} />Preferences saved
+            </p>
+          )}
 
           <div className="pt-2 border-t border-gray-100 dark:border-white/10">
             <button onClick={handleSave} disabled={saving || !changed}

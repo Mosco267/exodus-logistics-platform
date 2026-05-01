@@ -1,11 +1,10 @@
 // src/app/[locale]/dashboard/profile/change-email/page.tsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Mail, Loader2, CheckCircle2, Eye, EyeOff, Fingerprint, Lock } from 'lucide-react';
-import { startAuthentication } from '@simplewebauthn/browser';
+import { ArrowLeft, Mail, Loader2, CheckCircle2, Eye, EyeOff, Lock } from 'lucide-react';
 
 export default function ChangeEmailPage() {
   const params = useParams();
@@ -15,6 +14,8 @@ export default function ChangeEmailPage() {
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+  const [isMidnight, setIsMidnight] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const map: Record<string, { g: string; s: string }> = {
@@ -24,15 +25,18 @@ export default function ChangeEmailPage() {
       arctic: { g: 'linear-gradient(135deg, #0284c7, #bae6fd)', s: '#0284c7' },
       midnight: { g: 'linear-gradient(135deg, #0f172a, #0e7490)', s: '#06b6d4' },
     };
-    const apply = () => { const c = localStorage.getItem('exodus_theme_cache'); if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); } };
-    apply(); window.addEventListener('storage', apply); const t = setInterval(apply, 1000);
+    const apply = () => {
+      const c = localStorage.getItem('exodus_theme_cache');
+      if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
+      setIsMidnight(c === 'midnight');
+    };
+    apply();
+    window.addEventListener('storage', apply);
+    const t = setInterval(apply, 1000);
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
-  const [hasPasskey, setHasPasskey] = useState(false);
-  useEffect(() => {
-    fetch('/api/user/passkeys').then(r => r.json()).then(d => setHasPasskey((d.passkeys || []).length > 0)).catch(() => {});
-  }, []);
+  useEffect(() => { setReady(true); }, []);
 
   const [step, setStep] = useState<'auth' | 'email' | 'code' | 'done'>('auth');
   const [password, setPassword] = useState('');
@@ -70,26 +74,6 @@ export default function ChangeEmailPage() {
     finally { setAuthLoading(false); }
   };
 
-  const handlePasskeyAuth = async () => {
-    setAuthLoading(true); setAuthError('');
-    try {
-      const optRes = await fetch('/api/user/passkeys/authenticate/options', { method: 'POST' });
-      const opts = await optRes.json();
-      if (!optRes.ok) { setAuthError(opts.error || 'Failed to start'); return; }
-      const credential = await startAuthentication(opts);
-      const verRes = await fetch('/api/user/passkeys/authenticate/verify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential }),
-      });
-      const verData = await verRes.json();
-      if (!verRes.ok) { setAuthError(verData.error || 'Passkey failed'); return; }
-      setStep('email');
-    } catch (e: any) {
-      if (e?.name === 'NotAllowedError') setAuthError('Passkey cancelled');
-      else setAuthError('Passkey authentication failed');
-    } finally { setAuthLoading(false); }
-  };
-
   const handleSendCode = async () => {
     if (!newEmail || !/^\S+@\S+\.\S+$/.test(newEmail)) { setEmailError('Enter a valid email address'); return; }
     setEmailLoading(true); setEmailError('');
@@ -122,6 +106,13 @@ export default function ChangeEmailPage() {
     finally { setEmailLoading(false); }
   };
 
+  if (!ready) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+        style={{ borderTopColor: accentSolid }} />
+    </div>
+  );
+
   return (
     <div className="max-w-md mx-auto space-y-5 pb-10">
       <div className="flex items-center gap-3">
@@ -130,14 +121,14 @@ export default function ChangeEmailPage() {
           <ArrowLeft size={16} className="text-gray-600 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Change Email</h1>
+          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
+            style={isMidnight ? { color: '#ffffff' } : {}}>Change Email</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Update your account email address</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-6">
 
-        {/* Step 1: Auth */}
         {step === 'auth' && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-2">
@@ -146,35 +137,27 @@ export default function ChangeEmailPage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-gray-900 dark:text-white">Confirm your identity</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">For your security, verify before changing email</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">For security, verify before changing email</p>
               </div>
             </div>
-
-            {hasPasskey && (
-              <button onClick={handlePasskeyAuth} disabled={authLoading}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition cursor-pointer disabled:opacity-60"
-                style={{ borderColor: accentSolid, color: accentSolid }}>
-                {authLoading ? <Loader2 size={15} className="animate-spin" /> : <Fingerprint size={15} />}
-                Use Passkey
-              </button>
-            )}
-
-            {hasPasskey && (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-gray-200 dark:bg-white/10" />
-                <span className="text-xs text-gray-400">or use password</span>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-white/10" />
-              </div>
-            )}
-
             <div>
               <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Current Password</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} value={password} onChange={e => { setPassword(e.target.value); setAuthError(''); }}
-                  placeholder="Enter your password" autoComplete="current-password"
-                  className={inputClass + ' pr-11'} style={{ fontSize: '16px' }} />
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setAuthError(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') handlePasswordAuth(); }}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  className={inputClass + ' pr-11'}
+                  style={{ fontSize: '16px' }}
+                />
                 <button type="button" onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer p-1"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -189,7 +172,6 @@ export default function ChangeEmailPage() {
           </div>
         )}
 
-        {/* Step 2: New email */}
         {step === 'email' && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-2">
@@ -202,7 +184,8 @@ export default function ChangeEmailPage() {
               </div>
             </div>
             <input value={newEmail} onChange={e => { setNewEmail(e.target.value); setEmailError(''); }}
-              type="email" placeholder="New email address" autoCapitalize="none" autoCorrect="off"
+              type="email" placeholder="New email address"
+              autoCapitalize="none" autoCorrect="off"
               className={inputClass} style={{ fontSize: '16px' }} />
             {emailError && <p className="text-xs text-red-500 font-medium">{emailError}</p>}
             <div className="flex gap-2.5">
@@ -220,7 +203,6 @@ export default function ChangeEmailPage() {
           </div>
         )}
 
-        {/* Step 3: Verify code */}
         {step === 'code' && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -246,8 +228,8 @@ export default function ChangeEmailPage() {
                     e.preventDefault();
                     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
                     setCode(pasted.padEnd(6, '').slice(0, 6));
-                    const last = Math.min(pasted.length, 5);
-                    const box = document.getElementById(`change-email-${last}`); if (box) (box as HTMLInputElement).focus();
+                    const box = document.getElementById(`change-email-${Math.min(pasted.length, 5)}`);
+                    if (box) (box as HTMLInputElement).focus();
                   }}
                   className="text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none transition"
                   style={{ fontSize: '20px', height: '52px', width: '44px' }} />
@@ -258,9 +240,8 @@ export default function ChangeEmailPage() {
               {countdown > 0
                 ? <p className="text-xs text-gray-400">Resend in <strong>{countdown}s</strong></p>
                 : <button onClick={handleSendCode} disabled={emailLoading}
-                    className="text-xs font-semibold hover:underline cursor-pointer" style={{ color: accentSolid }}>
-                    Resend code
-                  </button>}
+                    className="text-xs font-semibold hover:underline cursor-pointer disabled:opacity-50"
+                    style={{ color: accentSolid }}>Resend code</button>}
             </div>
             <div className="flex gap-2.5">
               <button onClick={() => setStep('email')}
@@ -277,14 +258,15 @@ export default function ChangeEmailPage() {
           </div>
         )}
 
-        {/* Done */}
         {step === 'done' && (
           <div className="text-center space-y-4 py-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: accent }}>
               <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Email Updated!</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Your email has been changed to <strong>{newEmail}</strong></p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Your email has been changed to <strong className="text-gray-700 dark:text-gray-200">{newEmail}</strong>
+            </p>
             <button onClick={() => router.push(`/${locale}/dashboard/profile`)}
               className="w-full py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"
               style={{ background: accent }}>

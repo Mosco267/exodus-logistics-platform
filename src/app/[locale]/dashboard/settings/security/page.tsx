@@ -1,63 +1,10 @@
 // src/app/[locale]/dashboard/settings/security/page.tsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import {
-  ArrowLeft, Lock, Eye, EyeOff, Loader2, CheckCircle2,
-  Key, ShieldCheck, Fingerprint, AlertTriangle,
-} from 'lucide-react';
-import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
-
-function PasswordStrength({ password }: { password: string }) {
-  const checks = [
-    { label: 'At least 8 characters', pass: password.length >= 8 },
-    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
-    { label: 'Number', pass: /[0-9]/.test(password) },
-    { label: 'Special character', pass: /[^A-Za-z0-9]/.test(password) },
-  ];
-  const score = checks.filter(c => c.pass).length;
-  const barColor = score <= 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : score === 3 ? 'bg-blue-400' : 'bg-emerald-500';
-  const label = ['', 'Weak', 'Fair', 'Good', 'Strong'][score];
-  const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-blue-600', 'text-emerald-600'][score];
-  if (!password) return null;
-  return (
-    <div className="mt-2.5 space-y-2">
-      <div className="flex items-center gap-1.5">
-        {[0,1,2,3].map(i => (
-          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < score ? barColor : 'bg-gray-200'}`} />
-        ))}
-        {label && <span className={`text-xs font-bold ml-1 ${labelColor}`}>{label}</span>}
-      </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1">
-        {checks.map(({ label, pass }) => (
-          <span key={label} className={`text-[11px] flex items-center gap-1 font-medium ${pass ? 'text-emerald-600' : 'text-gray-400'}`}>
-            <CheckCircle2 className="w-3 h-3" />{label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PwField({ value, onChange, placeholder, autoComplete }: {
-  value: string; onChange: (v: string) => void; placeholder: string; autoComplete: string;
-}) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative">
-      <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} autoComplete={autoComplete}
-        className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition"
-        style={{ fontSize: '16px' }} />
-      <button type="button" onClick={() => setShow(v => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer">
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
-    </div>
-  );
-}
+import { ArrowLeft, Lock, Fingerprint, ChevronRight, Loader2 } from 'lucide-react';
 
 export default function SecurityPage() {
   const params = useParams();
@@ -67,6 +14,8 @@ export default function SecurityPage() {
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+  const [isMidnight, setIsMidnight] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const map: Record<string, { g: string; s: string }> = {
@@ -79,6 +28,7 @@ export default function SecurityPage() {
     const apply = () => {
       const c = localStorage.getItem('exodus_theme_cache');
       if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
+      setIsMidnight(c === 'midnight');
     };
     apply();
     window.addEventListener('storage', apply);
@@ -86,213 +36,74 @@ export default function SecurityPage() {
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
+  useEffect(() => { setReady(true); }, []);
+
   const isGoogle = (session?.user as any)?.provider === 'google';
 
-  // Password change
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [pwSaving, setPwSaving] = useState(false);
-  const [pwError, setPwError] = useState('');
-  const [pwSuccess, setPwSuccess] = useState('');
-
-  const allChecksPassed = newPw.length >= 8 && /[A-Z]/.test(newPw) && /[0-9]/.test(newPw) && /[^A-Za-z0-9]/.test(newPw);
-
-  const handlePasswordChange = async () => {
-    setPwError(''); setPwSuccess('');
-    if (!currentPw || !newPw || !confirmPw) { setPwError('All fields are required'); return; }
-    if (!allChecksPassed) { setPwError('Password does not meet requirements'); return; }
-    if (newPw !== confirmPw) { setPwError('Passwords do not match'); return; }
-    if (currentPw === newPw) { setPwError('New password must differ from current'); return; }
-    setPwSaving(true);
-    try {
-      const res = await fetch('/api/user/change-password', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setPwError(data.error || 'Failed to change password'); return; }
-      setCurrentPw(''); setNewPw(''); setConfirmPw('');
-      setPwSuccess('Password updated successfully');
-    } catch { setPwError('Something went wrong'); }
-    finally { setPwSaving(false); }
-  };
-
-  // Passkey
-  const [passkeys, setPasskeys] = useState<{ id: string; name: string; createdAt: string }[]>([]);
-  const [passkeyLoading, setPasskeyLoading] = useState(false);
-  const [passkeyError, setPasskeyError] = useState('');
-  const [passkeySuccess, setPasskeySuccess] = useState('');
-  const [webAuthnSupported, setWebAuthnSupported] = useState(false);
-
-  useEffect(() => {
-    setWebAuthnSupported(
-      typeof window !== 'undefined' &&
-      !!window.PublicKeyCredential &&
-      !!navigator.credentials
-    );
-    loadPasskeys();
-  }, []);
-
-  const loadPasskeys = async () => {
-    try {
-      const res = await fetch('/api/user/passkeys');
-      const data = await res.json();
-      setPasskeys(Array.isArray(data.passkeys) ? data.passkeys : []);
-    } catch {}
-  };
-
-  const handleRegisterPasskey = async () => {
-    setPasskeyError(''); setPasskeySuccess(''); setPasskeyLoading(true);
-    try {
-      // Get registration options
-      const optRes = await fetch('/api/user/passkeys/register/options', { method: 'POST' });
-      const opts = await optRes.json();
-      if (!optRes.ok) { setPasskeyError(opts.error || 'Failed to start registration'); return; }
-
-      // Trigger browser passkey prompt
-      const credential = await startRegistration(opts);
-
-      // Verify with server
-      const verRes = await fetch('/api/user/passkeys/register/verify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential }),
-      });
-      const verData = await verRes.json();
-      if (!verRes.ok) { setPasskeyError(verData.error || 'Registration failed'); return; }
-
-      setPasskeySuccess('Passkey registered successfully');
-      await loadPasskeys();
-    } catch (e: any) {
-      if (e?.name === 'NotAllowedError') {
-        setPasskeyError('Passkey registration was cancelled');
-      } else {
-        setPasskeyError('Registration failed. Please try again.');
-      }
-    } finally { setPasskeyLoading(false); }
-  };
-
-  const handleDeletePasskey = async (id: string) => {
-    try {
-      await fetch(`/api/user/passkeys/${id}`, { method: 'DELETE' });
-      await loadPasskeys();
-    } catch {}
-  };
-
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition";
+  if (!ready) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+        style={{ borderTopColor: accentSolid }} />
+    </div>
+  );
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5 pb-10">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+    <div className="max-w-2xl mx-auto space-y-4 pb-10">
+      <div className="flex items-center gap-3 mb-4">
         <button onClick={() => router.push(`/${locale}/dashboard/settings`)}
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
           <ArrowLeft size={16} className="text-gray-600 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Security</h1>
+          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
+            style={isMidnight ? { color: '#ffffff' } : {}}>Security</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your password and passkeys</p>
         </div>
       </div>
 
-      {/* Password section */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
-          <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-            {isGoogle ? 'Account Security' : 'Change Password'}
-          </h2>
-        </div>
-        <div className="p-5 space-y-4">
-          {isGoogle ? (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
-              <ShieldCheck size={18} className="text-blue-600 dark:text-blue-400 shrink-0" />
-              <p className="text-sm text-blue-700 dark:text-blue-300">You signed in with Google. Password is managed through your Google account.</p>
+      <div className="space-y-3">
+        {/* Change Password */}
+        {!isGoogle && (
+          <button onClick={() => router.push(`/${locale}/dashboard/settings/security/change-password`)}
+            className="w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm flex items-center gap-4 px-5 py-4 hover:shadow-md transition cursor-pointer text-left group">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-500/10">
+              <Lock size={18} className="text-blue-600 dark:text-blue-400" />
             </div>
-          ) : (
-            <>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Current Password</label>
-                <PwField value={currentPw} onChange={setCurrentPw} placeholder="Enter current password" autoComplete="current-password" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">New Password</label>
-                <PwField value={newPw} onChange={setNewPw} placeholder="Create a strong password" autoComplete="new-password" />
-                <PasswordStrength password={newPw} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Confirm New Password</label>
-                <PwField value={confirmPw} onChange={setConfirmPw} placeholder="Re-enter new password" autoComplete="new-password" />
-                {confirmPw.length > 0 && newPw !== confirmPw && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
-                {confirmPw.length > 0 && newPw === confirmPw && <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1"><CheckCircle2 size={11} /> Passwords match</p>}
-              </div>
-              {pwError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{pwError}</p>}
-              {pwSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 size={13} />{pwSuccess}</p>}
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <button onClick={handlePasswordChange} disabled={pwSaving || !allChecksPassed || newPw !== confirmPw || !currentPw}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-40"
-                  style={{ background: accent }}>
-                  {pwSaving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                  {pwSaving ? 'Updating...' : 'Update Password'}
-                </button>
-                <button onClick={() => router.push(`/${locale}/dashboard/settings/forgot-password`)}
-                  className="text-xs font-semibold hover:underline cursor-pointer" style={{ color: accentSolid }}>
-                  Forgot your password?
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Passkey section */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
-          <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Passkeys</h2>
-        </div>
-        <div className="p-5 space-y-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            Passkeys use biometrics (Face ID, Touch ID, Windows Hello) or a hardware key to sign in securely without a password.
-          </p>
-
-          {!webAuthnSupported && (
-            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
-              <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-400">Your device or browser does not support passkeys. Use a modern browser like Chrome, Safari, or Edge.</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Change Password</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update your current account password</p>
             </div>
-          )}
-
-          {/* Registered passkeys */}
-          {passkeys.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Registered Passkeys</p>
-              {passkeys.map(pk => (
-                <div key={pk.id} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                  <Fingerprint size={16} className="text-gray-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{pk.name || 'Passkey'}</p>
-                    <p className="text-xs text-gray-400">{new Date(pk.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <button onClick={() => handleDeletePasskey(pk.id)}
-                    className="text-xs text-red-500 font-semibold hover:underline cursor-pointer">
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {passkeyError && <p className="text-xs text-red-500 font-medium">{passkeyError}</p>}
-          {passkeySuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 size={13} />{passkeySuccess}</p>}
-
-          <button onClick={handleRegisterPasskey} disabled={passkeyLoading || !webAuthnSupported}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-40"
-            style={{ background: accent }}>
-            {passkeyLoading ? <Loader2 size={14} className="animate-spin" /> : <Key size={14} />}
-            {passkeyLoading ? 'Registering...' : 'Register a Passkey'}
+            <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </button>
-        </div>
+        )}
+
+        {/* Passkey */}
+        <button onClick={() => router.push(`/${locale}/dashboard/settings/security/passkey`)}
+          className="w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm flex items-center gap-4 px-5 py-4 hover:shadow-md transition cursor-pointer text-left group">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 dark:bg-emerald-500/10">
+            <Fingerprint size={18} className="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900 dark:text-white">Passkey</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sign in with biometrics or hardware key</p>
+          </div>
+          <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+        </button>
+
+        {/* Forgot Password */}
+        {!isGoogle && (
+          <button onClick={() => router.push(`/${locale}/dashboard/settings/forgot-password`)}
+            className="w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm flex items-center gap-4 px-5 py-4 hover:shadow-md transition cursor-pointer text-left group">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 dark:bg-amber-500/10">
+              <Lock size={18} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Forgot Password</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Reset your password via email verification</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </button>
+        )}
       </div>
     </div>
   );

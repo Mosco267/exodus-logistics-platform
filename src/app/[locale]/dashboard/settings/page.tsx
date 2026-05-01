@@ -3,19 +3,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import {
-  Lock, Bell, Shield, Trash2, ChevronRight, Key,
-} from 'lucide-react';
+import { Lock, Bell, Shield, Trash2, ChevronRight } from 'lucide-react';
 
 export default function SettingsMenuPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
-  const { data: session } = useSession();
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+  const [isMidnight, setIsMidnight] = useState(false);
 
   useEffect(() => {
     const map: Record<string, { g: string; s: string }> = {
@@ -28,6 +25,7 @@ export default function SettingsMenuPage() {
     const apply = () => {
       const c = localStorage.getItem('exodus_theme_cache');
       if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
+      setIsMidnight(c === 'midnight');
     };
     apply();
     window.addEventListener('storage', apply);
@@ -35,14 +33,12 @@ export default function SettingsMenuPage() {
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
-  const isGoogle = (session?.user as any)?.provider === 'google';
-
   const items = [
     {
       href: `/${locale}/dashboard/settings/security`,
       icon: <Lock size={18} />,
       title: 'Security',
-      desc: isGoogle ? 'Manage passkeys and account security' : 'Password, passkeys and account security',
+      desc: 'Password, passkeys and account security',
       iconBg: 'bg-blue-50 dark:bg-blue-500/10',
       iconColor: 'text-blue-600 dark:text-blue-400',
     },
@@ -74,13 +70,12 @@ export default function SettingsMenuPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-3 pb-10">
-      {/* Header */}
       <div className="mb-4">
-        <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Settings</h1>
+        <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
+          style={isMidnight ? { color: '#ffffff' } : {}}>Settings</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your account preferences and security</p>
       </div>
 
-      {/* Menu items */}
       {items.map(item => (
         <button key={item.href} onClick={() => router.push(item.href)}
           className="w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm flex items-center gap-4 px-5 py-4 hover:shadow-md transition cursor-pointer text-left group">

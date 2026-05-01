@@ -1,13 +1,15 @@
+// src/app/[locale]/sign-in/page.tsx
 'use client';
 
 import { useEffect, useRef, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertCircle, Shield, Globe, Package, Zap } from 'lucide-react';
+import { Loader2, AlertCircle, Shield, Globe, Package, Zap, Mail, ArrowLeft, Eye, EyeOff, Fingerprint } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { startAuthentication } from '@simplewebauthn/browser';
 
 const REMEMBER_ENABLED_KEY = 'exodus_remember_enabled';
 const REMEMBER_EMAIL_KEY = 'exodus_remember_email';
@@ -27,566 +29,597 @@ const features = [
   { icon: Zap, title: 'Instant Invoicing', desc: 'Automated billing and receipts' },
 ];
 
+// ─── Step types ────────────────────────────────────────────────
+type Step = 'choose' | 'email' | 'auth';
+type AuthMethod = 'password' | 'passkey' | null;
+
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
 
+  // ─── Nav ───────────────────────────────────────────────────
+  const [navOpen, setNavOpen] = useState(false);
+  const navItems = [
+    { name: 'Home', href: `/${locale}` },
+    { name: 'About', href: `/${locale}/about` },
+    { name: 'Services', href: `/${locale}/services` },
+    { name: 'Contact', href: `/${locale}/contact` },
+    { name: 'Get Started', href: `/${locale}/sign-up` },
+  ];
 
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  // ─── Flow state ────────────────────────────────────────────
+  const [step, setStep] = useState<Step>('choose');
+  const [email, setEmail] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
+  const [emailError, setEmailError] = useState('');
 
-  const [passwordFocused, setPasswordFocused] = useState(false);
-const [showPassword, setShowPassword] = useState(false);
-const [pwLength, setPwLength] = useState(0);
+  // Auth step
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(null);
+  const [hasPasskey, setHasPasskey] = useState(false);
+  const [checkingPasskey, setCheckingPasskey] = useState(false);
+
+  // Password
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [pwError, setPwError] = useState('');
+
+  // General
+  const [generalError, setGeneralError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [hasPassword, setHasPassword] = useState(false);
-  const [passwordLength, setPasswordLength] = useState(0);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [navOpen, setNavOpen] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
 
-const navItems = [
-  { name: 'Home', href: `/${locale}` },
-  { name: 'About', href: `/${locale}/about` },
-  { name: 'Services', href: `/${locale}/services` },
-  { name: 'Contact', href: `/${locale}/contact` },
-  { name: 'Get Started', href: `/${locale}/sign-up` },
-];
-  const [errors, setErrors] = useState({ email: '', password: '', general: '' });
-
+  // ─── Load remembered email ─────────────────────────────────
   useEffect(() => {
     try {
       const enabled = localStorage.getItem(REMEMBER_ENABLED_KEY);
       const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
       setRememberMe(enabled === null ? true : enabled === '1');
-      if (enabled && savedEmail && emailRef.current) emailRef.current.value = savedEmail;
+      if (savedEmail) setEmail(savedEmail);
     } catch {}
-     
   }, []);
 
-  const toggleShowPassword = () => setShowPassword(v => !v);
+  // ─── Helpers ───────────────────────────────────────────────
+  const inputCls = (hasError: boolean) =>
+    `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
+      hasError
+        ? 'border-red-400 focus:ring-red-400/20 bg-red-50/30'
+        : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
+    }`;
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const rawEmail = (emailRef.current?.value || '').trim().toLowerCase();
-    const rawPassword = passwordRef.current?.dataset.real || passwordRef.current?.value || '';
+  const navigate = async () => {
+    setIsNavigating(true);
+    const sessionRes = await fetch('/api/auth/session');
+    const session = await sessionRes.json();
+    if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
+      window.location.href = `/${locale}/dashboard/admin/users`;
+    } else {
+      window.location.href = `/${locale}/dashboard`;
+    }
+  };
 
-    const newErrors = { email: '', password: '', general: '' };
-    if (!rawEmail) newErrors.email = 'Email address is required.';
-    else if (!/^\S+@\S+\.\S+$/.test(rawEmail)) newErrors.email = 'Please enter a valid email address.';
-    if (!rawPassword) newErrors.password = 'Password is required.';
-    setErrors(newErrors);
-    if (newErrors.email || newErrors.password) return;
+  // ─── Step 1: Email next ────────────────────────────────────
+  const handleEmailNext = async () => {
+    setEmailError('');
+    if (!email.trim()) { setEmailError('Email address is required.'); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setEmailError('Please enter a valid email address.'); return; }
 
     try {
       if (rememberMe) {
         localStorage.setItem(REMEMBER_ENABLED_KEY, '1');
-        localStorage.setItem(REMEMBER_EMAIL_KEY, rawEmail);
+        localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim().toLowerCase());
       } else {
         localStorage.removeItem(REMEMBER_ENABLED_KEY);
         localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     } catch {}
 
+    // Check if this account has a passkey
+    setCheckingPasskey(true);
+    try {
+      const res = await fetch('/api/auth/check-passkey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      setHasPasskey(!!data.hasPasskey);
+    } catch {
+      setHasPasskey(false);
+    } finally {
+      setCheckingPasskey(false);
+    }
+
+    setStep('auth');
+  };
+
+  // ─── Step 2: Password sign in ──────────────────────────────
+  const handlePasswordSignIn = async () => {
+    setPwError(''); setGeneralError('');
+    if (!password) { setPwError('Password is required.'); return; }
+
     setIsSubmitting(true);
     try {
-      const res = await signIn('credentials', { email: rawEmail, password: rawPassword, redirect: false });
+      const res = await signIn('credentials', {
+        email: email.trim().toLowerCase(),
+        password,
+        redirect: false,
+      });
+
       if (!res || res.error) {
-  const errorMsg = res?.error === 'suspended' || res?.error?.toLowerCase().includes('suspended')
-  ? 'Your account has been suspended. Please contact support@goexoduslogistics.com.'
-  : 'Invalid email or password. Please try again.';
-  setErrors({ email: '', password: '', general: errorMsg });
-  setIsSubmitting(false);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  return;
-}
-     setIsNavigating(true);
-// Get session to check role
-const sessionRes = await fetch('/api/auth/session');
-const session = await sessionRes.json();
-if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
-  window.location.href = `/${locale}/dashboard/admin/users`;
-} else {
-  window.location.href = `/${locale}/dashboard`;
-}
+        const msg = res?.error === 'suspended' || res?.error?.toLowerCase().includes('suspended')
+          ? 'Your account has been suspended. Please contact support@goexoduslogistics.com.'
+          : 'Invalid email or password. Please try again.';
+        setGeneralError(msg);
+        return;
+      }
+
+      await navigate();
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // ─── Step 2: Passkey sign in ───────────────────────────────
+  const handlePasskeySignIn = async () => {
+    setGeneralError(''); setPasskeyLoading(true);
+    try {
+      // Get options for this email
+      const optRes = await fetch('/api/auth/passkey/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const opts = await optRes.json();
+      if (!optRes.ok) { setGeneralError(opts.error || 'Failed to start passkey authentication'); return; }
+
+      // Browser prompts (Face ID / Touch ID / QR on other device)
+      const credential = await startAuthentication(opts);
+
+      // Verify with server
+      const verRes = await fetch('/api/auth/passkey/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), credential }),
+      });
+      const verData = await verRes.json();
+      if (!verRes.ok) { setGeneralError(verData.error || 'Passkey authentication failed'); return; }
+
+      // Sign in the session
+      const res = await signIn('credentials', {
+        email: email.trim().toLowerCase(),
+        passkeyToken: verData.token,
+        redirect: false,
+      });
+
+      if (!res || res.error) {
+        setGeneralError('Sign in failed after passkey verification. Please try password instead.');
+        return;
+      }
+
+      await navigate();
+    } catch (e: any) {
+      if (e?.name === 'NotAllowedError') {
+        setGeneralError('Passkey authentication was cancelled.');
+      } else {
+        setGeneralError('Passkey authentication failed. Please try your password instead.');
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
-  setGoogleLoading(true);
-  try {
-    await signIn('google', { callbackUrl: `/${locale}/auth/google-redirect` });
-  } catch {
-    setGoogleLoading(false);
-  }
-};
+    setGoogleLoading(true);
+    try {
+      await signIn('google', { callbackUrl: `/${locale}/auth/google-redirect` });
+    } catch {
+      setGoogleLoading(false);
+    }
+  };
 
- const inputCls = (hasError: boolean) =>
-  `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
-      hasError
-        ? 'border-red-400 focus:ring-red-400/20 bg-red-50/30'
-        : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
-    }`;
-
-  return (
-    <>
-      <style>{`
-        @media (min-width: 1024px) {
-          header, nav[role="navigation"] { display: none !important; }
-        }
-      `}</style>
-      <div className="min-h-screen flex">
-
-      {/* ── LEFT PANEL ── */}
-      <div
-        className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-between p-12 xl:p-16 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}
-      >
-        {/* Background decorations */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Large orange orb top-right */}
-          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%)' }} />
-          {/* Cyan orb bottom-left */}
-          <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.3) 0%, transparent 70%)' }} />
-          {/* Subtle grid */}
-          <svg className="absolute inset-0 w-full h-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-                <path d="M 48 0 L 0 0 0 48" fill="none" stroke="white" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          {/* Floating circles */}
-          <div className="absolute top-1/3 right-8 w-2 h-2 rounded-full bg-orange-400 opacity-60" />
-          <div className="absolute top-1/2 right-24 w-1.5 h-1.5 rounded-full bg-cyan-300 opacity-50" />
-          <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
-        </div>
-
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10"
-        >
-          <Link href={`/${locale}`}>
-            <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
-          </Link>
-        </motion.div>
-
-        {/* Center content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="relative z-10 space-y-8"
-        >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
-            <Shield className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Secure Platform</span>
-          </div>
-
-          {/* Headline */}
-          <div>
-            <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-              Your shipments.<br />
-              <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Tracked perfectly.
-              </span>
-            </h2>
-            <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-              Manage international and domestic shipments, invoices, and real-time tracking — all in one place.
-            </p>
-          </div>
-
-          {/* Feature pills */}
-          <div className="space-y-3">
-            {features.map(({ icon: Icon, title, desc }, i) => (
-              <motion.div
-                key={title}
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 + i * 0.1 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm"
-              >
-                <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{title}</p>
-                  <p className="text-xs text-white/50">{desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            {[
-              { value: '50K+', label: 'Shipments' },
-              { value: '120+', label: 'Countries' },
-              { value: '99.9%', label: 'Uptime' },
-            ].map(({ value, label }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.6 + i * 0.08 }}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm"
-              >
-                <p className="text-2xl font-extrabold text-white">{value}</p>
-                <p className="text-[11px] text-white/50 mt-0.5 font-semibold tracking-wide">{label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Footer */}
-        <div className="relative z-10">
-          <p className="text-xs text-white/30">
-            © {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.
-          </p>
-        </div>
+  // ─── Left panel (shared) ───────────────────────────────────
+  const LeftPanel = () => (
+    <div
+      className="hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col justify-between p-12 xl:p-16 overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0891b2 100%)' }}
+    >
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.3) 0%, transparent 70%)' }} />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
+          <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="white" strokeWidth="1"/></pattern></defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+        <div className="absolute top-1/3 right-8 w-2 h-2 rounded-full bg-orange-400 opacity-60" />
+        <div className="absolute top-1/2 right-24 w-1.5 h-1.5 rounded-full bg-cyan-300 opacity-50" />
+        <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
       </div>
 
-      {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 relative overflow-hidden"
-  style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10">
+        <Link href={`/${locale}`}>
+          <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
+        </Link>
+      </motion.div>
 
-      {/* Desktop nav menu icon — top right */}
-<div className="hidden lg:block absolute top-6 right-6 z-20">
-  <button
-    onClick={() => setNavOpen(v => !v)}
-    className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
-    style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-  </button>
-</div>
-
-{/* Sidebar overlay */}
-<AnimatePresence>
-  {navOpen && (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="hidden lg:block fixed inset-0 bg-black/30 z-40"
-        onClick={() => setNavOpen(false)}
-      />
-      {/* Sidebar panel */}
-      <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ duration: 0.28, ease: 'easeInOut' }}
-        className="hidden lg:flex fixed top-0 right-0 h-full w-72 z-50 flex-col shadow-2xl"
-        style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-        
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between px-6 py-6 border-b border-white/20">
-          <Link href={`/${locale}`} onClick={() => setNavOpen(false)}>
-            <Image src="/logo.svg" alt="Exodus Logistics" width={140} height={42} className="h-9 w-auto" />
-          </Link>
-          <button onClick={() => setNavOpen(false)}
-            className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-all duration-200 text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative z-10 space-y-8">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
+          <Shield className="w-3.5 h-3.5 text-orange-400" />
+          <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Secure Platform</span>
         </div>
-
-        {/* Nav links */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-          {navItems.map((item, i) => (
-            <motion.div
-              key={item.name}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.05 }}>
-              <Link href={item.href} onClick={() => setNavOpen(false)}
-                className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-                  item.name === 'Get Started'
-                    ? 'bg-orange-500 text-white hover:bg-orange-600 mt-4'
-                    : 'text-white/80 hover:text-white hover:bg-white/15'
-                }`}>
-                {item.name}
-              </Link>
+        <div>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
+            Your shipments.<br />
+            <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Tracked perfectly.
+            </span>
+          </h2>
+          <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
+            Manage international and domestic shipments, invoices, and real-time tracking — all in one place.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {features.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div key={title}
+              initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 + i * 0.1 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">{title}</p>
+                <p className="text-xs text-white/50">{desc}</p>
+              </div>
             </motion.div>
           ))}
         </div>
-
-        {/* Sidebar footer */}
-        <div className="px-6 py-5 border-t border-white/20">
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} Exodus Logistics Ltd.</p>
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          {[{ value: '50K+', label: 'Shipments' }, { value: '120+', label: 'Countries' }, { value: '99.9%', label: 'Uptime' }].map(({ value, label }, i) => (
+            <motion.div key={label}
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.6 + i * 0.08 }}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm">
+              <p className="text-2xl font-extrabold text-white">{value}</p>
+              <p className="text-[11px] text-white/50 mt-0.5 font-semibold tracking-wide">{label}</p>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
-    </>
-  )}
-</AnimatePresence>
 
-        {/* Subtle background shape */}
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
-
-        
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.05 }}
-          className="w-full max-w-[420px] relative z-10"
-        >
-          {/* Card */}
-          <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/8 border border-gray-100/80 p-8 sm:p-10">
-
-            {/* Heading */}
-            <div className="mb-7">
-              <div className="w-12 h-12 rounded-2xl mb-5 flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Welcome back</h1>
-              <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">
-                Sign in to your Exodus Logistics account
-              </p>
-            </div>
-
-            {/* Error banner */}
-            <AnimatePresence>
-              {errors.general && (
-                <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-  <AlertCircle className="w-4 h-4 shrink-0" />{errors.general}
-</div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={handleSignIn} noValidate className="space-y-5">
-
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Email address
-                </label>
-                <input ref={emailRef} id="email" name="email" type="email" autoComplete="email"
-  placeholder="Email Address"
-  onChange={() => setErrors(p => ({ ...p, email: '', general: '' }))}
-  style={{ fontSize: '16px' }}
-  className={inputCls(!!errors.email)} />
-                <AnimatePresence>
-                  {errors.email && (
-                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />{errors.email}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
-
-             {/* Password */}
-<div>
-  <div className="flex items-center justify-between mb-1.5">
-    <label className="block text-sm font-semibold text-gray-700">Password</label>
-    <button type="button" onClick={() => router.push(`/${locale}/forgot-password`)}
-      className="cursor-pointer text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
-      Forgot password?
-    </button>
-  </div>
-  <div style={{
-    position: 'relative', height: '48px', borderRadius: '12px',
-    backgroundColor: '#ffffff', overflow: 'hidden',
-    border: errors.password ? '1px solid #f87171' : passwordFocused ? '1px solid #3b82f6' : '1px solid #e5e7eb',
-    boxShadow: passwordFocused && !errors.password ? '0 0 0 2px rgba(59,130,246,0.15)' : 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  }}>
-    {!showPassword ? (
-      <input
-        ref={passwordRef}
-        name="password"
-        type="text"
-        inputMode="text"
-        autoComplete="current-password"
-        placeholder="Enter your password"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        onFocus={() => setPasswordFocused(true)}
-        onBlur={() => setPasswordFocused(false)}
-        onChange={e => {
-          const added = e.target.value.length - pwLength;
-          let real = passwordRef.current?.dataset.real || '';
-          real = added > 0 ? real + e.target.value.slice(pwLength) : real.slice(0, e.target.value.length);
-          passwordRef.current!.dataset.real = real;
-          e.target.value = '•'.repeat(e.target.value.length);
-          setPwLength(e.target.value.length);
-          setErrors(p => ({ ...p, password: '', general: '' }));
-        }}
-        style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
-          paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
-          fontSize: '16px', backgroundColor: '#ffffff',
-          color: pwLength > 0 ? '#111827' : '#9ca3af',
-          WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
-          caretColor: '#3b82f6', outline: 'none',
-          WebkitAppearance: 'none' as any, appearance: 'none' as any,
-          boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
-          letterSpacing: pwLength > 0 ? '0.2em' : 'normal',
-        }}
-      />
-    ) : (
-      <input
-        ref={passwordRef}
-        name="password"
-        type="text"
-        autoComplete="current-password"
-        placeholder="Enter your password"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        onFocus={() => setPasswordFocused(true)}
-        onBlur={() => setPasswordFocused(false)}
-        onChange={e => {
-          const val = e.target.value;
-          if (passwordRef.current) passwordRef.current.dataset.real = val;
-          setPwLength(val.length);
-          setErrors(p => ({ ...p, password: '', general: '' }));
-        }}
-        style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '48px',
-          paddingLeft: '16px', paddingRight: '44px', borderRadius: '12px', border: 'none',
-          fontSize: '16px', backgroundColor: '#ffffff',
-color: pwLength > 0 ? '#111827' : '#9ca3af',
-WebkitTextFillColor: pwLength > 0 ? '#111827' : '#9ca3af',
-          caretColor: '#1d4ed8', outline: 'none',
-          WebkitAppearance: 'none' as any, appearance: 'none' as any,
-          boxSizing: 'border-box' as const, zIndex: 2, fontFamily: 'inherit',
-        }}
-      />
-    )}
-    <button
-      type="button"
-      tabIndex={-1}
-      onClick={() => {
-        const real = passwordRef.current?.dataset.real || '';
-        setShowPassword(prev => {
-          const next = !prev;
-          setTimeout(() => {
-            if (passwordRef.current) {
-              passwordRef.current.value = next ? real : '•'.repeat(real.length);
-              passwordRef.current.dataset.real = real;
-              setPwLength(real.length);
-              passwordRef.current.focus();
-            }
-          }, 10);
-          return next;
-        });
-      }}
-      style={{
-        position: 'absolute', right: '12px', top: '50%',
-        transform: 'translateY(-50%)',
-        background: 'none', border: 'none',
-        cursor: 'pointer', padding: '4px',
-        color: '#9ca3af', zIndex: 4,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-      {showPassword
-        ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-        : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      }
-    </button>
-  </div>
-  <AnimatePresence>
-    {errors.password && (
-      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-        className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-        <AlertCircle className="w-3 h-3" />{errors.password}
-      </motion.p>
-    )}
-  </AnimatePresence>
-</div>
-
-              {/* Remember me */}
-              <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
-                <div className="relative">
-                  <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
-                    className="sr-only" />
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${rememberMe ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-white group-hover:border-blue-400'}`}>
-                    {rememberMe && (
-                      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm text-gray-600 group-hover:text-gray-800 transition">Remember me</span>
-              </label>
-
-              {/* Submit */}
-              <button type="submit" disabled={isSubmitting || googleLoading || isNavigating}
-                className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-                {isNavigating
-  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Taking you in…</span></>
-  : isSubmitting
-  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Signing in…</span></>
-  : <span>Sign In</span>}
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="h-px bg-gray-100 flex-1" />
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">or</span>
-              <div className="h-px bg-gray-100 flex-1" />
-            </div>
-
-            {/* Google */}
-            <button type="button" onClick={handleGoogleSignIn} disabled={googleLoading || isSubmitting}
-              className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200 disabled:opacity-60">
-              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
-              Continue with Google
-            </button>
-
-            {/* Sign up */}
-            <p className="mt-6 text-center text-sm text-gray-500">
-              Don&apos;t have an account?{' '}
-              <Link href={`/${locale}/sign-up`}
-                className="font-bold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
-                Create account
-              </Link>
-            </p>
-
-          </div>
-
-          {/* Trust badges below card */}
-          <div className="mt-6 flex items-center justify-center gap-6">
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-              <Shield className="w-3.5 h-3.5 text-green-500" />
-              SSL Secured
-            </div>
-            <div className="w-px h-3 bg-gray-200" />
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              99.9% Uptime
-            </div>
-            <div className="w-px h-3 bg-gray-200" />
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-              <Globe className="w-3.5 h-3.5 text-blue-400" />
-              120+ Countries
-            </div>
-          </div>
-        </motion.div>
+      <div className="relative z-10">
+        <p className="text-xs text-white/30">©️ {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <style>{`@media (min-width: 1024px) { header, nav[role="navigation"] { display: none !important; } }`}</style>
+      <div className="min-h-screen flex">
+
+        <LeftPanel />
+
+        {/* ── RIGHT PANEL ── */}
+        <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+
+          {/* Desktop nav */}
+          <div className="hidden lg:block absolute top-6 right-6 z-20">
+            <button onClick={() => setNavOpen(v => !v)} className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {navOpen && (
+              <>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                  className="hidden lg:block fixed inset-0 bg-black/30 z-40" onClick={() => setNavOpen(false)} />
+                <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ duration: 0.28, ease: 'easeInOut' }}
+                  className="hidden lg:flex fixed top-0 right-0 h-full w-72 z-50 flex-col shadow-2xl"
+                  style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+                  <div className="flex items-center justify-between px-6 py-6 border-b border-white/20">
+                    <Link href={`/${locale}`} onClick={() => setNavOpen(false)}>
+                      <Image src="/logo.svg" alt="Exodus Logistics" width={140} height={42} className="h-9 w-auto" />
+                    </Link>
+                    <button onClick={() => setNavOpen(false)} className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition text-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
+                    {navItems.map((item, i) => (
+                      <motion.div key={item.name} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2, delay: i * 0.05 }}>
+                        <Link href={item.href} onClick={() => setNavOpen(false)}
+                          className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 ${item.name === 'Get Started' ? 'bg-orange-500 text-white hover:bg-orange-600 mt-4' : 'text-white/80 hover:text-white hover:bg-white/15'}`}>
+                          {item.name}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div className="px-6 py-5 border-t border-white/20">
+                    <p className="text-xs text-white/40">©️ {new Date().getFullYear()} Exodus Logistics Ltd.</p>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.04) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+          <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.05 }}
+            className="w-full max-w-[420px] relative z-10"
+          >
+            <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/8 border border-gray-100/80 p-8 sm:p-10">
+
+              {/* ── STEP: CHOOSE ── */}
+              {step === 'choose' && (
+                <AnimatePresence mode="wait">
+                  <motion.div key="choose" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
+                    <div className="mb-7">
+                      <div className="w-12 h-12 rounded-2xl mb-5 flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
+                        <Shield className="w-6 h-6 text-white" />
+                      </div>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Welcome back</h1>
+                      <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">Sign in to your Exodus Logistics account</p>
+                    </div>
+
+                    {generalError && (
+                      <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                        <AlertCircle className="w-4 h-4 shrink-0" />{generalError}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {/* Continue with Email */}
+                      <button type="button" onClick={() => { setGeneralError(''); setStep('email'); }}
+                        className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
+                        style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+                        <Mail className="w-5 h-5" />
+                        Continue with Email
+                      </button>
+
+                      {/* Divider */}
+                      <div className="flex items-center gap-3 py-1">
+                        <div className="h-px bg-gray-100 flex-1" />
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">or</span>
+                        <div className="h-px bg-gray-100 flex-1" />
+                      </div>
+
+                      {/* Continue with Google */}
+                      <button type="button" onClick={handleGoogleSignIn} disabled={googleLoading}
+                        className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200 disabled:opacity-60">
+                        {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
+                        Continue with Google
+                      </button>
+                    </div>
+
+                    <p className="mt-6 text-center text-sm text-gray-500">
+                      Don&apos;t have an account?{' '}
+                      <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
+                        Create account
+                      </Link>
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              )}
+
+              {/* ── STEP: EMAIL ── */}
+              {step === 'email' && (
+                <AnimatePresence mode="wait">
+                  <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
+                    {/* Back */}
+                    <button onClick={() => { setStep('choose'); setEmailError(''); setGeneralError(''); }}
+                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 cursor-pointer mb-6 transition">
+                      <ArrowLeft size={14} /> Back
+                    </button>
+
+                    <div className="mb-6">
+                      <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
+                        <Mail className="w-6 h-6 text-white" />
+                      </div>
+                      <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Enter your email</h1>
+                      <p className="mt-1 text-sm text-gray-500">We'll check if you have an account</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={e => { setEmail(e.target.value); setEmailError(''); }}
+                          onKeyDown={e => { if (e.key === 'Enter') handleEmailNext(); }}
+                          placeholder="your@email.com"
+                          autoComplete="email"
+                          autoFocus
+                          style={{ fontSize: '16px' }}
+                          className={inputCls(!!emailError)}
+                        />
+                        {emailError && (
+                          <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />{emailError}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Remember me */}
+                      <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
+                        <div className="relative">
+                          <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="sr-only" />
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${rememberMe ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-white group-hover:border-blue-400'}`}>
+                            {rememberMe && (
+                              <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
+                                <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-600 group-hover:text-gray-800 transition">Remember me</span>
+                      </label>
+
+                      <div className="text-right -mt-1">
+                        <Link href={`/${locale}/forgot-password`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
+                          Forgot password?
+                        </Link>
+                      </div>
+
+                      <button type="button" onClick={handleEmailNext} disabled={checkingPasskey || !email}
+                        className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[.98] disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+                        {checkingPasskey ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking…</> : 'Next'}
+                      </button>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              )}
+
+              {/* ── STEP: AUTH ── */}
+              {step === 'auth' && (
+                <AnimatePresence mode="wait">
+                  <motion.div key="auth" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
+                    {/* Back */}
+                    <button onClick={() => { setStep('email'); setGeneralError(''); setPwError(''); setPassword(''); setAuthMethod(null); }}
+                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 cursor-pointer mb-6 transition">
+                      <ArrowLeft size={14} /> Back
+                    </button>
+
+                    <div className="mb-6">
+                      <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
+                        <Shield className="w-6 h-6 text-white" />
+                      </div>
+                      <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Sign in</h1>
+                      <p className="mt-1 text-sm text-gray-500 truncate">{email}</p>
+                    </div>
+
+                    {generalError && (
+                      <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                        <AlertCircle className="w-4 h-4 shrink-0" />{generalError}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {/* If user has passkey and hasn't chosen yet */}
+                      {hasPasskey && !authMethod && (
+                        <>
+                          <button type="button" onClick={() => { setAuthMethod('passkey'); handlePasskeySignIn(); }}
+                            disabled={passkeyLoading}
+                            className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98] disabled:opacity-60"
+                            style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+                            {passkeyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-5 h-5" />}
+                            {passkeyLoading ? 'Authenticating…' : 'Use Passkey'}
+                          </button>
+
+                          <div className="flex items-center gap-3">
+                            <div className="h-px bg-gray-100 flex-1" />
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">or</span>
+                            <div className="h-px bg-gray-100 flex-1" />
+                          </div>
+
+                          <button type="button" onClick={() => setAuthMethod('password')}
+                            className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200">
+                            Use Password instead
+                          </button>
+                        </>
+                      )}
+
+                      {/* Password form — show if no passkey OR user chose password */}
+                      {(!hasPasskey || authMethod === 'password') && (
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-sm font-semibold text-gray-700">Password</label>
+                              <Link href={`/${locale}/forgot-password`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
+                                Forgot password?
+                              </Link>
+                            </div>
+                            {/* Simple password input — works perfectly on mobile */}
+                            <div className="relative">
+                              <input
+                                type={showPw ? 'text' : 'password'}
+                                value={password}
+                                onChange={e => { setPassword(e.target.value); setPwError(''); setGeneralError(''); }}
+                                onKeyDown={e => { if (e.key === 'Enter') handlePasswordSignIn(); }}
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                autoFocus
+                                style={{ fontSize: '16px' }}
+                                className={`w-full h-12 px-4 pr-11 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${pwError ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'}`}
+                              />
+                              <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-1 transition"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {showPw
+                                  ? <EyeOff size={16} />
+                                  : <Eye size={16} />
+                                }
+                              </button>
+                            </div>
+                            {pwError && (
+                              <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />{pwError}
+                              </p>
+                            )}
+                          </div>
+
+                          <button type="button" onClick={handlePasswordSignIn} disabled={isSubmitting || isNavigating || !password}
+                            className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[.98] disabled:opacity-60"
+                            style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+                            {isNavigating
+                              ? <><Loader2 className="w-4 h-4 animate-spin" /> Taking you in…</>
+                              : isSubmitting
+                              ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</>
+                              : 'Sign In'
+                            }
+                          </button>
+
+                          {/* Option to go back to passkey if they have one */}
+                          {hasPasskey && authMethod === 'password' && (
+                            <button type="button" onClick={() => { setAuthMethod(null); setPassword(''); setPwError(''); setGeneralError(''); }}
+                              className="w-full text-center text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
+                              Use passkey instead
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              )}
+
+            </div>
+
+            {/* Trust badges */}
+            <div className="mt-6 flex items-center justify-center gap-6">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                <Shield className="w-3.5 h-3.5 text-green-500" />SSL Secured
+              </div>
+              <div className="w-px h-3 bg-gray-200" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />99.9% Uptime
+              </div>
+              <div className="w-px h-3 bg-gray-200" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                <Globe className="w-3.5 h-3.5 text-blue-400" />120+ Countries
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
     </>
   );
 }

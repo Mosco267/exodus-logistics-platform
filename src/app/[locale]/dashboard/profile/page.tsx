@@ -735,14 +735,16 @@ const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
 
   return (
     <div className="relative flex-1">
-      {fixedPrefix && (
-        <span
-  className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
-  style={{ left: '16px', lineHeight: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center' }}>
-  {fixedPrefix}
-</span>
-      )}
-      <input
+  {fixedPrefix && (
+    <div
+      className="absolute inset-y-0 left-0 flex items-center pointer-events-none select-none z-10"
+      style={{ paddingLeft: '16px' }}>
+      <span className="text-sm font-medium text-gray-900 dark:text-white">
+        {fixedPrefix}
+      </span>
+    </div>
+  )}
+  <input
         value={formatted}
         onChange={e => {
           // Strip all non-digits from what user typed
@@ -1287,7 +1289,7 @@ setProfile(p => ({ ...p, email: newEmail }));
             </p>
             <div className="flex gap-2.5 pt-1">
               <button
-                onClick={() => { setEditingEmail(false); setEmailStep('input'); setEmailError(''); }}
+               onClick={() => router.push(`/${locale}/dashboard/profile/change-email`)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
                 Cancel
               </button>

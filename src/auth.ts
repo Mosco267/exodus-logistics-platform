@@ -22,42 +22,56 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
+  email: { label: "Email", type: "email" },
+  password: { label: "Password", type: "password" },
+  passkeyToken: { label: "Passkey Token", type: "text" },
+},
       async authorize(credentials) {
-        const email = String(credentials?.email || "").toLowerCase().trim();
-        const password = String(credentials?.password || "");
+  const email = String(credentials?.email || "").toLowerCase().trim();
+  const password = String(credentials?.password || "");
+  const passkeyToken = String((credentials as any)?.passkeyToken || "");
 
-        if (!email || !password) return null;
+  if (!email || (!password && !passkeyToken)) return null;
 
-        const client = await clientPromise;
-        const db = client.db(process.env.MONGODB_DB);
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB);
 
-        const user = await db.collection("users").findOne({ email });
-        if (!user) return null;
+  const user = await db.collection("users").findOne({ email });
+  if (!user) return null;
 
-      // Block deleted/banned users
-if ((user as any).deleted === true) return null;
-if ((user as any).isDeleted === true) return null;
+  // Block deleted/banned users
+  if ((user as any).deleted === true) return null;
+  if ((user as any).isDeleted === true) return null;
 
-// Check blocked_emails collection
-const blocked = await db.collection("blocked_emails").findOne({ email });
-if (blocked) throw new Error('suspended');
+  // Check blocked_emails collection
+  const blocked = await db.collection("blocked_emails").findOne({ email });
+  if (blocked) throw new Error('suspended');
 
-        const hash = String((user as any).passwordHash || (user as any).password || "");
-        const ok = await bcrypt.compare(password, hash);
-        if (!ok) return null;
+  if (passkeyToken) {
+    // Passkey token sign-in
+    const tokenDoc = await db.collection('passkey_tokens').findOne({
+      email,
+      token: passkeyToken,
+      expires: { $gt: new Date() },
+    });
+    if (!tokenDoc) return null;
+    await db.collection('passkey_tokens').deleteOne({ _id: tokenDoc._id });
+  } else {
+    // Password sign-in
+    const hash = String((user as any).passwordHash || (user as any).password || "");
+    const ok = await bcrypt.compare(password, hash);
+    if (!ok) return null;
+  }
 
-        return {
-  id: String(user._id),
-  name: String(user.name || ""),
-  email: String(user.email || ""),
-  role: String(user.role || "USER"),
-  createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
-  isNewAccount: !user.hasVisitedDashboard,
-} as any;
-      },
+  return {
+    id: String(user._id),
+    name: String(user.name || ""),
+    email: String(user.email || ""),
+    role: String(user.role || "USER"),
+    createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+    isNewAccount: !user.hasVisitedDashboard,
+  } as any;
+},
     }),
   ],
 

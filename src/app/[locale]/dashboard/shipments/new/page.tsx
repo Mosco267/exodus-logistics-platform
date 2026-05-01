@@ -745,11 +745,13 @@ const displayLocal = applyPhonePattern(local, dynamicPattern);
         />
         <div className="relative flex-1">
   {fixedPrefix && (
-    <span
-  className="absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900 dark:text-white pointer-events-none select-none z-10"
-  style={{ left: '16px', lineHeight: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center' }}>
-      {fixedPrefix}
-    </span>
+    <div
+      className="absolute inset-y-0 left-0 flex items-center pointer-events-none select-none z-10"
+      style={{ paddingLeft: '16px' }}>
+      <span className="text-sm font-medium text-gray-900 dark:text-white">
+        {fixedPrefix}
+      </span>
+    </div>
   )}
   <input
     value={displayLocal}

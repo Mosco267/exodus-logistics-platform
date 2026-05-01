@@ -3,13 +3,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Shield, Mail, Smartphone, CheckCircle2, Loader2, Eye, EyeOff, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft, Shield, Mail, Smartphone, CheckCircle2,
+  Loader2, Eye, EyeOff, ChevronRight, X,
+} from 'lucide-react';
 
 type TwoFaStatus = { emailEnabled: boolean; appEnabled: boolean };
 
-// Password confirmation modal
 function PasswordModal({ accent, onConfirm, onClose }: {
-  accent: string; onConfirm: (pw: string) => void; onClose: () => void;
+  accent: string; onConfirm: () => void; onClose: () => void;
 }) {
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -26,7 +28,7 @@ function PasswordModal({ accent, onConfirm, onClose }: {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Incorrect password'); setLoading(false); return; }
-      onConfirm(pw);
+      onConfirm();
     } catch { setError('Something went wrong'); setLoading(false); }
   };
 
@@ -36,17 +38,32 @@ function PasswordModal({ accent, onConfirm, onClose }: {
       <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
         <div className="h-1 w-full" style={{ background: accent }} />
         <div className="p-6 space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">Confirm Your Password</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Enter your password to continue</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">Confirm Your Password</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Enter your password to continue</p>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-400">
+              <X size={16} />
+            </button>
           </div>
           <div className="relative">
-            <input type={show ? 'text' : 'password'} value={pw} onChange={e => { setPw(e.target.value); setError(''); }}
-              placeholder="Your current password" autoComplete="current-password"
-              className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 transition"
-              style={{ fontSize: '16px' }} />
-            <button type="button" onClick={() => setShow(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer">
+            <input
+              type={show ? 'text' : 'password'}
+              value={pw}
+              onChange={e => { setPw(e.target.value); setError(''); }}
+              onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+              placeholder="Your current password"
+              autoComplete="current-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              autoFocus
+              className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition"
+              style={{ fontSize: '16px' }}
+            />
+            <button type="button" tabIndex={-1} onClick={() => setShow(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer p-1"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {show ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
@@ -69,6 +86,37 @@ function PasswordModal({ accent, onConfirm, onClose }: {
   );
 }
 
+function CodeBoxes({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {[0,1,2,3,4,5].map(i => (
+        <input key={i} id={`${id}-${i}`} type="text" inputMode="numeric" maxLength={1}
+          value={value[i] || ''}
+          onChange={e => {
+            const val = e.target.value.replace(/\D/g, '');
+            if (!val) { const arr = value.split(''); arr[i] = ''; onChange(arr.join('')); return; }
+            const arr = value.split(''); arr[i] = val[val.length-1]; onChange(arr.join(''));
+            if (i < 5) { const next = document.getElementById(`${id}-${i+1}`); if (next) (next as HTMLInputElement).focus(); }
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Backspace' && !value[i] && i > 0) {
+              const prev = document.getElementById(`${id}-${i-1}`); if (prev) (prev as HTMLInputElement).focus();
+            }
+          }}
+          onPaste={e => {
+            e.preventDefault();
+            const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+            onChange(pasted.padEnd(6, '').slice(0, 6));
+            const box = document.getElementById(`${id}-${Math.min(pasted.length, 5)}`);
+            if (box) (box as HTMLInputElement).focus();
+          }}
+          className="text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none transition"
+          style={{ fontSize: '20px', height: '52px', width: '44px' }} />
+      ))}
+    </div>
+  );
+}
+
 export default function TwoFactorPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
@@ -76,6 +124,8 @@ export default function TwoFactorPage() {
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+  const [isMidnight, setIsMidnight] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const map: Record<string, { g: string; s: string }> = {
@@ -85,13 +135,18 @@ export default function TwoFactorPage() {
       arctic: { g: 'linear-gradient(135deg, #0284c7, #bae6fd)', s: '#0284c7' },
       midnight: { g: 'linear-gradient(135deg, #0f172a, #0e7490)', s: '#06b6d4' },
     };
-    const apply = () => { const c = localStorage.getItem('exodus_theme_cache'); if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); } };
-    apply(); window.addEventListener('storage', apply); const t = setInterval(apply, 1000);
+    const apply = () => {
+      const c = localStorage.getItem('exodus_theme_cache');
+      if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
+      setIsMidnight(c === 'midnight');
+    };
+    apply();
+    window.addEventListener('storage', apply);
+    const t = setInterval(apply, 1000);
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
   const [status, setStatus] = useState<TwoFaStatus>({ emailEnabled: false, appEnabled: false });
-  const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'enable-email' | 'disable-email' | 'enable-app' | 'disable-app' | null>(null);
 
@@ -117,7 +172,7 @@ export default function TwoFactorPage() {
       .then(r => r.json())
       .then(d => setStatus(d))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setReady(true));
   }, []);
 
   const requestAction = (action: typeof pendingAction) => {
@@ -130,11 +185,10 @@ export default function TwoFactorPage() {
     if (pendingAction === 'enable-email') await startEmailSetup();
     else if (pendingAction === 'disable-email') await disableEmail();
     else if (pendingAction === 'enable-app') await startAppSetup();
-    else if (pendingAction === 'disable-app') setAppStep('disable');
+    else if (pendingAction === 'disable-app') { setAppStep('disable'); setAppCode(''); setAppError(''); }
     setPendingAction(null);
   };
 
-  // Email 2FA
   const startEmailSetup = async () => {
     setEmailError(''); setEmailLoading(true);
     try {
@@ -147,7 +201,7 @@ export default function TwoFactorPage() {
   };
 
   const verifyEmailCode = async () => {
-    if (emailCode.replace(/\D/g, '').length < 6) { setEmailError('Enter the 6-digit code'); return; }
+    if (emailCode.length < 6) { setEmailError('Enter the 6-digit code'); return; }
     setEmailLoading(true); setEmailError('');
     try {
       const res = await fetch('/api/user/2fa/email/verify', {
@@ -173,7 +227,6 @@ export default function TwoFactorPage() {
     finally { setEmailLoading(false); }
   };
 
-  // App 2FA
   const startAppSetup = async () => {
     setAppError(''); setAppLoading(true);
     try {
@@ -187,7 +240,7 @@ export default function TwoFactorPage() {
   };
 
   const verifyAppCode = async () => {
-    if (appCode.replace(/\D/g, '').length < 6) { setAppError('Enter the 6-digit code'); return; }
+    if (appCode.length < 6) { setAppError('Enter the 6-digit code'); return; }
     setAppLoading(true); setAppError('');
     try {
       const res = await fetch('/api/user/2fa/verify', {
@@ -204,7 +257,7 @@ export default function TwoFactorPage() {
   };
 
   const disableApp = async () => {
-    if (appCode.replace(/\D/g, '').length < 6) { setAppError('Enter code to confirm'); return; }
+    if (appCode.length < 6) { setAppError('Enter code to confirm'); return; }
     setAppLoading(true); setAppError('');
     try {
       const res = await fetch('/api/user/2fa/disable', {
@@ -220,10 +273,11 @@ export default function TwoFactorPage() {
     finally { setAppLoading(false); }
   };
 
-  const inputCls = "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition";
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>
+  if (!ready) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+        style={{ borderTopColor: accentSolid }} />
+    </div>
   );
 
   return (
@@ -232,75 +286,60 @@ export default function TwoFactorPage() {
         <PasswordModal accent={accent} onConfirm={onPasswordConfirmed} onClose={() => { setShowPasswordModal(false); setPendingAction(null); }} />
       )}
 
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => router.push(`/${locale}/dashboard/settings`)}
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
           <ArrowLeft size={16} className="text-gray-600 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Two-Factor Authentication</h1>
+          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
+            style={isMidnight ? { color: '#ffffff' } : {}}>Two-Factor Authentication</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Add extra security to your account</p>
         </div>
       </div>
 
-      {/* Email 2FA */}
+      {/* ── EMAIL 2FA ── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
           <div className="flex-1">
             <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Mail size={15} /> Email Authentication
-              {status.emailEnabled && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Active</span>}
+              {status.emailEnabled && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Active</span>
+              )}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Receive a verification code to your email when creating shipments</p>
           </div>
         </div>
         <div className="p-5 space-y-4">
-          {emailSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 size={13} />{emailSuccess}</p>}
+          {emailSuccess && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+              <CheckCircle2 size={13} />{emailSuccess}
+            </p>
+          )}
 
           {emailStep === 'idle' && (
-            <>
-              {status.emailEnabled ? (
-                <button onClick={() => requestAction('disable-email')} disabled={emailLoading}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white cursor-pointer hover:bg-red-700 transition disabled:opacity-60">
-                  {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                  Disable Email 2FA
-                </button>
-              ) : (
-                <button onClick={() => requestAction('enable-email')} disabled={emailLoading}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer hover:opacity-90 transition disabled:opacity-60"
-                  style={{ background: accent }}>
-                  {emailLoading ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                  {emailLoading ? 'Setting up...' : 'Enable Email 2FA'}
-                </button>
-              )}
-            </>
+            status.emailEnabled ? (
+              <button onClick={() => requestAction('disable-email')} disabled={emailLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white cursor-pointer hover:bg-red-700 transition disabled:opacity-60">
+                {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                Disable Email 2FA
+              </button>
+            ) : (
+              <button onClick={() => requestAction('enable-email')} disabled={emailLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer hover:opacity-90 transition disabled:opacity-60"
+                style={{ background: accent }}>
+                {emailLoading ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                {emailLoading ? 'Setting up...' : 'Enable Email 2FA'}
+              </button>
+            )
           )}
 
           {emailStep === 'verify' && (
             <div className="space-y-4">
               <p className="text-xs text-gray-500 dark:text-gray-400">A 6-digit code has been sent to your email. Enter it below to activate.</p>
-              <div className="flex items-center justify-center gap-2">
-                {[0,1,2,3,4,5].map(i => (
-                  <input key={i} id={`email2fa-${i}`} type="text" inputMode="numeric" maxLength={1}
-                    value={emailCode[i] || ''}
-                    onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      if (!val) { const arr = emailCode.split(''); arr[i] = ''; setEmailCode(arr.join('')); return; }
-                      const arr = emailCode.split(''); arr[i] = val[val.length-1]; setEmailCode(arr.join(''));
-                      setEmailError('');
-                      if (i < 5) { const next = document.getElementById(`email2fa-${i+1}`); if (next) (next as HTMLInputElement).focus(); }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Backspace' && !emailCode[i] && i > 0) {
-                        const prev = document.getElementById(`email2fa-${i-1}`); if (prev) (prev as HTMLInputElement).focus();
-                      }
-                    }}
-                    className="text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none transition"
-                    style={{ fontSize: '20px', height: '52px', width: '44px' }} />
-                ))}
-              </div>
+              <CodeBoxes id="email2fa" value={emailCode} onChange={setEmailCode} />
               {emailError && <p className="text-xs text-red-500 text-center font-medium">{emailError}</p>}
               <div className="flex gap-2.5">
                 <button onClick={() => { setEmailStep('idle'); setEmailCode(''); setEmailError(''); }}
@@ -319,73 +358,71 @@ export default function TwoFactorPage() {
         </div>
       </div>
 
-      {/* App 2FA */}
+      {/* ── APP 2FA ── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
           <div className="flex-1">
             <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Smartphone size={15} /> Authenticator App
-              {status.appEnabled && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Active</span>}
+              {status.appEnabled && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Active</span>
+              )}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Use Google Authenticator, Microsoft Authenticator, or Authy</p>
           </div>
         </div>
         <div className="p-5 space-y-4">
-          {appSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 size={13} />{appSuccess}</p>}
+          {appSuccess && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+              <CheckCircle2 size={13} />{appSuccess}
+            </p>
+          )}
 
           {appStep === 'idle' && (
-            <>
-              {status.appEnabled ? (
-                <button onClick={() => requestAction('disable-app')}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white cursor-pointer hover:bg-red-700 transition">
-                  Disable Authenticator App
-                </button>
-              ) : (
-                <button onClick={() => requestAction('enable-app')} disabled={appLoading}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer hover:opacity-90 transition disabled:opacity-60"
-                  style={{ background: accent }}>
-                  {appLoading ? <Loader2 size={14} className="animate-spin" /> : <Smartphone size={14} />}
-                  {appLoading ? 'Setting up...' : 'Set Up Authenticator App'}
-                </button>
-              )}
-            </>
+            status.appEnabled ? (
+              <button onClick={() => requestAction('disable-app')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white cursor-pointer hover:bg-red-700 transition">
+                Disable Authenticator App
+              </button>
+            ) : (
+              <button onClick={() => requestAction('enable-app')} disabled={appLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer hover:opacity-90 transition disabled:opacity-60"
+                style={{ background: accent }}>
+                {appLoading ? <Loader2 size={14} className="animate-spin" /> : <Smartphone size={14} />}
+                {appLoading ? 'Setting up...' : 'Set Up Authenticator App'}
+              </button>
+            )
           )}
 
           {appStep === 'qr' && (
             <div className="space-y-5">
-              {/* Step 1 */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 1 — Download an Authenticator App</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                  Download one of these apps on your phone: <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong>. All are free and available on iOS and Android.
+                  Download <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong> from the App Store or Google Play.
                 </p>
               </div>
-
-              {/* Step 2 — QR */}
               <div className="space-y-2">
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 2 — Scan the QR Code</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Open your authenticator app, tap the <strong>+</strong> button, then choose <strong>Scan QR code</strong>.</p>
                 <div className="flex justify-center py-2">
                   <div className="p-3 bg-white rounded-2xl border border-gray-200 shadow-sm inline-block">
-                    <img src={appQr} alt="QR Code" className="w-48 h-48" />
+                    <img src={appQr} alt="QR Code" className="w-48 h-48" style={{ imageRendering: 'pixelated' }} />
                   </div>
                 </div>
               </div>
-
-              {/* Step 3 — Manual key */}
               <div className="space-y-2">
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 3 — Or Enter the Key Manually</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">If you can't scan, in the app tap <strong>Enter key manually</strong> and type the key below.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tap <strong>Enter key manually</strong> in the app and type this key:</p>
                 <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3">
-                  <span className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 tracking-[0.15em] break-all">{appSecret}</span>
+                  <span className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 tracking-[0.12em] break-all">{appSecret}</span>
                   <button onClick={() => { navigator.clipboard.writeText(appSecret); setAppCopied(true); setTimeout(() => setAppCopied(false), 2000); }}
                     className="text-xs font-bold cursor-pointer shrink-0 whitespace-nowrap" style={{ color: accentSolid }}>
                     {appCopied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               </div>
-
               <button onClick={() => setAppStep('verify')}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"
                 style={{ background: accent }}>
@@ -399,26 +436,7 @@ export default function TwoFactorPage() {
             <div className="space-y-4">
               <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 4 — Enter the 6-Digit Code</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Open the authenticator app and enter the 6-digit code shown for Exodus Logistics.</p>
-              <div className="flex items-center justify-center gap-2">
-                {[0,1,2,3,4,5].map(i => (
-                  <input key={i} id={`app2fa-${i}`} type="text" inputMode="numeric" maxLength={1}
-                    value={appCode[i] || ''}
-                    onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      if (!val) { const arr = appCode.split(''); arr[i] = ''; setAppCode(arr.join('')); return; }
-                      const arr = appCode.split(''); arr[i] = val[val.length-1]; setAppCode(arr.join(''));
-                      setAppError('');
-                      if (i < 5) { const next = document.getElementById(`app2fa-${i+1}`); if (next) (next as HTMLInputElement).focus(); }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Backspace' && !appCode[i] && i > 0) {
-                        const prev = document.getElementById(`app2fa-${i-1}`); if (prev) (prev as HTMLInputElement).focus();
-                      }
-                    }}
-                    className="text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none transition"
-                    style={{ fontSize: '20px', height: '52px', width: '44px' }} />
-                ))}
-              </div>
+              <CodeBoxes id="app2fa" value={appCode} onChange={setAppCode} />
               {appError && <p className="text-xs text-red-500 text-center font-medium">{appError}</p>}
               <div className="flex gap-2.5">
                 <button onClick={() => { setAppStep('qr'); setAppCode(''); setAppError(''); }}
@@ -438,26 +456,7 @@ export default function TwoFactorPage() {
           {appStep === 'disable' && (
             <div className="space-y-4">
               <p className="text-xs text-gray-500 dark:text-gray-400">Enter the 6-digit code from your authenticator app to disable it.</p>
-              <div className="flex items-center justify-center gap-2">
-                {[0,1,2,3,4,5].map(i => (
-                  <input key={i} id={`disable2fa-${i}`} type="text" inputMode="numeric" maxLength={1}
-                    value={appCode[i] || ''}
-                    onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      if (!val) { const arr = appCode.split(''); arr[i] = ''; setAppCode(arr.join('')); return; }
-                      const arr = appCode.split(''); arr[i] = val[val.length-1]; setAppCode(arr.join(''));
-                      setAppError('');
-                      if (i < 5) { const next = document.getElementById(`disable2fa-${i+1}`); if (next) (next as HTMLInputElement).focus(); }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Backspace' && !appCode[i] && i > 0) {
-                        const prev = document.getElementById(`disable2fa-${i-1}`); if (prev) (prev as HTMLInputElement).focus();
-                      }
-                    }}
-                    className="text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none transition"
-                    style={{ fontSize: '20px', height: '52px', width: '44px' }} />
-                ))}
-              </div>
+              <CodeBoxes id="disable2fa" value={appCode} onChange={setAppCode} />
               {appError && <p className="text-xs text-red-500 text-center font-medium">{appError}</p>}
               <div className="flex gap-2.5">
                 <button onClick={() => { setAppStep('idle'); setAppCode(''); setAppError(''); }}
