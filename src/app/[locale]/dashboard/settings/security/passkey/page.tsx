@@ -3,16 +3,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Fingerprint, Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff, X } from 'lucide-react';
+import { ArrowLeft, Fingerprint, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { createPortal } from 'react-dom';
+import PasswordInput from '@/components/PasswordInput';
 
 function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }: {
   accent: string; accentSolid: string; onConfirm: () => void; onClose: () => void;
   title?: string; desc?: string;
 }) {
   const [pw, setPw] = useState('');
-  const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -44,26 +44,14 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
               {desc || 'Enter your password to continue'}
             </p>
           </div>
-          <div className="relative">
-            <input
-              type={show ? 'text' : 'password'}
-              value={pw}
-              onChange={e => { setPw(e.target.value); setError(''); }}
-              onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
-              placeholder="Your current password"
-              autoComplete="current-password"
-              autoCorrect="off"
-              autoCapitalize="off"
-              autoFocus
-              className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition"
-              style={{ fontSize: '16px' }}
-            />
-            <button type="button" tabIndex={-1} onClick={() => setShow(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer p-1"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {show ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
+          <PasswordInput
+            value={pw}
+            onChange={v => { setPw(v); setError(''); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+            placeholder="Your current password"
+            autoComplete="current-password"
+            autoFocus
+          />
           {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
           <div className="flex gap-2.5">
             <button onClick={onClose}

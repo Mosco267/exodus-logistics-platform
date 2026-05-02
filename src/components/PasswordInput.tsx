@@ -1,6 +1,6 @@
 // src/components/PasswordInput.tsx
 'use client';
-import { useState } from 'react';
+import { useState, KeyboardEvent } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface PasswordInputProps {
@@ -9,6 +9,8 @@ interface PasswordInputProps {
   placeholder?: string;
   autoComplete?: string;
   className?: string;
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
+  autoFocus?: boolean;
 }
 
 export default function PasswordInput({
@@ -17,6 +19,8 @@ export default function PasswordInput({
   placeholder = 'Enter password',
   autoComplete = 'current-password',
   className = '',
+  onKeyDown,
+  autoFocus = false,
 }: PasswordInputProps) {
   const [show, setShow] = useState(false);
   return (
@@ -25,6 +29,8 @@ export default function PasswordInput({
         type={show ? 'text' : 'password'}
         value={value}
         onChange={e => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        autoFocus={autoFocus}
         placeholder={placeholder}
         autoComplete={autoComplete}
         autoCorrect="off"

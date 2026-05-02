@@ -1,15 +1,15 @@
-// src/app/[locale]/sign-in/page.tsx
 'use client';
 
 import { useEffect, useRef, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertCircle, Shield, Globe, Package, Zap, Mail, ArrowLeft, Eye, EyeOff, Fingerprint } from 'lucide-react';
+import { Loader2, AlertCircle, Shield, Globe, Package, Zap, Mail, ArrowLeft, Fingerprint } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { startAuthentication } from '@simplewebauthn/browser';
+import PasswordInput from '@/components/PasswordInput';
 
 const REMEMBER_ENABLED_KEY = 'exodus_remember_enabled';
 const REMEMBER_EMAIL_KEY = 'exodus_remember_email';
@@ -55,7 +55,6 @@ export default function SignInPage() {
   const [checkingPasskey, setCheckingPasskey] = useState(false);
 
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [pwError, setPwError] = useState('');
 
   const [generalError, setGeneralError] = useState('');
@@ -137,12 +136,10 @@ export default function SignInPage() {
   };
 
   const handlePasskeySignIn = async () => {
-  setGeneralError(''); setPasskeyCancelled(false);
-  setPasskeyLoading(true);
-  // Force scroll to top before browser can scroll to bottom
-  window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  // Small yield to let React render the full-screen overlay first
-  await new Promise(r => setTimeout(r, 10));
+    setGeneralError(''); setPasskeyCancelled(false);
+    setPasskeyLoading(true);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    await new Promise(r => setTimeout(r, 10));
     try {
       const optRes = await fetch('/api/auth/passkey/options', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -185,20 +182,19 @@ export default function SignInPage() {
 
   const showFullScreenLoader = isNavigating || (passkeyLoading && !passkeyCancelled);
 
- return (
-  <>
-    {/* Full-screen loading overlay — renders on top immediately */}
-    {showFullScreenLoader && (
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">
-            {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
-          </p>
+  return (
+    <>
+      {showFullScreenLoader && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+            <p className="text-sm font-semibold text-gray-500">
+              {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
+            </p>
+          </div>
         </div>
-      </div>
-    )}
+      )}
       <style>{`@media (min-width: 1024px) { header, nav[role="navigation"] { display: none !important; } }`}</style>
       <div className="min-h-screen flex">
 
@@ -275,7 +271,6 @@ export default function SignInPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 sm:px-10 relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
 
-          {/* Desktop nav */}
           <div className="hidden lg:block absolute top-6 right-6 z-20">
             <button onClick={() => setNavOpen(v => !v)} className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
               style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
@@ -350,21 +345,18 @@ export default function SignInPage() {
                     )}
 
                     <div className="space-y-3">
-                      {/* Google FIRST */}
                       <button type="button" onClick={handleGoogleSignIn} disabled={googleLoading}
                         className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200 disabled:opacity-60">
                         {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
                         Continue with Google
                       </button>
 
-                      {/* Divider */}
                       <div className="flex items-center gap-3 py-1">
                         <div className="h-px bg-gray-100 flex-1" />
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">or</span>
                         <div className="h-px bg-gray-100 flex-1" />
                       </div>
 
-                      {/* Email SECOND */}
                       <button type="button" onClick={() => { setGeneralError(''); setStep('email'); }}
                         className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
                         style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
@@ -415,7 +407,6 @@ export default function SignInPage() {
                         )}
                       </div>
 
-                      {/* Remember me + Forgot password on same line */}
                       <div className="flex items-center justify-between">
                         <label className="inline-flex items-center gap-2 cursor-pointer select-none group">
                           <div className="relative">
@@ -469,7 +460,6 @@ export default function SignInPage() {
                       </div>
                     )}
 
-                    {/* Passkey cancelled — show retry options */}
                     {passkeyCancelled && (
                       <div className="mb-4 space-y-3">
                         <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
@@ -489,11 +479,8 @@ export default function SignInPage() {
                       </div>
                     )}
 
-                    
-
                     {!passkeyCancelled && !passkeyLoading && (
                       <div className="space-y-3">
-                        {/* Passkey option — only if user has one and hasn't chosen password yet */}
                         {hasPasskey && !authMethod && (
                           <>
                             <button type="button" onClick={() => { setAuthMethod('passkey'); handlePasskeySignIn(); }}
@@ -514,7 +501,6 @@ export default function SignInPage() {
                           </>
                         )}
 
-                        {/* Password form */}
                         {(!hasPasskey || authMethod === 'password') && (
                           <div className="space-y-4">
                             <div>
@@ -524,24 +510,15 @@ export default function SignInPage() {
                                   Forgot password?
                                 </Link>
                               </div>
-                              <div className="relative">
-                                <input
-                                  type={showPw ? 'text' : 'password'}
-                                  value={password}
-                                  onChange={e => { setPassword(e.target.value); setPwError(''); setGeneralError(''); }}
-                                  onKeyDown={e => { if (e.key === 'Enter') handlePasswordSignIn(); }}
-                                  placeholder="Enter your password"
-                                  autoComplete="current-password"
-                                  autoFocus
-                                  style={{ fontSize: '16px' }}
-                                  className={`w-full h-12 px-4 pr-11 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${pwError ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'}`}
-                                />
-                                <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-1 transition"
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                                </button>
-                              </div>
+                              <PasswordInput
+                                value={password}
+                                onChange={v => { setPassword(v); setPwError(''); setGeneralError(''); }}
+                                onKeyDown={e => { if (e.key === 'Enter') handlePasswordSignIn(); }}
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                autoFocus
+                                className={pwError ? 'border-red-400 focus:ring-red-400/20' : 'hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'}
+                              />
                               {pwError && (
                                 <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />{pwError}
@@ -574,7 +551,6 @@ export default function SignInPage() {
 
             </div>
 
-            {/* Trust badges */}
             <div className="mt-5 flex items-center justify-center gap-6">
               <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
                 <Shield className="w-3.5 h-3.5 text-green-500" />SSL Secured
