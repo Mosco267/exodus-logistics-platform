@@ -34,7 +34,7 @@ function PasswordModal({ accent, onConfirm, onClose, title, desc }: {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col"
+    <div className="fixed inset-0 z-[99999] flex flex-col"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
       {/* Top accent bar */}
       <div className="h-1 w-full shrink-0" style={{ background: accent }} />
@@ -433,13 +433,13 @@ export default function TwoFactorPage() {
   {/* Fixed copy button — stays visible always */}
   <button
     onClick={() => { navigator.clipboard.writeText(appSecret); setAppCopied(true); setTimeout(() => setAppCopied(false), 2000); }}
-    className="shrink-0 px-4 py-3 border-l border-gray-200 dark:border-white/10 text-xs font-bold cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-white/10 transition whitespace-nowrap"
+    className="shrink-0 px-4 py-3 text-xs font-bold cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-white/10 transition whitespace-nowrap"
     style={{ color: accentSolid }}>
     {appCopied ? 'Copied!' : 'Copy'}
   </button>
 </div>
 <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-1.5">
-  ⚠️ Use the Copy button — do not type this manually to avoid mistakes.
+  ⚠️ Use the Copy button. Do not type this manually to avoid mistakes.
 </p>
               </div>
               <button onClick={() => setAppStep('verify')}

@@ -30,7 +30,7 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col"
+    <div className="fixed inset-0 z-[99999] flex flex-col"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
       {/* Top accent bar */}
       <div className="h-1 w-full shrink-0" style={{ background: accent }} />

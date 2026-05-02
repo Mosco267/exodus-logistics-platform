@@ -43,7 +43,8 @@ function PwField({ value, onChange, placeholder, autoComplete }: {
   return (
     <div className="relative">
       <input
-        type={show ? 'text' : 'password'}
+        type="text"
+        inputMode="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
@@ -52,7 +53,10 @@ function PwField({ value, onChange, placeholder, autoComplete }: {
         autoCapitalize="off"
         spellCheck={false}
         className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition"
-        style={{ fontSize: '16px' }}
+        style={{
+  fontSize: '16px',
+  WebkitTextSecurity: show ? 'none' : 'disc',
+} as any}
       />
       <button type="button" tabIndex={-1} onClick={() => setShow(v => !v)}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1 transition"
