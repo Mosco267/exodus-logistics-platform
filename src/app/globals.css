@@ -115,6 +115,7 @@ html, body {
   height: auto;
   min-height: 100%;
   overflow-y: auto;
+  position: relative;
 }
 
 /* Password field fix */

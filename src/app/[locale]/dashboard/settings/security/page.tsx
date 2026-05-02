@@ -37,7 +37,7 @@ export default function SecurityPage() {
   }, []);
 
   useEffect(() => {
-  const t = setTimeout(() => setReady(true), 50);
+  const t = setTimeout(() => setReady(true), 400);
   return () => clearTimeout(t);
 }, []);
 

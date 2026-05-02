@@ -179,15 +179,17 @@ export default function SignInPage() {
   };
 
   // Full-screen loading overlay when navigating
-  if (isNavigating) return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
-        <p className="text-sm font-semibold text-gray-500">Signing you in…</p>
-      </div>
+  if (isNavigating || (passkeyLoading && !passkeyCancelled)) return (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center"
+    style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+      <p className="text-sm font-semibold text-gray-500">
+        {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
+      </p>
     </div>
-  );
+  </div>
+);
 
   return (
     <>
@@ -441,7 +443,7 @@ export default function SignInPage() {
               {step === 'auth' && (
                 <AnimatePresence mode="wait">
                   <motion.div key="auth" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-                    <button onClick={() => { setStep('email'); setGeneralError(''); setPwError(''); setPassword(''); setAuthMethod(null); setPasskeyCancelled(false); }}
+                    <button onClick={() => { setStep('email'); setGeneralError(''); setPwError(''); setPassword(''); setAuthMethod(null); setPasskeyCancelled(false); setHasPasskey(false); }}
                       className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 cursor-pointer mb-5 transition">
                       <ArrowLeft size={14} /> Back
                     </button>
@@ -481,16 +483,7 @@ export default function SignInPage() {
                       </div>
                     )}
 
-                    {/* Passkey loading overlay */}
-                    {passkeyLoading && (
-                      <div className="mb-4 flex items-center gap-3 px-4 py-3.5 rounded-xl border border-blue-100 bg-blue-50">
-                        <Loader2 className="w-5 h-5 animate-spin text-blue-600 shrink-0" />
-                        <div>
-                          <p className="text-sm font-bold text-blue-700">Waiting for passkey…</p>
-                          <p className="text-xs text-blue-500 mt-0.5">Follow the prompt on your device</p>
-                        </div>
-                      </div>
-                    )}
+                    
 
                     {!passkeyCancelled && !passkeyLoading && (
                       <div className="space-y-3">

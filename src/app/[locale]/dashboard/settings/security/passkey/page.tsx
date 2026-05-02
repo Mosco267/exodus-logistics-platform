@@ -7,9 +7,8 @@ import { ArrowLeft, Fingerprint, Loader2, CheckCircle2, AlertTriangle, Eye, EyeO
 import { startRegistration } from '@simplewebauthn/browser';
 
 function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }: {
-  accent: string; accentSolid: string;
-  onConfirm: () => void; onClose: () => void;
-  title: string; desc: string;
+  accent: string; accentSolid: string; onConfirm: () => void; onClose: () => void;
+  title?: string; desc?: string;
 }) {
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -31,19 +30,14 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+    <div className="fixed inset-0 z-[9999] overflow-hidden">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-x-0 top-0 bg-white dark:bg-gray-900 shadow-2xl">
         <div className="h-1 w-full" style={{ background: accent }} />
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">{title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-400">
-              <X size={16} />
-            </button>
+          <div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">{title || 'Confirm Your Password'}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc || 'Enter your password to continue'}</p>
           </div>
           <div className="relative">
             <input
@@ -68,11 +62,11 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
           {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
           <div className="flex gap-2.5">
             <button onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+              className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
               Cancel
             </button>
             <button onClick={handleSubmit} disabled={loading || !pw}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
               style={{ background: accent }}>
               {loading ? <Loader2 size={14} className="animate-spin" /> : null}
               {loading ? 'Verifying...' : 'Confirm'}
