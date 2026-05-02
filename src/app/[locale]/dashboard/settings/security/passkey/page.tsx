@@ -92,7 +92,7 @@ export default function PasskeyPage() {
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
   const [isMidnight, setIsMidnight] = useState(false);
-  const [ready, setReady] = useState(false);
+  
 
   useEffect(() => {
     const map: Record<string, { g: string; s: string }> = {
@@ -131,7 +131,7 @@ export default function PasskeyPage() {
       .then(r => r.json())
       .then(d => { setEnabled((d.passkeys || []).length > 0); })
       .catch(() => {})
-      .finally(() => setReady(true));
+      .finally(() => {});
   }, []);
 
   const handleToggle = (newValue: boolean) => {
@@ -172,12 +172,7 @@ export default function PasskeyPage() {
     setLoading(false);
   };
 
-  if (!ready) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
-        style={{ borderTopColor: accentSolid }} />
-    </div>
-  );
+ 
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 pb-10">

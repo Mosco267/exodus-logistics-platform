@@ -190,7 +190,10 @@ export default function TwoFactorPage() {
   };
 
   const startEmailSetup = async () => {
-    setEmailError(''); setEmailLoading(true);
+  // Close app setup if open
+  setAppStep('idle'); setAppCode(''); setAppError('');
+  setEmailError(''); setEmailLoading(true);
+  // ...rest unchanged
     try {
       const res = await fetch('/api/user/2fa/email/setup', { method: 'POST' });
       const data = await res.json();
@@ -228,7 +231,10 @@ export default function TwoFactorPage() {
   };
 
   const startAppSetup = async () => {
-    setAppError(''); setAppLoading(true);
+  // Close email setup if open
+  setEmailStep('idle'); setEmailCode(''); setEmailError('');
+  setAppError(''); setAppLoading(true);
+  // ...rest unchanged
     try {
       const res = await fetch('/api/user/2fa/setup', { method: 'POST' });
       const data = await res.json();
@@ -273,14 +279,14 @@ export default function TwoFactorPage() {
     finally { setAppLoading(false); }
   };
 
-  if (!ready) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
-        style={{ borderTopColor: accentSolid }} />
-    </div>
-  );
-
   return (
+  <>
+    {!ready ? (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+          style={{ borderTopColor: accentSolid }} />
+      </div>
+    ) : (
     <div className="max-w-2xl mx-auto space-y-5 pb-10">
       {showPasswordModal && (
         <PasswordModal accent={accent} onConfirm={onPasswordConfirmed} onClose={() => { setShowPasswordModal(false); setPendingAction(null); }} />
@@ -474,5 +480,7 @@ export default function TwoFactorPage() {
         </div>
       </div>
     </div>
+    )}
+  </>
   );
 }

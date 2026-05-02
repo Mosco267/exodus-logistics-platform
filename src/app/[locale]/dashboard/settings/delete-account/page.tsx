@@ -35,7 +35,10 @@ export default function DeleteAccountPage() {
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
-  useEffect(() => { setReady(true); }, []);
+  useEffect(() => {
+  const t = setTimeout(() => setReady(true), 50);
+  return () => clearTimeout(t);
+}, []);
 
   const [step, setStep] = useState<'auth' | 'confirm' | 'done'>('auth');
   const [password, setPassword] = useState('');
@@ -81,14 +84,14 @@ export default function DeleteAccountPage() {
     finally { setDeleting(false); }
   };
 
-  if (!ready) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
-        style={{ borderTopColor: accentSolid }} />
-    </div>
-  );
-
   return (
+  <>
+    {!ready ? (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+          style={{ borderTopColor: accentSolid }} />
+      </div>
+    ) : (
     <div className="max-w-md mx-auto space-y-5 pb-10">
       <div className="flex items-center gap-3">
         <button onClick={() => router.push(`/${locale}/dashboard/settings`)}
@@ -193,5 +196,7 @@ export default function DeleteAccountPage() {
         )}
       </div>
     </div>
+    )}
+  </>
   );
 }

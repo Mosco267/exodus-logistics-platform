@@ -16,7 +16,7 @@ export async function POST() {
   const userId = (session.user as any).id || '';
 
   // Generate new secret
-  const secret = authenticator.generateSecret();
+  const secret = authenticator.generateSecret(32);
   const appName = 'Exodus Logistics';
   const otpAuthUrl = authenticator.keyuri(userEmail, appName, secret);
 

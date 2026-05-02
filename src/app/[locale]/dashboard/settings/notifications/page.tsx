@@ -73,14 +73,14 @@ export default function NotificationsPage() {
     { key: 'promotions' as keyof NotifSettings, label: 'Promotions', desc: 'Receive news, tips and promotional offers' },
   ];
 
-  if (!ready) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
-        style={{ borderTopColor: accentSolid }} />
-    </div>
-  );
-
   return (
+  <>
+    {!ready ? (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+          style={{ borderTopColor: accentSolid }} />
+      </div>
+    ) : (
     <div className="max-w-2xl mx-auto space-y-5 pb-10">
       <div className="flex items-center gap-3">
         <button onClick={() => router.push(`/${locale}/dashboard/settings`)}
@@ -133,5 +133,7 @@ export default function NotificationsPage() {
         </div>
       </div>
     </div>
+    )}
+  </>
   );
 }

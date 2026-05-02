@@ -36,18 +36,21 @@ export default function SecurityPage() {
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
-  useEffect(() => { setReady(true); }, []);
+  useEffect(() => {
+  const t = setTimeout(() => setReady(true), 50);
+  return () => clearTimeout(t);
+}, []);
 
   const isGoogle = (session?.user as any)?.provider === 'google';
 
-  if (!ready) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
-        style={{ borderTopColor: accentSolid }} />
-    </div>
-  );
-
-  return (
+ return (
+  <>
+    {!ready ? (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 rounded-full border-4 border-gray-200 animate-spin"
+          style={{ borderTopColor: accentSolid }} />
+      </div>
+    ) : (
     <div className="max-w-2xl mx-auto space-y-4 pb-10">
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => router.push(`/${locale}/dashboard/settings`)}
@@ -106,5 +109,7 @@ export default function SecurityPage() {
         )}
       </div>
     </div>
+    )}
+  </>
   );
 }
