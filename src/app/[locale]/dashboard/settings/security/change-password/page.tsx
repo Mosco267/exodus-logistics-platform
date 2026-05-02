@@ -56,6 +56,8 @@ function PwField({ value, onChange, placeholder, autoComplete }: {
         style={{
   fontSize: '16px',
   WebkitTextSecurity: show ? 'none' : 'disc',
+  letterSpacing: show ? 'normal' : '0.15em',
+  fontFamily: show ? 'inherit' : 'monospace',
 } as any}
       />
       <button type="button" tabIndex={-1} onClick={() => setShow(v => !v)}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Fingerprint, Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff, X } from 'lucide-react';
 import { startRegistration } from '@simplewebauthn/browser';
+import { createPortal } from 'react-dom';
 
 function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }: {
   accent: string; accentSolid: string; onConfirm: () => void; onClose: () => void;
@@ -29,14 +30,12 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
     } catch { setError('Something went wrong'); setLoading(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-[99999] flex flex-col"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-      {/* Top accent bar */}
-      <div className="h-1 w-full shrink-0" style={{ background: accent }} />
-      {/* Centered content */}
-      <div className="flex-1 flex items-center justify-center px-5">
-        <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 space-y-4">
+  return typeof document !== 'undefined' ? createPortal(
+  <div className="fixed inset-0 z-[99999] flex flex-col"
+    style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+    <div className="h-1 w-full shrink-0" style={{ background: accent }} />
+    <div className="flex-1 flex items-center justify-center px-5">
+      <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 space-y-4">
           <div>
             <h3 className="text-base font-bold text-gray-900 dark:text-white">
               {title || 'Confirm Your Password'}
@@ -80,8 +79,9 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>,
+  document.body
+    ) : null;
 }
 
 export default function PasskeyPage() {
