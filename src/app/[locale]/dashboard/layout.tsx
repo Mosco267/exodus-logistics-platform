@@ -496,39 +496,63 @@ style={{ background: activeTheme.sidebar }}>
 
     {/* Links */}
     <div className="p-2 space-y-0.5">
-      <Link href={`/${locale}/dashboard/profile`}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group"
-        onClick={() => setProfileOpen(false)}>
-        <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
-          <User size={14} className="text-blue-600 dark:text-blue-400" />
-        </div>
-        Profile
-      </Link>
-      <Link href={`/${locale}/dashboard/settings`}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group"
-        onClick={() => setProfileOpen(false)}>
-        <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
-          <Settings size={14} className="text-blue-600 dark:text-blue-400" />
-        </div>
-        Settings
-      </Link>
-      <button
-        onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition w-full text-left group cursor-pointer">
-        <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0 group-hover:bg-purple-100 dark:group-hover:bg-purple-500/20 transition">
-          <Palette size={14} className="text-purple-600 dark:text-purple-400" />
-        </div>
-        Appearance
-      </button>
-      <button
-  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10 transition group w-full text-left cursor-pointer"
-  onClick={() => { setProfileOpen(false); setShowLanguage(true); }}>
-  <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
-    <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
-  </div>
-  Language
-</button>
+  <Link href={`/${locale}/dashboard/profile`}
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition group ${
+      pathname === `/${locale}/dashboard/profile` || pathname.startsWith(`/${locale}/dashboard/profile/`)
+        ? ''
+        : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10'
+    }`}
+    style={
+      pathname === `/${locale}/dashboard/profile` || pathname.startsWith(`/${locale}/dashboard/profile/`)
+        ? { background: `${activeTheme.accent}15`, color: activeTheme.accent }
+        : {}
+    }
+    onClick={() => setProfileOpen(false)}>
+    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
+      <User size={14} className="text-blue-600 dark:text-blue-400" />
     </div>
+    Profile
+  </Link>
+  <Link href={`/${locale}/dashboard/settings`}
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition group ${
+      pathname === `/${locale}/dashboard/settings` || pathname.startsWith(`/${locale}/dashboard/settings/`)
+        ? ''
+        : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10'
+    }`}
+    style={
+      pathname === `/${locale}/dashboard/settings` || pathname.startsWith(`/${locale}/dashboard/settings/`)
+        ? { background: `${activeTheme.accent}15`, color: activeTheme.accent }
+        : {}
+    }
+    onClick={() => setProfileOpen(false)}>
+    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
+      <Settings size={14} className="text-blue-600 dark:text-blue-400" />
+    </div>
+    Settings
+  </Link>
+  <button
+    onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition w-full text-left group cursor-pointer ${
+      showAppearance ? '' : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10'
+    }`}
+    style={showAppearance ? { background: `${activeTheme.accent}15`, color: activeTheme.accent } : {}}>
+    <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0 group-hover:bg-purple-100 dark:group-hover:bg-purple-500/20 transition">
+      <Palette size={14} className="text-purple-600 dark:text-purple-400" />
+    </div>
+    Appearance
+  </button>
+  <button
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition w-full text-left group cursor-pointer ${
+      showLanguage ? '' : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-white/10'
+    }`}
+    style={showLanguage ? { background: `${activeTheme.accent}15`, color: activeTheme.accent } : {}}
+    onClick={() => { setProfileOpen(false); setShowLanguage(true); }}>
+    <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
+      <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
+    </div>
+    Language
+  </button>
+</div>
 
     <div className="mx-2 border-t border-gray-100 dark:border-white/10" />
 
