@@ -30,14 +30,20 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute inset-x-0 top-0 bg-white dark:bg-gray-900 shadow-2xl">
-        <div className="h-1 w-full" style={{ background: accent }} />
-        <div className="p-6 space-y-4">
+    <div className="fixed inset-0 z-[9999] flex flex-col"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+      {/* Top accent bar */}
+      <div className="h-1 w-full shrink-0" style={{ background: accent }} />
+      {/* Centered content */}
+      <div className="flex-1 flex items-center justify-center px-5">
+        <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 space-y-4">
           <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">{title || 'Confirm Your Password'}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc || 'Enter your password to continue'}</p>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+              {title || 'Confirm Your Password'}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {desc || 'Enter your password to continue'}
+            </p>
           </div>
           <div className="relative">
             <input

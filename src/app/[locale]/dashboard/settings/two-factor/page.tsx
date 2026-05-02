@@ -34,14 +34,20 @@ function PasswordModal({ accent, onConfirm, onClose, title, desc }: {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute inset-x-0 top-0 bg-white dark:bg-gray-900 shadow-2xl">
-        <div className="h-1 w-full" style={{ background: accent }} />
-        <div className="p-6 space-y-4">
+    <div className="fixed inset-0 z-[9999] flex flex-col"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+      {/* Top accent bar */}
+      <div className="h-1 w-full shrink-0" style={{ background: accent }} />
+      {/* Centered content */}
+      <div className="flex-1 flex items-center justify-center px-5">
+        <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 space-y-4">
           <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">{title || 'Confirm Your Password'}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc || 'Enter your password to continue'}</p>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+              {title || 'Confirm Your Password'}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {desc || 'Enter your password to continue'}
+            </p>
           </div>
           <div className="relative">
             <input
@@ -417,23 +423,24 @@ export default function TwoFactorPage() {
               <div className="space-y-2">
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 3 — Or Enter the Key Manually</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Tap <strong>Enter key manually</strong> in the app and type this key:</p>
-                <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-  <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 px-4 py-3 overflow-x-auto"
-    style={{ scrollbarWidth: 'none' }}>
-    <span className="text-xs font-mono text-gray-700 dark:text-gray-300 tracking-[0.12em] whitespace-nowrap flex-1 select-all">
+                <div className="flex items-center rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-gray-50 dark:bg-white/5">
+  {/* Scrollable code — only this part scrolls */}
+  <div className="flex-1 overflow-x-auto px-4 py-3" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+    <span className="text-xs font-mono text-gray-700 dark:text-gray-300 tracking-[0.12em] whitespace-nowrap">
       {appSecret}
     </span>
-    <button onClick={() => { navigator.clipboard.writeText(appSecret); setAppCopied(true); setTimeout(() => setAppCopied(false), 2000); }}
-      className="text-xs font-bold cursor-pointer shrink-0 whitespace-nowrap ml-2" style={{ color: accentSolid }}>
-      {appCopied ? 'Copied!' : 'Copy'}
-    </button>
   </div>
-  <div className="px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border-t border-gray-200 dark:border-white/10">
-    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-      ⚠️ Use the Copy button to avoid mistakes. Do not type this manually.
-    </p>
-  </div>
+  {/* Fixed copy button — stays visible always */}
+  <button
+    onClick={() => { navigator.clipboard.writeText(appSecret); setAppCopied(true); setTimeout(() => setAppCopied(false), 2000); }}
+    className="shrink-0 px-4 py-3 border-l border-gray-200 dark:border-white/10 text-xs font-bold cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-white/10 transition whitespace-nowrap"
+    style={{ color: accentSolid }}>
+    {appCopied ? 'Copied!' : 'Copy'}
+  </button>
 </div>
+<p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-1.5">
+  ⚠️ Use the Copy button — do not type this manually to avoid mistakes.
+</p>
               </div>
               <button onClick={() => setAppStep('verify')}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"

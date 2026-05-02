@@ -137,7 +137,12 @@ export default function SignInPage() {
   };
 
   const handlePasskeySignIn = async () => {
-    setGeneralError(''); setPasskeyCancelled(false); setPasskeyLoading(true);
+  setGeneralError(''); setPasskeyCancelled(false);
+  setPasskeyLoading(true);
+  // Force scroll to top before browser can scroll to bottom
+  window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  // Small yield to let React render the full-screen overlay first
+  await new Promise(r => setTimeout(r, 10));
     try {
       const optRes = await fetch('/api/auth/passkey/options', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -178,21 +183,22 @@ export default function SignInPage() {
     } catch { setGoogleLoading(false); }
   };
 
-  // Full-screen loading overlay when navigating
-  if (isNavigating || (passkeyLoading && !passkeyCancelled)) return (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center"
-    style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
-      <p className="text-sm font-semibold text-gray-500">
-        {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
-      </p>
-    </div>
-  </div>
-);
+  const showFullScreenLoader = isNavigating || (passkeyLoading && !passkeyCancelled);
 
-  return (
-    <>
+ return (
+  <>
+    {/* Full-screen loading overlay — renders on top immediately */}
+    {showFullScreenLoader && (
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+          <p className="text-sm font-semibold text-gray-500">
+            {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
+          </p>
+        </div>
+      </div>
+    )}
       <style>{`@media (min-width: 1024px) { header, nav[role="navigation"] { display: none !important; } }`}</style>
       <div className="min-h-screen flex">
 
