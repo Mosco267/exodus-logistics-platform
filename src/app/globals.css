@@ -106,8 +106,7 @@ input[type="password"]::-ms-clear {
   display: none;
 }
 
-input[type="password"]::-webkit-credentials-auto-fill-button,
-input[type="password"]::-webkit-textfield-decoration-container {
+input[type="password"]::-webkit-credentials-auto-fill-button {
   display: none !important;
 }
 
@@ -136,7 +135,7 @@ input::placeholder {
 }
 
 /* Improve page transition caching on iOS */
-* {
+*:not(input):not(textarea):not(select) {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
