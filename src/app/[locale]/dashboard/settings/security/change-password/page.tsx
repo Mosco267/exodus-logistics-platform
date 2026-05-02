@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import PasswordInput from '@/components/PasswordInput';
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -32,33 +33,6 @@ function PasswordStrength({ password }: { password: string }) {
           </span>
         ))}
       </div>
-    </div>
-  );
-}
-
-function PwField({ value, onChange, placeholder, autoComplete }: {
-  value: string; onChange: (v: string) => void; placeholder: string; autoComplete: string;
-}) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative">
-      <input
-        type={show ? 'text' : 'password'}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        className="w-full px-4 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition appearance-none"
-        style={{ fontSize: '16px', height: '48px', lineHeight: '1.5', WebkitAppearance: 'none' }}
-      />
-      <button type="button" tabIndex={-1} onClick={() => setShow(v => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer p-1"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
     </div>
   );
 }
@@ -152,16 +126,16 @@ export default function ChangePasswordPage() {
         <div className="p-5 space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Current Password</label>
-            <PwField value={currentPw} onChange={setCurrentPw} placeholder="Enter current password" autoComplete="current-password" />
+            <PasswordInput value={currentPw} onChange={setCurrentPw} placeholder="Enter current password" autoComplete="current-password" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">New Password</label>
-            <PwField value={newPw} onChange={setNewPw} placeholder="Create a strong password" autoComplete="new-password" />
+            <PasswordInput value={newPw} onChange={setNewPw} placeholder="Create a strong password" autoComplete="new-password" />
             <PasswordStrength password={newPw} />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Confirm New Password</label>
-            <PwField value={confirmPw} onChange={setConfirmPw} placeholder="Re-enter new password" autoComplete="new-password" />
+            <PasswordInput value={confirmPw} onChange={setConfirmPw} placeholder="Re-enter new password" autoComplete="new-password" />
             {confirmPw.length > 0 && newPw !== confirmPw && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
             {confirmPw.length > 0 && newPw === confirmPw && (
               <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1"><CheckCircle2 size={11} />Passwords match</p>

@@ -32,8 +32,15 @@ export default function PasswordInput({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className={`w-full px-4 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition appearance-none ${className}`}
-        style={{ fontSize: '16px', height: '48px', lineHeight: '1.5', WebkitAppearance: 'none' }}
+        className={`w-full px-4 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition ${className}`}
+        style={{ 
+          fontSize: '16px',
+          minHeight: '48px',
+          paddingTop: '12px',
+          paddingBottom: '12px',
+          WebkitAppearance: 'none',
+          appearance: 'none',
+        }}
       />
       <button
         type="button"
