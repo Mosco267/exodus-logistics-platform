@@ -1,7 +1,6 @@
-// src/components/PasswordInput.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface PasswordInputProps {
@@ -12,7 +11,7 @@ interface PasswordInputProps {
   className?: string;
 }
 
-export default function PasswordInput({
+function PasswordInput({
   value,
   onChange,
   placeholder = 'Enter password',
@@ -33,7 +32,7 @@ export default function PasswordInput({
         autoCapitalize="off"
         spellCheck={false}
         className={`w-full px-4 pr-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition ${className}`}
-        style={{ 
+        style={{
           fontSize: '16px',
           minHeight: '48px',
           paddingTop: '12px',
@@ -54,3 +53,5 @@ export default function PasswordInput({
     </div>
   );
 }
+
+export default memo(PasswordInput);

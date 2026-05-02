@@ -48,23 +48,26 @@ export default function ChangePasswordPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const map: Record<string, { g: string; s: string }> = {
-      default: { g: 'linear-gradient(135deg, #0b3aa4, #0e7490)', s: '#0b3aa4' },
-      ocean: { g: 'linear-gradient(135deg, #0e7490, #06b6d4)', s: '#0891b2' },
-      sunset: { g: 'linear-gradient(135deg, #0b3aa4, #f97316)', s: '#f97316' },
-      arctic: { g: 'linear-gradient(135deg, #0284c7, #bae6fd)', s: '#0284c7' },
-      midnight: { g: 'linear-gradient(135deg, #0f172a, #0e7490)', s: '#06b6d4' },
-    };
-    const apply = () => {
-      const c = localStorage.getItem('exodus_theme_cache');
-      if (c && map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
-      setIsMidnight(c === 'midnight');
-    };
-    apply();
-    window.addEventListener('storage', apply);
-    const t = setInterval(apply, 1000);
-    return () => { window.removeEventListener('storage', apply); clearInterval(t); };
-  }, []);
+  const map: Record<string, { g: string; s: string }> = {
+    default: { g: 'linear-gradient(135deg, #0b3aa4, #0e7490)', s: '#0b3aa4' },
+    ocean: { g: 'linear-gradient(135deg, #0e7490, #06b6d4)', s: '#0891b2' },
+    sunset: { g: 'linear-gradient(135deg, #0b3aa4, #f97316)', s: '#f97316' },
+    arctic: { g: 'linear-gradient(135deg, #0284c7, #bae6fd)', s: '#0284c7' },
+    midnight: { g: 'linear-gradient(135deg, #0f172a, #0e7490)', s: '#06b6d4' },
+  };
+  let lastTheme = '';
+  const apply = () => {
+    const c = localStorage.getItem('exodus_theme_cache') || 'default';
+    if (c === lastTheme) return; // bail if nothing changed
+    lastTheme = c;
+    if (map[c]) { setAccent(map[c].g); setAccentSolid(map[c].s); }
+    setIsMidnight(c === 'midnight');
+  };
+  apply();
+  window.addEventListener('storage', apply);
+  const t = setInterval(apply, 1000);
+  return () => { window.removeEventListener('storage', apply); clearInterval(t); };
+}, []);
 
   useEffect(() => { setReady(true); }, []);
 
