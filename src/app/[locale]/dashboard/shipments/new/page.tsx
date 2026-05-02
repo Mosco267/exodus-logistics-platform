@@ -215,7 +215,7 @@ style={value === c.code ? { background: `${accentSolid}15` } : {}}>
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
-const inputCls = "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition";
+const inputCls = "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-900 dark:focus:border-white/40 transition";
 const labelCls = "text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block";
 
 function Label({ children }: { children: React.ReactNode }) {
@@ -727,7 +727,10 @@ const prefixPx = fixedPrefix.length * 7.5 + 12;
 
 const displayLocal = applyPhonePattern(local, dynamicPattern);
 
-  return (
+ const countryEntry = COUNTRIES_WITH_STATES.find(c => c.code === countryCode);
+const dialMatchesCountry = countryEntry?.dial === dial;
+
+return (
     <div>
       <Label>{label}</Label>
       <div className="flex gap-2">
@@ -773,6 +776,9 @@ const displayLocal = applyPhonePattern(local, dynamicPattern);
   />
 </div>
       </div>
+      {dialMatchesCountry && (
+  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+)}
     </div>
   );
 }

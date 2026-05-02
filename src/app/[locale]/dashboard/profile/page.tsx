@@ -927,28 +927,93 @@ setSavedPhoneNum(strippedPhone);
 };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB'); return; }
-    setUploading(true);
-    setError('');
-    setAvatarPreview(URL.createObjectURL(file));
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { setError('Image must be under 10MB'); return; }
+
+  setUploading(true);
+  setError('');
+
+  try {
+    // Compress image on client before upload — drops 5MB photos to ~200KB
+    const compressed = await new Promise<Blob>((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        img.src = ev.target?.result as string;
+      };
+      img.onload = () => {
+        const MAX = 800; // max dimension; Cloudinary will resize to 400 anyway
+        let { width, height } = img;
+        if (width > height && width > MAX) {
+          height = (height * MAX) / width;
+          width = MAX;
+        } else if (height > MAX) {
+          width = (width * MAX) / height;
+          height = MAX;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas error'));
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Compression failed')),
+          'image/jpeg',
+          0.85
+        );
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      reader.onerror = () => reject(new Error('Read failed'));
+      reader.readAsDataURL(file);
+    });
+
+    setAvatarPreview(URL.createObjectURL(compressed));
+
     const form = new FormData();
-    form.append('file', file);
-    try {
-      const res = await fetch('/api/user/avatar', { method: 'POST', body: form });
-      const data = await res.json();
-      if (data.url) {
-  setAvatarPreview(data.url);
-  setProfile(p => ({ ...p, avatarUrl: data.url }));
-  localStorage.setItem('exodus_avatar_url', data.url);
-  window.dispatchEvent(new Event('storage'));
-} else {
-        setError(data.error || 'Upload failed');
-      }
-    } catch { setError('Upload failed'); }
-    finally { setUploading(false); }
-  };
+    form.append('file', compressed, file.name);
+
+    const res = await fetch('/api/user/avatar', { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.url) {
+      setAvatarPreview(data.url);
+      setProfile(p => ({ ...p, avatarUrl: data.url }));
+      localStorage.setItem('exodus_avatar_url', data.url);
+      window.dispatchEvent(new Event('storage'));
+    } else {
+      setError(data.error || 'Upload failed');
+    }
+  } catch {
+    setError('Upload failed');
+  } finally {
+    setUploading(false);
+  }
+};
+
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+const [removingAvatar, setRemovingAvatar] = useState(false);
+
+const handleRemoveAvatar = async () => {
+  setRemovingAvatar(true);
+  setError('');
+  try {
+    const res = await fetch('/api/user/avatar', { method: 'DELETE' });
+    if (!res.ok) {
+      setError('Failed to remove photo');
+      return;
+    }
+    setAvatarPreview('');
+    setProfile(p => ({ ...p, avatarUrl: '' }));
+    localStorage.removeItem('exodus_avatar_url');
+    window.dispatchEvent(new Event('storage'));
+    setShowRemoveConfirm(false);
+  } catch {
+    setError('Failed to remove photo');
+  } finally {
+    setRemovingAvatar(false);
+  }
+};
 
   const handleSave = async () => {
     setSaving(true);
@@ -1084,11 +1149,18 @@ setProfile(p => ({ ...p, email: newEmail }));
                 : <span className="text-white font-extrabold text-xl">{initials}</span>}
             </div>
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-lg cursor-pointer transition hover:opacity-90"
-              style={{ background: accent }}>
-              {uploading ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-lg cursor-pointer transition hover:opacity-90"
+  style={{ background: accent }}>
+  {uploading ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
+</button>
+{avatarPreview && !uploading && (
+  <button onClick={() => setShowRemoveConfirm(true)}
+    className="absolute -top-1 -right-1 w-7 h-7 rounded-xl bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg cursor-pointer transition"
+    title="Remove photo">
+    <X size={13} />
+  </button>
+)}
+<input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
           <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{profile.name || 'Your Name'}</h2>
@@ -1166,7 +1238,9 @@ setProfile(p => ({ ...p, email: newEmail }));
       inputClass={inputClass}
     />
   </div>
+  {dialCountry?.code === selectedCountry?.code && (
   <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+)}
 </div>
 
           {/* Address — structured */}
@@ -1427,6 +1501,31 @@ setProfile(p => ({ ...p, email: newEmail }));
           className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition"
           style={{ background: accent }}>
           Done
+        </button>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
+
+{showRemoveConfirm && typeof document !== 'undefined' && createPortal(
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !removingAvatar && setShowRemoveConfirm(false)} />
+    <div className="relative w-[92%] max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-50 dark:bg-red-500/10">
+        <X className="w-6 h-6 text-red-600" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Remove profile photo?</h3>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your initials will be shown instead.</p>
+      <div className="mt-6 flex gap-3">
+        <button onClick={() => setShowRemoveConfirm(false)} disabled={removingAvatar}
+          className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition font-semibold cursor-pointer text-sm disabled:opacity-50">
+          Cancel
+        </button>
+        <button onClick={handleRemoveAvatar} disabled={removingAvatar}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition font-semibold cursor-pointer text-sm disabled:opacity-50">
+          {removingAvatar ? <Loader2 size={14} className="animate-spin" /> : null}
+          {removingAvatar ? 'Removing...' : 'Remove'}
         </button>
       </div>
     </div>

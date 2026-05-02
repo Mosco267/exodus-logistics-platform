@@ -1046,7 +1046,9 @@ function SignUpContent() {
                     />
                   </div>
                   {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
-                  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+                 {dialCountry?.code === selectedCountry?.code && (
+  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+)}
                 </div>
 
                 <div id="input-password">

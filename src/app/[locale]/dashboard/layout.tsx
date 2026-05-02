@@ -15,6 +15,7 @@ import CongratulationsModal from "@/components/CongratulationsModal";
 import OnboardingTour from "@/components/OnboardingTour";
 import AppearancePanel, { THEMES, ThemeId, ColorMode } from "@/components/AppearancePanel";
 import LanguageModal from "@/components/LanguageModal";
+import NavigationProgress from "@/components/NavigationProgress";
 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -271,9 +272,10 @@ const toggleDark = () => {
     { href: `/${locale}/dashboard/settings`, label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
-  return (
+ return (
     <div className="min-h-screen flex overflow-x-hidden" style={{ background: pageBg, color: pageText }}>
-
+      <NavigationProgress />
+      
       {/* MOBILE OVERLAY */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
