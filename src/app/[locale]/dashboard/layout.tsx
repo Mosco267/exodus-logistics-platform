@@ -37,52 +37,36 @@ const [headerVisible, setHeaderVisible] = useState(true);
 const lastScrollYRef = useRef(0);
 
 useEffect(() => {
-  let mainEl: HTMLElement | null = null;
-  let cleanup: (() => void) | null = null;
-  let frameId: number;
+  const handleScroll = () => {
+    // Try main first, fall back to window
+    const mainEl = document.querySelector('main');
+    const currentY = mainEl && mainEl.scrollHeight > mainEl.clientHeight
+      ? mainEl.scrollTop
+      : (window.scrollY || document.documentElement.scrollTop);
+    
+    const lastY = lastScrollYRef.current;
+    const diff = currentY - lastY;
 
-  const setupListener = () => {
-    mainEl = document.querySelector('main');
-    console.log('🔍 Looking for <main> element:', mainEl);
-
-    if (!mainEl) {
-      console.log('❌ <main> not found yet, retrying...');
-      frameId = requestAnimationFrame(setupListener);
-      return;
+    if (diff > 5 && currentY > 20) {
+      setHeaderVisible(false);
+    } else if (diff < -5) {
+      setHeaderVisible(true);
     }
 
-    console.log('✅ <main> found! Attaching scroll listener.');
-    console.log('Main element scrollHeight:', mainEl.scrollHeight, 'clientHeight:', mainEl.clientHeight);
-
-    const handleScroll = () => {
-      const currentY = mainEl!.scrollTop;
-      const lastY = lastScrollYRef.current;
-      const diff = currentY - lastY;
-      console.log(`📜 Scroll fired — currentY: ${currentY}, lastY: ${lastY}, diff: ${diff}`);
-
-      if (diff > 5 && currentY > 20) {
-        console.log('⬇️  Hiding header');
-        setHeaderVisible(false);
-      } else if (diff < -5) {
-        console.log('⬆️  Showing header');
-        setHeaderVisible(true);
-      }
-
-      lastScrollYRef.current = currentY;
-    };
-
-    mainEl.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Also try listening to window scroll as a fallback
-    window.addEventListener('scroll', () => console.log('🪟 Window scroll fired'), { passive: true });
-
-    cleanup = () => mainEl?.removeEventListener('scroll', handleScroll);
+    lastScrollYRef.current = currentY;
   };
 
-  setupListener();
+  // Listen to BOTH window and main — whichever fires first wins
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  
+  const mainEl = document.querySelector('main');
+  if (mainEl) {
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+  }
+
   return () => {
-    if (frameId) cancelAnimationFrame(frameId);
-    if (cleanup) cleanup();
+    window.removeEventListener('scroll', handleScroll);
+    if (mainEl) mainEl.removeEventListener('scroll', handleScroll);
   };
 }, []);
 
