@@ -34,33 +34,6 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
 const [displayEmail, setDisplayEmail] = useState('');
 
 
-
-const [headerVisible, setHeaderVisible] = useState(true);
-const lastScrollYRef = useRef(0);
-
-useEffect(() => {
-  const handleScroll = (e: Event) => {
-    const target = e.target as HTMLElement;
-    if (!target || target.tagName !== 'MAIN') return;
-    
-    const currentY = target.scrollTop;
-    const lastY = lastScrollYRef.current;
-    const diff = currentY - lastY;
-
-    if (diff > 5 && currentY > 20) {
-      setHeaderVisible(false);
-    } else if (diff < -5) {
-      setHeaderVisible(true);
-    }
-
-    lastScrollYRef.current = currentY;
-  };
-
-  // Use capture phase to catch scroll events from any <main> element
-  document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-  return () => document.removeEventListener('scroll', handleScroll, { capture: true } as any);
-}, []);
-
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
   const params = useParams();
@@ -420,16 +393,10 @@ style={{
 
         {/* TOPBAR */}
 <header
-  className="border-b shadow-sm shrink-0"
+  className="sticky top-0 z-30 border-b shadow-sm shrink-0"
   style={{
     background: headerBg,
     borderColor: headerBorder,
-    transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
-    transition: 'transform 250ms ease-in-out',
-    position: 'sticky',
-    top: 0,
-    zIndex: 30,
-    willChange: 'transform',
   }}>
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
