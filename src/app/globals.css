@@ -140,7 +140,7 @@ html {
 }
 
 /* Force GPU compositing on page transitions */
-main, .min-h-screen {
+.min-h-screen {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   will-change: transform;
