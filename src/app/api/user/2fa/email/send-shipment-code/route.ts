@@ -33,8 +33,8 @@ export async function POST() {
   const name = user?.name || 'Customer';
 
   const codeBoxesHtml = code.split("").map(digit => `
-    <td style="padding:0 5px;">
-      <div style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
+    <td class="code-cell" style="padding:0 5px;">
+      <div class="code-box" style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
     </td>
   `).join("");
 
@@ -53,7 +53,7 @@ export async function POST() {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
       <tr>
         <td style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;border:1px solid #e0e8ff;">
-          <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Verification code</p>
+          <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Your verification code</p>
           <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
             <tr>${codeBoxesHtml}</tr>
           </table>
