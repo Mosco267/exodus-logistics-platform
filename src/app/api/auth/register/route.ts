@@ -28,11 +28,33 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    const blocked = await db.collection("blocked_emails").findOne({ email });
-    if (blocked) return NextResponse.json({ error: "This email address is not eligible for registration." }, { status: 403 });
+    // Check banned first
+const banned = await db.collection("banned_emails").findOne({ email });
+if (banned) return NextResponse.json({ error: "This email is banned. Please contact support@goexoduslogistics.com." }, { status: 403 });
 
-    const existing = await db.collection("users").findOne({ email });
-    if (existing) return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
+// If forceCreate flag is set (user clicked "Create new account" after deletion), purge old data
+const forceCreate = body.forceCreate === true;
+if (forceCreate) {
+  await db.collection("deleted_users").deleteOne({ email });
+  await db.collection("shipments").deleteMany({
+    $or: [{ senderEmail: email }, { receiverEmail: email }, { createdByEmail: email }]
+  });
+  await db.collection("notifications").deleteMany({ userEmail: email });
+} else {
+  const deleted = await db.collection("deleted_users").findOne({ email });
+  if (deleted) {
+    return NextResponse.json({
+      error: "deleted_account",
+      name: deleted.name || '',
+    }, { status: 409 });
+  }
+}
+
+const blocked = await db.collection("blocked_emails").findOne({ email });
+if (blocked) return NextResponse.json({ error: "This email address is not eligible for registration." }, { status: 403 });
+
+const existing = await db.collection("users").findOne({ email });
+if (existing) return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const verificationCode = crypto.randomInt(100000, 999999).toString();

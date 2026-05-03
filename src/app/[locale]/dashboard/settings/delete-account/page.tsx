@@ -107,15 +107,15 @@ export default function DeleteAccountPage() {
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-6 space-y-5">
 
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20">
-          <AlertTriangle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold text-red-700 dark:text-red-400">This action is permanent</p>
-            <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-1 leading-relaxed">
-              Deleting your account will immediately log you out and remove your data. Only an administrator can restore it.
-            </p>
-          </div>
-        </div>
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
+  <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+  <div>
+    <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Your account can be restored</p>
+    <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1 leading-relaxed">
+      After deletion you'll be logged out immediately. Your account is recoverable — contact <strong>support@goexoduslogistics.com</strong> to restore it. If you sign up again with the same email, you'll have the option to restore or start fresh.
+    </p>
+  </div>
+</div>
 
         {step === 'auth' && (
           <div className="space-y-4">

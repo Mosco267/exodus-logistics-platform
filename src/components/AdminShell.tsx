@@ -17,6 +17,7 @@ import {
   Mail,
   Workflow,
   CreditCard,
+  Ban,
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -143,6 +144,11 @@ export default function AdminShell({ children }: Props) {
   href: `/${locale}/dashboard/admin/deleted-users`,
   label: "Deleted Users",
   icon: <UserX className="w-5 h-5" />,
+},
+{
+  href: `/${locale}/dashboard/admin/users/banned`,
+  label: "Banned Users",
+  icon: <Ban className="w-5 h-5" />,
 },
   ];
 

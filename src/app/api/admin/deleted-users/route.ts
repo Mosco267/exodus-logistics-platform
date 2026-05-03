@@ -41,36 +41,38 @@ export async function POST(req: Request) {
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
+  const lcEmail = email.toLowerCase().trim();
 
   if (action === "restore") {
-    // Get user before modifying
-    const deletedUser = await db.collection("deleted_users").findOne({ email: email.toLowerCase() });
+    const deletedUser = await db.collection("deleted_users").findOne({ email: lcEmail });
+    if (!deletedUser) return NextResponse.json({ error: "User not found in deleted_users" }, { status: 404 });
 
-    // Remove deleted flag from user
-    await db.collection("users").updateOne(
-      { email: email.toLowerCase() },
-      { $unset: { deleted: 1, deletedAt: 1, deletedBy: 1 } }
-    );
+    // Strip metadata fields and restore the original user document
+    const { _id, deletedAt, deletedBy, deleteReason, originalId, ...userData } = deletedUser as any;
 
-    // Remove from blocked_emails
-    await db.collection("blocked_emails").deleteOne({ email: email.toLowerCase() });
+    await db.collection("users").insertOne({
+      ...userData,
+      _id: originalId || _id,
+      restoredAt: new Date(),
+    });
 
-    // Remove from deleted_users
-    await db.collection("deleted_users").deleteOne({ email: email.toLowerCase() });
+    await db.collection("deleted_users").deleteOne({ email: lcEmail });
+    await db.collection("blocked_emails").deleteOne({ email: lcEmail });
 
-    // Send restore email
-    try {
-      await sendRestoreEmail(email, { name: deletedUser?.name || '' });
-    } catch {}
+    try { await sendRestoreEmail(email, { name: deletedUser.name || '' }); } catch {}
 
     return NextResponse.json({ ok: true });
   }
 
   if (action === "permanent-delete") {
-    // Remove from all collections permanently
-    await db.collection("deleted_users").deleteOne({ email: email.toLowerCase() });
-    await db.collection("users").deleteOne({ email: email.toLowerCase() });
-    await db.collection("blocked_emails").deleteOne({ email: email.toLowerCase() });
+    // Hard delete — wipe deleted_users record AND all associated shipments
+    await db.collection("deleted_users").deleteOne({ email: lcEmail });
+    await db.collection("users").deleteOne({ email: lcEmail });
+    await db.collection("blocked_emails").deleteOne({ email: lcEmail });
+    await db.collection("shipments").deleteMany({
+      $or: [{ senderEmail: lcEmail }, { receiverEmail: lcEmail }, { createdByEmail: lcEmail }]
+    });
+    await db.collection("notifications").deleteMany({ userEmail: lcEmail });
 
     return NextResponse.json({ ok: true });
   }

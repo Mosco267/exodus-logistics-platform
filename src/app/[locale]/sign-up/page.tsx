@@ -725,6 +725,11 @@ function SignUpContent() {
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
+const [showBannedModal, setShowBannedModal] = useState(false);
+const [deletedAccountName, setDeletedAccountName] = useState('');
+const [forceCreating, setForceCreating] = useState(false);
+
   const [navOpen, setNavOpen] = useState(false);
 
   const navItems = [
@@ -824,47 +829,68 @@ function SignUpContent() {
     const submitName = name.trim();
 
     setIsSubmitting(true);
-    try {
-      const body = {
-        name: submitName,
-        email: submitEmail,
-        password: submitPassword,
-        phone: fullPhone,
-        country,
-        accountType: 'individual',
-        emailUpdates,
-      };
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setGeneralError(json?.error || 'Registration failed. Please try again.');
-        setTimeout(() => {
-          const el = document.getElementById('general-error');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 50);
-        return;
-      }
-      sessionStorage.setItem('exodus_reg_password', submitPassword);
-      router.push(`/${locale}/verify-email?email=${encodeURIComponent(submitEmail)}&locale=${locale}`);
-    } catch {
-      setGeneralError('Something went wrong. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+try {
+  const body: any = {
+    name: submitName,
+    email: submitEmail,
+    password: submitPassword,
+    phone: fullPhone,
+    country,
+    accountType: 'individual',
+    emailUpdates,
   };
+  if (forceCreating) body.forceCreate = true;
+
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    if (json?.error === 'deleted_account') {
+      setDeletedAccountName(json.name || '');
+      setShowDeletedModal(true);
+      return;
+    }
+    if (typeof json?.error === 'string' && json.error.toLowerCase().includes('banned')) {
+      setShowBannedModal(true);
+      return;
+    }
+    setGeneralError(json?.error || 'Registration failed. Please try again.');
+    setTimeout(() => {
+      const el = document.getElementById('general-error');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    return;
+  }
+  sessionStorage.setItem('exodus_reg_password', submitPassword);
+  router.push(`/${locale}/verify-email?email=${encodeURIComponent(submitEmail)}&locale=${locale}`);
+} catch {
+  setGeneralError('Something went wrong. Please try again.');
+} finally {
+  setIsSubmitting(false);
+  setForceCreating(false);
+}
+  };
+
+  const handleCreateNewAccount = async () => {
+  setShowDeletedModal(false);
+  setForceCreating(true);
+  // Re-fire the submit
+  const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+  setTimeout(() => handleSubmit(fakeEvent), 50);
+};
 
   return (
     <>
       <style>{`
-        @media (min-width: 1024px) {
-          header, nav[role="navigation"] { display: none !important; }
-        }
-        html { overscroll-behavior-x: none; }
-      `}</style>
+  @media (min-width: 1024px) {
+    header, nav[role="navigation"] { display: none !important; }
+  }
+  html { overscroll-behavior-x: none; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
+`}</style>
       <div className="flex min-h-screen">
 
         {/* ── LEFT PANEL ── */}
@@ -1116,10 +1142,73 @@ function SignUpContent() {
                 Already have an account?{' '}
                 <Link href={`/${locale}/sign-in`} className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition">Sign in</Link>
               </p>
-            </div>
+           </div>
           </motion.div>
         </div>
       </div>
+
+      {/* Deleted account modal */}
+      {showDeletedModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-100">
+              <AlertCircle className="w-6 h-6 text-amber-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 text-center">Account previously deleted</h3>
+            <p className="mt-2 text-sm text-gray-500 text-center leading-relaxed">
+              An account was previously created with <strong>{email}</strong>{deletedAccountName ? ` (${deletedAccountName})` : ''} and later deleted.
+              Would you like to restore the old account, or create a new one?
+            </p>
+            <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
+              ⚠️ Creating a new account will <strong>permanently delete</strong> all data from the previous account, including past shipments and notifications.
+            </p>
+            <div className="mt-6 flex flex-col gap-2.5">
+              <a href={`mailto:support@goexoduslogistics.com?subject=Restore%20my%20account&body=Hi%20Exodus%20Logistics%20support%2C%0A%0AI%20would%20like%20to%20restore%20my%20account%20associated%20with%20the%20email%3A%20${encodeURIComponent(email)}.%0A%0APlease%20review%20and%20restore%20it%20at%20your%20earliest%20convenience.%0A%0AThank%20you.`}
+                className="w-full py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer text-center hover:opacity-90 transition"
+                style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
+                Restore old account (email support)
+              </a>
+              <button onClick={handleCreateNewAccount}
+                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition">
+                Create a new account (delete old data)
+              </button>
+              <button onClick={() => setShowDeletedModal(false)}
+                className="w-full py-2 text-xs font-semibold text-gray-500 cursor-pointer hover:text-gray-700">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banned account modal */}
+      {showBannedModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBannedModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-100">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 text-center">This email is banned</h3>
+            <p className="mt-2 text-sm text-gray-500 text-center leading-relaxed">
+              The email address <strong>{email}</strong> has been banned and cannot be used to create an account.
+              Please contact support if you believe this is a mistake.
+            </p>
+            <div className="mt-6 flex flex-col gap-2.5">
+              <a href={`mailto:support@goexoduslogistics.com?subject=Banned%20account%20appeal&body=Hi%20Exodus%20Logistics%20support%2C%0A%0AI%20would%20like%20to%20appeal%20the%20ban%20on%20my%20email%3A%20${encodeURIComponent(email)}.%0A%0AThank%20you.`}
+                className="w-full py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer text-center hover:opacity-90 transition"
+                style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' }}>
+                Contact support
+              </a>
+              <button onClick={() => setShowBannedModal(false)}
+                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

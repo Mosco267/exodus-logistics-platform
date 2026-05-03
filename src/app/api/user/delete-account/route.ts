@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const user = await db.collection("users").findOne({ email });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // Save to deleted_users collection
+  // Save full user record to deleted_users (so we can restore it)
   await db.collection("deleted_users").insertOne({
     ...user,
     deletedAt: new Date(),
@@ -25,21 +25,10 @@ export async function POST(req: Request) {
     originalId: user._id,
   });
 
-  // Mark user as deleted in users collection (keep record, block login)
-  await db.collection("users").updateOne(
-    { email },
-    { $set: { deleted: true, deletedAt: new Date(), deletedBy: "self", avatarUrl: '' } }
-  );
+  // Remove from active users (clean separation — deleted account no longer exists in users)
+  await db.collection("users").deleteOne({ email });
 
-  // Block email from login
-  await db.collection("blocked_emails").insertOne({
-    email,
-    reason: "Account deleted by user",
-    deletedAt: new Date(),
-    canRestore: true,
-  });
-
-  // Send deletion email
+  // Send deletion confirmation email
   try {
     await sendDeletedByAdminEmail(email, { name: user.name });
   } catch {}

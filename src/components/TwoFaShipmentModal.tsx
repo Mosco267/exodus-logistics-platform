@@ -1,7 +1,7 @@
 // src/components/TwoFaShipmentModal.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, ShieldCheck, X, Mail, Smartphone } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -13,25 +13,44 @@ type Props = {
   onClose: () => void;
 };
 
+const RESEND_SECONDS = 60;
+
 export default function TwoFaShipmentModal({ accent, method, emailHint, onSuccess, onClose }: Props) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resentMessage, setResentMessage] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // For email method: send the code automatically when modal opens
+  const startCountdown = () => {
+    setSecondsLeft(RESEND_SECONDS);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
+  // Send the email code automatically when modal opens (only for email method)
   useEffect(() => {
     if (method !== 'email') return;
     setResending(true);
     fetch('/api/user/2fa/email/send-shipment-code', { method: 'POST' })
       .then(r => r.json())
-      .then(() => setResending(false))
+      .then(() => { setResending(false); startCountdown(); })
       .catch(() => { setResending(false); setError('Failed to send code. Please try again.'); });
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [method]);
 
   const handleResend = async () => {
-    if (method !== 'email') return;
+    if (method !== 'email' || secondsLeft > 0) return;
     setResending(true);
     setError('');
     setResentMessage('');
@@ -39,6 +58,7 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
       await fetch('/api/user/2fa/email/send-shipment-code', { method: 'POST' });
       setResentMessage('A new code has been sent to your email.');
       setTimeout(() => setResentMessage(''), 4000);
+      startCountdown();
     } catch {
       setError('Failed to resend code.');
     } finally {
@@ -99,7 +119,6 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
             {description}
           </p>
 
-          {/* 6-digit code boxes */}
           <div className="flex items-center justify-center gap-2 mb-4">
             {[0,1,2,3,4,5].map(i => (
               <input key={i} id={`twofa-box-${i}`} type="text" inputMode="numeric" maxLength={1}
@@ -139,10 +158,16 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
 
           {method === 'email' && (
             <div className="text-center mb-4">
-              <button onClick={handleResend} disabled={resending}
-                className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer disabled:opacity-50">
-                {resending ? 'Sending...' : "Didn't receive a code? Resend"}
-              </button>
+              {secondsLeft > 0 ? (
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  Resend code in <span className="font-bold text-gray-900 dark:text-white">{secondsLeft}s</span>
+                </p>
+              ) : (
+                <button onClick={handleResend} disabled={resending}
+                  className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer disabled:opacity-50">
+                  {resending ? 'Sending...' : "Didn't receive a code? Resend"}
+                </button>
+              )}
             </div>
           )}
 

@@ -36,16 +36,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
-  const user = await db.collection("users").findOne({ email });
-  if (!user) return null;
+ const user = await db.collection("users").findOne({ email });
+if (!user) {
+  // Check if this email is banned (user record was wiped on ban)
+  const banned = await db.collection("banned_emails").findOne({ email });
+  if (banned) throw new Error('banned');
+  // Check if soft-deleted
+  const deleted = await db.collection("deleted_users").findOne({ email });
+  if (deleted) throw new Error('deleted');
+  return null;
+}
 
-  // Block deleted/banned users
-  if ((user as any).deleted === true) return null;
-  if ((user as any).isDeleted === true) return null;
+// Check banned_emails first
+const banned = await db.collection("banned_emails").findOne({ email });
+if (banned) throw new Error('banned');
 
-  // Check blocked_emails collection
-  const blocked = await db.collection("blocked_emails").findOne({ email });
-  if (blocked) throw new Error('suspended');
+// Block deleted users
+if ((user as any).deleted === true) throw new Error('deleted');
+if ((user as any).isDeleted === true) throw new Error('deleted');
+
+// Legacy: any other blocked_emails entry → suspended
+const blocked = await db.collection("blocked_emails").findOne({ email });
+if (blocked) throw new Error('suspended');
 
   if (passkeyToken) {
     // Passkey token sign-in
@@ -84,11 +96,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     const email = String(user.email || "").toLowerCase().trim();
     if (!email) return false;
 
-    const blocked = await db.collection("blocked_emails").findOne({ email });
+   const banned = await db.collection("banned_emails").findOne({ email });
+if (banned) return '/en/auth/error?error=Banned';
+
+const deleted = await db.collection("deleted_users").findOne({ email });
+if (deleted) return '/en/auth/error?error=Deleted';
+
+const blocked = await db.collection("blocked_emails").findOne({ email });
 if (blocked) return '/en/auth/error?error=AccessDenied';
 
 const existing = await db.collection("users").findOne({ email });
-if (existing?.deleted === true) return '/en/auth/error?error=AccessDenied';
+if (existing?.deleted === true) return '/en/auth/error?error=Deleted';
 
     if (!existing) {
       // New user — create account

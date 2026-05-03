@@ -1,7 +1,7 @@
 // src/app/[locale]/dashboard/settings/two-factor/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Shield, Mail, Smartphone, CheckCircle2,
@@ -140,12 +140,16 @@ export default function TwoFactorPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'enable-email' | 'disable-email' | 'enable-app' | 'disable-app' | null>(null);
 
-  // Email 2FA
-  const [emailStep, setEmailStep] = useState<'idle' | 'verify'>('idle');
-  const [emailCode, setEmailCode] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [emailSuccess, setEmailSuccess] = useState('');
+ // Email 2FA
+const [emailStep, setEmailStep] = useState<'idle' | 'verify'>('idle');
+const [emailCode, setEmailCode] = useState('');
+const [emailError, setEmailError] = useState('');
+const [emailLoading, setEmailLoading] = useState(false);
+const [emailSuccess, setEmailSuccess] = useState('');
+const [emailSecondsLeft, setEmailSecondsLeft] = useState(0);
+const [emailResending, setEmailResending] = useState(false);
+const [emailResentMessage, setEmailResentMessage] = useState('');
+const emailIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // App 2FA
   const [appStep, setAppStep] = useState<'idle' | 'qr' | 'verify' | 'disable'>('idle');
@@ -165,6 +169,10 @@ export default function TwoFactorPage() {
       .finally(() => setReady(true));
   }, []);
 
+  useEffect(() => {
+  return () => { if (emailIntervalRef.current) clearInterval(emailIntervalRef.current); };
+}, []);
+
   const requestAction = (action: typeof pendingAction) => {
     setPendingAction(action);
     setShowPasswordModal(true);
@@ -179,19 +187,56 @@ export default function TwoFactorPage() {
     setPendingAction(null);
   };
 
+  const RESEND_SECONDS = 60;
+
+const startEmailCountdown = () => {
+  setEmailSecondsLeft(RESEND_SECONDS);
+  if (emailIntervalRef.current) clearInterval(emailIntervalRef.current);
+  emailIntervalRef.current = setInterval(() => {
+    setEmailSecondsLeft(s => {
+      if (s <= 1) {
+        if (emailIntervalRef.current) clearInterval(emailIntervalRef.current);
+        return 0;
+      }
+      return s - 1;
+    });
+  }, 1000);
+};
+
+const handleResendEmailCode = async () => {
+  if (emailSecondsLeft > 0) return;
+  setEmailResending(true);
+  setEmailError('');
+  setEmailResentMessage('');
+  try {
+    const res = await fetch('/api/user/2fa/email/setup', { method: 'POST' });
+    if (!res.ok) {
+      const data = await res.json();
+      setEmailError(data.error || 'Failed to resend');
+      return;
+    }
+    setEmailResentMessage('A new code has been sent to your email.');
+    setTimeout(() => setEmailResentMessage(''), 4000);
+    startEmailCountdown();
+  } catch {
+    setEmailError('Failed to resend code.');
+  } finally {
+    setEmailResending(false);
+  }
+};
+
   const startEmailSetup = async () => {
-  // Close app setup if open
   setAppStep('idle'); setAppCode(''); setAppError('');
   setEmailError(''); setEmailLoading(true);
-  // ...rest unchanged
-    try {
-      const res = await fetch('/api/user/2fa/email/setup', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Failed'); return; }
-      setEmailStep('verify'); setEmailCode('');
-    } catch { setEmailError('Something went wrong'); }
-    finally { setEmailLoading(false); }
-  };
+  try {
+    const res = await fetch('/api/user/2fa/email/setup', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { setEmailError(data.error || 'Failed'); return; }
+    setEmailStep('verify'); setEmailCode('');
+    startEmailCountdown();
+  } catch { setEmailError('Something went wrong'); }
+  finally { setEmailLoading(false); }
+};
 
   const verifyEmailCode = async () => {
     if (emailCode.length < 6) { setEmailError('Enter the 6-digit code'); return; }
@@ -333,24 +378,46 @@ export default function TwoFactorPage() {
           )}
 
           {emailStep === 'verify' && (
-            <div className="space-y-4">
-              <p className="text-xs text-gray-500 dark:text-gray-400">A 6-digit code has been sent to your email. Enter it below to activate.</p>
-              <CodeBoxes id="email2fa" value={emailCode} onChange={setEmailCode} />
-              {emailError && <p className="text-xs text-red-500 text-center font-medium">{emailError}</p>}
-              <div className="flex gap-2.5">
-                <button onClick={() => { setEmailStep('idle'); setEmailCode(''); setEmailError(''); }}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                  Cancel
-                </button>
-                <button onClick={verifyEmailCode} disabled={emailLoading || emailCode.length < 6}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
-                  style={{ background: accent }}>
-                  {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                  {emailLoading ? 'Activating...' : 'Activate'}
-                </button>
-              </div>
-            </div>
-          )}
+  <div className="space-y-4">
+    <p className="text-xs text-gray-500 dark:text-gray-400">A 6-digit code has been sent to your email. Enter it below to activate.</p>
+    <CodeBoxes id="email2fa" value={emailCode} onChange={setEmailCode} />
+    {emailError && <p className="text-xs text-red-500 text-center font-medium">{emailError}</p>}
+    {emailResentMessage && <p className="text-xs text-emerald-600 text-center font-medium">{emailResentMessage}</p>}
+
+    <div className="text-center">
+      {emailSecondsLeft > 0 ? (
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+          Resend code in <span className="font-bold text-gray-900 dark:text-white">{emailSecondsLeft}s</span>
+        </p>
+      ) : (
+        <button onClick={handleResendEmailCode} disabled={emailResending}
+          className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer disabled:opacity-50">
+          {emailResending ? 'Sending...' : "Didn't receive a code? Resend"}
+        </button>
+      )}
+    </div>
+
+    <div className="flex gap-2.5">
+      <button onClick={() => {
+        setEmailStep('idle');
+        setEmailCode('');
+        setEmailError('');
+        setEmailResentMessage('');
+        if (emailIntervalRef.current) clearInterval(emailIntervalRef.current);
+        setEmailSecondsLeft(0);
+      }}
+        className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+        Cancel
+      </button>
+      <button onClick={verifyEmailCode} disabled={emailLoading || emailCode.length < 6}
+        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
+        style={{ background: accent }}>
+        {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+        {emailLoading ? 'Activating...' : 'Activate'}
+      </button>
+    </div>
+  </div>
+)}
         </div>
       </div>
 
