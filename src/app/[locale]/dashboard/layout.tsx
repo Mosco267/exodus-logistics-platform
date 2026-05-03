@@ -39,27 +39,36 @@ const lastScrollYRef = useRef(0);
 useEffect(() => {
   let mainEl: HTMLElement | null = null;
   let cleanup: (() => void) | null = null;
+  let frameId: number;
 
   const setupListener = () => {
     mainEl = document.querySelector('main');
     if (!mainEl) {
-      // Try again next frame if main isn't ready yet
-      requestAnimationFrame(setupListener);
+      frameId = requestAnimationFrame(setupListener);
       return;
     }
 
+    let ticking = false;
     const handleScroll = () => {
-      if (!mainEl) return;
-      const currentY = mainEl.scrollTop;
-      const lastY = lastScrollYRef.current;
+      if (!ticking && mainEl) {
+        window.requestAnimationFrame(() => {
+          const currentY = mainEl!.scrollTop;
+          const lastY = lastScrollYRef.current;
+          const diff = currentY - lastY;
 
-      if (currentY > lastY && currentY > 20) {
-        setHeaderVisible(false);
-      } else if (currentY < lastY) {
-        setHeaderVisible(true);
+          if (diff > 5 && currentY > 20) {
+            // Scrolling down
+            setHeaderVisible(false);
+          } else if (diff < -5) {
+            // Scrolling up
+            setHeaderVisible(true);
+          }
+
+          lastScrollYRef.current = currentY;
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      lastScrollYRef.current = currentY;
     };
 
     mainEl.addEventListener('scroll', handleScroll, { passive: true });
@@ -67,7 +76,10 @@ useEffect(() => {
   };
 
   setupListener();
-  return () => { if (cleanup) cleanup(); };
+  return () => {
+    if (frameId) cancelAnimationFrame(frameId);
+    if (cleanup) cleanup();
+  };
 }, []);
 
   const pathname = usePathname();
@@ -425,16 +437,20 @@ style={{
       </aside>
 
       {/* MAIN */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
 
         {/* TOPBAR */}
-        <header
-  className="sticky top-0 z-30 border-b shadow-sm md:transform-none"
+<header
+  className="border-b shadow-sm shrink-0"
   style={{
     background: headerBg,
     borderColor: headerBorder,
     transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
     transition: 'transform 250ms ease-in-out',
+    position: 'sticky',
+    top: 0,
+    zIndex: 30,
+    willChange: 'transform',
   }}>
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
