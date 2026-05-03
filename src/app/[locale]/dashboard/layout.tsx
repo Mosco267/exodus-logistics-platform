@@ -37,35 +37,56 @@ const [headerVisible, setHeaderVisible] = useState(true);
 const lastScrollYRef = useRef(0);
 
 useEffect(() => {
-  const handleScroll = () => {
-    // Try main first, fall back to window
+  const handleScroll = (e?: Event) => {
     const mainEl = document.querySelector('main');
-    const currentY = mainEl && mainEl.scrollHeight > mainEl.clientHeight
-      ? mainEl.scrollTop
-      : (window.scrollY || document.documentElement.scrollTop);
-    
+    const docEl = document.documentElement;
+    const body = document.body;
+
+    console.log('🎯 SCROLL EVENT FIRED from:', e?.target);
+    console.log('   window.scrollY:', window.scrollY);
+    console.log('   documentElement.scrollTop:', docEl.scrollTop);
+    console.log('   body.scrollTop:', body.scrollTop);
+    console.log('   main.scrollTop:', mainEl?.scrollTop);
+    console.log('   documentElement.scrollHeight:', docEl.scrollHeight, 'clientHeight:', docEl.clientHeight);
+    console.log('   body.scrollHeight:', body.scrollHeight, 'clientHeight:', body.clientHeight);
+
+    const currentY = window.scrollY || docEl.scrollTop || body.scrollTop || mainEl?.scrollTop || 0;
     const lastY = lastScrollYRef.current;
     const diff = currentY - lastY;
 
+    console.log(`   → using currentY: ${currentY}, diff: ${diff}`);
+
     if (diff > 5 && currentY > 20) {
+      console.log('   ⬇️ HIDING');
       setHeaderVisible(false);
     } else if (diff < -5) {
+      console.log('   ⬆️ SHOWING');
       setHeaderVisible(true);
     }
 
     lastScrollYRef.current = currentY;
   };
 
-  // Listen to BOTH window and main — whichever fires first wins
-  window.addEventListener('scroll', handleScroll, { passive: true });
+  // Attach to literally everything that could possibly scroll
+  window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+  document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+  document.body.addEventListener('scroll', handleScroll, { passive: true });
+  document.documentElement.addEventListener('scroll', handleScroll, { passive: true });
   
   const mainEl = document.querySelector('main');
   if (mainEl) {
     mainEl.addEventListener('scroll', handleScroll, { passive: true });
   }
 
+  // Also try touch events for mobile
+  window.addEventListener('touchmove', handleScroll, { passive: true });
+
   return () => {
-    window.removeEventListener('scroll', handleScroll);
+    window.removeEventListener('scroll', handleScroll, { capture: true });
+    document.removeEventListener('scroll', handleScroll, { capture: true });
+    document.body.removeEventListener('scroll', handleScroll);
+    document.documentElement.removeEventListener('scroll', handleScroll);
+    window.removeEventListener('touchmove', handleScroll);
     if (mainEl) mainEl.removeEventListener('scroll', handleScroll);
   };
 }, []);
