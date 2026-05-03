@@ -36,31 +36,29 @@ const [displayEmail, setDisplayEmail] = useState('');
 
 
 const [headerVisible, setHeaderVisible] = useState(true);
+const lastScrollYRef = useRef(0);
 
 useEffect(() => {
-  const mainEl = document.querySelector('main');
-  if (!mainEl) return;
-
-  let lastY = 0;
-  
-  // Use a sentinel div approach with IntersectionObserver as backup
-  // Plus a polling fallback that checks scrollTop every 100ms
-  const interval = setInterval(() => {
-    const currentY = mainEl.scrollTop;
-    const diff = currentY - lastY;
+  const handleScroll = (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (!target || target.tagName !== 'MAIN') return;
     
+    const currentY = target.scrollTop;
+    const lastY = lastScrollYRef.current;
+    const diff = currentY - lastY;
+
     if (diff > 5 && currentY > 20) {
       setHeaderVisible(false);
     } else if (diff < -5) {
       setHeaderVisible(true);
-    } else if (currentY === 0) {
-      setHeaderVisible(true);
     }
-    
-    lastY = currentY;
-  }, 100);
 
-  return () => clearInterval(interval);
+    lastScrollYRef.current = currentY;
+  };
+
+  // Use capture phase to catch scroll events from any <main> element
+  document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+  return () => document.removeEventListener('scroll', handleScroll, { capture: true } as any);
 }, []);
 
   const pathname = usePathname();
