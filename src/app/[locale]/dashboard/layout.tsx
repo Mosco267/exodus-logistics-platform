@@ -37,30 +37,37 @@ const [headerVisible, setHeaderVisible] = useState(true);
 const lastScrollYRef = useRef(0);
 
 useEffect(() => {
-  // Find the scrollable main element
-  const main = document.querySelector('main');
-  if (!main) return;
+  let mainEl: HTMLElement | null = null;
+  let cleanup: (() => void) | null = null;
 
-  const handleScroll = () => {
-    const currentY = main.scrollTop;
-    const lastY = lastScrollYRef.current;
-
-    // Only react to meaningful scroll changes (avoid jitter)
-    if (Math.abs(currentY - lastY) < 5) return;
-
-    if (currentY > lastY && currentY > 60) {
-      // Scrolling down past header height — hide
-      setHeaderVisible(false);
-    } else {
-      // Scrolling up — show
-      setHeaderVisible(true);
+  const setupListener = () => {
+    mainEl = document.querySelector('main');
+    if (!mainEl) {
+      // Try again next frame if main isn't ready yet
+      requestAnimationFrame(setupListener);
+      return;
     }
 
-    lastScrollYRef.current = currentY;
+    const handleScroll = () => {
+      if (!mainEl) return;
+      const currentY = mainEl.scrollTop;
+      const lastY = lastScrollYRef.current;
+
+      if (currentY > lastY && currentY > 20) {
+        setHeaderVisible(false);
+      } else if (currentY < lastY) {
+        setHeaderVisible(true);
+      }
+
+      lastScrollYRef.current = currentY;
+    };
+
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    cleanup = () => mainEl?.removeEventListener('scroll', handleScroll);
   };
 
-  main.addEventListener('scroll', handleScroll, { passive: true });
-  return () => main.removeEventListener('scroll', handleScroll);
+  setupListener();
+  return () => { if (cleanup) cleanup(); };
 }, []);
 
   const pathname = usePathname();
@@ -422,11 +429,12 @@ style={{
 
         {/* TOPBAR */}
         <header
-  className="sticky top-0 z-30 border-b shadow-sm transition-transform duration-300 ease-in-out"
+  className="sticky top-0 z-30 border-b shadow-sm md:transform-none"
   style={{
     background: headerBg,
     borderColor: headerBorder,
     transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
+    transition: 'transform 250ms ease-in-out',
   }}>
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
