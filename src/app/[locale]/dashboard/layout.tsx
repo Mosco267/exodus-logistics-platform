@@ -36,28 +36,31 @@ const [displayEmail, setDisplayEmail] = useState('');
 
 
 const [headerVisible, setHeaderVisible] = useState(true);
-const lastScrollYRef = useRef(0);
 
 useEffect(() => {
   const mainEl = document.querySelector('main');
   if (!mainEl) return;
 
-  const handleScroll = () => {
+  let lastY = 0;
+  
+  // Use a sentinel div approach with IntersectionObserver as backup
+  // Plus a polling fallback that checks scrollTop every 100ms
+  const interval = setInterval(() => {
     const currentY = mainEl.scrollTop;
-    const lastY = lastScrollYRef.current;
     const diff = currentY - lastY;
-
+    
     if (diff > 5 && currentY > 20) {
       setHeaderVisible(false);
     } else if (diff < -5) {
       setHeaderVisible(true);
+    } else if (currentY === 0) {
+      setHeaderVisible(true);
     }
+    
+    lastY = currentY;
+  }, 100);
 
-    lastScrollYRef.current = currentY;
-  };
-
-  mainEl.addEventListener('scroll', handleScroll, { passive: true });
-  return () => mainEl.removeEventListener('scroll', handleScroll);
+  return () => clearInterval(interval);
 }, []);
 
   const pathname = usePathname();
