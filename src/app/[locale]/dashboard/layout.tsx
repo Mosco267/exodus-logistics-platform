@@ -43,35 +43,39 @@ useEffect(() => {
 
   const setupListener = () => {
     mainEl = document.querySelector('main');
+    console.log('🔍 Looking for <main> element:', mainEl);
+
     if (!mainEl) {
+      console.log('❌ <main> not found yet, retrying...');
       frameId = requestAnimationFrame(setupListener);
       return;
     }
 
-    let ticking = false;
+    console.log('✅ <main> found! Attaching scroll listener.');
+    console.log('Main element scrollHeight:', mainEl.scrollHeight, 'clientHeight:', mainEl.clientHeight);
+
     const handleScroll = () => {
-      if (!ticking && mainEl) {
-        window.requestAnimationFrame(() => {
-          const currentY = mainEl!.scrollTop;
-          const lastY = lastScrollYRef.current;
-          const diff = currentY - lastY;
+      const currentY = mainEl!.scrollTop;
+      const lastY = lastScrollYRef.current;
+      const diff = currentY - lastY;
+      console.log(`📜 Scroll fired — currentY: ${currentY}, lastY: ${lastY}, diff: ${diff}`);
 
-          if (diff > 5 && currentY > 20) {
-            // Scrolling down
-            setHeaderVisible(false);
-          } else if (diff < -5) {
-            // Scrolling up
-            setHeaderVisible(true);
-          }
-
-          lastScrollYRef.current = currentY;
-          ticking = false;
-        });
-        ticking = true;
+      if (diff > 5 && currentY > 20) {
+        console.log('⬇️  Hiding header');
+        setHeaderVisible(false);
+      } else if (diff < -5) {
+        console.log('⬆️  Showing header');
+        setHeaderVisible(true);
       }
+
+      lastScrollYRef.current = currentY;
     };
 
     mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also try listening to window scroll as a fallback
+    window.addEventListener('scroll', () => console.log('🪟 Window scroll fired'), { passive: true });
+
     cleanup = () => mainEl?.removeEventListener('scroll', handleScroll);
   };
 
