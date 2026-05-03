@@ -723,7 +723,7 @@ const prefixDigits = rawPrefix.replace(/\D/g, '');
 const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
 const dynamicPattern = fmt.pattern.slice(fixedPrefix.length);
 const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
-const prefixPx = fixedPrefix.length * 7.2 + 4;
+const prefixPx = fixedPrefix.length * 8 + 12;
 
 const displayLocal = applyPhonePattern(local, dynamicPattern);
 
@@ -748,14 +748,14 @@ return (
         />
         <div className="relative flex-1">
   {fixedPrefix && (
-    <div
-      className="absolute inset-y-0 left-0 flex items-center pointer-events-none select-none z-10"
-      style={{ paddingLeft: '16px' }}>
-      <span className="text-sm font-medium text-gray-900 dark:text-white">
-        {fixedPrefix}
-      </span>
-    </div>
-  )}
+  <div
+    className="absolute inset-y-0 left-0 flex items-center pointer-events-none select-none z-10"
+    style={{ paddingLeft: '16px' }}>
+    <span style={{ fontSize: '16px', color: 'inherit', lineHeight: 1 }} className="text-gray-900 dark:text-white">
+      {fixedPrefix}
+    </span>
+  </div>
+)}
   <input
     value={displayLocal}
     onChange={e => {
