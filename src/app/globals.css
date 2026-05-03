@@ -111,10 +111,12 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 }
 
 html, body {
-  height: auto;
-  min-height: 100%;
-  overflow-y: auto;
+  height: 100%;
   position: relative;
+}
+
+body {
+  overflow: hidden;
 }
 
 /* Password field fix */
