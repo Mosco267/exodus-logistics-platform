@@ -33,6 +33,19 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
   const [avatarUrl, setAvatarUrl] = useState('');
 const [displayEmail, setDisplayEmail] = useState('');
 
+useEffect(() => {
+  // Lock body scroll on dashboard pages so <main> handles scrolling
+  const originalBodyOverflow = document.body.style.overflow;
+  const originalHtmlOverflow = document.documentElement.style.overflow;
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+  
+  return () => {
+    document.body.style.overflow = originalBodyOverflow;
+    document.documentElement.style.overflow = originalHtmlOverflow;
+  };
+}, []);
+
 const [headerVisible, setHeaderVisible] = useState(true);
 const lastScrollYRef = useRef(0);
 
