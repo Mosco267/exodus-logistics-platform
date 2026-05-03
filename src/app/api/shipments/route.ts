@@ -11,6 +11,7 @@ import {
   sendShipmentCreatedSenderEmail,
   sendShipmentCreatedReceiverEmailV2,
 } from "@/lib/email";
+import { createNotification } from "@/lib/notifications";  // ← ADD THIS
 
 export async function GET(req: Request) {
   try {
@@ -442,7 +443,19 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
 
       await db.collection("shipments").insertOne(doc);
 
-      const APP_URL = (
+// ── Create dashboard notification for the user who made the shipment ──
+if (createdByEmail) {
+  await createNotification({
+    userEmail: createdByEmail,
+    userId: createdByUserId || undefined,
+    title: "Shipment Created",
+    message: `Your shipment ${shipmentId} has been created and is being processed.`,
+    shipmentId,
+  });
+}
+
+const APP_URL = (
+  // ... rest stays the same
         process.env.APP_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
         "https://www.goexoduslogistics.com"

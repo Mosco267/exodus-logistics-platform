@@ -837,7 +837,8 @@ export default function NewShipmentPage() {
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
 
   const [showTwoFaModal, setShowTwoFaModal] = useState(false);
-const [pendingSubmit, setPendingSubmit] = useState(false);
+const [twoFaMethod, setTwoFaMethod] = useState<'email' | 'app'>('email');
+const [showNoTwoFaModal, setShowNoTwoFaModal] = useState(false);
 
 const [isDarkTheme, setIsDarkTheme] = useState(false);
 useEffect(() => {
@@ -1221,16 +1222,40 @@ const handleSubmit = async () => {
   const dv = parseFloat(declaredValue);
   if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
 
-  // Check if 2FA is needed
+  // Check 2FA status
   try {
     const twoFaStatus = await fetch('/api/user/2fa/status-full').then(r => r.json());
-    if (twoFaStatus.emailEnabled || twoFaStatus.appEnabled) {
+
+    // No 2FA → show friendly modal asking user to enable it
+    if (!twoFaStatus.emailEnabled && !twoFaStatus.appEnabled) {
+      setShowNoTwoFaModal(true);
+      return;
+    }
+
+    // Both enabled → default to email
+    if (twoFaStatus.emailEnabled && twoFaStatus.appEnabled) {
+      setTwoFaMethod('email');
       setShowTwoFaModal(true);
       return;
     }
-  } catch {}
 
-  await proceedWithSubmit();
+    // Email only
+    if (twoFaStatus.emailEnabled) {
+      setTwoFaMethod('email');
+      setShowTwoFaModal(true);
+      return;
+    }
+
+    // App only
+    if (twoFaStatus.appEnabled) {
+      setTwoFaMethod('app');
+      setShowTwoFaModal(true);
+      return;
+    }
+  } catch {
+    setError('Could not verify your security settings. Please try again.');
+    return;
+  }
 };
 
   return (
@@ -1612,9 +1637,38 @@ const handleSubmit = async () => {
       {showTwoFaModal && (
   <TwoFaShipmentModal
     accent={accent}
+    method={twoFaMethod}
+    emailHint={senderEmail}
     onSuccess={() => { setShowTwoFaModal(false); proceedWithSubmit(); }}
-    onClose={() => { setShowTwoFaModal(false); setPendingSubmit(false); }}
+    onClose={() => setShowTwoFaModal(false)}
   />
+)}
+
+{showNoTwoFaModal && typeof document !== 'undefined' && createPortal(
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNoTwoFaModal(false)} />
+    <div className="relative w-[92%] max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 text-center">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
+        <AlertCircle className="w-7 h-7 text-white" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Two-factor authentication required</h3>
+      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+        For your security, you must enable two-factor authentication before creating a shipment. You can choose between email verification or an authenticator app.
+      </p>
+      <div className="mt-6 flex gap-3">
+        <button onClick={() => setShowNoTwoFaModal(false)}
+          className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+          Cancel
+        </button>
+        <button onClick={() => router.push(`/${locale}/dashboard/settings/two-factor`)}
+          className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 transition"
+          style={{ background: accent }}>
+          Enable 2FA
+        </button>
+      </div>
+    </div>
+  </div>,
+  document.body
 )}
 
       {showSuccess && typeof document !== 'undefined' && createPortal(

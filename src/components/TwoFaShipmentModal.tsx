@@ -1,29 +1,59 @@
 // src/components/TwoFaShipmentModal.tsx
 'use client';
 
-import { useState } from 'react';
-import { Loader2, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2, ShieldCheck, X, Mail, Smartphone } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 type Props = {
   accent: string;
+  method: 'email' | 'app';
+  emailHint?: string;
   onSuccess: () => void;
   onClose: () => void;
 };
 
-export default function TwoFaShipmentModal({ accent, onSuccess, onClose }: Props) {
+export default function TwoFaShipmentModal({ accent, method, emailHint, onSuccess, onClose }: Props) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resentMessage, setResentMessage] = useState('');
+
+  // For email method: send the code automatically when modal opens
+  useEffect(() => {
+    if (method !== 'email') return;
+    setResending(true);
+    fetch('/api/user/2fa/email/send-shipment-code', { method: 'POST' })
+      .then(r => r.json())
+      .then(() => setResending(false))
+      .catch(() => { setResending(false); setError('Failed to send code. Please try again.'); });
+  }, [method]);
+
+  const handleResend = async () => {
+    if (method !== 'email') return;
+    setResending(true);
+    setError('');
+    setResentMessage('');
+    try {
+      await fetch('/api/user/2fa/email/send-shipment-code', { method: 'POST' });
+      setResentMessage('A new code has been sent to your email.');
+      setTimeout(() => setResentMessage(''), 4000);
+    } catch {
+      setError('Failed to resend code.');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleVerify = async () => {
     if (code.replace(/\s/g, '').length < 6) { setError('Enter the 6-digit code'); return; }
     setLoading(true); setError('');
     try {
-      const res = await fetch('/api/user/2fa/verify', {
+      const res = await fetch('/api/user/2fa/verify-shipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, purpose: 'verify' }),
+        body: JSON.stringify({ code, method }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Invalid code'); return; }
@@ -34,6 +64,15 @@ export default function TwoFaShipmentModal({ accent, onSuccess, onClose }: Props
 
   if (typeof document === 'undefined') return null;
 
+  const Icon = method === 'email' ? Mail : Smartphone;
+  const titleText = method === 'email' ? 'Email Verification' : 'App Verification';
+  const subText = method === 'email'
+    ? `Enter the code sent to ${emailHint || 'your email'}`
+    : 'Enter the 6-digit code from your authenticator app';
+  const description = method === 'email'
+    ? 'We sent a 6-digit verification code to your email. Please enter it below to confirm your shipment creation.'
+    : 'Two-factor authentication is enabled on your account. Open your authenticator app and enter the 6-digit code to proceed with creating your shipment.';
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -43,11 +82,11 @@ export default function TwoFaShipmentModal({ accent, onSuccess, onClose }: Props
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent }}>
-                <ShieldCheck className="w-5 h-5 text-white" />
+                <Icon className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">Verify Identity</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Enter your authenticator code</p>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">{titleText}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{subText}</p>
               </div>
             </div>
             <button onClick={onClose}
@@ -57,7 +96,7 @@ export default function TwoFaShipmentModal({ accent, onSuccess, onClose }: Props
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
-            Two-factor authentication is enabled on your account. Open your authenticator app and enter the 6-digit code to proceed with creating your shipment.
+            {description}
           </p>
 
           {/* 6-digit code boxes */}
@@ -67,10 +106,7 @@ export default function TwoFaShipmentModal({ accent, onSuccess, onClose }: Props
                 value={code[i] || ''}
                 onChange={e => {
                   const val = e.target.value.replace(/\D/g, '');
-                  if (!val) {
-                    const arr = code.split(''); arr[i] = ''; setCode(arr.join(''));
-                    return;
-                  }
+                  if (!val) { const arr = code.split(''); arr[i] = ''; setCode(arr.join('')); return; }
                   const arr = code.split(''); arr[i] = val[val.length - 1]; setCode(arr.join(''));
                   setError('');
                   if (i < 5) {
@@ -93,13 +129,22 @@ export default function TwoFaShipmentModal({ accent, onSuccess, onClose }: Props
                   if (box) (box as HTMLInputElement).focus();
                 }}
                 className="text-center text-xl font-bold rounded-xl border-2 border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none transition"
-                style={{ fontSize: '20px', height: '52px', width: '44px',
-                  borderColor: code[i] ? '#0b3aa4' : undefined }}
+                style={{ fontSize: '20px', height: '52px', width: '44px', borderColor: code[i] ? '#0b3aa4' : undefined }}
               />
             ))}
           </div>
 
           {error && <p className="text-xs text-red-500 mb-3 text-center font-medium">{error}</p>}
+          {resentMessage && <p className="text-xs text-green-600 mb-3 text-center font-medium">{resentMessage}</p>}
+
+          {method === 'email' && (
+            <div className="text-center mb-4">
+              <button onClick={handleResend} disabled={resending}
+                className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer disabled:opacity-50">
+                {resending ? 'Sending...' : "Didn't receive a code? Resend"}
+              </button>
+            </div>
+          )}
 
           <div className="flex gap-2.5">
             <button onClick={onClose}

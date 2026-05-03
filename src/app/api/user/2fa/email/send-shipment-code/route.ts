@@ -1,4 +1,4 @@
-// src/app/api/user/2fa/email/setup/route.ts
+// src/app/api/user/2fa/email/send-shipment-code/route.ts
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import clientPromise from '@/lib/mongodb';
@@ -26,10 +26,9 @@ export async function POST() {
   const filter = userId ? { $or: [{ email: userEmail }, { _id: new ObjectId(userId) }] } : { email: userEmail };
 
   await db.collection('users').updateOne(filter, {
-    $set: { twoFactorEmailCode: code, twoFactorEmailCodeExpires: expires },
+    $set: { shipmentVerifyCode: code, shipmentVerifyCodeExpires: expires },
   });
 
-  // Get user name
   const user = await db.collection('users').findOne(filter);
   const name = user?.name || 'Customer';
 
@@ -44,8 +43,8 @@ export async function POST() {
       Hi <strong style="color:#111827;">${name}</strong>,
     </p>
     <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
-      You're enabling email-based two-factor authentication on your Exodus Logistics account.
-      To complete setup, please enter the verification code below.
+      You're attempting to create a new shipment on your Exodus Logistics account.
+      To verify your identity and complete this action, please enter the verification code below.
     </p>
     <p style="margin:0 0 20px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
       This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
@@ -54,7 +53,7 @@ export async function POST() {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
       <tr>
         <td style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;border:1px solid #e0e8ff;">
-          <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Your activation code</p>
+          <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Verification code</p>
           <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
             <tr>${codeBoxesHtml}</tr>
           </table>
@@ -65,22 +64,22 @@ export async function POST() {
       </tr>
     </table>
 
-    <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1d4ed8;">
-      <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Why email 2FA matters:</p>
-      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Adds an extra layer of protection to your account</p>
-      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Required for sensitive actions like creating shipments</p>
-      <p style="margin:0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Keeps your shipment and invoice data secure</p>
+    <div style="background:#fef3c7;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Did you request this?</p>
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:20px;font-family:${FONT};">
+        If you did not attempt to create a shipment, please ignore this email and consider changing your password as a precaution.
+      </p>
     </div>
 
     <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;font-family:${FONT};">
-      If you didn't request this code, you can safely ignore this email — your account remains secure and no changes will be made.
+      For your security, never share this code with anyone. Exodus Logistics will never ask for your verification code.
     </p>
   `;
 
   const html = renderEmailTemplate({
-    subject: "Your Exodus Logistics 2FA setup code",
-    title: "Enable email two-factor authentication",
-    preheader: `Hi ${name}, your 2FA activation code is ${code}`,
+    subject: "Verify your shipment creation",
+    title: "Verify your identity",
+    preheader: `Hi ${name}, your shipment verification code is ${code}`,
     bodyHtml,
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
@@ -90,7 +89,7 @@ export async function POST() {
   await resend.emails.send({
     from: RESEND_FROM,
     to: userEmail,
-    subject: 'Your Exodus Logistics 2FA setup code',
+    subject: 'Verify your shipment creation',
     html,
     replyTo: SUPPORT_EMAIL,
   });
