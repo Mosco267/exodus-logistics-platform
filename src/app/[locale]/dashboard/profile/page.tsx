@@ -731,7 +731,7 @@ const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
   const formatted = applyPattern(digits, dynamicPattern);
 
   // Calculate approximate pixel width of fixed prefix
-  const prefixPx = fixedPrefix.length * 7.5 + 12;
+  const prefixPx = fixedPrefix.length * 7.2 + 4;
 
   return (
     <div className="relative flex-1">

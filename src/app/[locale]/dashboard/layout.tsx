@@ -33,6 +33,36 @@ const [colorMode, setColorMode] = useState<ColorMode>('system');
   const [avatarUrl, setAvatarUrl] = useState('');
 const [displayEmail, setDisplayEmail] = useState('');
 
+const [headerVisible, setHeaderVisible] = useState(true);
+const lastScrollYRef = useRef(0);
+
+useEffect(() => {
+  // Find the scrollable main element
+  const main = document.querySelector('main');
+  if (!main) return;
+
+  const handleScroll = () => {
+    const currentY = main.scrollTop;
+    const lastY = lastScrollYRef.current;
+
+    // Only react to meaningful scroll changes (avoid jitter)
+    if (Math.abs(currentY - lastY) < 5) return;
+
+    if (currentY > lastY && currentY > 60) {
+      // Scrolling down past header height — hide
+      setHeaderVisible(false);
+    } else {
+      // Scrolling up — show
+      setHeaderVisible(true);
+    }
+
+    lastScrollYRef.current = currentY;
+  };
+
+  main.addEventListener('scroll', handleScroll, { passive: true });
+  return () => main.removeEventListener('scroll', handleScroll);
+}, []);
+
   const pathname = usePathname();
   const isAdmin = pathname.includes("/dashboard/admin");
   const params = useParams();
@@ -391,8 +421,13 @@ style={{
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
 
         {/* TOPBAR */}
-        <header className="sticky top-0 z-30 border-b shadow-sm"
-          style={{ background: headerBg, borderColor: headerBorder }}>
+        <header
+  className="sticky top-0 z-30 border-b shadow-sm transition-transform duration-300 ease-in-out"
+  style={{
+    background: headerBg,
+    borderColor: headerBorder,
+    transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
+  }}>
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
             {/* Mobile menu button */}

@@ -723,7 +723,7 @@ const prefixDigits = rawPrefix.replace(/\D/g, '');
 const fixedPrefix = prefixDigits.length > 0 ? rawPrefix : '';
 const dynamicPattern = fmt.pattern.slice(fixedPrefix.length);
 const dynamicPlaceholder = fmt.placeholder.slice(fixedPrefix.length);
-const prefixPx = fixedPrefix.length * 7.5 + 12;
+const prefixPx = fixedPrefix.length * 7.2 + 4;
 
 const displayLocal = applyPhonePattern(local, dynamicPattern);
 

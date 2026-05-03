@@ -624,7 +624,7 @@ function SignUpPhoneInput({ countryCode, value, onChange, hasError }: {
 
   const digits = value.replace(/\D/g, '');
   const formatted = applyPattern(digits, dynamicPattern);
-  const prefixPx = fixedPrefix.length * 7.5 + 12;
+  const prefixPx = fixedPrefix.length * 7.2 + 4;
 
   return (
     <div className="relative flex-1">
