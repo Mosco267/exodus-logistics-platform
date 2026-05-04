@@ -2,6 +2,8 @@
 
 import { getCountryDistance, getStateDistance } from './distances';
 
+import { addBusinessDays } from './holidays';
+
 export type ShipmentMeans = 'air' | 'sea' | 'land';
 export type ServiceLevel = 'Express' | 'Standard';
 export type ShipmentType = 'Documents' | 'Parcel' | 'Bulk / Pallet' | 'Container';
@@ -68,34 +70,34 @@ export type PricingProfiles = {
 export const DEFAULT_PRICING: PricingProfiles = {
   international: {
     shippingFee: 0,
-    handlingFee: 25,
-    customsFee: 50,
-    taxFee: 0,
+    handlingFee: 35,        // doc handling, scanning, paperwork
+    customsFee: 75,         // customs clearance + brokerage
+    taxFee: 0,              // computed from country
     discountFee: 0,
-    fuelRate: 0.05,
-    insuranceRate: 0.01,
+    fuelRate: 0.18,         // 18% fuel surcharge — current industry norm
+    insuranceRate: 0.015,   // 1.5% of declared value
   },
   local: {
     shippingFee: 0,
-    handlingFee: 10,
+    handlingFee: 8,
     customsFee: 0,
     taxFee: 0,
     discountFee: 0,
-    fuelRate: 0.05,
-    insuranceRate: 0.005,
+    fuelRate: 0.12,         // lower domestic surcharge
+    insuranceRate: 0.005,   // 0.5% of declared value
   },
   air: {
-    ratePerKgExpress: 8,
-    ratePerKgStandard: 5,
+    ratePerKgExpress: 12.50,     // ~$12.50/kg express airfreight (DHL/FedEx range)
+    ratePerKgStandard: 7.80,     // ~$7.80/kg standard airfreight
     zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.3, farContinent: 1.6 },
   },
   sea: {
-    ratePerKgStandard: 0.8,
-    zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.3, farContinent: 1.6 },
+    ratePerKgStandard: 1.20,     // $1.20/kg LCL sea freight
+    zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.25, farContinent: 1.5 },
   },
   land: {
-    zoneRates: { zone1: 5, zone2: 15, zone3: 35, zone4: 60 },
-    expressMultiplier: 1.5,
+    zoneRates: { zone1: 0.08, zone2: 0.12, zone3: 0.18, zone4: 0.25 },  // per km/kg (kept for backward compat)
+    expressMultiplier: 1.4,
   },
 };
 
@@ -234,19 +236,15 @@ export function getDeliveryDays(
   return { min: 30, max: 45, label: '30–45 business days' };
 }
 
+
+
 export function getEstimatedDeliveryDate(
   means: ShipmentMeans,
   serviceLevel: ServiceLevel,
   distanceKm: number = 5000
 ): string {
   const { max } = getDeliveryDays(means, serviceLevel, distanceKm);
-  const date = new Date();
-  let added = 0;
-  while (added < max) {
-    date.setDate(date.getDate() + 1);
-    const day = date.getDay();
-    if (day !== 0 && day !== 6) added++;
-  }
+  const date = addBusinessDays(new Date(), max);
   return date.toISOString().split('T')[0];
 }
 
@@ -316,13 +314,14 @@ export function computeInvoice(params: {
     const mult = getDistanceMultiplier(km);
     baseFreight = pricing.sea.ratePerKgStandard * w * mult;
   } else {
-    // land — use state distance within country
-    const km = getStateDistance(senderCountryCode, senderState, receiverState);
-    // Scale: ~$0.05 per kg per km, with minimum
-    const baseRate = Math.max(5, km * 0.05);
-    const expMult = serviceLevel === 'Express' ? pricing.land.expressMultiplier : 1;
-    baseFreight = baseRate * w * expMult;
-  }
+  // land — use state distance within country
+  const km = getStateDistance(senderCountryCode, senderState, receiverState);
+  // Industry-typical: base fee + per-km-per-kg rate
+  // Express: ~$0.18/km/kg, Standard: ~$0.10/km/kg, with reasonable minimums
+  const ratePerKmKg = serviceLevel === 'Express' ? 0.018 : 0.010;
+  const minBase = serviceLevel === 'Express' ? 8 : 5;
+  baseFreight = Math.max(minBase, km * ratePerKmKg * w);
+}
 
   // Add declared value factor (0.5% of declared value as cargo value fee)
   const cargoValueFee = dv * 0.005;

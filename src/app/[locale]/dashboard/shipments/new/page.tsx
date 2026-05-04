@@ -17,6 +17,7 @@ import {
 } from '@/lib/pricing';
 import TwoFaShipmentModal from '@/components/TwoFaShipmentModal';
 import { getCountryDistance, getStateDistance } from '@/lib/distances';
+import { addBusinessDays } from '@/lib/holidays';
 
 function formatMoney(value: number): string {
   if (isNaN(value)) return '0.00';
@@ -1135,23 +1136,19 @@ const delivery = useMemo(() =>
 
   // Fix 7: date range display
   const deliveryDateStr = useMemo(() => {
-    if (weight <= 0) return '';
-    const { min, max } = delivery;
-    const minDate = new Date();
-    let addedMin = 0;
-    while (addedMin < min) { minDate.setDate(minDate.getDate() + 1); if (minDate.getDay() !== 0 && minDate.getDay() !== 6) addedMin++; }
-    const maxDate = new Date(minDate);
-    let addedMax = 0;
-    while (addedMax < (max - min)) { maxDate.setDate(maxDate.getDate() + 1); if (maxDate.getDay() !== 0 && maxDate.getDay() !== 6) addedMax++; }
-    const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-    const fmtFull = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    if (min === max) return fmtFull(minDate);
-    // Same month: "24–26 Apr 2026"
-    if (minDate.getMonth() === maxDate.getMonth() && minDate.getFullYear() === maxDate.getFullYear()) {
-      return `${minDate.getDate()}–${maxDate.getDate()} ${maxDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
-    }
-    return `${fmt(minDate)} – ${fmtFull(maxDate)}`;
-  }, [delivery, weight]);
+  if (weight <= 0) return '';
+  const { min, max } = delivery;
+  const today = new Date();
+  const minDate = addBusinessDays(today, min);
+  const maxDate = addBusinessDays(today, max);
+  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  const fmtFull = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (min === max) return fmtFull(minDate);
+  if (minDate.getMonth() === maxDate.getMonth() && minDate.getFullYear() === maxDate.getFullYear()) {
+    return `${minDate.getDate()}–${maxDate.getDate()} ${maxDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
+  }
+  return `${fmt(minDate)} – ${fmtFull(maxDate)}`;
+}, [delivery, weight]);
 
   const deliveryDateISO = useMemo(() =>
   getEstimatedDeliveryDate(means, effectiveServiceLevel, distanceKm),
@@ -1588,20 +1585,30 @@ if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCou
             </div>
           )}
           <div>
-            <Label>Service Level</Label>
-            <CustomSelect
-              value={effectiveServiceLevel}
-              onChange={v => setServiceLevel(v as ServiceLevel)}
-              options={SERVICE_LEVELS}
-              disabled={means === 'sea'}
-              accentSolid={accentSolid}
-            />
-            {means === 'sea' && (
-  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-    <Info size={11} /> Sea freight is always Standard
-  </p>
-)}
-          </div>
+  <Label>Service Level</Label>
+  <CustomSelect
+    value={effectiveServiceLevel}
+    onChange={v => setServiceLevel(v as ServiceLevel)}
+    options={SERVICE_LEVELS}
+    disabled={means === 'sea' || weight >= 500 || isBulkOrContainer}
+    accentSolid={accentSolid}
+  />
+  {means === 'sea' && (
+    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+      <Info size={11} /> Sea freight is always Standard
+    </p>
+  )}
+  {means === 'air' && weight >= 500 && weight <= 10000 && (
+    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+      <Info size={11} /> 500+ kg uses Air Standard cargo (Express unavailable)
+    </p>
+  )}
+  {isBulkOrContainer && (
+    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+      <Info size={11} /> Bulk / Container shipments are always Standard
+    </p>
+  )}
+</div>
           <div ref={refWeightKg}>
   <Label>Weight (kg)</Label>
   <input value={formatWithCommas(weightKg)} onChange={e => {
@@ -1624,7 +1631,7 @@ if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCou
   </p>
 )}
 {attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
-  {!weightWarning && weight > 10000 && !isBulkOrContainer && (
+  {!weightWarning && weight > 10000 && !isBulkOrContainer && scope === 'international' && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
     <Info size={11} /> Over 10,000 kg uses Sea Freight (Standard) automatically.
   </p>
@@ -1632,6 +1639,11 @@ if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCou
 {!weightWarning && weight >= 500 && weight <= 10000 && !isBulkOrContainer && scope === 'international' && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
     <Info size={11} /> 500+ kg uses Air Standard cargo automatically.
+  </p>
+)}
+{!weightWarning && weight >= 500 && !isBulkOrContainer && scope === 'local' && (
+  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+    <Info size={11} /> 500+ kg uses Land Standard automatically.
   </p>
 )}
 </div>
