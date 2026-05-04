@@ -763,11 +763,17 @@ const [forceCreating, setForceCreating] = useState(false);
 
   useEffect(() => {
   if (showDeletedModal || showBannedModal) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
   } else {
     document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
   }
-  return () => { document.body.style.overflow = ''; };
+  return () => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  };
 }, [showDeletedModal, showBannedModal]);
 
   const inputCls = (hasError: boolean) =>
@@ -1192,7 +1198,7 @@ try {
 
       {/* Deleted account modal */}
       {showDeletedModal && (
-  <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[10vh] overflow-y-auto">
+  <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[14vh] overflow-y-auto">
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
     <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 mb-10">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-100">
@@ -1227,7 +1233,7 @@ try {
 
       {/* Banned account modal */}
       {showBannedModal && (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[10vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[14vh] overflow-y-auto">
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
     <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 mb-10">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-100">

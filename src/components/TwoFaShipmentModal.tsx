@@ -182,7 +182,7 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
                 <button onClick={handleResend} disabled={resending}
   className="text-xs font-semibold transition cursor-pointer disabled:opacity-50 hover:opacity-80"
   style={{ background: accent, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-  {resending ? 'Sending...' : "Didn't receive a code? Resend"}
+  {resending ? 'Sending...' : <>Didn't receive a code? <span className="underline underline-offset-2">Resend</span></>}
 </button>
               )}
             </div>

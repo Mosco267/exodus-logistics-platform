@@ -219,6 +219,20 @@ const msg = errStr.includes('banned')
 
   const showFullScreenLoader = isNavigating || (passkeyLoading && !passkeyCancelled);
 
+  useEffect(() => {
+  if (showFullScreenLoader) {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
+  return () => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  };
+}, [showFullScreenLoader]);
+
 return (
   <>
     {showFullScreenLoader && (
@@ -440,13 +454,13 @@ return (
                           style={{ fontSize: '16px' }} className={inputCls(!!emailError)} />
                         {emailError === 'NO_ACCOUNT' ? (
   <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5">
-    <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
+    <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5 flex-wrap">
       <AlertCircle className="w-3 h-3 shrink-0" />
-      No account is associated with this email.
+      <span>No account with this email.</span>
+      <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2">
+        Create one →
+      </Link>
     </p>
-    <Link href={`/${locale}/sign-up`} className="text-xs font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2 mt-1 inline-block">
-      Create an account →
-    </Link>
   </div>
 ) : emailError ? (
   <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">

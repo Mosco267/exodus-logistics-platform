@@ -17,6 +17,11 @@ import {
 } from '@/lib/pricing';
 import TwoFaShipmentModal from '@/components/TwoFaShipmentModal';
 
+function formatMoney(value: number): string {
+  if (isNaN(value)) return '0.00';
+  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function formatWithCommas(raw: string): string {
   if (!raw) return '';
   const cleaned = raw.replace(/[^0-9.]/g, '');
@@ -32,10 +37,8 @@ function stripCommas(formatted: string): string {
   return formatted.replace(/,/g, '');
 }
 
-function clampValue(raw: string, max: number): string {
-  const num = parseFloat(stripCommas(raw));
-  if (!isNaN(num) && num > max) return max.toString();
-  return stripCommas(raw);
+function cleanNumeric(raw: string): string {
+  return stripCommas(raw.replace(/[^0-9.,]/g, ''));
 }
 
 // ─── Country → Currency map ───────────────────────────────────
@@ -897,6 +900,16 @@ useEffect(() => {
   .catch(() => setPricingError(true));
   }, []);
 
+  const WEIGHT_MAX = 30000; // kg
+const LENGTH_MAX = 1200; // cm
+const WIDTH_MAX = 300; // cm
+const HEIGHT_MAX = 300; // cm
+
+const [weightWarning, setWeightWarning] = useState('');
+const [lengthWarning, setLengthWarning] = useState('');
+const [widthWarning, setWidthWarning] = useState('');
+const [heightWarning, setHeightWarning] = useState('');
+
   const [scope, setScope] = useState<ShipmentScope>('international');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('Express');
   const [packageType, setPackageType] = useState<string>('Parcel');
@@ -1047,7 +1060,12 @@ if (data.phoneDialCode) {
   }
 }, [scope]);
 
-  const weight = parseFloat(weightKg) || 0;
+  const actualWeight = parseFloat(weightKg) || 0;
+const lenNum = parseFloat(lengthCm) || 0;
+const widNum = parseFloat(widthCm) || 0;
+const hgtNum = parseFloat(heightCm) || 0;
+const volumetricWeight = (lenNum * widNum * hgtNum) / 5000;
+const weight = Math.max(actualWeight, volumetricWeight);
 
   // Fix 6: force sea + standard if weight >= 300kg
   const isBulkOrContainer = packageType === 'Container' || packageType === 'Bulk / Pallet';
@@ -1234,11 +1252,16 @@ const handleSubmit = async () => {
   setError('');
 
   const missing = requiredFields.find(f => !f.v?.trim());
-  if (missing) {
-    setError(`${missing.l} is required.`);
-    missing.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
+if (missing) {
+  setError(`${missing.l} is required.`);
+  missing.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return;
+}
+
+if (weightWarning || lengthWarning || widthWarning || heightWarning) {
+  setError('One or more fields exceed the allowed limit. Please contact support for special approval.');
+  return;
+}
 
   const dv = parseFloat(declaredValue);
   if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
@@ -1519,13 +1542,25 @@ const handleSubmit = async () => {
           <div ref={refWeightKg}>
   <Label>Weight (kg)</Label>
   <input value={formatWithCommas(weightKg)} onChange={e => {
-    const cleaned = clampValue(e.target.value, 30000);
+    const cleaned = cleanNumeric(e.target.value);
     setWeightKg(cleaned);
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num > WEIGHT_MAX) {
+      setWeightWarning(`Shipment weight is above ${WEIGHT_MAX.toLocaleString()} kg. Please contact support for special approval.`);
+    } else {
+      setWeightWarning('');
+    }
   }}
   inputMode="decimal" placeholder="e.g. 2.5"
-  className={`${inputCls} ${attempted && !weightKg.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  className={`${inputCls} ${attempted && !weightKg.trim() ? 'border-red-400 dark:border-red-500' : ''} ${weightWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
   style={{ fontSize: '16px' }} />
-  {attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+{weightWarning && (
+  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
+    <AlertCircle size={11} className="shrink-0 mt-0.5" />
+    <span>{weightWarning}</span>
+  </p>
+)}
+{attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
   {scope === 'international' && weight >= 300 && !isBulkOrContainer && (
     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
       <Info size={11} /> 299+ kg uses Sea Freight (Standard) automatically.
@@ -1536,25 +1571,70 @@ const handleSubmit = async () => {
   <Label>Dimensions (cm) — L × W × H</Label>
   <div className="grid grid-cols-3 gap-2">
     <div ref={refLengthCm}>
-      <input value={formatWithCommas(lengthCm)} onChange={e => setLengthCm(clampValue(e.target.value, 1200))}
+      <input value={formatWithCommas(lengthCm)} onChange={e => {
+    const cleaned = cleanNumeric(e.target.value);
+    setLengthCm(cleaned);
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num > LENGTH_MAX) {
+  setLengthWarning(`Length is above ${LENGTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+} else {
+  setLengthWarning('');
+}
+  }}
   inputMode="decimal" placeholder="Length"
-  className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${lengthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
   style={{ fontSize: '16px' }} />
-      {attempted && !lengthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+{lengthWarning && (
+  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
+    <AlertCircle size={11} className="shrink-0 mt-0.5" />
+    <span>{lengthWarning}</span>
+  </p>
+)}
+{attempted && !lengthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
     </div>
     <div ref={refWidthCm}>
-      <input value={formatWithCommas(widthCm)} onChange={e => setWidthCm(clampValue(e.target.value, 300))}
+      <input value={formatWithCommas(widthCm)} onChange={e => {
+    const cleaned = cleanNumeric(e.target.value);
+    setWidthCm(cleaned);
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num > WIDTH_MAX) {
+  setWidthWarning(`Width is above ${WIDTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+} else {
+  setWidthWarning('');
+}
+  }}
   inputMode="decimal" placeholder="Width"
-  className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${widthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
   style={{ fontSize: '16px' }} />
-      {attempted && !widthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+{widthWarning && (
+  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
+    <AlertCircle size={11} className="shrink-0 mt-0.5" />
+    <span>{widthWarning}</span>
+  </p>
+)}
+{attempted && !widthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
     </div>
     <div ref={refHeightCm}>
-      <input value={formatWithCommas(heightCm)} onChange={e => setHeightCm(clampValue(e.target.value, 300))}
-        inputMode="decimal" placeholder="Height"
-        className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
-        style={{ fontSize: '16px' }} />
-      {attempted && !heightCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+      <input value={formatWithCommas(heightCm)} onChange={e => {
+    const cleaned = cleanNumeric(e.target.value);
+    setHeightCm(cleaned);
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num > HEIGHT_MAX) {
+  setHeightWarning(`Height is above ${HEIGHT_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+} else {
+  setHeightWarning('');
+}
+  }}
+  inputMode="decimal" placeholder="Height"
+  className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${heightWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
+  style={{ fontSize: '16px' }} />
+{heightWarning && (
+  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
+    <AlertCircle size={11} className="shrink-0 mt-0.5" />
+    <span>{heightWarning}</span>
+  </p>
+)}
+{attempted && !heightCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
     </div>
   </div>
 </div>
@@ -1570,23 +1650,30 @@ const handleSubmit = async () => {
 
         {/* Auto-selected means — Fix 7: date range */}
         {(weight > 0 || isBulkOrContainer) && (
-          <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 overflow-hidden">
-            <div className="flex items-center gap-3 p-3.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-white/10 shadow-sm">
-                {MEANS_CONFIG[means].emoji}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-gray-900 dark:text-white">{MEANS_CONFIG[means].label}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Auto-selected · {delivery.label}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Est. Delivery</p>
-                <p className="text-xs font-bold text-gray-700 dark:text-gray-200 mt-0.5">{deliveryDateStr}</p>
-              </div>
-            </div>
-            
-          </div>
-        )}
+  <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 overflow-hidden">
+    <div className="flex items-center gap-3 p-3.5">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-white/10 shadow-sm">
+        {MEANS_CONFIG[means].emoji}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-gray-900 dark:text-white">{MEANS_CONFIG[means].label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Auto-selected · {delivery.label}</p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Est. Delivery</p>
+        <p className="text-xs font-bold text-gray-700 dark:text-gray-200 mt-0.5">{deliveryDateStr}</p>
+      </div>
+    </div>
+    {volumetricWeight > actualWeight && actualWeight > 0 && (
+      <div className="px-3.5 pb-3 -mt-1">
+        <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
+          <Info size={11} className="shrink-0" />
+          Charged at volumetric weight: {formatMoney(volumetricWeight)} kg (larger than actual {formatMoney(actualWeight)} kg)
+        </p>
+      </div>
+    )}
+  </div>
+)}
       </Section>
 
       {/* Declared value — Fix 8: country currency + custom dropdown */}
@@ -1628,19 +1715,19 @@ const handleSubmit = async () => {
               ...(breakdown.tax > 0 ? [{ label: 'Tax', value: breakdown.tax }] : []),
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between text-gray-600 dark:text-gray-400">
-                <span>{label}</span>
-                <span className="font-semibold">{currency} {value.toFixed(2)}</span>
-              </div>
+  <span>{label}</span>
+  <span className="font-semibold">{currency} {formatMoney(value)}</span>
+</div>
             ))}
             {breakdown.discount > 0 && (
-              <div className="flex justify-between text-green-600 dark:text-green-400">
-                <span>Discount</span>
-                <span className="font-semibold">− {currency} {breakdown.discount.toFixed(2)}</span>
-              </div>
-            )}
+  <div className="flex justify-between text-green-600 dark:text-green-400">
+    <span>Discount</span>
+    <span className="font-semibold">− {currency} {formatMoney(breakdown.discount)}</span>
+  </div>
+)}
             <div className="flex justify-between font-extrabold text-gray-900 dark:text-white border-t border-gray-100 dark:border-white/10 pt-3 mt-1 text-base">
               <span>Total</span>
-              <span style={{ color: accentSolid }}>{currency} {breakdown.total.toFixed(2)}</span>
+              <span style={{ color: accentSolid }}>{currency} {formatMoney(breakdown.total)}</span>
             </div>
           </div>
         </Section>
