@@ -910,6 +910,8 @@ const [lengthWarning, setLengthWarning] = useState('');
 const [widthWarning, setWidthWarning] = useState('');
 const [heightWarning, setHeightWarning] = useState('');
 
+const hasLimitWarning = !!(weightWarning || lengthWarning || widthWarning || heightWarning);
+
   const [scope, setScope] = useState<ShipmentScope>('international');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('Express');
   const [packageType, setPackageType] = useState<string>('Parcel');
@@ -1561,82 +1563,94 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
   </p>
 )}
 {attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
-  {scope === 'international' && weight >= 300 && !isBulkOrContainer && (
-    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-      <Info size={11} /> 299+ kg uses Sea Freight (Standard) automatically.
-    </p>
-  )}
+  {scope === 'international' && weight >= 300 && !isBulkOrContainer && !weightWarning && (
+  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+    <Info size={11} /> 299+ kg uses Sea Freight (Standard) automatically.
+  </p>
+)}
 </div>
           <div className="sm:col-span-2">
   <Label>Dimensions (cm) — L × W × H</Label>
   <div className="grid grid-cols-3 gap-2">
     <div ref={refLengthCm}>
       <input value={formatWithCommas(lengthCm)} onChange={e => {
-    const cleaned = cleanNumeric(e.target.value);
-    setLengthCm(cleaned);
-    const num = parseFloat(cleaned);
-    if (!isNaN(num) && num > LENGTH_MAX) {
-  setLengthWarning(`Length is above ${LENGTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
-} else {
-  setLengthWarning('');
-}
-  }}
-  inputMode="decimal" placeholder="Length"
-  className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${lengthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
-  style={{ fontSize: '16px' }} />
-{lengthWarning && (
-  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
-    <AlertCircle size={11} className="shrink-0 mt-0.5" />
-    <span>{lengthWarning}</span>
-  </p>
-)}
-{attempted && !lengthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+          const cleaned = cleanNumeric(e.target.value);
+          setLengthCm(cleaned);
+          const num = parseFloat(cleaned);
+          if (!isNaN(num) && num > LENGTH_MAX) {
+            setLengthWarning(`Length is above ${LENGTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+          } else {
+            setLengthWarning('');
+          }
+        }}
+        inputMode="decimal" placeholder="Length"
+        className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${lengthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
+        style={{ fontSize: '16px' }} />
     </div>
     <div ref={refWidthCm}>
       <input value={formatWithCommas(widthCm)} onChange={e => {
-    const cleaned = cleanNumeric(e.target.value);
-    setWidthCm(cleaned);
-    const num = parseFloat(cleaned);
-    if (!isNaN(num) && num > WIDTH_MAX) {
-  setWidthWarning(`Width is above ${WIDTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
-} else {
-  setWidthWarning('');
-}
-  }}
-  inputMode="decimal" placeholder="Width"
-  className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${widthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
-  style={{ fontSize: '16px' }} />
-{widthWarning && (
-  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
-    <AlertCircle size={11} className="shrink-0 mt-0.5" />
-    <span>{widthWarning}</span>
-  </p>
-)}
-{attempted && !widthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+          const cleaned = cleanNumeric(e.target.value);
+          setWidthCm(cleaned);
+          const num = parseFloat(cleaned);
+          if (!isNaN(num) && num > WIDTH_MAX) {
+            setWidthWarning(`Width is above ${WIDTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+          } else {
+            setWidthWarning('');
+          }
+        }}
+        inputMode="decimal" placeholder="Width"
+        className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${widthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
+        style={{ fontSize: '16px' }} />
     </div>
     <div ref={refHeightCm}>
       <input value={formatWithCommas(heightCm)} onChange={e => {
-    const cleaned = cleanNumeric(e.target.value);
-    setHeightCm(cleaned);
-    const num = parseFloat(cleaned);
-    if (!isNaN(num) && num > HEIGHT_MAX) {
-  setHeightWarning(`Height is above ${HEIGHT_MAX.toLocaleString()} cm. Please contact support for special approval.`);
-} else {
-  setHeightWarning('');
-}
-  }}
-  inputMode="decimal" placeholder="Height"
-  className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${heightWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
-  style={{ fontSize: '16px' }} />
-{heightWarning && (
-  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
-    <AlertCircle size={11} className="shrink-0 mt-0.5" />
-    <span>{heightWarning}</span>
-  </p>
-)}
-{attempted && !heightCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+          const cleaned = cleanNumeric(e.target.value);
+          setHeightCm(cleaned);
+          const num = parseFloat(cleaned);
+          if (!isNaN(num) && num > HEIGHT_MAX) {
+            setHeightWarning(`Height is above ${HEIGHT_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+          } else {
+            setHeightWarning('');
+          }
+        }}
+        inputMode="decimal" placeholder="Height"
+        className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${heightWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
+        style={{ fontSize: '16px' }} />
     </div>
   </div>
+
+  {/* Combined warnings under the entire dimensions row */}
+  {(lengthWarning || widthWarning || heightWarning) && (
+    <div className="mt-2 space-y-1">
+      {lengthWarning && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1">
+          <AlertCircle size={11} className="shrink-0 mt-0.5" />
+          <span>{lengthWarning}</span>
+        </p>
+      )}
+      {widthWarning && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1">
+          <AlertCircle size={11} className="shrink-0 mt-0.5" />
+          <span>{widthWarning}</span>
+        </p>
+      )}
+      {heightWarning && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1">
+          <AlertCircle size={11} className="shrink-0 mt-0.5" />
+          <span>{heightWarning}</span>
+        </p>
+      )}
+    </div>
+  )}
+
+  {/* Required errors */}
+  {attempted && (!lengthCm.trim() || !widthCm.trim() || !heightCm.trim()) && (
+    <div className="mt-1 space-y-0.5">
+      {attempted && !lengthCm.trim() && <p className="text-xs text-red-500">Length is required</p>}
+      {attempted && !widthCm.trim() && <p className="text-xs text-red-500">Width is required</p>}
+      {attempted && !heightCm.trim() && <p className="text-xs text-red-500">Height is required</p>}
+    </div>
+  )}
 </div>
           <div ref={refPackageDescription} className="sm:col-span-2">
   <Label>Package Description</Label>
@@ -1735,15 +1749,19 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
 
       
 
-      <button onClick={handleSubmit} disabled={loading || (!pricing && !pricingError)}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
-        style={{ background: accent }}>
-        {loading
-          ? <><Loader2 size={16} className="animate-spin" /> Creating shipment…</>
-          : !pricing && !pricingError
-          ? <><Loader2 size={16} className="animate-spin" /> Loading pricing…</>
-          : <><Send size={16} /> Create Order</>}
-      </button>
+      <button
+  onClick={hasLimitWarning ? () => router.push(`/${locale}/support`) : handleSubmit}
+  disabled={loading || (!pricing && !pricingError)}
+  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
+  style={{ background: hasLimitWarning ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : accent }}>
+  {loading
+    ? <><Loader2 size={16} className="animate-spin" /> Creating shipment…</>
+    : !pricing && !pricingError
+    ? <><Loader2 size={16} className="animate-spin" /> Loading pricing…</>
+    : hasLimitWarning
+    ? <><AlertCircle size={16} /> Contact Support</>
+    : <><Send size={16} /> Create Order</>}
+</button>
 
       {showTwoFaModal && (
   <TwoFaShipmentModal

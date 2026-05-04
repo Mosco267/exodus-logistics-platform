@@ -454,15 +454,15 @@ return (
                           style={{ fontSize: '16px' }} className={inputCls(!!emailError)} />
                         {emailError === 'NO_ACCOUNT' ? (
   <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5">
-    <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5 flex-wrap">
-      <AlertCircle className="w-3 h-3 shrink-0" />
-      <span>No account with this email.</span>
-      <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2">
+    <p className="text-xs font-semibold text-amber-700 leading-relaxed">
+      <AlertCircle className="w-3 h-3 inline-block mr-1 -mt-0.5" />
+      No account with this email.{' '}
+      <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2 whitespace-nowrap">
         Create one →
       </Link>
     </p>
   </div>
-) : emailError ? (
+) :  emailError ? (
   <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
     <AlertCircle className="w-3 h-3" />{emailError}
   </p>
