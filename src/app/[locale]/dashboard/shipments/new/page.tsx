@@ -1072,19 +1072,28 @@ const weight = Math.max(actualWeight, volumetricWeight);
   // Fix 6: force sea + standard if weight >= 300kg
   const isBulkOrContainer = packageType === 'Container' || packageType === 'Bulk / Pallet';
 
-const effectiveServiceLevel: ServiceLevel = useMemo(() => {
-  if (isBulkOrContainer || (scope === 'international' && weight >= 300)) return 'Standard';
-  return serviceLevel;
-}, [scope, weight, serviceLevel, isBulkOrContainer]);
-
 const effectiveShipmentType = useMemo(() => {
   return packageType as ShipmentType;
 }, [packageType]);
 
-  const means: ShipmentMeans = useMemo(() =>
-    autoSelectMeans(scope, effectiveServiceLevel, weight, effectiveShipmentType),
-    [scope, effectiveServiceLevel, weight, effectiveShipmentType]
-  );
+const means: ShipmentMeans = useMemo(() => {
+  // Container / bulk → always sea
+  if (isBulkOrContainer) return 'sea';
+  // > 10,000 kg → force Sea Freight (Air disabled at this weight)
+  if (weight > 10000) return 'sea';
+  // Local shipments → land
+  if (scope === 'local') return 'land';
+  // International, ≤ 10,000 kg → air
+  return 'air';
+}, [scope, weight, isBulkOrContainer]);
+
+const effectiveServiceLevel: ServiceLevel = useMemo(() => {
+  // Sea freight is always Standard
+  if (means === 'sea') return 'Standard';
+  // 500+ kg on air → forced Standard
+  if (weight >= 500) return 'Standard';
+  return serviceLevel;
+}, [means, weight, serviceLevel]);
 
   const delivery = useMemo(() => getDeliveryDays(means, effectiveServiceLevel), [means, effectiveServiceLevel]);
 
@@ -1535,7 +1544,7 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
               disabled={means === 'sea'}
               accentSolid={accentSolid}
             />
-            {means === 'sea' && weight < 300 && (
+            {means === 'sea' && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
     <Info size={11} /> Sea freight is always Standard
   </p>
@@ -1563,9 +1572,14 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
   </p>
 )}
 {attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
-  {scope === 'international' && weight >= 300 && !isBulkOrContainer && !weightWarning && (
+  {!weightWarning && weight > 10000 && !isBulkOrContainer && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-    <Info size={11} /> 299+ kg uses Sea Freight (Standard) automatically.
+    <Info size={11} /> Over 10,000 kg uses Sea Freight (Standard) automatically.
+  </p>
+)}
+{!weightWarning && weight >= 500 && weight <= 10000 && !isBulkOrContainer && scope === 'international' && (
+  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+    <Info size={11} /> 500+ kg uses Air Standard cargo automatically.
   </p>
 )}
 </div>
@@ -1711,13 +1725,13 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
 
       {/* Invoice breakdown — Fix 9 */}
       
-      {pricing && !breakdown && weight > 0 && senderCountryCode && (receiverCountryCode || scope === 'local') && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm text-gray-500">
-          <Loader2 size={14} className="animate-spin shrink-0" /> Calculating invoice…
-        </div>
-      )}
-      {breakdown && (
-        <Section title="Invoice Breakdown" accent={accent}>
+      {pricing && !breakdown && weight > 0 && senderCountryCode && (receiverCountryCode || scope === 'local') && !hasLimitWarning && (
+  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm text-gray-500">
+    <Loader2 size={14} className="animate-spin shrink-0" /> Calculating invoice…
+  </div>
+)}
+{breakdown && !hasLimitWarning && (
+  <Section title="Invoice Breakdown" accent={accent}>
           <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Estimated invoice — final amount confirmed on payment page.</p>
           <div className="space-y-2 text-sm">
             {[

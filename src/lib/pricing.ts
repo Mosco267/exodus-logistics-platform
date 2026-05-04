@@ -176,8 +176,11 @@ export function autoSelectMeans(
 ): ShipmentMeans {
   if (scope === 'local') return 'land';
   const isBulk = shipmentType === 'Container' || shipmentType === 'Bulk / Pallet';
-  const isHeavy = weightKg >= 300;
-  if (isBulk || (serviceLevel === 'Standard' && isHeavy)) return 'sea';
+  // Container / bulk → always sea
+  if (isBulk) return 'sea';
+  // > 10,000 kg → force Sea Freight (Air disabled at this weight)
+  if (weightKg > 10000) return 'sea';
+  // International, ≤ 10,000 kg → air
   return 'air';
 }
 
