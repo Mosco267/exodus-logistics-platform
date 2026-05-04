@@ -1,9 +1,12 @@
 // src/lib/pricing.ts
 
+import { getCountryDistance, getStateDistance } from './distances';
+
 export type ShipmentMeans = 'air' | 'sea' | 'land';
 export type ServiceLevel = 'Express' | 'Standard';
 export type ShipmentType = 'Documents' | 'Parcel' | 'Bulk / Pallet' | 'Container';
 export type ShipmentScope = 'international' | 'local';
+
 
 // ─── Zone multipliers ────────────────────────────────────────
 export type ZoneMultipliers = {
@@ -184,25 +187,59 @@ export function autoSelectMeans(
   return 'air';
 }
 
-// ─── Delivery date calculation ────────────────────────────────
+
+
+// ─── Distance-based delivery time ────────────────────────────
 export function getDeliveryDays(
   means: ShipmentMeans,
-  serviceLevel: ServiceLevel
+  serviceLevel: ServiceLevel,
+  distanceKm: number = 5000
 ): { min: number; max: number; label: string } {
+  const km = Math.max(0, distanceKm);
+
   if (means === 'land') {
-    if (serviceLevel === 'Express') return { min: 2, max: 3, label: '2–3 business days' };
-    return { min: 3, max: 5, label: '3–5 business days' };
+    // Local delivery — distance in km between states/cities
+    if (serviceLevel === 'Express') {
+      if (km < 50) return { min: 0, max: 1, label: 'Same-day – next day' };
+      if (km < 300) return { min: 1, max: 2, label: '1–2 business days' };
+      if (km < 700) return { min: 1, max: 2, label: '1–2 business days' };
+      return { min: 2, max: 3, label: '2–3 business days' };
+    }
+    // Standard
+    if (km < 50) return { min: 1, max: 2, label: '1–2 business days' };
+    if (km < 300) return { min: 2, max: 4, label: '2–4 business days' };
+    if (km < 700) return { min: 2, max: 5, label: '2–5 business days' };
+    return { min: 3, max: 6, label: '3–6 business days' };
   }
+
   if (means === 'air') {
-    if (serviceLevel === 'Express') return { min: 3, max: 7, label: '3–7 business days' };
-    return { min: 5, max: 10, label: '5–10 business days' };
+    // International air freight
+    if (serviceLevel === 'Express') {
+      if (km < 3000) return { min: 2, max: 3, label: '2–3 business days' };
+      if (km < 7000) return { min: 3, max: 5, label: '3–5 business days' };
+      if (km < 12000) return { min: 4, max: 7, label: '4–7 business days' };
+      return { min: 5, max: 8, label: '5–8 business days' };
+    }
+    // Standard
+    if (km < 3000) return { min: 4, max: 7, label: '4–7 business days' };
+    if (km < 7000) return { min: 5, max: 10, label: '5–10 business days' };
+    if (km < 12000) return { min: 7, max: 12, label: '7–12 business days' };
+    return { min: 10, max: 14, label: '10–14 business days' };
   }
-  // sea — always standard
-  return { min: 20, max: 40, label: '20–40 business days' };
+
+  // Sea — always Standard
+  if (km < 5000) return { min: 15, max: 25, label: '15–25 business days' };
+  if (km < 10000) return { min: 20, max: 35, label: '20–35 business days' };
+  if (km < 15000) return { min: 25, max: 40, label: '25–40 business days' };
+  return { min: 30, max: 45, label: '30–45 business days' };
 }
 
-export function getEstimatedDeliveryDate(means: ShipmentMeans, serviceLevel: ServiceLevel): string {
-  const { max } = getDeliveryDays(means, serviceLevel);
+export function getEstimatedDeliveryDate(
+  means: ShipmentMeans,
+  serviceLevel: ServiceLevel,
+  distanceKm: number = 5000
+): string {
+  const { max } = getDeliveryDays(means, serviceLevel, distanceKm);
   const date = new Date();
   let added = 0;
   while (added < max) {
@@ -211,6 +248,15 @@ export function getEstimatedDeliveryDate(means: ShipmentMeans, serviceLevel: Ser
     if (day !== 0 && day !== 6) added++;
   }
   return date.toISOString().split('T')[0];
+}
+
+// ─── Distance-based zone multiplier (replaces continent-based) ─
+function getDistanceMultiplier(km: number): number {
+  if (km < 2000) return 1.0;
+  if (km < 5000) return 1.2;
+  if (km < 10000) return 1.4;
+  if (km < 15000) return 1.6;
+  return 1.8;
 }
 
 // ─── Invoice breakdown ────────────────────────────────────────
@@ -262,17 +308,18 @@ export function computeInvoice(params: {
     const rate = serviceLevel === 'Express'
       ? pricing.air.ratePerKgExpress
       : pricing.air.ratePerKgStandard;
-    const zone = getContinentZone(senderCountryCode, receiverCountryCode);
-    const mult = pricing.air.zoneMultipliers[zone];
+    const km = getCountryDistance(senderCountryCode, receiverCountryCode);
+    const mult = getDistanceMultiplier(km);
     baseFreight = rate * w * mult;
   } else if (means === 'sea') {
-    const zone = getContinentZone(senderCountryCode, receiverCountryCode);
-    const mult = pricing.sea.zoneMultipliers[zone];
+    const km = getCountryDistance(senderCountryCode, receiverCountryCode);
+    const mult = getDistanceMultiplier(km);
     baseFreight = pricing.sea.ratePerKgStandard * w * mult;
   } else {
-    // land
-    const zone = getLandZone(senderCity, senderState, receiverCity, receiverState);
-    const baseRate = pricing.land.zoneRates[zone];
+    // land — use state distance within country
+    const km = getStateDistance(senderCountryCode, senderState, receiverState);
+    // Scale: ~$0.05 per kg per km, with minimum
+    const baseRate = Math.max(5, km * 0.05);
     const expMult = serviceLevel === 'Express' ? pricing.land.expressMultiplier : 1;
     baseFreight = baseRate * w * expMult;
   }

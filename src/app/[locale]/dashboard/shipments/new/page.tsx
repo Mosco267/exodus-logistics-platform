@@ -16,6 +16,7 @@ import {
   type ServiceLevel, type ShipmentType, type ShipmentMeans,
 } from '@/lib/pricing';
 import TwoFaShipmentModal from '@/components/TwoFaShipmentModal';
+import { getCountryDistance, getStateDistance } from '@/lib/distances';
 
 function formatMoney(value: number): string {
   if (isNaN(value)) return '0.00';
@@ -854,6 +855,8 @@ export default function NewShipmentPage() {
   const { data: session } = useSession();
 
 
+  
+
 
   
 
@@ -893,12 +896,20 @@ useEffect(() => {
 
   const [pricing, setPricing] = useState<PricingProfiles | null>(null);
   const [pricingError, setPricingError] = useState(false);
-  useEffect(() => {
-    fetch('/api/pricing', { cache: 'no-store' })
-  .then(r => r.json())
-  .then(d => { if (d?.settings) setPricing(d.settings); else setPricingError(true); })
-  .catch(() => setPricingError(true));
-  }, []);
+  const [localAvailable, setLocalAvailable] = useState<string[]>([]);
+ useEffect(() => {
+  fetch('/api/pricing', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => { if (d?.settings) setPricing(d.settings); else setPricingError(true); })
+    .catch(() => setPricingError(true));
+}, []);
+
+useEffect(() => {
+  fetch('/api/local-availability')
+    .then(r => r.json())
+    .then(d => setLocalAvailable((d.countries || []).map((c: any) => c.countryCode)))
+    .catch(() => {});
+}, []);
 
   const WEIGHT_MAX = 30000; // kg
 const LENGTH_MAX = 1200; // cm
@@ -910,7 +921,8 @@ const [lengthWarning, setLengthWarning] = useState('');
 const [widthWarning, setWidthWarning] = useState('');
 const [heightWarning, setHeightWarning] = useState('');
 
-const hasLimitWarning = !!(weightWarning || lengthWarning || widthWarning || heightWarning);
+
+
 
   const [scope, setScope] = useState<ShipmentScope>('international');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('Express');
@@ -946,6 +958,9 @@ const [profileDialFlag, setProfileDialFlag] = useState('');
   const [receiverStreet, setReceiverStreet] = useState('');
   const [receiverPostal, setReceiverPostal] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
+
+  const hasLimitWarning = !!(weightWarning || lengthWarning || widthWarning || heightWarning);
+const isLocalUnsupported = scope === 'local' && !!senderCountryCode && !localAvailable.includes(senderCountryCode);
 
   const [weightKg, setWeightKg] = useState('');
   const [lengthCm, setLengthCm] = useState('');
@@ -1062,6 +1077,14 @@ if (data.phoneDialCode) {
   }
 }, [scope]);
 
+useEffect(() => {
+  if (scope === 'local' && senderCountry && senderCountryCode) {
+    setReceiverCountry(senderCountry);
+    setReceiverCountryCode(senderCountryCode);
+    setReceiverState('');
+  }
+}, [scope, senderCountry, senderCountryCode]);
+
   const actualWeight = parseFloat(weightKg) || 0;
 const lenNum = parseFloat(lengthCm) || 0;
 const widNum = parseFloat(widthCm) || 0;
@@ -1095,7 +1118,20 @@ const effectiveServiceLevel: ServiceLevel = useMemo(() => {
   return serviceLevel;
 }, [means, weight, serviceLevel]);
 
-  const delivery = useMemo(() => getDeliveryDays(means, effectiveServiceLevel), [means, effectiveServiceLevel]);
+  const distanceKm = useMemo(() => {
+  if (scope === 'local' && senderCountryCode && senderState && receiverState) {
+    return getStateDistance(senderCountryCode, senderState, receiverState);
+  }
+  if (senderCountryCode && receiverCountryCode) {
+    return getCountryDistance(senderCountryCode, receiverCountryCode);
+  }
+  return 0;
+}, [scope, senderCountryCode, receiverCountryCode, senderState, receiverState]);
+
+const delivery = useMemo(() =>
+  getDeliveryDays(means, effectiveServiceLevel, distanceKm),
+  [means, effectiveServiceLevel, distanceKm]
+);
 
   // Fix 7: date range display
   const deliveryDateStr = useMemo(() => {
@@ -1117,7 +1153,10 @@ const effectiveServiceLevel: ServiceLevel = useMemo(() => {
     return `${fmt(minDate)} – ${fmtFull(maxDate)}`;
   }, [delivery, weight]);
 
-  const deliveryDateISO = useMemo(() => getEstimatedDeliveryDate(means, effectiveServiceLevel), [means, effectiveServiceLevel]);
+  const deliveryDateISO = useMemo(() =>
+  getEstimatedDeliveryDate(means, effectiveServiceLevel, distanceKm),
+  [means, effectiveServiceLevel, distanceKm]
+);
 
   const breakdown = useMemo(() => {
     const effectiveReceiverCode = receiverCountryCode || (scope === 'local' ? senderCountryCode : '');
@@ -1274,6 +1313,11 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
   return;
 }
 
+if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCountryCode)) {
+  setError(`Sorry — our company doesn't operate locally in ${senderCountry}. Please use international shipping or contact support.`);
+  return;
+}
+
   const dv = parseFloat(declaredValue);
   if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
 
@@ -1370,6 +1414,14 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
     onChange={name => { const e = getCountryByName(name); if (e) handleSenderCountryChange(e.name, e.code); }}
     onEntry={e => handleSenderCountryChange(e.name, e.code)} />
   {attempted && !senderCountry && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {isLocalUnsupported && (
+    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30 px-3.5 py-2.5">
+      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 leading-relaxed flex items-start gap-1.5">
+        <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+        <span>Sorry we don't operate locally in <strong>{senderCountry}</strong>. Local shipment is not available. Please switch to International shipping.</span>
+      </p>
+    </div>
+  )}
 </div>
         <div ref={refSenderStreet}>
   <Label>Street Address</Label>
@@ -1469,10 +1521,10 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
   {attempted && !receiverCountry && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
         {scope === 'local' && (
-          <p className="text-xs flex items-center gap-1.5 -mt-2" style={{ color: accentSolid }}>
-            <Info size={12} /> Same country as sender for local shipments
-          </p>
-        )}
+  <p className="text-xs flex items-center gap-1.5 -mt-2" style={{ color: accentSolid }}>
+    <Info size={12} /> Receiver country is locked to sender country for local shipments
+  </p>
+)}
         <div ref={refReceiverStreet}>
   <Label>Street Address</Label>
   <input value={receiverStreet} onChange={e => setReceiverStreet(e.target.value)}
@@ -1725,12 +1777,12 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
 
       {/* Invoice breakdown — Fix 9 */}
       
-      {pricing && !breakdown && weight > 0 && senderCountryCode && (receiverCountryCode || scope === 'local') && !hasLimitWarning && (
+      {pricing && !breakdown && weight > 0 && senderCountryCode && (receiverCountryCode || scope === 'local') && !hasLimitWarning && !isLocalUnsupported && (
   <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm text-gray-500">
     <Loader2 size={14} className="animate-spin shrink-0" /> Calculating invoice…
   </div>
 )}
-{breakdown && !hasLimitWarning && (
+{breakdown && !hasLimitWarning && !isLocalUnsupported && (
   <Section title="Invoice Breakdown" accent={accent}>
           <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Estimated invoice — final amount confirmed on payment page.</p>
           <div className="space-y-2 text-sm">
@@ -1765,13 +1817,15 @@ if (weightWarning || lengthWarning || widthWarning || heightWarning) {
 
       <button
   onClick={hasLimitWarning ? () => router.push(`/${locale}/support`) : handleSubmit}
-  disabled={loading || (!pricing && !pricingError)}
-  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
-  style={{ background: hasLimitWarning ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : accent }}>
+  disabled={loading || (!pricing && !pricingError) || isLocalUnsupported}
+  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+  style={{ background: isLocalUnsupported ? '#9ca3af' : hasLimitWarning ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : accent }}>
   {loading
     ? <><Loader2 size={16} className="animate-spin" /> Creating shipment…</>
     : !pricing && !pricingError
     ? <><Loader2 size={16} className="animate-spin" /> Loading pricing…</>
+    : isLocalUnsupported
+    ? <><AlertCircle size={16} /> Local shipping unavailable</>
     : hasLimitWarning
     ? <><AlertCircle size={16} /> Contact Support</>
     : <><Send size={16} /> Create Order</>}

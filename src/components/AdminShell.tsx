@@ -18,6 +18,7 @@ import {
   Workflow,
   CreditCard,
   Ban,
+  MapPin,
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -129,6 +130,11 @@ export default function AdminShell({ children }: Props) {
       label: "Pricing",
       icon: <Percent className="w-5 h-5" />,
     },
+    {
+  href: `/${locale}/dashboard/admin/local-availability`,
+  label: "Local Availability",
+  icon: <MapPin className="w-5 h-5" />,
+},
     {
       href: `/${locale}/dashboard/admin/company-settings`,
       label: "Company Settings",
