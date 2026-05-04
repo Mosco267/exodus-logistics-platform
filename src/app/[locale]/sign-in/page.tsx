@@ -221,6 +221,7 @@ const msg = errStr.includes('banned')
 
   useEffect(() => {
   if (showFullScreenLoader) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
   } else {
