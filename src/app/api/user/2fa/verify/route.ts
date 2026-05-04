@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import clientPromise from '@/lib/mongodb';
 import { authenticator } from 'otplib';
+import { sendApp2FAEnabledEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -39,6 +40,13 @@ export async function POST(req: Request) {
       $set: { twoFactorSecret: secret, twoFactorEnabled: true },
       $unset: { twoFactorPending: '' },
     });
+
+    // Send "app 2FA enabled" confirmation email
+    try {
+      await sendApp2FAEnabledEmail(userEmail, { name: user.name || 'Customer' });
+    } catch (e) {
+      console.error('Failed to send app 2FA enabled email:', e);
+    }
 
     return NextResponse.json({ ok: true, message: '2FA enabled successfully' });
   }

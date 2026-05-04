@@ -190,16 +190,16 @@ const msg = errStr.includes('banned')
 return (
   <>
     {showFullScreenLoader && (
-      <div className="fixed inset-0 z-[99999] lg:left-[48%] xl:left-[45%] flex items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">
-            {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
-          </p>
-        </div>
-      </div>
-    )}
+  <div className="fixed inset-0 z-[99999] lg:left-[48%] xl:left-[45%] flex items-start justify-center pt-[35vh]"
+    style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+      <p className="text-sm font-semibold text-gray-500">
+        {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
+      </p>
+    </div>
+  </div>
+)}
       <style>{`@media (min-width: 1024px) { header, nav[role="navigation"] { display: none !important; } }`}</style>
       <div className="min-h-screen flex">
 

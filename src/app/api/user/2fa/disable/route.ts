@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import clientPromise from '@/lib/mongodb';
 import { authenticator } from 'otplib';
+import { sendApp2FADisabledEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -30,6 +31,13 @@ export async function POST(req: Request) {
   await db.collection('users').updateOne(filter, {
     $unset: { twoFactorSecret: '', twoFactorEnabled: '', twoFactorPending: '' },
   });
+
+  // Send "app 2FA disabled" confirmation email
+  try {
+    await sendApp2FADisabledEmail(userEmail, { name: user.name || 'Customer' });
+  } catch (e) {
+    console.error('Failed to send app 2FA disabled email:', e);
+  }
 
   return NextResponse.json({ ok: true });
 }

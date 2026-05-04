@@ -2699,3 +2699,240 @@ export async function sendShipmentDeletedEmail(
 
   return sendEmail(to, finalSubject, html);
 }
+
+// ============================================================
+// 2FA confirmation emails
+// ============================================================
+
+export async function sendEmail2FAEnabledEmail(to: string, opts: { name?: string }) {
+  const name = opts.name || 'Customer';
+  const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      Hi <strong style="color:#111827;">${name}</strong>,
+    </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      Email-based two-factor authentication has been <strong style="color:#10b981;">successfully enabled</strong> on your Exodus Logistics account.
+    </p>
+    <p style="margin:0 0 20px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      From now on, you'll be required to enter a 6-digit code sent to this email when performing sensitive actions like creating shipments.
+    </p>
+
+    <div style="background:#ecfdf5;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #10b981;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Your account is more secure</p>
+      <p style="margin:0;font-size:13px;color:#047857;line-height:20px;font-family:${FONT};">
+        Even if someone learns your password, they won't be able to perform sensitive actions without access to your email.
+      </p>
+    </div>
+
+    <div style="background:#fef3c7;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Didn't do this?</p>
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:20px;font-family:${FONT};">
+        If you did not enable email 2FA, your account may be at risk. Please change your password immediately and contact support.
+      </p>
+    </div>
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;font-family:${FONT};">
+      You can disable email 2FA at any time from your account security settings.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject: "Email 2FA enabled on your account",
+    title: "Email 2FA enabled",
+    preheader: `Hi ${name}, email two-factor authentication has been enabled on your account.`,
+    bodyHtml,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  await resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject: 'Email 2FA enabled on your account',
+    html,
+    replyTo: SUPPORT_EMAIL,
+  });
+}
+
+export async function sendEmail2FADisableCodeEmail(to: string, opts: { name?: string; code: string }) {
+  const name = opts.name || 'Customer';
+  const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+
+  const codeBoxesHtml = opts.code.split("").map(digit => `
+    <td class="code-cell" style="padding:0 5px;">
+      <div class="code-box" style="width:46px;height:56px;background:#f0f4ff;border:2px solid #e0e8ff;border-radius:12px;text-align:center;line-height:56px;font-size:28px;font-weight:900;color:#1d4ed8;font-family:'Courier New',Courier,monospace;">${digit}</div>
+    </td>
+  `).join("");
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      Hi <strong style="color:#111827;">${name}</strong>,
+    </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      You're attempting to <strong style="color:#dc2626;">disable email two-factor authentication</strong> on your Exodus Logistics account.
+      To confirm this action, please enter the verification code below.
+    </p>
+    <p style="margin:0 0 20px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      This code will expire in <strong style="color:#ef4444;">10 minutes</strong>.
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
+      <tr>
+        <td style="background:linear-gradient(135deg,#f0f4ff,#e8f4ff);border-radius:16px;padding:28px;text-align:center;border:1px solid #e0e8ff;">
+          <p style="margin:0 0 16px 0;font-size:12px;font-weight:700;color:#6b7280;letter-spacing:3px;text-transform:uppercase;font-family:${FONT};">Your verification code</p>
+          <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+            <tr>${codeBoxesHtml}</tr>
+          </table>
+          <p style="margin:16px 0 0 0;font-size:13px;color:#9ca3af;font-family:${FONT};">
+            Expires in <strong style="color:#ef4444;">10 minutes</strong>
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <div style="background:#fef3c7;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Didn't request this?</p>
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:20px;font-family:${FONT};">
+        If you did not attempt to disable email 2FA, please ignore this email and consider changing your password as a precaution.
+      </p>
+    </div>
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;font-family:${FONT};">
+      For your security, never share this code with anyone. Exodus Logistics will never ask for your verification code.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject: "Confirm disabling email 2FA",
+    title: "Confirm 2FA disable",
+    preheader: `Hi ${name}, your code to disable email 2FA is ${opts.code}`,
+    bodyHtml,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  await resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject: 'Confirm disabling email 2FA',
+    html,
+    replyTo: SUPPORT_EMAIL,
+  });
+}
+
+export async function sendApp2FAEnabledEmail(to: string, opts: { name?: string }) {
+  const name = opts.name || 'Customer';
+  const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      Hi <strong style="color:#111827;">${name}</strong>,
+    </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      Authenticator app two-factor authentication has been <strong style="color:#10b981;">successfully enabled</strong> on your Exodus Logistics account.
+    </p>
+    <p style="margin:0 0 20px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      From now on, you'll be required to enter a 6-digit code from your authenticator app when performing sensitive actions like creating shipments.
+    </p>
+
+    <div style="background:#ecfdf5;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #10b981;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Your account is more secure</p>
+      <p style="margin:0;font-size:13px;color:#047857;line-height:20px;font-family:${FONT};">
+        Authenticator apps are more secure than email codes since they work even without internet access and are tied to your physical device.
+      </p>
+    </div>
+
+    <div style="background:#fef3c7;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Didn't do this?</p>
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:20px;font-family:${FONT};">
+        If you did not enable authenticator app 2FA, your account may be at risk. Please change your password immediately and contact support.
+      </p>
+    </div>
+
+    <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1d4ed8;">
+      <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Important reminder:</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Keep your authenticator app safe</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; If you lose your device, contact support to recover access</p>
+      <p style="margin:0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Consider backing up your authenticator app to the cloud</p>
+    </div>
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;font-family:${FONT};">
+      You can disable authenticator app 2FA at any time from your account security settings.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject: "Authenticator app enabled on your account",
+    title: "Authenticator app enabled",
+    preheader: `Hi ${name}, authenticator app 2FA has been enabled on your account.`,
+    bodyHtml,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  await resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject: 'Authenticator app enabled on your account',
+    html,
+    replyTo: SUPPORT_EMAIL,
+  });
+}
+
+export async function sendApp2FADisabledEmail(to: string, opts: { name?: string }) {
+  const name = opts.name || 'Customer';
+  const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      Hi <strong style="color:#111827;">${name}</strong>,
+    </p>
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      This email confirms that <strong>authenticator app two-factor authentication</strong> has been disabled on your Exodus Logistics account.
+    </p>
+    <p style="margin:0 0 20px 0;font-size:16px;line-height:26px;color:#111827;font-family:${FONT};">
+      You will no longer be required to enter an authenticator code for sensitive actions like creating shipments.
+    </p>
+
+    <div style="background:#fef3c7;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+      <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">Didn't do this?</p>
+      <p style="margin:0;font-size:13px;color:#78350f;line-height:20px;font-family:${FONT};">
+        If you did not disable authenticator app 2FA, your account may be at risk. Please change your password immediately and contact support.
+      </p>
+    </div>
+
+    <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1d4ed8;">
+      <p style="margin:0 0 10px 0;font-size:13px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:1px;font-family:${FONT};">For your security:</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Consider enabling email 2FA instead</p>
+      <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Use a strong, unique password</p>
+      <p style="margin:0;font-size:13px;color:#6b7280;font-family:${FONT};">&#x2713;&nbsp; Review your recent account activity regularly</p>
+    </div>
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;font-family:${FONT};">
+      You can re-enable authenticator app 2FA at any time from your account security settings.
+    </p>
+  `;
+
+  const html = renderEmailTemplate({
+    subject: "Authenticator app disabled on your account",
+    title: "Authenticator app disabled",
+    preheader: `Hi ${name}, authenticator app 2FA has been disabled on your account.`,
+    bodyHtml,
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  await resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject: 'Authenticator app disabled on your account',
+    html,
+    replyTo: SUPPORT_EMAIL,
+  });
+}

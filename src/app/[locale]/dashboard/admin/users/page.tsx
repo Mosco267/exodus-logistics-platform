@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  RefreshCw, Users, UserCheck, UserX, MoreVertical,
-  Loader2, AlertCircle, CheckCircle2, XCircle, ChevronLeft, ChevronRight,
+  RefreshCw, Users, UserCheck, UserX, Ban, MoreVertical,
+  Loader2, AlertCircle, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Trash2,
 } from "lucide-react";
 
 type UserRow = {
@@ -58,20 +58,22 @@ export default function AdminUsersPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [menuFlip, setMenuFlip] = useState<Record<string, boolean>>({});
   const [menuPos, setMenuPos] = useState<{ top: number; right: number; rectBottom: number } | null>(null);
-  const [deletingId, setDeletingId] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState("");
+
+  const [busyId, setBusyId] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ id: string; type: "ban" | "delete" } | null>(null);
+
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState<"success" | "error">("success");
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
   const [bannedCount, setBannedCount] = useState(0);
+  const [deletedCount, setDeletedCount] = useState(0);
 
   const showMsg = (text: string, type: "success" | "error" = "success") => {
     setMsg(text); setMsgType(type);
     window.setTimeout(() => setMsg(""), 3500);
   };
 
-  // Close menu on outside click
   useEffect(() => {
     if (!openMenu) return;
     const handler = (e: MouseEvent) => {
@@ -82,7 +84,6 @@ export default function AdminUsersPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [openMenu]);
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenMenu(null); };
     window.addEventListener("keydown", handler);
@@ -90,32 +91,34 @@ export default function AdminUsersPage() {
   }, []);
 
   const fetchUsers = async (silent = false) => {
-  if (silent) setRefreshing(true); else setLoading(true);
-  try {
-    const [usersRes, bannedRes] = await Promise.all([
-      fetch("/api/admin/users", { cache: "no-store" }),
-      fetch("/api/admin/deleted-users", { cache: "no-store" }),
-    ]);
-    const usersJson = await usersRes.json();
-    const bannedJson = bannedRes.ok ? await bannedRes.json() : { users: [] };
-    setUsers(Array.isArray(usersJson?.users) ? usersJson.users : []);
-    setBannedCount(Array.isArray(bannedJson?.users) ? bannedJson.users.length : 0);
-  } catch {
-    showMsg("Failed to load users.", "error");
-  } finally {
-    setLoading(false); setRefreshing(false);
-  }
-};
-
-  
+    if (silent) setRefreshing(true); else setLoading(true);
+    try {
+      const [usersRes, bannedRes, deletedRes] = await Promise.all([
+        fetch("/api/admin/users", { cache: "no-store" }),
+        fetch("/api/admin/users/unban", { cache: "no-store" }),
+        fetch("/api/admin/deleted-users", { cache: "no-store" }),
+      ]);
+      const usersJson = await usersRes.json();
+      const bannedJson = bannedRes.ok ? await bannedRes.json() : { users: [] };
+      const deletedJson = deletedRes.ok ? await deletedRes.json() : { users: [] };
+      setUsers(Array.isArray(usersJson?.users) ? usersJson.users : []);
+      setBannedCount(Array.isArray(bannedJson?.users) ? bannedJson.users.length : 0);
+      setDeletedCount(Array.isArray(deletedJson?.users) ? deletedJson.users.length : 0);
+    } catch {
+      showMsg("Failed to load users.", "error");
+    } finally {
+      setLoading(false); setRefreshing(false);
+    }
+  };
 
   useEffect(() => { fetchUsers(); }, []); // eslint-disable-line
 
   const stats = useMemo(() => ({
-  total: users.length,
-  active: users.length,
-  banned: bannedCount,
-}), [users, bannedCount]);
+    total: users.length + bannedCount + deletedCount,
+    active: users.length,
+    banned: bannedCount,
+    deleted: deletedCount,
+  }), [users, bannedCount, deletedCount]);
 
   const totalPages = Math.ceil(users.length / PAGE_SIZE);
 
@@ -125,21 +128,53 @@ export default function AdminUsersPage() {
     return users.slice(start, start + PAGE_SIZE);
   }, [users, currentPage, showAll]);
 
+  const banUser = async (userId: string) => {
+    const u = users.find(x => x.id === userId);
+    if (!u?.email) { showMsg("User has no email.", "error"); return; }
+    setBusyId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: u.email, reason: "Banned by admin" }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
+      setUsers(prev => prev.filter(x => x.id !== userId));
+      setBannedCount(prev => prev + 1);
+      showMsg("User banned successfully.");
+    } catch {
+      showMsg("Network error.", "error");
+    } finally {
+      setBusyId(""); setConfirmAction(null);
+    }
+  };
+
   const deleteUser = async (userId: string) => {
-  setDeletingId(userId);
-  try {
-    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
-  method: "DELETE",
-});
-const j = await res.json().catch(() => null);
-if (!res.ok) { showMsg(j?.error || "Failed to ban user.", "error"); return; }
-setUsers(prev => prev.filter(u => u.id !== userId));
-setBannedCount(prev => prev + 1);
-showMsg("User banned successfully.");
-  } finally {
-    setDeletingId(""); setConfirmDeleteId("");
-  }
-};
+    setBusyId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) { showMsg(j?.error || "Failed to delete user.", "error"); return; }
+      setUsers(prev => prev.filter(x => x.id !== userId));
+      setDeletedCount(prev => prev + 1);
+      showMsg("User deleted successfully.");
+    } catch {
+      showMsg("Network error.", "error");
+    } finally {
+      setBusyId(""); setConfirmAction(null);
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "ban") banUser(confirmAction.id);
+    else deleteUser(confirmAction.id);
+  };
+
+  const confirmUser = confirmAction ? users.find(u => u.id === confirmAction.id) : null;
 
   const btnCls = "cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition";
 
@@ -165,7 +200,6 @@ showMsg("User banned successfully.");
     <div className="min-h-screen bg-gray-50/50">
       <div className="max-w-[1200px] mx-auto px-4 py-8">
 
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Users</h1>
@@ -178,24 +212,27 @@ showMsg("User banned successfully.");
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        {/* Stats — 4 boxes */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: "Total Users", value: stats.total, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100", Icon: Users },
-            { label: "Active", value: stats.active, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", Icon: UserCheck },
-            { label: "Banned", value: stats.banned, color: "text-red-600", bg: "bg-red-50", border: "border-red-100", Icon: UserX },
-          ].map(({ label, value, color, bg, border, Icon }) => (
-            <div key={label} className={`rounded-2xl border ${border} ${bg} p-4 hover:shadow-sm transition`}>
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</p>
-                <Icon className={`w-4 h-4 ${color}`} />
+            { label: "Total Users", value: stats.total, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100", Icon: Users, href: null },
+            { label: "Active", value: stats.active, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", Icon: UserCheck, href: null },
+            { label: "Deleted", value: stats.deleted, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100", Icon: UserX, href: `/${locale}/dashboard/admin/deleted-users` },
+            { label: "Banned", value: stats.banned, color: "text-red-600", bg: "bg-red-50", border: "border-red-100", Icon: Ban, href: `/${locale}/dashboard/admin/users/banned` },
+          ].map(({ label, value, color, bg, border, Icon, href }) => {
+            const content = (
+              <div className={`rounded-2xl border ${border} ${bg} p-4 hover:shadow-sm transition ${href ? 'cursor-pointer' : ''}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</p>
+                  <Icon className={`w-4 h-4 ${color}`} />
+                </div>
+                <p className={`text-3xl font-extrabold ${color}`}>{value}</p>
               </div>
-              <p className={`text-3xl font-extrabold ${color}`}>{value}</p>
-            </div>
-          ))}
+            );
+            return href ? <Link key={label} href={href}>{content}</Link> : <div key={label}>{content}</div>;
+          })}
         </div>
 
-        {/* Message */}
         {msg && (
           <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2 ${
             msgType === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -205,15 +242,13 @@ showMsg("User banned successfully.");
           </div>
         )}
 
-        {/* Table card */}
-       <div ref={tableRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
+        <div ref={tableRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
 
-          {/* Toolbar */}
           <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <p className="text-sm font-semibold text-gray-500">
               {loading ? "Loading…"
                 : showAll ? `All ${users.length} users`
-                : users.length === 0 ? "No users"
+                : users.length === 0 ? "No active users"
                 : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, users.length)} of ${users.length} users`}
             </p>
             <div className="flex items-center gap-2 flex-wrap">
@@ -245,7 +280,7 @@ showMsg("User banned successfully.");
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
               <Users className="w-10 h-10 text-gray-200" />
-              <p className="text-sm font-semibold">No users found.</p>
+              <p className="text-sm font-semibold">No active users found.</p>
             </div>
           ) : (
             <div className="overflow-x-auto overflow-y-visible">
@@ -263,14 +298,12 @@ showMsg("User banned successfully.");
                   {displayed.map((u, idx) => {
                     const sn = showAll ? idx + 1 : (currentPage - 1) * PAGE_SIZE + idx + 1;
                     const userHref = `/${locale}/dashboard/admin/users/${encodeURIComponent(u.id)}`;
-                    const isBanned = u.banned || u.status === "banned" || (u as any).isDeleted;
+                    const isAdmin = u.role === "ADMIN";
 
                     return (
                       <tr key={u.id} className="group hover:bg-slate-50/80 transition">
-                        {/* # */}
                         <td className="py-4 px-4 text-xs font-semibold text-gray-300">{sn}</td>
 
-                        {/* User */}
                         <td className="py-4 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <div className={`h-9 w-9 rounded-full ${avatarColor(u.id)} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
@@ -283,41 +316,35 @@ showMsg("User banned successfully.");
                           </div>
                         </td>
 
-                        {/* Email */}
                         <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-600">
                           {u.email || "—"}
                         </td>
 
-                        {/* Role / Status */}
                         <td className="py-4 px-4 whitespace-nowrap">
-                          {isBanned ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-red-50 text-red-700 border-red-200">
-                              Banned
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
-                              {u.role === "ADMIN" ? "Admin" : "Active"}
-                            </span>
-                          )}
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                            isAdmin
+                              ? "bg-violet-50 text-violet-700 border-violet-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}>
+                            {isAdmin ? "Admin" : "Active"}
+                          </span>
                         </td>
 
-                        {/* Created */}
                         <td className="py-4 px-4 whitespace-nowrap text-xs text-gray-400 font-medium">
                           {fmtDate(u.createdAt)}
                         </td>
 
-                        {/* Actions */}
                         <td className="py-4 px-4 whitespace-nowrap text-right">
                           <div className="relative inline-block" data-menu>
                             <button type="button"
                               onClick={(e) => {
-  if (openMenu === u.id) { setOpenMenu(null); return; }
-  const rect = e.currentTarget.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom;
-  setMenuFlip(prev => ({ ...prev, [u.id]: spaceBelow < 220 }));
-  setMenuPos({ top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right, rectBottom: rect.bottom });
-  setOpenMenu(u.id);
-}}
+                                if (openMenu === u.id) { setOpenMenu(null); return; }
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const spaceBelow = window.innerHeight - rect.bottom;
+                                setMenuFlip(prev => ({ ...prev, [u.id]: spaceBelow < 260 }));
+                                setMenuPos({ top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right, rectBottom: rect.bottom });
+                                setOpenMenu(u.id);
+                              }}
                               className="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition shadow-sm"
                               data-menu>
                               <MoreVertical className="w-4 h-4" />
@@ -325,14 +352,14 @@ showMsg("User banned successfully.");
 
                             {openMenu === u.id && (
                               <div
-  className="fixed z-50 w-56 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden"
-  style={menuPos ? {
-    top: menuFlip[u.id]
-      ? menuPos.rectBottom - 220 + window.scrollY
-      : menuPos.top + 8,
-    right: menuPos.right,
-  } : {}}
-  data-menu>
+                                className="fixed z-50 w-56 rounded-2xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden"
+                                style={menuPos ? {
+                                  top: menuFlip[u.id]
+                                    ? menuPos.rectBottom - 260 + window.scrollY
+                                    : menuPos.top + 8,
+                                  right: menuPos.right,
+                                } : {}}
+                                data-menu>
                                 <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100">
                                   <p className="text-xs font-bold text-gray-800 truncate">{u.name || "Unnamed user"}</p>
                                   <p className="text-[11px] text-gray-400 truncate">{u.email || "—"}</p>
@@ -351,11 +378,18 @@ showMsg("User banned successfully.");
                                 </div>
                                 <div className="py-1 border-t border-gray-100">
                                   <button type="button"
-                                    onClick={() => { setOpenMenu(null); setConfirmDeleteId(u.id); }}
-                                    disabled={deletingId === u.id}
+                                    onClick={() => { setOpenMenu(null); setConfirmAction({ id: u.id, type: "delete" }); }}
+                                    disabled={busyId === u.id}
+                                    className="cursor-pointer flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-amber-600 hover:bg-amber-50 hover:text-amber-700 transition disabled:opacity-50">
+                                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                    Delete User
+                                  </button>
+                                  <button type="button"
+                                    onClick={() => { setOpenMenu(null); setConfirmAction({ id: u.id, type: "ban" }); }}
+                                    disabled={busyId === u.id}
                                     className="cursor-pointer flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition disabled:opacity-50">
-                                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                                    {deletingId === u.id ? "Banning…" : "Ban User"}
+                                    <Ban className="w-3.5 h-3.5 shrink-0" />
+                                    Ban User
                                   </button>
                                 </div>
                               </div>
@@ -370,7 +404,6 @@ showMsg("User banned successfully.");
             </div>
           )}
 
-          {/* Bottom pagination */}
           {!loading && !showAll && totalPages > 1 && (
             <div className="px-5 py-3.5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-xs text-gray-400 font-medium">
@@ -394,28 +427,46 @@ showMsg("User banned successfully.");
         </div>
       </div>
 
-      {/* Delete modal */}
-      {confirmDeleteId && (
+      {/* Confirm modal */}
+      {confirmAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-200 p-6">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
-              <AlertCircle className="w-6 h-6 text-red-600" />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${
+              confirmAction.type === "ban" ? "bg-red-100" : "bg-amber-100"
+            }`}>
+              {confirmAction.type === "ban"
+                ? <Ban className="w-6 h-6 text-red-600" />
+                : <Trash2 className="w-6 h-6 text-amber-600" />}
             </div>
-            <h3 className="text-xl font-extrabold text-gray-900">Ban user?</h3>
-            <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-              You are about to ban this user. This action cannot be undone, and the user will lose access to their account and shipments. Are you sure you want to proceed?
+            <h3 className="text-xl font-extrabold text-gray-900">
+              {confirmAction.type === "ban" ? "Ban this user?" : "Delete this user?"}
+            </h3>
+            {confirmUser && (
+              <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <p className="text-sm font-bold text-gray-800">{confirmUser.name || "—"}</p>
+                <p className="text-xs text-gray-500">{confirmUser.email}</p>
+              </div>
+            )}
+            <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+              {confirmAction.type === "ban"
+                ? "This user will be banned. They will not be able to sign in or register again with this email. You can unban them later from the Banned Users page."
+                : "This user will be moved to Deleted Users. They will not be able to sign in. You can restore them later from the Deleted Users page."}
             </p>
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button type="button" onClick={() => setConfirmDeleteId("")}
+              <button type="button" onClick={() => setConfirmAction(null)}
                 className="cursor-pointer px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                 Cancel
               </button>
-              <button type="button" onClick={() => deleteUser(confirmDeleteId)}
-                disabled={deletingId === confirmDeleteId}
-                className="cursor-pointer px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition flex items-center gap-2">
-                {deletingId === confirmDeleteId
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Banning…</>
-                  : "Yes, Ban User"}
+              <button type="button" onClick={handleConfirm}
+                disabled={busyId === confirmAction.id}
+                className={`cursor-pointer px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition disabled:opacity-60 flex items-center gap-2 ${
+                  confirmAction.type === "ban"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}>
+                {busyId === confirmAction.id
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />{confirmAction.type === "ban" ? "Banning…" : "Deleting…"}</>
+                  : confirmAction.type === "ban" ? "Yes, Ban User" : "Yes, Delete User"}
               </button>
             </div>
           </div>

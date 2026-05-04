@@ -22,21 +22,37 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
   const [resending, setResending] = useState(false);
   const [resentMessage, setResentMessage] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const expiryRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const tick = () => {
+    if (!expiryRef.current) return;
+    const remaining = Math.max(0, Math.ceil((expiryRef.current - Date.now()) / 1000));
+    setSecondsLeft(remaining);
+    if (remaining <= 0 && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
   const startCountdown = () => {
+    expiryRef.current = Date.now() + RESEND_SECONDS * 1000;
     setSecondsLeft(RESEND_SECONDS);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft(s => {
-        if (s <= 1) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
+    intervalRef.current = setInterval(tick, 1000);
   };
+
+  // Recalculate when tab regains focus / becomes visible
+  useEffect(() => {
+    const onVisibility = () => { if (!document.hidden) tick(); };
+    const onFocus = () => tick();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
 
   // Send the email code automatically when modal opens (only for email method)
   useEffect(() => {

@@ -193,7 +193,7 @@ export default function AdminShell({ children }: Props) {
           </div>
         </div>
 
-        <nav className="mt-3 px-2 space-y-1">
+        <nav className="mt-3 px-2 space-y-1 flex-1 overflow-y-auto">
           {nav.map((n) => {
             const active = pathname === n.href || pathname.startsWith(n.href + "/");
             return (
@@ -221,7 +221,7 @@ export default function AdminShell({ children }: Props) {
           })}
         </nav>
 
-        <div className="mt-auto p-3">
+        <div className="p-3 border-t border-white/10 shrink-0">
           <button
             onClick={() => signOut({ callbackUrl: `/${locale}/sign-in` })}
             className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 transition font-semibold cursor-pointer
