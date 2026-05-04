@@ -17,6 +17,27 @@ import {
 } from '@/lib/pricing';
 import TwoFaShipmentModal from '@/components/TwoFaShipmentModal';
 
+function formatWithCommas(raw: string): string {
+  if (!raw) return '';
+  const cleaned = raw.replace(/[^0-9.]/g, '');
+  // Only allow one decimal point
+  const parts = cleaned.split('.');
+  const intPart = parts[0];
+  const decPart = parts.length > 1 ? '.' + parts.slice(1).join('').slice(0, 2) : '';
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return withCommas + decPart;
+}
+
+function stripCommas(formatted: string): string {
+  return formatted.replace(/,/g, '');
+}
+
+function clampValue(raw: string, max: number): string {
+  const num = parseFloat(stripCommas(raw));
+  if (!isNaN(num) && num > max) return max.toString();
+  return stripCommas(raw);
+}
+
 // ─── Country → Currency map ───────────────────────────────────
 const COUNTRY_CURRENCY: Record<string, string> = {
   US:'USD',CA:'CAD',GB:'GBP',AU:'AUD',NZ:'NZD',EU:'EUR',
@@ -1497,10 +1518,13 @@ const handleSubmit = async () => {
           </div>
           <div ref={refWeightKg}>
   <Label>Weight (kg)</Label>
-  <input value={weightKg} onChange={e => setWeightKg(e.target.value.replace(/[^0-9.]/g, ''))}
-    inputMode="decimal" placeholder="e.g. 2.5"
-    className={`${inputCls} ${attempted && !weightKg.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
-    style={{ fontSize: '16px' }} />
+  <input value={formatWithCommas(weightKg)} onChange={e => {
+    const cleaned = clampValue(e.target.value, 30000);
+    setWeightKg(cleaned);
+  }}
+  inputMode="decimal" placeholder="e.g. 2.5"
+  className={`${inputCls} ${attempted && !weightKg.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  style={{ fontSize: '16px' }} />
   {attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
   {scope === 'international' && weight >= 300 && !isBulkOrContainer && (
     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
@@ -1512,21 +1536,21 @@ const handleSubmit = async () => {
   <Label>Dimensions (cm) — L × W × H</Label>
   <div className="grid grid-cols-3 gap-2">
     <div ref={refLengthCm}>
-      <input value={lengthCm} onChange={e => setLengthCm(e.target.value.replace(/[^0-9.]/g, ''))}
-        inputMode="decimal" placeholder="Length"
-        className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
-        style={{ fontSize: '16px' }} />
+      <input value={formatWithCommas(lengthCm)} onChange={e => setLengthCm(clampValue(e.target.value, 1200))}
+  inputMode="decimal" placeholder="Length"
+  className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  style={{ fontSize: '16px' }} />
       {attempted && !lengthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
     </div>
     <div ref={refWidthCm}>
-      <input value={widthCm} onChange={e => setWidthCm(e.target.value.replace(/[^0-9.]/g, ''))}
-        inputMode="decimal" placeholder="Width"
-        className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
-        style={{ fontSize: '16px' }} />
+      <input value={formatWithCommas(widthCm)} onChange={e => setWidthCm(clampValue(e.target.value, 300))}
+  inputMode="decimal" placeholder="Width"
+  className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  style={{ fontSize: '16px' }} />
       {attempted && !widthCm.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
     </div>
     <div ref={refHeightCm}>
-      <input value={heightCm} onChange={e => setHeightCm(e.target.value.replace(/[^0-9.]/g, ''))}
+      <input value={formatWithCommas(heightCm)} onChange={e => setHeightCm(clampValue(e.target.value, 300))}
         inputMode="decimal" placeholder="Height"
         className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
         style={{ fontSize: '16px' }} />
@@ -1571,10 +1595,10 @@ const handleSubmit = async () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
          <div ref={refDeclaredValue}>
   <Label>Declared Value</Label>
-  <input value={declaredValue} onChange={e => setDeclaredValue(e.target.value.replace(/[^0-9.]/g, ''))}
-    inputMode="decimal" placeholder="e.g. 500"
-    className={`${inputCls} ${attempted && !declaredValue.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
-    style={{ fontSize: '16px' }} />
+  <input value={formatWithCommas(declaredValue)} onChange={e => setDeclaredValue(stripCommas(e.target.value.replace(/[^0-9.,]/g, '')))}
+  inputMode="decimal" placeholder="e.g. 500"
+  className={`${inputCls} ${attempted && !declaredValue.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
+  style={{ fontSize: '16px' }} />
   {attempted && !declaredValue.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
 </div>
           <div>

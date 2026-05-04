@@ -91,9 +91,38 @@ export default function SignInPage() {
   };
 
   const handleEmailNext = async () => {
-    setEmailError('');
-    if (!email.trim()) { setEmailError('Email address is required.'); return; }
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setEmailError('Please enter a valid email address.'); return; }
+  setEmailError('');
+  setGeneralError('');
+  if (!email.trim()) { setEmailError('Email address is required.'); return; }
+  if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setEmailError('Please enter a valid email address.'); return; }
+
+  setCheckingPasskey(true);
+  try {
+    // Check email status first (banned / deleted / no account / exists)
+    const emailRes = await fetch('/api/auth/check-email', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+    const emailData = await emailRes.json();
+
+    if (emailData.status === 'banned') {
+      setEmailError('This email is banned. Please contact support@goexoduslogistics.com.');
+      setCheckingPasskey(false);
+      return;
+    }
+    if (emailData.status === 'deleted') {
+      setEmailError('This account has been deleted. Please contact support@goexoduslogistics.com to restore it.');
+      setCheckingPasskey(false);
+      return;
+    }
+    if (emailData.status === 'available') {
+      // No account exists with this email
+      setEmailError('NO_ACCOUNT');
+      setCheckingPasskey(false);
+      return;
+    }
+
+    // Save remember me only on success
     try {
       if (rememberMe) {
         localStorage.setItem(REMEMBER_ENABLED_KEY, '1');
@@ -103,18 +132,21 @@ export default function SignInPage() {
         localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     } catch {}
-    setCheckingPasskey(true);
-    try {
-      const res = await fetch('/api/auth/check-passkey', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
-      });
-      const data = await res.json();
-      setHasPasskey(!!data.hasPasskey);
-    } catch { setHasPasskey(false); }
-    finally { setCheckingPasskey(false); }
+
+    // Email exists — check for passkey then proceed
+    const res = await fetch('/api/auth/check-passkey', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+    const data = await res.json();
+    setHasPasskey(!!data.hasPasskey);
     setStep('auth');
-  };
+  } catch {
+    setEmailError('Could not verify email. Please try again.');
+  } finally {
+    setCheckingPasskey(false);
+  }
+};
 
   const handlePasswordSignIn = async () => {
     setPwError(''); setGeneralError('');
@@ -190,7 +222,7 @@ const msg = errStr.includes('banned')
 return (
   <>
     {showFullScreenLoader && (
-  <div className="fixed inset-0 z-[99999] lg:left-[48%] xl:left-[45%] flex items-start justify-center pt-[35vh]"
+  <div className="fixed inset-0 z-[99999] lg:left-[48%] xl:left-[45%] flex items-start justify-center pt-[45vh]"
     style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
     <div className="flex flex-col items-center gap-4">
       <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
@@ -323,11 +355,12 @@ return (
             style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="w-full max-w-[420px] relative z-10 -mt-6"
-          >
+  initial={{ opacity: 0, y: 12 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4 }}
+  className="w-full max-w-[420px] relative z-10 -mt-6"
+  style={{ opacity: showFullScreenLoader ? 0 : 1 }}
+>
             <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/8 border border-gray-100/80 p-8 sm:p-9">
 
               {/* ── STEP: CHOOSE ── */}
@@ -405,11 +438,21 @@ return (
                           onKeyDown={e => { if (e.key === 'Enter') handleEmailNext(); }}
                           placeholder="your@email.com" autoComplete="email" autoFocus
                           style={{ fontSize: '16px' }} className={inputCls(!!emailError)} />
-                        {emailError && (
-                          <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />{emailError}
-                          </p>
-                        )}
+                        {emailError === 'NO_ACCOUNT' ? (
+  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5">
+    <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
+      <AlertCircle className="w-3 h-3 shrink-0" />
+      No account is associated with this email.
+    </p>
+    <Link href={`/${locale}/sign-up`} className="text-xs font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2 mt-1 inline-block">
+      Create an account →
+    </Link>
+  </div>
+) : emailError ? (
+  <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+    <AlertCircle className="w-3 h-3" />{emailError}
+  </p>
+) : null}
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -556,19 +599,21 @@ return (
 
             </div>
 
-            <div className="mt-5 flex items-center justify-center gap-6">
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                <Shield className="w-3.5 h-3.5 text-green-500" />SSL Secured
-              </div>
-              <div className="w-px h-3 bg-gray-200" />
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />99.9% Uptime
-              </div>
-              <div className="w-px h-3 bg-gray-200" />
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                <Globe className="w-3.5 h-3.5 text-blue-400" />120+ Countries
-              </div>
-            </div>
+            {!showFullScreenLoader && (
+  <div className="mt-5 flex items-center justify-center gap-6">
+    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+      <Shield className="w-3.5 h-3.5 text-green-500" />SSL Secured
+    </div>
+    <div className="w-px h-3 bg-gray-200" />
+    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />99.9% Uptime
+    </div>
+    <div className="w-px h-3 bg-gray-200" />
+    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+      <Globe className="w-3.5 h-3.5 text-blue-400" />120+ Countries
+    </div>
+  </div>
+)}
           </motion.div>
         </div>
       </div>

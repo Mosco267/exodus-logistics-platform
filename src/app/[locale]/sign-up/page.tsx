@@ -542,10 +542,13 @@ function DialCodePicker({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+
   const filtered = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.dial.includes(search)
   );
+
+  
 
   return (
     <div className="relative shrink-0" ref={ref}>
@@ -758,6 +761,15 @@ const [forceCreating, setForceCreating] = useState(false);
       }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+  if (showDeletedModal || showBannedModal) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+  return () => { document.body.style.overflow = ''; };
+}, [showDeletedModal, showBannedModal]);
+
   const inputCls = (hasError: boolean) =>
     `w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder:text-gray-400 ${
       hasError ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'
@@ -876,10 +888,41 @@ try {
 
   const handleCreateNewAccount = async () => {
   setShowDeletedModal(false);
-  setForceCreating(true);
-  // Re-fire the submit
-  const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-  setTimeout(() => handleSubmit(fakeEvent), 50);
+  setIsSubmitting(true);
+  try {
+    const fmt = PHONE_FORMATS[dialCountry?.code || ''];
+    const patternPrefix = fmt?.pattern.replace(/^([^#]*).*/, '$1') || '';
+    const patternPrefixDigits = patternPrefix.replace(/\D/g, '');
+    const phoneDigits = phone.replace(/\D/g, '');
+    const fullLocal = patternPrefixDigits + phoneDigits;
+    const fullPhone = `${dialCountry?.dial || ''}${fullLocal}`;
+
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: fullPhone,
+        country,
+        accountType: 'individual',
+        emailUpdates,
+        forceCreate: true,
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setGeneralError(json?.error || 'Registration failed. Please try again.');
+      return;
+    }
+    sessionStorage.setItem('exodus_reg_password', password);
+    router.push(`/${locale}/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}&locale=${locale}`);
+  } catch {
+    setGeneralError('Something went wrong. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
 };
 
   return (
@@ -1149,9 +1192,9 @@ try {
 
       {/* Deleted account modal */}
       {showDeletedModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+  <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[10vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
+    <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 mb-10">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-100">
               <AlertCircle className="w-6 h-6 text-amber-600" />
             </div>
@@ -1184,9 +1227,9 @@ try {
 
       {/* Banned account modal */}
       {showBannedModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBannedModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[10vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
+    <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 mb-10">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-100">
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>

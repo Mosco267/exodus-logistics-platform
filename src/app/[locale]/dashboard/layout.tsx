@@ -274,7 +274,7 @@ const toggleDark = () => {
   ];
 
  return (
-    <div className="min-h-screen flex overflow-x-hidden" style={{ background: pageBg, color: pageText }}>
+    <div className="flex overflow-x-hidden" style={{ background: pageBg, color: pageText, height: '100dvh', overflow: 'hidden' }}>
   
       
       {/* MOBILE OVERLAY */}
@@ -389,7 +389,7 @@ style={{
       </aside>
 
       {/* MAIN */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative" style={{ height: '100dvh' }}>
 
         {/* TOPBAR */}
 <header
@@ -584,9 +584,10 @@ style={{ background: activeTheme.sidebar }}>
         </header>
 
         {/* CONTENT */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-w-0 text-gray-900 dark:text-gray-100">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-w-0 text-gray-900 dark:text-gray-100"
+  style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
+  {children}
+</main>
 
         {/* LOGOUT MODAL */}
         {logoutOpen && (

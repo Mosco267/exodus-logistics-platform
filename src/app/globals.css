@@ -164,3 +164,7 @@ html.dark [contenteditable="true"] {
 aside nav::-webkit-scrollbar { width: 4px; }
 aside nav::-webkit-scrollbar-track { background: transparent; }
 aside nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+/* Prevent overscroll bounce on dashboard but keep pull-to-refresh */
+html { overscroll-behavior-y: auto; }
+body { overscroll-behavior-y: auto; }

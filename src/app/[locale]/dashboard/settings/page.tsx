@@ -34,7 +34,10 @@ export default function SettingsMenuPage() {
     return () => { window.removeEventListener('storage', apply); clearInterval(t); };
   }, []);
 
-  useEffect(() => { setReady(true); }, []);
+  useEffect(() => {
+  const t = setTimeout(() => setReady(true), 500);
+  return () => clearTimeout(t);
+}, []);
 
   const items = [
     {

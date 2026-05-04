@@ -442,8 +442,9 @@ export default function TwoFactorPage() {
                     </p>
                   ) : (
                     <button onClick={handleResendEmailCode} disabled={emailResending}
-                      className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer disabled:opacity-50">
-                      {emailResending ? 'Sending...' : "Didn't receive a code? Resend"}
+                      className="text-xs font-semibold transition cursor-pointer disabled:opacity-50 hover:opacity-80"
+  style={{ background: accent, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+  {emailResending ? 'Sending...' : "Didn't receive a code? Resend"}
                     </button>
                   )}
                 </div>
