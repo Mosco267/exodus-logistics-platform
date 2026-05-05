@@ -868,6 +868,8 @@ export default function NewShipmentPage() {
 const [twoFaMethod, setTwoFaMethod] = useState<'email' | 'app'>('email');
 const [showNoTwoFaModal, setShowNoTwoFaModal] = useState(false);
 
+const [showConfirmDetailsModal, setShowConfirmDetailsModal] = useState(false);
+
 const [isDarkTheme, setIsDarkTheme] = useState(false);
 useEffect(() => {
   const check = () => {
@@ -1257,6 +1259,41 @@ const isValid = !firstMissing;
 
   const finalPackageType = packageType === 'Other' ? (customPackageType || 'Other') : packageType;
 
+  const handleConfirmDetailsAndProceed = async () => {
+  setShowConfirmDetailsModal(false);
+
+  // Now check 2FA status
+  try {
+    const twoFaStatus = await fetch('/api/user/2fa/status-full').then(r => r.json());
+
+    if (!twoFaStatus.emailEnabled && !twoFaStatus.appEnabled) {
+      setShowNoTwoFaModal(true);
+      return;
+    }
+
+    if (twoFaStatus.emailEnabled && twoFaStatus.appEnabled) {
+      setTwoFaMethod('email');
+      setShowTwoFaModal(true);
+      return;
+    }
+
+    if (twoFaStatus.emailEnabled) {
+      setTwoFaMethod('email');
+      setShowTwoFaModal(true);
+      return;
+    }
+
+    if (twoFaStatus.appEnabled) {
+      setTwoFaMethod('app');
+      setShowTwoFaModal(true);
+      return;
+    }
+  } catch {
+    setError('Could not verify your security settings. Please try again.');
+    return;
+  }
+};
+
   const proceedWithSubmit = async () => {
   const dv = parseFloat(declaredValue);
   setLoading(true);
@@ -1299,59 +1336,27 @@ const handleSubmit = async () => {
   setError('');
 
   const missing = requiredFields.find(f => !f.v?.trim());
-if (missing) {
-  setError(`${missing.l} is required.`);
-  missing.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  return;
-}
+  if (missing) {
+    setError(`${missing.l} is required.`);
+    missing.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
 
-if (weightWarning || lengthWarning || widthWarning || heightWarning) {
-  setError('One or more fields exceed the allowed limit. Please contact support for special approval.');
-  return;
-}
+  if (weightWarning || lengthWarning || widthWarning || heightWarning) {
+    setError('One or more fields exceed the allowed limit. Please contact support for special approval.');
+    return;
+  }
 
-if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCountryCode)) {
-  setError(`Sorry — our company doesn't operate locally in ${senderCountry}. Please use international shipping or contact support.`);
-  return;
-}
+  if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCountryCode)) {
+    setError(`Sorry — our company doesn't operate locally in ${senderCountry}. Please use international shipping or contact support.`);
+    return;
+  }
 
   const dv = parseFloat(declaredValue);
   if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
 
-  // Check 2FA status
-  try {
-    const twoFaStatus = await fetch('/api/user/2fa/status-full').then(r => r.json());
-
-    // No 2FA → show friendly modal asking user to enable it
-    if (!twoFaStatus.emailEnabled && !twoFaStatus.appEnabled) {
-      setShowNoTwoFaModal(true);
-      return;
-    }
-
-    // Both enabled → default to email
-    if (twoFaStatus.emailEnabled && twoFaStatus.appEnabled) {
-      setTwoFaMethod('email');
-      setShowTwoFaModal(true);
-      return;
-    }
-
-    // Email only
-    if (twoFaStatus.emailEnabled) {
-      setTwoFaMethod('email');
-      setShowTwoFaModal(true);
-      return;
-    }
-
-    // App only
-    if (twoFaStatus.appEnabled) {
-      setTwoFaMethod('app');
-      setShowTwoFaModal(true);
-      return;
-    }
-  } catch {
-    setError('Could not verify your security settings. Please try again.');
-    return;
-  }
+  // All validation passed — show confirm-details modal first
+  setShowConfirmDetailsModal(true);
 };
 
   return (
@@ -1842,6 +1847,71 @@ if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCou
     ? <><AlertCircle size={16} /> Contact Support</>
     : <><Send size={16} /> Create Order</>}
 </button>
+
+{showConfirmDetailsModal && typeof document !== 'undefined' && createPortal(
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 overflow-y-auto py-8">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowConfirmDetailsModal(false)} />
+    <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+      <div className="h-1 w-full" style={{ background: accent }} />
+      <div className="p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent }}>
+            <Info className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Please confirm your shipment details</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Make sure the values below are accurate.</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4 mb-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-500 dark:text-gray-400">Weight</span>
+            <span className="font-bold text-gray-900 dark:text-white">{formatWithCommas(weightKg)} kg</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500 dark:text-gray-400">Dimensions (L × W × H)</span>
+            <span className="font-bold text-gray-900 dark:text-white">
+              {formatWithCommas(lengthCm)} × {formatWithCommas(widthCm)} × {formatWithCommas(heightCm)} cm
+            </span>
+          </div>
+          {volumetricWeight > actualWeight && actualWeight > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500 dark:text-gray-400">Volumetric weight</span>
+              <span className="font-bold text-amber-600 dark:text-amber-400">{formatMoney(volumetricWeight)} kg</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-gray-500 dark:text-gray-400">Declared value</span>
+            <span className="font-bold text-gray-900 dark:text-white">{currency} {formatWithCommas(declaredValue)}</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+          Once your shipment arrives at our facility, we'll re-measure it. If the actual weight or dimensions differ from what you've entered, your invoice will be adjusted — you may be charged extra or refunded the difference.
+        </p>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-5">
+          If you're unsure of the exact weight or dimensions, contact support for guidance, or request a pickup so we can measure it for you and send the final invoice by email.
+        </p>
+
+        <div className="flex flex-col gap-2.5">
+          <button onClick={handleConfirmDetailsAndProceed}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"
+            style={{ background: accent }}>
+            <CheckCircle2 size={15} />
+            Yes, my details are correct
+          </button>
+          <button onClick={() => { setShowConfirmDetailsModal(false); router.push(`/${locale}/support`); }}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
+            Contact Support
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
 
       {showTwoFaModal && (
   <TwoFaShipmentModal
