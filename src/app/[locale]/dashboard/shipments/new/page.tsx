@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Package, ChevronDown, Loader2, CheckCircle2,
-  AlertCircle, ArrowLeft, Send, Info,
+  AlertCircle, ArrowLeft, Send, Info, X,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { COUNTRIES_WITH_STATES, getCountryByName, type CountryEntry } from '@/lib/countriesData';
@@ -1299,11 +1299,22 @@ const isValid = !firstMissing;
   setLoading(true);
   try {
     if (saveAsHome) {
-      await fetch('/api/user/profile', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: senderName, phone: senderPhone, country: senderCountry, addressStreet: senderStreet, addressCity: senderCity, addressState: senderState, addressPostalCode: senderPostal }),
-      });
-    }
+  // Only save address fields — don't overwrite user's profile name with shipment sender's name
+  const res = await fetch('/api/user/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      country: senderCountry,
+      addressStreet: senderStreet,
+      addressCity: senderCity,
+      addressState: senderState,
+      addressPostalCode: senderPostal,
+    }),
+  });
+  if (!res.ok) {
+    console.error('Failed to save home address');
+  }
+}
     const res = await fetch('/api/shipments', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1765,7 +1776,7 @@ const handleSubmit = async () => {
       <div className="px-3.5 pb-3 -mt-1">
         <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
           <Info size={11} className="shrink-0" />
-          Charged at volumetric weight: {formatMoney(volumetricWeight)} kg (larger than actual {formatMoney(actualWeight)} kg)
+          Charged at volumetric weight: {formatMoney(volumetricWeight)} kg (larger than actual {formatMoney(actualWeight)} kg) due to package size.
         </p>
       </div>
     )}
@@ -1855,14 +1866,18 @@ const handleSubmit = async () => {
       <div className="h-1 w-full" style={{ background: accent }} />
       <div className="p-6">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent }}>
-            <Info className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">Please confirm your shipment details</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Make sure the values below are accurate.</p>
-          </div>
-        </div>
+  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent }}>
+    <Info className="w-5 h-5 text-white" />
+  </div>
+  <div className="flex-1">
+    <h3 className="text-base font-bold text-gray-900 dark:text-white">Please confirm your shipment details</h3>
+    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Make sure the values below are accurate.</p>
+  </div>
+  <button onClick={() => setShowConfirmDetailsModal(false)}
+    className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-400 shrink-0">
+    <X size={16} />
+  </button>
+</div>
 
         <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4 mb-4 space-y-2 text-sm">
           <div className="flex justify-between">
@@ -1888,7 +1903,7 @@ const handleSubmit = async () => {
         </div>
 
         <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-          Once your shipment arrives at our facility, we'll re-measure it. If the actual weight or dimensions differ from what you've entered, your invoice will be adjusted — you may be charged extra or refunded the difference.
+          Once your shipment arrives at our facility, we'll re-measure it. If the actual weight or dimensions differ from what you've entered, your invoice will be adjusted. You may be charged extra or refunded the difference.
         </p>
 
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-5">

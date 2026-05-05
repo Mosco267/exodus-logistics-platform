@@ -25,8 +25,16 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, phone, address, country, phoneDialCode, addressStreet, addressCity, addressState, addressPostalCode } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const body = await req.json();
+  const {
+    name, phone, address, country, phoneDialCode,
+    addressStreet, addressCity, addressState, addressPostalCode,
+  } = body;
+
+  // If `name` is provided, validate it. If not provided, leave existing name alone.
+  if (name !== undefined && !name?.trim()) {
+    return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+  }
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
@@ -39,23 +47,45 @@ export async function POST(req: Request) {
     ? { $or: [{ email: sessionEmail }, { _id: new ObjectId(sessionId) }] }
     : { email: sessionEmail };
 
-  await db.collection("users").updateOne(
-    filter,
-    {
-      $set: {
-  name: name.trim(),
-  phone: phone?.trim() || '',
-  country: country?.trim() || '',
-  phoneDialCode: phoneDialCode?.trim() || '',
-  addressStreet: addressStreet?.trim() || '',
-  addressCity: addressCity?.trim() || '',
-  addressState: addressState?.trim() || '',
-  addressPostalCode: addressPostalCode?.trim() || '',
-  address: address?.trim() || [addressStreet, addressCity, addressState, addressPostalCode, country]
-    .filter(Boolean).map((s: string) => s.trim()).join(', '),
-}
-    }
-  );
+  // Build $set with only fields that were actually provided
+  const updates: Record<string, any> = {};
 
-  return NextResponse.json({ ok: true });
+  if (name !== undefined) updates.name = name.trim();
+  if (phone !== undefined) updates.phone = phone?.trim() || '';
+  if (country !== undefined) updates.country = country?.trim() || '';
+  if (phoneDialCode !== undefined) updates.phoneDialCode = phoneDialCode?.trim() || '';
+
+  // Address fields — update if any address-related field was provided
+  const hasAddressUpdate =
+    addressStreet !== undefined ||
+    addressCity !== undefined ||
+    addressState !== undefined ||
+    addressPostalCode !== undefined ||
+    address !== undefined;
+
+  if (hasAddressUpdate) {
+    if (addressStreet !== undefined) updates.addressStreet = addressStreet?.trim() || '';
+    if (addressCity !== undefined) updates.addressCity = addressCity?.trim() || '';
+    if (addressState !== undefined) updates.addressState = addressState?.trim() || '';
+    if (addressPostalCode !== undefined) updates.addressPostalCode = addressPostalCode?.trim() || '';
+
+    // Auto-build composite address string from updated fields
+    const composite = [
+      addressStreet ?? body.addressStreet,
+      addressCity ?? body.addressCity,
+      addressState ?? body.addressState,
+      addressPostalCode ?? body.addressPostalCode,
+      country ?? body.country,
+    ].filter(Boolean).map((s: string) => s.trim()).join(', ');
+
+    updates.address = address?.trim() || composite || '';
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ ok: true, message: 'No updates' });
+  }
+
+  await db.collection("users").updateOne(filter, { $set: updates });
+
+  return NextResponse.json({ ok: true, updated: Object.keys(updates) });
 }
