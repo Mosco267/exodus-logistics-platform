@@ -19,6 +19,7 @@ import {
   CreditCard,
   Ban,
   MapPin,
+  Receipt,
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -141,10 +142,15 @@ export default function AdminShell({ children }: Props) {
       icon: <Phone className="w-5 h-5" />,
     },
     
-    {
-  href: `/${locale}/dashboard/admin/payment-settings`,
-  label: "Payment Settings",
+  {
+  href: `/${locale}/dashboard/admin/payment-methods`,
+  label: "Payment Methods",
   icon: <CreditCard className="w-5 h-5" />,
+},
+{
+  href: `/${locale}/dashboard/admin/payment-receipts`,
+  label: "Payment Receipts",
+  icon: <Receipt className="w-5 h-5" />,
 },
 {
   href: `/${locale}/dashboard/admin/deleted-users`,

@@ -1152,10 +1152,15 @@ const delivery = useMemo(() =>
   return `${fmt(minDate)} – ${fmtFull(maxDate)}`;
 }, [delivery, weight]);
 
-  const deliveryDateISO = useMemo(() =>
-  getEstimatedDeliveryDate(means, effectiveServiceLevel, distanceKm),
-  [means, effectiveServiceLevel, distanceKm]
-);
+  const deliveryDateMinISO = useMemo(() => {
+  const { min } = delivery;
+  return addBusinessDays(new Date(), min).toISOString().split('T')[0];
+}, [delivery]);
+
+const deliveryDateISO = useMemo(() => {
+  const { max } = delivery;
+  return addBusinessDays(new Date(), max).toISOString().split('T')[0];
+}, [delivery]);
 
   const breakdown = useMemo(() => {
     const effectiveReceiverCode = receiverCountryCode || (scope === 'local' ? senderCountryCode : '');
@@ -1308,6 +1313,8 @@ const isValid = !firstMissing;
       addressStreet: senderStreet,
       addressCity: senderCity,
       addressState: senderState,
+      estimatedDeliveryDate: deliveryDateISO,
+      estimatedDeliveryDateMin: deliveryDateMinISO,
       addressPostalCode: senderPostal,
     }),
   });

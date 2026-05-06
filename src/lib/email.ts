@@ -524,18 +524,25 @@ function escapeHtml(s: string) {
 
 function formatEstimatedDeliveryDateRange(
   iso?: string | null,
-  shipmentScope?: string | null
+  shipmentScope?: string | null,
+  isoMin?: string | null
 ) {
   if (!iso) return "—";
 
-  const start = new Date(iso);
-  if (Number.isNaN(start.getTime())) return "—";
+  const end = new Date(iso);
+  if (Number.isNaN(end.getTime())) return "—";
 
-  const end = new Date(start);
-  const extraDays =
-    String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
-
-  end.setDate(end.getDate() + extraDays);
+  // If isoMin is provided, use it as the start; otherwise, fall back to old behavior
+  let start: Date;
+  if (isoMin) {
+    start = new Date(isoMin);
+    if (Number.isNaN(start.getTime())) start = new Date(end);
+  } else {
+    // Legacy fallback: assume iso is the max and back off by scope-based days
+    start = new Date(end);
+    const extraDays = String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
+    start.setDate(start.getDate() - extraDays);
+  }
 
   const startText = start.toLocaleDateString("en-US", {
     month: "short",
@@ -547,6 +554,9 @@ function formatEstimatedDeliveryDateRange(
     day: "numeric",
     year: "numeric",
   });
+
+  // If same date, show only one
+  if (start.toDateString() === end.toDateString()) return endText;
 
   return `${startText} - ${endText}`;
 }
@@ -740,6 +750,7 @@ export async function sendShipmentCreatedSenderEmail(
     status?: InvoiceStatus | string;
     invoiceNumber?: string;
     estimatedDeliveryDate?: string | null;
+    estimatedDeliveryDateMin?: string | null;  // ← NEW
     shipmentScope?: string | null;
     locale?: string;
     viewInvoiceUrl?: string;
@@ -766,10 +777,11 @@ export async function sendShipmentCreatedSenderEmail(
     invoiceNumber: args.invoiceNumber,
   });
 
-  const estimatedDeliveryDate = formatEstimatedDeliveryDateRange(
-    args.estimatedDeliveryDate,
-    args.shipmentScope
-  );
+ const estimatedDeliveryDate = formatEstimatedDeliveryDateRange(
+  args.estimatedDeliveryDate,
+  args.shipmentScope,
+  args.estimatedDeliveryDateMin
+);
 
  
 
@@ -1007,6 +1019,7 @@ export async function sendShipmentCreatedReceiverEmailV2(
     status?: InvoiceStatus | string;
     invoiceNumber?: string;
     estimatedDeliveryDate?: string | null;
+    estimatedDeliveryDateMin?: string | null;  // ← NEW
     shipmentScope?: string | null;
     locale?: string;
     viewInvoiceUrl?: string;
@@ -1035,7 +1048,8 @@ export async function sendShipmentCreatedReceiverEmailV2(
 
   const estimatedDeliveryDate = formatEstimatedDeliveryDateRange(
     args.estimatedDeliveryDate,
-    args.shipmentScope
+    args.shipmentScope,
+    args.estimatedDeliveryDateMin
   );
 
   const invoiceStatus = args.status

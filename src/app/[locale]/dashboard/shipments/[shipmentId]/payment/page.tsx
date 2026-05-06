@@ -14,7 +14,15 @@ type Shipment = {
   shipmentId: string;
   trackingNumber: string;
   senderName: string;
+  senderCountry?: string;
+  senderCountryCode?: string;
+  senderState?: string;
+  senderCity?: string;
   receiverName: string;
+  receiverCountry?: string;
+  receiverCountryCode?: string;
+  receiverState?: string;
+  receiverCity?: string;
   shipmentScope: string;
   invoice: {
     invoiceNumber: string;
@@ -255,10 +263,21 @@ export default function PaymentPage() {
   };
 
   if (loading || !shipment || !paySettings) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+  <div className="fixed inset-0 z-50 flex items-center justify-center"
+    style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 rounded-full border-3 border-gray-200" />
+        <div className="absolute inset-0 rounded-full border-3 border-transparent animate-spin"
+          style={{
+            borderTopColor: '#0b3aa4',
+            borderRightColor: '#0e7490',
+          }} />
+      </div>
+      <p className="text-sm font-semibold text-gray-600">Loading payment details…</p>
     </div>
-  );
+  </div>
+);
 
   const invoice = shipment.invoice;
   const isMethods = selectedMethod && selectedMethod !== 'card' && selectedMethod !== 'others';
@@ -295,24 +314,68 @@ export default function PaymentPage() {
 
       {/* Invoice summary */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10" style={{ background: accent }}>
-          <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Invoice Summary</p>
-          <p className="text-2xl font-extrabold text-white mt-1">{invoice.currency} {Number(invoice.amount).toFixed(2)}</p>
-          <p className="text-xs text-white/60 mt-0.5">{invoice.invoiceNumber}</p>
-        </div>
-        <div className="px-5 py-4 space-y-1.5 text-sm">
-          <div className="flex justify-between"><span className="text-gray-500">Shipment ID</span><span className="font-bold text-gray-900 dark:text-white">{shipment.shipmentId}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Tracking #</span><span className="font-bold text-gray-900 dark:text-white font-mono">{shipment.trackingNumber}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">From</span><span className="font-bold text-gray-900 dark:text-white">{shipment.senderName}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">To</span><span className="font-bold text-gray-900 dark:text-white">{shipment.receiverName}</span></div>
-          <div className="flex justify-between pt-1">
-            <span className="text-gray-500">Invoice Status</span>
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${invoice.paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-              {invoice.paid ? 'Paid' : 'Unpaid'}
-            </span>
-          </div>
-        </div>
-      </div>
+  {/* Top gradient header */}
+  <div className="px-5 py-5 border-b border-gray-100 dark:border-white/10" style={{ background: accent }}>
+    <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Total Amount Due</p>
+    <p className="text-3xl font-extrabold text-white mt-1">{invoice.currency} {Number(invoice.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+    <p className="text-xs text-white/70 mt-1">
+      <span className="font-bold uppercase tracking-wide mr-1.5">Country:</span>
+      {shipment.shipmentScope === 'local'
+        ? (shipment.senderCountry || '—')
+        : `${shipment.senderCountry || '—'} → ${shipment.receiverCountry || '—'}`}
+    </p>
+  </div>
+
+  {/* Body */}
+  <div className="px-5 py-4 space-y-2.5 text-sm">
+
+    {/* Numbers */}
+    <div className="flex justify-between items-center">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Shipment No</span>
+      <span className="font-bold text-gray-900 dark:text-white font-mono text-xs">{shipment.shipmentId}</span>
+    </div>
+    <div className="flex justify-between items-center">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Tracking No</span>
+      <span className="font-bold text-gray-900 dark:text-white font-mono text-xs">{shipment.trackingNumber}</span>
+    </div>
+    <div className="flex justify-between items-center">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Invoice No</span>
+      <span className="font-bold text-gray-900 dark:text-white font-mono text-xs">{invoice.invoiceNumber}</span>
+    </div>
+
+    <div className="border-t border-gray-100 dark:border-white/10 my-2" />
+
+    {/* From / To */}
+    <div className="flex justify-between items-start gap-3">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">From</span>
+      <span className="font-bold text-gray-900 dark:text-white text-right">{shipment.senderName}</span>
+    </div>
+    <div className="flex justify-between items-start gap-3">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">To</span>
+      <span className="font-bold text-gray-900 dark:text-white text-right">{shipment.receiverName}</span>
+    </div>
+
+    {/* Route */}
+    <div className="flex justify-between items-start gap-3">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">Route</span>
+      <span className="font-bold text-gray-900 dark:text-white text-right text-xs">
+        {shipment.shipmentScope === 'local'
+          ? `${shipment.senderState || '—'} → ${shipment.receiverState || '—'}`
+          : `${shipment.senderCountryCode || '—'} → ${shipment.receiverCountryCode || '—'}`}
+      </span>
+    </div>
+
+    <div className="border-t border-gray-100 dark:border-white/10 my-2" />
+
+    {/* Status */}
+    <div className="flex justify-between items-center pt-1">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Invoice Status</span>
+      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${invoice.paid ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300'}`}>
+        {invoice.paid ? 'Paid' : 'Unpaid'}
+      </span>
+    </div>
+  </div>
+</div>
 
       {/* Method selection */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">

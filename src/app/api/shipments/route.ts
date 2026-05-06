@@ -474,6 +474,7 @@ const APP_URL = (
   status: invoiceStatus,
   invoiceNumber,
   estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
+  estimatedDeliveryDateMin: doc.estimatedDeliveryDateMin || null,
   shipmentScope: doc.shipmentScope || "international",
   viewInvoiceUrl,
 });
@@ -493,6 +494,7 @@ const APP_URL = (
   status: invoiceStatus,
   invoiceNumber,
   estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
+  estimatedDeliveryDateMin: doc.estimatedDeliveryDateMin || null,
   shipmentScope: doc.shipmentScope || "international",
   viewInvoiceUrl,
 });

@@ -1,29 +1,28 @@
-// src/app/api/payment-settings/route.ts
-// Public endpoint used by payment page (no admin auth)
-
-import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
-
-const DEFAULT_SETTINGS = {
-  crypto: {
-    bitcoin: { enabled: false, address: '', qrImageUrl: '', network: 'Bitcoin (BTC)' },
-    ethereum: { enabled: false, address: '', qrImageUrl: '', network: 'Ethereum (ERC-20)' },
-    usdt: { enabled: false, address: '', qrImageUrl: '', network: 'USDT (TRC-20 / ERC-20)' },
-  },
-  zelle: { enabled: false, phone: '', email: '', holderName: '' },
-  bankTransfer: {
-    enabled: false, bankName: '', accountName: '', accountNumber: '',
-    routingNumber: '', swiftCode: '', iban: '', instructions: '',
-  },
-  paypal: { enabled: false, email: '', link: '', useLink: false },
-  cashApp: { enabled: false, cashtag: '', qrImageUrl: '' },
-  others: { enabled: true, instructions: '' },
-};
+import { NextResponse } from 'next/server';
+import clientPromise from '@/lib/mongodb';
+import { auth } from '@/auth';
+import { DEFAULT_PAYMENT_SETTINGS, PaymentSettings } from '@/lib/payment-settings';
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
-  const doc = await db.collection('payment_settings').findOne({ _id: 'default' as any });
-  const settings = doc?.settings || DEFAULT_SETTINGS;
-  return NextResponse.json({ settings });
+
+  const doc = await db.collection('payment_settings').findOne({ _id: 'main' as any });
+  const stored = (doc?.settings as PaymentSettings) || DEFAULT_PAYMENT_SETTINGS;
+
+  // Filter out disabled methods and only return what users need
+  const publicSettings = {
+    card: stored.card || DEFAULT_PAYMENT_SETTINGS.card,
+    bitcoin: stored.bitcoin || DEFAULT_PAYMENT_SETTINGS.bitcoin,
+    usdt: stored.usdt || DEFAULT_PAYMENT_SETTINGS.usdt,
+    ethereum: stored.ethereum || DEFAULT_PAYMENT_SETTINGS.ethereum,
+    bankTransfer: stored.bankTransfer || DEFAULT_PAYMENT_SETTINGS.bankTransfer,
+    paypal: stored.paypal || DEFAULT_PAYMENT_SETTINGS.paypal,
+    customMethods: (stored.customMethods || []).filter(m => m.enabled),
+  };
+
+  return NextResponse.json({ settings: publicSettings });
 }
