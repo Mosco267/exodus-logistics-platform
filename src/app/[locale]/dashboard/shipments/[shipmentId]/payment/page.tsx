@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, CheckCircle2, Loader2, Upload, Copy, AlertCircle,
-  Clock, CreditCard, Bitcoin, Building2, DollarSign, ExternalLink,
+  Clock, CreditCard, ExternalLink, X,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { loadStripe, Stripe as StripeInstance } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
   PaymentSettings, CustomMethod,
-  detectCardBrand, getCardBrandLabel, getCardCvvLength, getCardMaxLength, CardBrand,
+  getCardBrandLabel, CardBrand,
 } from '@/lib/payment-settings';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -28,7 +28,7 @@ type Shipment = {
   senderCity?: string;
   receiverName: string;
   receiverCountry?: string;
-  receiverCountryCode?: string;
+  destinationCountryCode?: string;
   receiverState?: string;
   receiverCity?: string;
   shipmentScope: string;
@@ -43,12 +43,46 @@ type Shipment = {
 
 type SelectedMethod =
   | { type: 'card' }
+  | { type: 'crypto' }
   | { type: 'bitcoin' | 'usdt' | 'ethereum' }
   | { type: 'bankTransfer' }
   | { type: 'paypal' }
   | { type: 'custom'; id: string };
 
-const inputCls = "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition";
+// Generate UUID v4
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// Deterministic UUID from shipmentId (so same shipment always gets same reference)
+function uuidFromSeed(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  }
+  // Build a simple hash-based hex string
+  const rnd = (n: number) => {
+    h = Math.imul(48271, h) | 0;
+    return ((h >>> 0) % 16).toString(16);
+  };
+  let out = '';
+  const pattern = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === '-' || c === '4') out += c;
+    else if (c === 'y') {
+      const v = parseInt(rnd(0), 16);
+      out += ((v & 0x3) | 0x8).toString(16);
+    } else {
+      out += rnd(0);
+    }
+  }
+  return out;
+}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -64,9 +98,9 @@ function CopyButton({ text }: { text: string }) {
 function InfoRow({ label, value, copyable = true }: { label: string; value: string; copyable?: boolean }) {
   if (!value) return null;
   return (
-    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-gray-100 dark:border-white/5 last:border-0">
+    <div className="flex items-center justify-between gap-3 py-3 border-b border-gray-100 dark:border-white/5 last:border-0">
       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
         <span className="text-xs font-bold text-gray-900 dark:text-white text-right break-all">{value}</span>
         {copyable && <CopyButton text={value} />}
       </div>
@@ -112,34 +146,54 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
     finally { setUploading(false); }
   };
 
+  const handleRemove = () => {
+    setPreviewUrl('');
+    setUploaded(false);
+    onUploaded('');
+    if (ref.current) ref.current.value = '';
+  };
+
   return (
-    <div className="space-y-3 border-t border-gray-100 dark:border-white/10 pt-4">
-      <div>
+    <div className="space-y-4 border-t border-gray-100 dark:border-white/10 pt-5">
+      <div className="text-center">
         <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1">Upload Payment Receipt</p>
-        <p className="text-xs text-gray-500 mb-3">Upload a screenshot or photo of your payment receipt. We'll verify and confirm your payment.</p>
+        <p className="text-xs text-gray-500 max-w-sm mx-auto">Upload a screenshot or photo of your payment receipt. We'll verify and confirm your payment.</p>
       </div>
+
       {previewUrl && (
-        <img src={previewUrl} alt="Receipt preview" className="w-32 h-32 object-cover rounded-xl border border-gray-200 dark:border-white/10" />
+        <div className="flex justify-center">
+          <div className="relative inline-block">
+            <img src={previewUrl} alt="Receipt preview" className="w-40 h-40 object-cover rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm" />
+            <button type="button" onClick={handleRemove}
+              className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition cursor-pointer">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
       )}
-      <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 dark:border-white/20 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition disabled:opacity-60">
-        {uploading ? <Loader2 size={14} className="animate-spin" /> : uploaded ? <CheckCircle2 size={14} className="text-green-500" /> : <Upload size={14} />}
-        {uploading ? 'Uploading...' : uploaded ? 'Receipt Uploaded — Replace' : 'Upload Receipt'}
-      </button>
+
+      <div className="flex justify-center">
+        <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-dashed border-gray-300 dark:border-white/20 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-blue-400 hover:text-blue-600 cursor-pointer transition disabled:opacity-60">
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : uploaded ? <CheckCircle2 size={14} className="text-green-500" /> : <Upload size={14} />}
+          {uploading ? 'Uploading' : uploaded ? 'Replace Receipt' : 'Upload Receipt'}
+        </button>
+      </div>
+
       <input ref={ref} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFile} />
+
       {uploaded && (
         <button onClick={onSubmit} disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60"
           style={{ background: accent }}>
           {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-          {submitting ? 'Submitting...' : 'I Have Paid — Submit Receipt'}
+          {submitting ? 'Submitting' : 'I Have Paid Submit Receipt'}
         </button>
       )}
     </div>
   );
 }
 
-// Card brand badge
 function CardBrandBadge({ brand }: { brand: CardBrand }) {
   if (brand === 'unknown') return null;
   const colors: Record<CardBrand, string> = {
@@ -160,7 +214,6 @@ function CardBrandBadge({ brand }: { brand: CardBrand }) {
   );
 }
 
-// Stripe payment form (uses real Stripe Elements)
 function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
   shipmentId: string;
   amount: number;
@@ -179,9 +232,7 @@ function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
     try {
       const { error: submitError } = await stripe.confirmPayment({
         elements,
-        confirmParams: {
-          return_url: window.location.href,
-        },
+        confirmParams: { return_url: window.location.href },
         redirect: 'if_required',
       });
       if (submitError) {
@@ -206,9 +257,9 @@ function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
         </div>
       )}
       <button onClick={handleSubmit} disabled={processing || !stripe}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60"
         style={{ background: accent }}>
-        {processing ? <><Loader2 size={15} className="animate-spin" /> Processing…</> : <><CreditCard size={15} /> Pay {currency} {amount.toFixed(2)}</>}
+        {processing ? <><Loader2 size={15} className="animate-spin" /> Processing</> : <><CreditCard size={15} /> Pay {currency} {amount.toFixed(2)}</>}
       </button>
     </div>
   );
@@ -243,10 +294,12 @@ export default function PaymentPage() {
 
   // Selection
   const [selected, setSelected] = useState<SelectedMethod | null>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   // Stripe
   const [stripeClientSecret, setStripeClientSecret] = useState('');
   const [creatingIntent, setCreatingIntent] = useState(false);
+  const [stripeError, setStripeError] = useState('');
 
   // Receipt
   const [receiptUrl, setReceiptUrl] = useState('');
@@ -258,9 +311,22 @@ export default function PaymentPage() {
   const [doneTitle, setDoneTitle] = useState('Payment Successful!');
   const [doneMessage, setDoneMessage] = useState('');
 
-  // Card brand
-  const [cardBrand, setCardBrand] = useState<CardBrand>('unknown');
+  // Payment reference (UUID, deterministic from shipmentId)
+  const paymentReference = useMemo(() => {
+    if (!shipment) return '';
+    return uuidFromSeed(shipment.shipmentId);
+  }, [shipment]);
 
+  // Auto-scroll to details when method selected
+  useEffect(() => {
+    if (selected && detailsRef.current) {
+      setTimeout(() => {
+        detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [selected]);
+
+  // Load shipment + payment settings
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -281,20 +347,29 @@ export default function PaymentPage() {
     if (shipmentId) load();
   }, [shipmentId]);
 
-  // Create Stripe intent when card selected
+  // Stripe intent when card selected
   useEffect(() => {
     if (selected?.type !== 'card' || !shipment || stripeClientSecret) return;
     setCreatingIntent(true);
+    setStripeError('');
     fetch('/api/stripe/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shipmentId }),
     })
-      .then(r => r.json())
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Failed to initialize payment');
+        return data;
+      })
       .then(data => {
         if (data.clientSecret) setStripeClientSecret(data.clientSecret);
+        else throw new Error('No client secret returned');
       })
-      .catch(() => {})
+      .catch(err => {
+        console.error('Stripe init failed:', err);
+        setStripeError(err.message || 'Failed to load card payment');
+      })
       .finally(() => setCreatingIntent(false));
   }, [selected, shipment, shipmentId, stripeClientSecret]);
 
@@ -304,7 +379,7 @@ export default function PaymentPage() {
     try {
       const res = await fetch('/api/payment-receipts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipmentId, paymentMethod, receiptUrl }),
+        body: JSON.stringify({ shipmentId, paymentMethod, receiptUrl, reference: paymentReference }),
       });
       if (res.ok) {
         setReceiptSubmitted(true);
@@ -324,7 +399,7 @@ export default function PaymentPage() {
           <div className="absolute inset-0 rounded-full border-[3px] border-transparent animate-spin"
             style={{ borderTopColor: '#0b3aa4', borderRightColor: '#0e7490' }} />
         </div>
-        <p className="text-sm font-semibold text-gray-600">Loading payment details…</p>
+        <p className="text-sm font-semibold text-gray-600">Loading payment details</p>
       </div>
     </div>
   );
@@ -337,14 +412,9 @@ export default function PaymentPage() {
   if (paySettings.card.enabled) {
     methods.push({ key: 'card', label: 'Credit / Debit Card', emoji: '💳', desc: paySettings.card.confirmationTime, method: { type: 'card' } });
   }
-  if (paySettings.bitcoin.enabled) {
-    methods.push({ key: 'bitcoin', label: 'Bitcoin (BTC)', emoji: '₿', desc: paySettings.bitcoin.confirmationTime, method: { type: 'bitcoin' } });
-  }
-  if (paySettings.usdt.enabled) {
-    methods.push({ key: 'usdt', label: `USDT (${paySettings.usdt.network})`, emoji: '₮', desc: paySettings.usdt.confirmationTime, method: { type: 'usdt' } });
-  }
-  if (paySettings.ethereum.enabled) {
-    methods.push({ key: 'ethereum', label: 'Ethereum (ETH)', emoji: 'Ξ', desc: paySettings.ethereum.confirmationTime, method: { type: 'ethereum' } });
+  const cryptoEnabled = paySettings.bitcoin.enabled || paySettings.usdt.enabled || paySettings.ethereum.enabled;
+  if (cryptoEnabled) {
+    methods.push({ key: 'crypto', label: 'Cryptocurrency', emoji: '₿', desc: 'Bitcoin, USDT, Ethereum', method: { type: 'crypto' } });
   }
   if (paySettings.bankTransfer.enabled) {
     methods.push({ key: 'bankTransfer', label: 'Bank Transfer', emoji: '🏦', desc: paySettings.bankTransfer.confirmationTime, method: { type: 'bankTransfer' } });
@@ -356,10 +426,28 @@ export default function PaymentPage() {
     methods.push({ key: cm.id, label: cm.name, emoji: cm.emoji, desc: cm.confirmationTime, method: { type: 'custom', id: cm.id } });
   }
 
-  const selectedKey = selected?.type === 'custom' ? selected.id : selected?.type || '';
+  // Selection key for matching
+  const selectedKey = selected?.type === 'custom' ? selected.id
+    : (selected?.type === 'bitcoin' || selected?.type === 'usdt' || selected?.type === 'ethereum') ? 'crypto'
+    : selected?.type || '';
+
   const selectedCustom: CustomMethod | undefined = selected?.type === 'custom'
     ? paySettings.customMethods.find(m => m.id === selected.id)
     : undefined;
+
+  // Build PayPal URL
+  const buildPaypalUrl = () => {
+    let url = paySettings.paypal.link.trim();
+    if (!url) return '';
+    if (!url.startsWith('http')) {
+      const cleaned = url.replace(/^@/, '').replace(/^paypal\.me\//i, '');
+      url = `https://www.paypal.com/paypalme/${encodeURIComponent(cleaned)}/${invoice.amount}${invoice.currency}`;
+    } else if (!url.includes(invoice.amount.toString())) {
+      const sep = url.endsWith('/') ? '' : '/';
+      url = `${url}${sep}${invoice.amount}${invoice.currency}`;
+    }
+    return url;
+  };
 
   return (
     <div className="max-w-xl mx-auto pb-10 space-y-4">
@@ -384,8 +472,8 @@ export default function PaymentPage() {
           <p className="text-xs text-white/70 mt-1">
             <span className="font-bold uppercase tracking-wide mr-1.5">Country:</span>
             {shipment.shipmentScope === 'local'
-              ? (shipment.senderCountry || '—')
-              : `${shipment.senderCountry || '—'} → ${shipment.receiverCountry || '—'}`}
+              ? (shipment.senderCountry || '')
+              : `${shipment.senderCountry || ''} → ${shipment.receiverCountry || ''}`}
           </p>
         </div>
         <div className="px-5 py-4 space-y-2.5 text-sm">
@@ -416,8 +504,8 @@ export default function PaymentPage() {
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">Route</span>
             <span className="font-bold text-gray-900 dark:text-white text-right text-xs">
               {shipment.shipmentScope === 'local'
-                ? `${shipment.senderState || '—'} → ${shipment.receiverState || '—'}`
-                : `${shipment.senderCountryCode || '—'} → ${shipment.receiverCountryCode || '—'}`}
+                ? `${shipment.senderState || shipment.senderCity || ''} → ${shipment.receiverState || shipment.receiverCity || ''}`
+                : `${shipment.senderCountryCode || shipment.senderCountry || ''} → ${shipment.destinationCountryCode || shipment.receiverCountry || ''}`}
             </span>
           </div>
 
@@ -461,48 +549,63 @@ export default function PaymentPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
             <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Choose Payment Method</p>
             <div className="space-y-2">
-              {methods.map(m => (
-                <button key={m.key} type="button"
-                  onClick={() => {
-                    setSelected(m.method);
-                    setReceiptUrl('');
-                    setReceiptSubmitted(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition cursor-pointer text-left"
-                  style={{
-                    borderColor: selectedKey === m.key ? '#0b3aa4' : 'transparent',
-                    background: selectedKey === m.key ? 'rgba(11,58,164,0.06)' : '#f9fafb',
-                  }}>
-                  <span className="text-xl shrink-0">{m.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{m.label}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1"><Clock size={10} /> {m.desc}</p>
-                  </div>
-                  {selectedKey === m.key && (
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: '#0b3aa4' }}>
-                      <div className="w-2 h-2 rounded-full bg-white" />
+              {methods.map(m => {
+                const isSelected = selectedKey === m.key;
+                return (
+                  <button key={m.key} type="button"
+                    onClick={() => {
+                      setSelected(m.method);
+                      setReceiptUrl('');
+                      setReceiptSubmitted(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition cursor-pointer text-left hover:opacity-95 hover:shadow-sm"
+                    style={{
+                      borderColor: isSelected ? 'transparent' : '#e5e7eb',
+                      background: isSelected ? accent : '#f9fafb',
+                    }}>
+                    <span className="text-xl shrink-0">{m.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{m.label}</p>
+                      <p className={`text-xs flex items-center gap-1 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                        <Clock size={10} /> {m.desc}
+                      </p>
                     </div>
-                  )}
-                </button>
-              ))}
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shrink-0">
+                        <CheckCircle2 size={12} className="text-blue-600" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Method-specific UI */}
           {selected && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+            <div ref={detailsRef} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5 scroll-mt-20">
 
               {/* Card with Stripe */}
               {selected.type === 'card' && (
                 <div className="space-y-4">
                   <p className="text-sm font-bold text-gray-900 dark:text-white">Pay with Card</p>
-                  {creatingIntent || !stripeClientSecret ? (
-                    <div className="flex items-center justify-center py-10">
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  {creatingIntent ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-3">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      <p className="text-xs text-gray-500">Initializing secure payment</p>
+                    </div>
+                  ) : stripeError ? (
+                    <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl p-4 border border-red-100 dark:border-red-500/20">
+                      <AlertCircle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-red-700 dark:text-red-400">Card payment unavailable</p>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">{stripeError}</p>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-2">Please try another payment method or contact support.</p>
+                      </div>
                     </div>
                   ) : !stripePromise ? (
-                    <p className="text-xs text-red-600">Stripe is not configured. Please contact support.</p>
-                  ) : (
+                    <p className="text-xs text-red-600">Stripe is not configured.</p>
+                  ) : stripeClientSecret ? (
                     <Elements stripe={stripePromise} options={{
                       clientSecret: stripeClientSecret,
                       appearance: { theme: 'stripe' },
@@ -518,19 +621,65 @@ export default function PaymentPage() {
                           setShowDone(true);
                         }} />
                     </Elements>
-                  )}
+                  ) : null}
                 </div>
               )}
 
-              {/* Crypto */}
+              {/* Crypto coin picker */}
+              {selected.type === 'crypto' && (
+                <div className="space-y-4">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Choose Cryptocurrency</p>
+                  <p className="text-xs text-gray-500">Select which coin you'd like to pay with.</p>
+                  <div className="space-y-2">
+                    {paySettings.bitcoin.enabled && (
+                      <button onClick={() => setSelected({ type: 'bitcoin' })}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 dark:border-white/10 hover:border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-500/5 transition cursor-pointer text-left">
+                        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 font-bold text-lg shrink-0">₿</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">Bitcoin (BTC)</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.bitcoin.confirmationTime}</p>
+                        </div>
+                      </button>
+                    )}
+                    {paySettings.usdt.enabled && (
+                      <button onClick={() => setSelected({ type: 'usdt' })}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 dark:border-white/10 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 transition cursor-pointer text-left">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold text-lg shrink-0">₮</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">USDT (Tether)</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.usdt.confirmationTime} · {paySettings.usdt.network}</p>
+                        </div>
+                      </button>
+                    )}
+                    {paySettings.ethereum.enabled && (
+                      <button onClick={() => setSelected({ type: 'ethereum' })}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 dark:border-white/10 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition cursor-pointer text-left">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 font-bold text-lg shrink-0">Ξ</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">Ethereum (ETH)</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.ethereum.confirmationTime}</p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Crypto details */}
               {(selected.type === 'bitcoin' || selected.type === 'usdt' || selected.type === 'ethereum') && !receiptSubmitted && (() => {
                 const c = paySettings[selected.type];
                 const sym = selected.type === 'bitcoin' ? 'BTC' : selected.type === 'usdt' ? 'USDT' : 'ETH';
                 return (
                   <div className="space-y-4">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      Send {invoice.currency} {formatAmount(invoice.amount)} worth of {sym}
-                    </p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        Send {invoice.currency} {formatAmount(invoice.amount)} worth of {sym}
+                      </p>
+                    </div>
+                    <button onClick={() => setSelected({ type: 'crypto' })}
+                      className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
+                      <ArrowLeft size={11} /> Choose different coin
+                    </button>
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3 flex items-start gap-2">
                       <AlertCircle size={14} className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                       <p className="text-xs text-blue-700 dark:text-blue-300">
@@ -548,6 +697,9 @@ export default function PaymentPage() {
                         <span className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 break-all">{c.walletAddress}</span>
                         <CopyButton text={c.walletAddress} />
                       </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
+                      <InfoRow label="Reference" value={paymentReference} />
                     </div>
                     <ConfirmationBanner time={c.confirmationTime} />
                     <ReceiptUpload
@@ -572,7 +724,7 @@ export default function PaymentPage() {
                     <InfoRow label="IBAN" value={paySettings.bankTransfer.iban} />
                     <InfoRow label="Branch Address" value={paySettings.bankTransfer.branchAddress} copyable={false} />
                     <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={shipmentId} />
+                    <InfoRow label="Reference" value={paymentReference} />
                   </div>
                   {paySettings.bankTransfer.instructions && (
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3">
@@ -598,13 +750,13 @@ export default function PaymentPage() {
                       ? <InfoRow label="PayPal.me Link" value={paySettings.paypal.link} />
                       : <InfoRow label="PayPal Email" value={paySettings.paypal.email} />}
                     <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={shipmentId} />
+                    <InfoRow label="Reference" value={paymentReference} />
                   </div>
                   {paySettings.paypal.useLink && paySettings.paypal.link && (
-                    <a href={paySettings.paypal.link} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90"
+                    <a href={buildPaypalUrl()} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg"
                       style={{ background: '#0070ba' }}>
-                      Open PayPal.me <ExternalLink size={14} />
+                      Open PayPal <ExternalLink size={14} />
                     </a>
                   )}
                   <ConfirmationBanner time={paySettings.paypal.confirmationTime} />
@@ -628,14 +780,13 @@ export default function PaymentPage() {
                       <img src={selectedCustom.qrImageUrl} alt="QR" className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover" />
                     </div>
                   )}
-                  {selectedCustom.fields.length > 0 && (
-                    <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
-                      {selectedCustom.fields.map((f, idx) => (
-                        <InfoRow key={idx} label={f.label} value={f.value} />
-                      ))}
-                      <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    </div>
-                  )}
+                  <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
+                    {selectedCustom.fields.map((f, idx) => (
+                      <InfoRow key={idx} label={f.label} value={f.value} />
+                    ))}
+                    <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
+                    <InfoRow label="Reference" value={paymentReference} />
+                  </div>
                   {selectedCustom.instructions && (
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3">
                       <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Instructions</p>
