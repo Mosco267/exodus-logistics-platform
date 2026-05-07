@@ -318,6 +318,7 @@ const [touched, setTouched] = useState({
 });
 
 // Auto-set user's country from profile on mount
+// Auto-set user's country from profile on mount
 useEffect(() => {
   fetch('/api/user/profile')
     .then(r => r.json())
@@ -329,10 +330,6 @@ useEffect(() => {
           setCountryCode(entry.code);
         }
       }
-      if (data.addressCity) setCity(data.addressCity);
-      if (data.addressStreet) setBillingAddress(data.addressStreet);
-      if (data.addressPostalCode) setZipCode(data.addressPostalCode);
-      if (data.addressState) setStateValue(data.addressState);
     })
     .catch(() => {});
 }, []);
