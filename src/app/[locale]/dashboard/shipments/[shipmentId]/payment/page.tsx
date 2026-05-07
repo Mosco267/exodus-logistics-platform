@@ -7,19 +7,13 @@ import {
   Clock, CreditCard, ExternalLink, X,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
   PaymentSettings, CustomMethod,
-  getCardBrandLabel, CardBrand,
+  detectCardBrand, getCardBrandLabel, getCardCvvLength, getCardMaxLength, CardBrand,
 } from '@/lib/payment-settings';
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
-
-// Stripe-supported brands (Verve and others NOT supported)
-const STRIPE_SUPPORTED_BRANDS: CardBrand[] = ['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners', 'unionpay'];
+// Supported card brands (Verve and others NOT supported)
+const SUPPORTED_BRANDS: CardBrand[] = ['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners', 'unionpay'];
 
 // PayPal-supported currencies
 const PAYPAL_SUPPORTED_CURRENCIES = [
@@ -58,6 +52,43 @@ type SelectedMethod =
   | { type: 'bankTransfer' }
   | { type: 'paypal' }
   | { type: 'custom'; id: string };
+
+// Luhn algorithm for card validation
+function luhnCheck(cardNumber: string): boolean {
+  const digits = cardNumber.replace(/\s/g, '');
+  if (digits.length < 13) return false;
+  let sum = 0;
+  let alt = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = parseInt(digits[i], 10);
+    if (isNaN(n)) return false;
+    if (alt) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+
+// Format card number with spaces
+function formatCardNumber(value: string, brand: CardBrand): string {
+  const digits = value.replace(/\D/g, '');
+  if (brand === 'amex') {
+    return digits.replace(/^(\d{0,4})(\d{0,6})(\d{0,5}).*/, (_, a, b, c) =>
+      [a, b, c].filter(Boolean).join(' ')
+    );
+  }
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+}
+
+// Format expiry as MM/YY
+function formatExpiry(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length < 3) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
 
 // Better deterministic UUID from shipmentId
 function uuidFromSeed(seed: string): string {
@@ -202,58 +233,110 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
   );
 }
 
-// Stripe Card Form with strict brand validation
-function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
-  shipmentId: string;
+// Demo card form with real validation but fake processing
+function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }: {
   amount: number;
   currency: string;
   accent: string;
-  onSuccess: () => void;
+  themePrimary: string;
+  onSwitchMethod: () => void;
 }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [brandError, setBrandError] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [touched, setTouched] = useState({ name: false, number: false, expiry: false, cvv: false });
 
-  const handleChange = (event: any) => {
-    if (event.complete === false && event.value?.type === 'card') {
-      const brand = event.value?.payment_method?.card?.brand;
-      if (brand && brand !== 'unknown' && !STRIPE_SUPPORTED_BRANDS.includes(brand as CardBrand)) {
-        setBrandError(`${brand.toUpperCase()} cards are not supported. We only accept Visa, Mastercard, American Express, Discover, JCB, Diners Club, and UnionPay.`);
-      } else {
-        setBrandError('');
-      }
-    }
-  };
+  const [processing, setProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+
+  const brand = useMemo(() => detectCardBrand(cardNumber), [cardNumber]);
+  const brandLabel = getCardBrandLabel(brand);
+  const cvvLength = getCardCvvLength(brand);
+  const maxLength = getCardMaxLength(brand);
+
+  const cardDigits = cardNumber.replace(/\s/g, '');
+
+  const nameError =
+    touched.name && !cardName.trim() ? 'Cardholder name is required'
+    : touched.name && !/^[a-zA-Z\s'-]+$/.test(cardName.trim()) ? 'Name can only contain letters'
+    : '';
+
+  const numberError =
+    touched.number && !cardDigits ? 'Card number is required'
+    : touched.number && cardDigits.length < maxLength ? `Card number must be ${maxLength} digits`
+    : touched.number && brand === 'unknown' ? 'This card type is not recognized'
+    : touched.number && !SUPPORTED_BRANDS.includes(brand) ? `${brandLabel || 'This card type'} is not supported. We accept Visa, Mastercard, American Express, Discover, JCB, Diners Club, and UnionPay.`
+    : touched.number && !luhnCheck(cardDigits) ? 'Card number is invalid'
+    : '';
+
+  const expiryError = (() => {
+    if (!touched.expiry) return '';
+    const digits = expiry.replace(/\D/g, '');
+    if (digits.length < 4) return 'Enter expiry as MM/YY';
+    const mm = parseInt(digits.slice(0, 2), 10);
+    const yy = parseInt(digits.slice(2, 4), 10);
+    if (mm < 1 || mm > 12) return 'Invalid month';
+    const now = new Date();
+    const currentYY = now.getFullYear() % 100;
+    const currentMM = now.getMonth() + 1;
+    if (yy < currentYY || (yy === currentYY && mm < currentMM)) return 'Card has expired';
+    if (yy > currentYY + 20) return 'Invalid year';
+    return '';
+  })();
+
+  const cvvError =
+    touched.cvv && !cvv ? 'CVV is required'
+    : touched.cvv && cvv.length !== cvvLength ? `CVV must be ${cvvLength} digits`
+    : '';
+
+  const isValid =
+    !!cardName.trim() &&
+    /^[a-zA-Z\s'-]+$/.test(cardName.trim()) &&
+    cardDigits.length === maxLength &&
+    SUPPORTED_BRANDS.includes(brand) &&
+    luhnCheck(cardDigits) &&
+    expiry.replace(/\D/g, '').length === 4 &&
+    !expiryError &&
+    cvv.length === cvvLength;
 
   const handleSubmit = async () => {
-    if (!stripe || !elements) return;
-    if (brandError) return;
-    setProcessing(true); setError('');
-    try {
-      const { error: submitError } = await stripe.confirmPayment({
-        elements,
-        confirmParams: { return_url: window.location.href },
-        redirect: 'if_required',
-      });
-      if (submitError) {
-        const msg = submitError.message || 'Payment failed';
-        // Detect Stripe rejecting unsupported card type
-        if (msg.toLowerCase().includes('card') && (msg.toLowerCase().includes('not supported') || msg.toLowerCase().includes('declined'))) {
-          setError(`Your card was not accepted. We only accept Visa, Mastercard, American Express, Discover, JCB, Diners Club, and UnionPay. Cards like Verve are not currently supported.`);
-        } else {
-          setError(msg);
-        }
-      } else {
-        onSuccess();
-      }
-    } catch (e: any) {
-      setError(e.message || 'Payment failed');
-    } finally {
-      setProcessing(false);
-    }
+    setTouched({ name: true, number: true, expiry: true, cvv: true });
+    if (!isValid) return;
+
+    setProcessing(true);
+    setPaymentError('');
+
+    // 5-second fake processing delay
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    setProcessing(false);
+    setPaymentError('Payment processor unreachable. Please try another payment method.');
   };
+
+  const handleRetry = () => {
+    setPaymentError('');
+    setTouched({ name: false, number: false, expiry: false, cvv: false });
+    setCardName('');
+    setCardNumber('');
+    setExpiry('');
+    setCvv('');
+  };
+
+  const brandColors: Record<CardBrand, string> = {
+    visa: 'bg-blue-100 text-blue-700 border-blue-200',
+    mastercard: 'bg-red-100 text-red-700 border-red-200',
+    amex: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+    discover: 'bg-orange-100 text-orange-700 border-orange-200',
+    jcb: 'bg-purple-100 text-purple-700 border-purple-200',
+    diners: 'bg-slate-100 text-slate-700 border-slate-200',
+    verve: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    unionpay: 'bg-rose-100 text-rose-700 border-rose-200',
+    unknown: '',
+  };
+
+  const baseInputCls = "w-full px-4 py-3 rounded-xl border bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none transition";
+  const getInputCls = (err: string) => `${baseInputCls} ${err ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-white/10'}`;
 
   return (
     <div className="space-y-4">
@@ -277,30 +360,148 @@ function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
         </div>
       </div>
 
-      {/* Themed Stripe element wrapper */}
-      <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-sm">
-        <PaymentElement onChange={handleChange} />
-      </div>
-
-      {brandError && (
-        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl p-3 border border-red-200 dark:border-red-500/30">
-          <AlertCircle size={14} className="text-red-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-700 dark:text-red-400 font-semibold">{brandError}</p>
+      {/* Payment error state */}
+      {paymentError && (
+        <div className="rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5 text-center">
+          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mx-auto mb-3">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+          </div>
+          <p className="text-sm font-bold text-red-700 dark:text-red-400">Payment Failed</p>
+          <p className="text-xs text-red-600 dark:text-red-300 mt-1.5 leading-relaxed max-w-sm mx-auto">
+            {paymentError}
+          </p>
+          <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+            <button onClick={handleRetry}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-500/30 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer transition">
+              Retry payment
+            </button>
+            <button onClick={onSwitchMethod}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 hover:shadow-lg transition"
+              style={{ background: accent }}>
+              Try another method
+            </button>
+          </div>
         </div>
       )}
 
-      {error && (
-        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl p-3 border border-red-100 dark:border-red-500/20">
-          <AlertCircle size={14} className="text-red-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
-        </div>
-      )}
+      {/* Card form */}
+      {!paymentError && (
+        <>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+              Cardholder Name
+            </label>
+            <input
+              type="text"
+              value={cardName}
+              onChange={e => setCardName(e.target.value)}
+              onBlur={() => setTouched(t => ({ ...t, name: true }))}
+              placeholder="Name as it appears on card"
+              disabled={processing}
+              className={getInputCls(nameError)}
+              style={{ fontSize: '16px' }}
+            />
+            {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
+          </div>
 
-      <button onClick={handleSubmit} disabled={processing || !stripe || !!brandError}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{ background: accent }}>
-        {processing ? <><Loader2 size={15} className="animate-spin" /> Processing</> : <><CreditCard size={15} /> Pay {currency} {amount.toFixed(2)}</>}
-      </button>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+              Card Number
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={cardNumber}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 19);
+                  const detectedBrand = detectCardBrand(digits);
+                  setCardNumber(formatCardNumber(digits, detectedBrand));
+                }}
+                onBlur={() => setTouched(t => ({ ...t, number: true }))}
+                placeholder="1234 5678 9012 3456"
+                disabled={processing}
+                className={getInputCls(numberError) + ' pr-24 font-mono'}
+                style={{ fontSize: '16px' }}
+              />
+              {brand !== 'unknown' && brandLabel && (
+                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold px-2 py-1 rounded-md border ${brandColors[brand]}`}>
+                  {brandLabel.toUpperCase()}
+                </span>
+              )}
+            </div>
+            {numberError && <p className="text-xs text-red-500 mt-1">{numberError}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                Expiry (MM/YY)
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={expiry}
+                onChange={e => setExpiry(formatExpiry(e.target.value))}
+                onBlur={() => setTouched(t => ({ ...t, expiry: true }))}
+                placeholder="MM/YY"
+                maxLength={5}
+                disabled={processing}
+                className={getInputCls(expiryError) + ' font-mono'}
+                style={{ fontSize: '16px' }}
+              />
+              {expiryError && <p className="text-xs text-red-500 mt-1">{expiryError}</p>}
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                CVV {brand === 'amex' ? '(4 digits)' : '(3 digits)'}
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={cvv}
+                onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, cvvLength))}
+                onBlur={() => setTouched(t => ({ ...t, cvv: true }))}
+                placeholder={brand === 'amex' ? '1234' : '123'}
+                maxLength={cvvLength}
+                disabled={processing}
+                className={getInputCls(cvvError) + ' font-mono'}
+                style={{ fontSize: '16px' }}
+              />
+              {cvvError && <p className="text-xs text-red-500 mt-1">{cvvError}</p>}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={processing || !isValid}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ background: accent }}
+          >
+            {processing ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                Processing payment
+              </>
+            ) : (
+              <>
+                <CreditCard size={15} />
+                Pay {currency} {amount.toFixed(2)}
+              </>
+            )}
+          </button>
+
+          {processing && (
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              Please wait while we securely process your payment
+            </p>
+          )}
+
+          <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 leading-relaxed">
+            🔒 Your payment information is encrypted and secure. We do not store your card details.
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -327,7 +528,6 @@ export default function PaymentPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Extract primary color from accent gradient (used for Stripe theme + spinner)
   const themeColors = useMemo(() => {
     const matches = accent.match(/#[0-9a-fA-F]{6}/g) || ['#0b3aa4', '#0e7490'];
     return { primary: matches[0], secondary: matches[1] || matches[0] };
@@ -341,11 +541,6 @@ export default function PaymentPage() {
   // Selection
   const [selected, setSelected] = useState<SelectedMethod | null>(null);
   const detailsRef = useRef<HTMLDivElement>(null);
-
-  // Stripe
-  const [stripeClientSecret, setStripeClientSecret] = useState('');
-  const [creatingIntent, setCreatingIntent] = useState(false);
-  const [stripeError, setStripeError] = useState('');
 
   // Receipt
   const [receiptUrl, setReceiptUrl] = useState('');
@@ -393,32 +588,6 @@ export default function PaymentPage() {
     if (shipmentId) load();
   }, [shipmentId]);
 
-  // Stripe intent
-  useEffect(() => {
-    if (selected?.type !== 'card' || !shipment || stripeClientSecret) return;
-    setCreatingIntent(true);
-    setStripeError('');
-    fetch('/api/stripe/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shipmentId }),
-    })
-      .then(async r => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || 'Failed to initialize payment');
-        return data;
-      })
-      .then(data => {
-        if (data.clientSecret) setStripeClientSecret(data.clientSecret);
-        else throw new Error('No client secret returned');
-      })
-      .catch(err => {
-        console.error('Stripe init failed:', err);
-        setStripeError(err.message || 'Failed to load card payment');
-      })
-      .finally(() => setCreatingIntent(false));
-  }, [selected, shipment, shipmentId, stripeClientSecret]);
-
   const submitReceipt = async (paymentMethod: string) => {
     if (!receiptUrl) return;
     setSubmittingReceipt(true);
@@ -436,7 +605,6 @@ export default function PaymentPage() {
     } finally { setSubmittingReceipt(false); }
   };
 
-  // Themed loading spinner
   if (loading || !shipment || !paySettings) return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
@@ -488,7 +656,6 @@ export default function PaymentPage() {
     ? paySettings.customMethods.find(m => m.id === selected.id)
     : undefined;
 
-  // Build PayPal URL with currency preserved
   const buildPaypalUrl = () => {
     let url = paySettings.paypal.link.trim();
     if (!url) return '';
@@ -648,85 +815,17 @@ export default function PaymentPage() {
           {selected && (
             <div ref={detailsRef} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5 scroll-mt-20">
 
-              {/* Card with Stripe */}
+              {/* Card with demo form */}
               {selected.type === 'card' && (
                 <div className="space-y-4">
                   <p className="text-sm font-bold text-gray-900 dark:text-white">Pay with Card</p>
-                  {creatingIntent ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-3">
-                      <div className="relative w-8 h-8">
-                        <div className="absolute inset-0 rounded-full border-[3px] border-gray-200" />
-                        <div className="absolute inset-0 rounded-full border-[3px] border-transparent animate-spin"
-                          style={{ borderTopColor: themeColors.primary, borderRightColor: themeColors.secondary }} />
-                      </div>
-                      <p className="text-xs text-gray-500">Initializing secure payment</p>
-                    </div>
-                  ) : stripeError ? (
-                    <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl p-4 border border-red-100 dark:border-red-500/20">
-                      <AlertCircle size={16} className="text-red-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-bold text-red-700 dark:text-red-400">Card payment unavailable</p>
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">{stripeError}</p>
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-2">Please try another payment method or contact support.</p>
-                      </div>
-                    </div>
-                  ) : !stripePromise ? (
-                    <p className="text-xs text-red-600">Stripe is not configured.</p>
-                  ) : stripeClientSecret ? (
-                    <Elements stripe={stripePromise} options={{
-                      clientSecret: stripeClientSecret,
-                      appearance: {
-                        theme: 'stripe',
-                        variables: {
-                          colorPrimary: themeColors.primary,
-                          colorBackground: '#ffffff',
-                          colorText: '#111827',
-                          colorDanger: '#dc2626',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          borderRadius: '12px',
-                          fontSizeBase: '14px',
-                          spacingUnit: '4px',
-                        },
-                        rules: {
-                          '.Input': {
-                            border: '1px solid #e5e7eb',
-                            boxShadow: 'none',
-                            padding: '12px 14px',
-                          },
-                          '.Input:focus': {
-                            border: `1px solid ${themeColors.primary}`,
-                            boxShadow: `0 0 0 1px ${themeColors.primary}`,
-                          },
-                          '.Label': {
-                            fontWeight: '700',
-                            fontSize: '12px',
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          },
-                          '.Tab': {
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '12px',
-                          },
-                          '.Tab--selected': {
-                            border: `1px solid ${themeColors.primary}`,
-                            boxShadow: `0 0 0 1px ${themeColors.primary}`,
-                          },
-                        },
-                      },
-                    }}>
-                      <StripeCardForm
-                        shipmentId={shipmentId}
-                        amount={invoice.amount}
-                        currency={invoice.currency}
-                        accent={accent}
-                        onSuccess={() => {
-                          setDoneTitle('Payment Successful!');
-                          setDoneMessage('Your payment was processed successfully. The shipment will now move to the next stage.');
-                          setShowDone(true);
-                        }} />
-                    </Elements>
-                  ) : null}
+                  <CardFormDemo
+                    amount={invoice.amount}
+                    currency={invoice.currency}
+                    accent={accent}
+                    themePrimary={themeColors.primary}
+                    onSwitchMethod={() => setSelected(null)}
+                  />
                 </div>
               )}
 
