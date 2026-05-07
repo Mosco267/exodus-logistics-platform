@@ -18,6 +18,16 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 
+// Stripe-supported brands (Verve and others NOT supported)
+const STRIPE_SUPPORTED_BRANDS: CardBrand[] = ['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners', 'unionpay'];
+
+// PayPal-supported currencies
+const PAYPAL_SUPPORTED_CURRENCIES = [
+  'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'JPY', 'CHF', 'SEK', 'PLN',
+  'NOK', 'DKK', 'HKD', 'SGD', 'NZD', 'MXN', 'THB', 'PHP', 'TWD',
+  'CZK', 'HUF', 'ILS', 'MYR', 'BRL',
+];
+
 type Shipment = {
   shipmentId: string;
   trackingNumber: string;
@@ -49,39 +59,31 @@ type SelectedMethod =
   | { type: 'paypal' }
   | { type: 'custom'; id: string };
 
-// Generate UUID v4
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-// Deterministic UUID from shipmentId (so same shipment always gets same reference)
+// Better deterministic UUID from shipmentId
 function uuidFromSeed(seed: string): string {
-  let h = 0;
+  let h1 = 0xdeadbeef ^ seed.length;
+  let h2 = 0x41c6ce57 ^ seed.length;
   for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+    const ch = seed.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
   }
-  // Build a simple hash-based hex string
-  const rnd = (n: number) => {
-    h = Math.imul(48271, h) | 0;
-    return ((h >>> 0) % 16).toString(16);
-  };
-  let out = '';
-  const pattern = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
-  for (let i = 0; i < pattern.length; i++) {
-    const c = pattern[i];
-    if (c === '-' || c === '4') out += c;
-    else if (c === 'y') {
-      const v = parseInt(rnd(0), 16);
-      out += ((v & 0x3) | 0x8).toString(16);
-    } else {
-      out += rnd(0);
-    }
-  }
-  return out;
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const hex = (n: number) => (n >>> 0).toString(16).padStart(8, '0');
+  let raw = hex(h1) + hex(h2);
+  let h3 = Math.imul(h1, 1597334677) ^ Math.imul(h2, 2654435761);
+  let h4 = Math.imul(h2, 1597334677) ^ Math.imul(h1, 2654435761);
+  raw += hex(h3) + hex(h4);
+  const versioned = raw.slice(0, 12) + '4' + raw.slice(13, 16) +
+    ((parseInt(raw[16] || '0', 16) & 0x3) | 0x8).toString(16) + raw.slice(17);
+  return [
+    versioned.slice(0, 8),
+    versioned.slice(8, 12),
+    versioned.slice(12, 16),
+    versioned.slice(16, 20),
+    versioned.slice(20, 32),
+  ].join('-');
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -95,13 +97,19 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function InfoRow({ label, value, copyable = true }: { label: string; value: string; copyable?: boolean }) {
+function InfoRow({ label, value, copyable = true, truncate = false }: {
+  label: string; value: string; copyable?: boolean; truncate?: boolean;
+}) {
   if (!value) return null;
   return (
     <div className="flex items-center justify-between gap-3 py-3 border-b border-gray-100 dark:border-white/5 last:border-0">
       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
       <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-        <span className="text-xs font-bold text-gray-900 dark:text-white text-right break-all">{value}</span>
+        <span
+          className={`text-xs font-bold text-gray-900 dark:text-white text-right ${truncate ? 'truncate max-w-[160px]' : 'break-all'}`}
+          title={truncate ? value : undefined}>
+          {value}
+        </span>
         {copyable && <CopyButton text={value} />}
       </div>
     </div>
@@ -194,26 +202,7 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
   );
 }
 
-function CardBrandBadge({ brand }: { brand: CardBrand }) {
-  if (brand === 'unknown') return null;
-  const colors: Record<CardBrand, string> = {
-    visa: 'bg-blue-100 text-blue-700 border-blue-200',
-    mastercard: 'bg-red-100 text-red-700 border-red-200',
-    amex: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-    discover: 'bg-orange-100 text-orange-700 border-orange-200',
-    jcb: 'bg-purple-100 text-purple-700 border-purple-200',
-    diners: 'bg-slate-100 text-slate-700 border-slate-200',
-    verve: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    unionpay: 'bg-rose-100 text-rose-700 border-rose-200',
-    unknown: '',
-  };
-  return (
-    <span className={`text-[10px] font-bold px-2 py-1 rounded-md border ${colors[brand]}`}>
-      {getCardBrandLabel(brand)}
-    </span>
-  );
-}
-
+// Stripe Card Form with strict brand validation
 function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
   shipmentId: string;
   amount: number;
@@ -225,9 +214,22 @@ function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [brandError, setBrandError] = useState('');
+
+  const handleChange = (event: any) => {
+    if (event.complete === false && event.value?.type === 'card') {
+      const brand = event.value?.payment_method?.card?.brand;
+      if (brand && brand !== 'unknown' && !STRIPE_SUPPORTED_BRANDS.includes(brand as CardBrand)) {
+        setBrandError(`${brand.toUpperCase()} cards are not supported. We only accept Visa, Mastercard, American Express, Discover, JCB, Diners Club, and UnionPay.`);
+      } else {
+        setBrandError('');
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     if (!stripe || !elements) return;
+    if (brandError) return;
     setProcessing(true); setError('');
     try {
       const { error: submitError } = await stripe.confirmPayment({
@@ -236,7 +238,13 @@ function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
         redirect: 'if_required',
       });
       if (submitError) {
-        setError(submitError.message || 'Payment failed');
+        const msg = submitError.message || 'Payment failed';
+        // Detect Stripe rejecting unsupported card type
+        if (msg.toLowerCase().includes('card') && (msg.toLowerCase().includes('not supported') || msg.toLowerCase().includes('declined'))) {
+          setError(`Your card was not accepted. We only accept Visa, Mastercard, American Express, Discover, JCB, Diners Club, and UnionPay. Cards like Verve are not currently supported.`);
+        } else {
+          setError(msg);
+        }
       } else {
         onSuccess();
       }
@@ -249,15 +257,47 @@ function StripeCardForm({ shipmentId, amount, currency, accent, onSuccess }: {
 
   return (
     <div className="space-y-4">
-      <PaymentElement />
+      {/* Supported cards badge */}
+      <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
+        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Accepted Cards</p>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { code: 'VISA', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+            { code: 'MASTERCARD', color: 'bg-red-100 text-red-700 border-red-200' },
+            { code: 'AMEX', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+            { code: 'DISCOVER', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+            { code: 'JCB', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+            { code: 'DINERS', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+            { code: 'UNIONPAY', color: 'bg-rose-100 text-rose-700 border-rose-200' },
+          ].map(b => (
+            <span key={b.code} className={`text-[10px] font-bold px-2 py-1 rounded-md border ${b.color}`}>
+              {b.code}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Themed Stripe element wrapper */}
+      <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-sm">
+        <PaymentElement onChange={handleChange} />
+      </div>
+
+      {brandError && (
+        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl p-3 border border-red-200 dark:border-red-500/30">
+          <AlertCircle size={14} className="text-red-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-700 dark:text-red-400 font-semibold">{brandError}</p>
+        </div>
+      )}
+
       {error && (
         <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl p-3 border border-red-100 dark:border-red-500/20">
           <AlertCircle size={14} className="text-red-600 shrink-0 mt-0.5" />
           <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
-      <button onClick={handleSubmit} disabled={processing || !stripe}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60"
+
+      <button onClick={handleSubmit} disabled={processing || !stripe || !!brandError}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         style={{ background: accent }}>
         {processing ? <><Loader2 size={15} className="animate-spin" /> Processing</> : <><CreditCard size={15} /> Pay {currency} {amount.toFixed(2)}</>}
       </button>
@@ -287,6 +327,12 @@ export default function PaymentPage() {
     return () => clearInterval(t);
   }, []);
 
+  // Extract primary color from accent gradient (used for Stripe theme + spinner)
+  const themeColors = useMemo(() => {
+    const matches = accent.match(/#[0-9a-fA-F]{6}/g) || ['#0b3aa4', '#0e7490'];
+    return { primary: matches[0], secondary: matches[1] || matches[0] };
+  }, [accent]);
+
   // Data
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [paySettings, setPaySettings] = useState<PaymentSettings | null>(null);
@@ -311,13 +357,13 @@ export default function PaymentPage() {
   const [doneTitle, setDoneTitle] = useState('Payment Successful!');
   const [doneMessage, setDoneMessage] = useState('');
 
-  // Payment reference (UUID, deterministic from shipmentId)
+  // Payment reference
   const paymentReference = useMemo(() => {
     if (!shipment) return '';
     return uuidFromSeed(shipment.shipmentId);
   }, [shipment]);
 
-  // Auto-scroll to details when method selected
+  // Auto-scroll
   useEffect(() => {
     if (selected && detailsRef.current) {
       setTimeout(() => {
@@ -326,7 +372,7 @@ export default function PaymentPage() {
     }
   }, [selected]);
 
-  // Load shipment + payment settings
+  // Load
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -347,7 +393,7 @@ export default function PaymentPage() {
     if (shipmentId) load();
   }, [shipmentId]);
 
-  // Stripe intent when card selected
+  // Stripe intent
   useEffect(() => {
     if (selected?.type !== 'card' || !shipment || stripeClientSecret) return;
     setCreatingIntent(true);
@@ -390,6 +436,7 @@ export default function PaymentPage() {
     } finally { setSubmittingReceipt(false); }
   };
 
+  // Themed loading spinner
   if (loading || !shipment || !paySettings) return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
@@ -397,7 +444,7 @@ export default function PaymentPage() {
         <div className="relative w-12 h-12">
           <div className="absolute inset-0 rounded-full border-[3px] border-gray-200" />
           <div className="absolute inset-0 rounded-full border-[3px] border-transparent animate-spin"
-            style={{ borderTopColor: '#0b3aa4', borderRightColor: '#0e7490' }} />
+            style={{ borderTopColor: themeColors.primary, borderRightColor: themeColors.secondary }} />
         </div>
         <p className="text-sm font-semibold text-gray-600">Loading payment details</p>
       </div>
@@ -407,14 +454,14 @@ export default function PaymentPage() {
   const invoice = shipment.invoice;
   const formatAmount = (n: number) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // Build available methods
-  const methods: Array<{ key: string; label: string; emoji: string; desc: string; method: SelectedMethod }> = [];
+  // Build methods
+  const methods: Array<{ key: string; label: string; emoji: string; logoUrl?: string; desc: string; method: SelectedMethod }> = [];
   if (paySettings.card.enabled) {
     methods.push({ key: 'card', label: 'Credit / Debit Card', emoji: '💳', desc: paySettings.card.confirmationTime, method: { type: 'card' } });
   }
   const cryptoEnabled = paySettings.bitcoin.enabled || paySettings.usdt.enabled || paySettings.ethereum.enabled;
   if (cryptoEnabled) {
-    methods.push({ key: 'crypto', label: 'Cryptocurrency', emoji: '₿', desc: 'Bitcoin, USDT, Ethereum', method: { type: 'crypto' } });
+    methods.push({ key: 'crypto', label: 'Cryptocurrency', emoji: '🪙', desc: 'Bitcoin, USDT, Ethereum', method: { type: 'crypto' } });
   }
   if (paySettings.bankTransfer.enabled) {
     methods.push({ key: 'bankTransfer', label: 'Bank Transfer', emoji: '🏦', desc: paySettings.bankTransfer.confirmationTime, method: { type: 'bankTransfer' } });
@@ -423,10 +470,16 @@ export default function PaymentPage() {
     methods.push({ key: 'paypal', label: 'PayPal', emoji: '🅿️', desc: paySettings.paypal.confirmationTime, method: { type: 'paypal' } });
   }
   for (const cm of paySettings.customMethods) {
-    methods.push({ key: cm.id, label: cm.name, emoji: cm.emoji, desc: cm.confirmationTime, method: { type: 'custom', id: cm.id } });
+    methods.push({
+      key: cm.id,
+      label: cm.name,
+      emoji: cm.emoji,
+      logoUrl: cm.logoImageUrl,
+      desc: cm.confirmationTime,
+      method: { type: 'custom', id: cm.id },
+    });
   }
 
-  // Selection key for matching
   const selectedKey = selected?.type === 'custom' ? selected.id
     : (selected?.type === 'bitcoin' || selected?.type === 'usdt' || selected?.type === 'ethereum') ? 'crypto'
     : selected?.type || '';
@@ -435,19 +488,23 @@ export default function PaymentPage() {
     ? paySettings.customMethods.find(m => m.id === selected.id)
     : undefined;
 
-  // Build PayPal URL
+  // Build PayPal URL with currency preserved
   const buildPaypalUrl = () => {
     let url = paySettings.paypal.link.trim();
     if (!url) return '';
+    const amt = invoice.amount.toFixed(2);
+    const cur = invoice.currency.toUpperCase();
     if (!url.startsWith('http')) {
       const cleaned = url.replace(/^@/, '').replace(/^paypal\.me\//i, '');
-      url = `https://www.paypal.com/paypalme/${encodeURIComponent(cleaned)}/${invoice.amount}${invoice.currency}`;
-    } else if (!url.includes(invoice.amount.toString())) {
-      const sep = url.endsWith('/') ? '' : '/';
-      url = `${url}${sep}${invoice.amount}${invoice.currency}`;
+      url = `https://www.paypal.me/${encodeURIComponent(cleaned)}/${amt}${cur}`;
+    } else {
+      url = url.replace(/\/+$/, '');
+      url = `${url}/${amt}${cur}`;
     }
     return url;
   };
+
+  const isPaypalCurrencySupported = PAYPAL_SUPPORTED_CURRENCIES.includes(invoice.currency.toUpperCase());
 
   return (
     <div className="max-w-xl mx-auto pb-10 space-y-4">
@@ -563,7 +620,13 @@ export default function PaymentPage() {
                       borderColor: isSelected ? 'transparent' : '#e5e7eb',
                       background: isSelected ? accent : '#f9fafb',
                     }}>
-                    <span className="text-xl shrink-0">{m.emoji}</span>
+                    {m.logoUrl ? (
+                      <div className="w-9 h-9 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <img src={m.logoUrl} alt={m.label} className="w-full h-full object-contain p-1" />
+                      </div>
+                    ) : (
+                      <span className="text-xl shrink-0">{m.emoji}</span>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{m.label}</p>
                       <p className={`text-xs flex items-center gap-1 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
@@ -591,7 +654,11 @@ export default function PaymentPage() {
                   <p className="text-sm font-bold text-gray-900 dark:text-white">Pay with Card</p>
                   {creatingIntent ? (
                     <div className="flex flex-col items-center justify-center py-10 gap-3">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      <div className="relative w-8 h-8">
+                        <div className="absolute inset-0 rounded-full border-[3px] border-gray-200" />
+                        <div className="absolute inset-0 rounded-full border-[3px] border-transparent animate-spin"
+                          style={{ borderTopColor: themeColors.primary, borderRightColor: themeColors.secondary }} />
+                      </div>
                       <p className="text-xs text-gray-500">Initializing secure payment</p>
                     </div>
                   ) : stripeError ? (
@@ -608,7 +675,45 @@ export default function PaymentPage() {
                   ) : stripeClientSecret ? (
                     <Elements stripe={stripePromise} options={{
                       clientSecret: stripeClientSecret,
-                      appearance: { theme: 'stripe' },
+                      appearance: {
+                        theme: 'stripe',
+                        variables: {
+                          colorPrimary: themeColors.primary,
+                          colorBackground: '#ffffff',
+                          colorText: '#111827',
+                          colorDanger: '#dc2626',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          borderRadius: '12px',
+                          fontSizeBase: '14px',
+                          spacingUnit: '4px',
+                        },
+                        rules: {
+                          '.Input': {
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'none',
+                            padding: '12px 14px',
+                          },
+                          '.Input:focus': {
+                            border: `1px solid ${themeColors.primary}`,
+                            boxShadow: `0 0 0 1px ${themeColors.primary}`,
+                          },
+                          '.Label': {
+                            fontWeight: '700',
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          },
+                          '.Tab': {
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '12px',
+                          },
+                          '.Tab--selected': {
+                            border: `1px solid ${themeColors.primary}`,
+                            boxShadow: `0 0 0 1px ${themeColors.primary}`,
+                          },
+                        },
+                      },
                     }}>
                       <StripeCardForm
                         shipmentId={shipmentId}
@@ -634,7 +739,9 @@ export default function PaymentPage() {
                     {paySettings.bitcoin.enabled && (
                       <button onClick={() => setSelected({ type: 'bitcoin' })}
                         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 dark:border-white/10 hover:border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-500/5 transition cursor-pointer text-left">
-                        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 font-bold text-lg shrink-0">₿</div>
+                        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                          <img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png" alt="BTC" className="w-7 h-7 object-contain" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900 dark:text-white">Bitcoin (BTC)</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.bitcoin.confirmationTime}</p>
@@ -644,7 +751,9 @@ export default function PaymentPage() {
                     {paySettings.usdt.enabled && (
                       <button onClick={() => setSelected({ type: 'usdt' })}
                         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 dark:border-white/10 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 transition cursor-pointer text-left">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold text-lg shrink-0">₮</div>
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                          <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" className="w-7 h-7 object-contain" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900 dark:text-white">USDT (Tether)</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.usdt.confirmationTime} · {paySettings.usdt.network}</p>
@@ -654,7 +763,9 @@ export default function PaymentPage() {
                     {paySettings.ethereum.enabled && (
                       <button onClick={() => setSelected({ type: 'ethereum' })}
                         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 dark:border-white/10 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition cursor-pointer text-left">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 font-bold text-lg shrink-0">Ξ</div>
+                        <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                          <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="ETH" className="w-7 h-7 object-contain" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900 dark:text-white">Ethereum (ETH)</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.ethereum.confirmationTime}</p>
@@ -699,7 +810,7 @@ export default function PaymentPage() {
                       </div>
                     </div>
                     <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
-                      <InfoRow label="Reference" value={paymentReference} />
+                      <InfoRow label="Reference" value={paymentReference} truncate />
                     </div>
                     <ConfirmationBanner time={c.confirmationTime} />
                     <ReceiptUpload
@@ -724,7 +835,7 @@ export default function PaymentPage() {
                     <InfoRow label="IBAN" value={paySettings.bankTransfer.iban} />
                     <InfoRow label="Branch Address" value={paySettings.bankTransfer.branchAddress} copyable={false} />
                     <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={paymentReference} />
+                    <InfoRow label="Reference" value={paymentReference} truncate />
                   </div>
                   {paySettings.bankTransfer.instructions && (
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3">
@@ -750,9 +861,19 @@ export default function PaymentPage() {
                       ? <InfoRow label="PayPal.me Link" value={paySettings.paypal.link} />
                       : <InfoRow label="PayPal Email" value={paySettings.paypal.email} />}
                     <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={paymentReference} />
+                    <InfoRow label="Reference" value={paymentReference} truncate />
                   </div>
-                  {paySettings.paypal.useLink && paySettings.paypal.link && (
+
+                  {!isPaypalCurrencySupported && (
+                    <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
+                      <AlertCircle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        PayPal does not support <strong>{invoice.currency}</strong>. Please use another payment method, or contact support for assistance with currency conversion.
+                      </p>
+                    </div>
+                  )}
+
+                  {paySettings.paypal.useLink && paySettings.paypal.link && isPaypalCurrencySupported && (
                     <a href={buildPaypalUrl()} target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg"
                       style={{ background: '#0070ba' }}>
@@ -771,7 +892,18 @@ export default function PaymentPage() {
               {/* Custom method */}
               {selected.type === 'custom' && selectedCustom && !receiptSubmitted && (
                 <div className="space-y-4">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">Pay via {selectedCustom.name}</p>
+                  <div className="flex items-center gap-3">
+                    {selectedCustom.logoImageUrl ? (
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center shrink-0">
+                        <img src={selectedCustom.logoImageUrl} alt={selectedCustom.name} className="w-full h-full object-contain p-1" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center text-2xl shrink-0">
+                        {selectedCustom.emoji}
+                      </div>
+                    )}
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">Pay via {selectedCustom.name}</p>
+                  </div>
                   {selectedCustom.description && (
                     <p className="text-xs text-gray-600 dark:text-gray-300">{selectedCustom.description}</p>
                   )}
@@ -785,7 +917,7 @@ export default function PaymentPage() {
                       <InfoRow key={idx} label={f.label} value={f.value} />
                     ))}
                     <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={paymentReference} />
+                    <InfoRow label="Reference" value={paymentReference} truncate />
                   </div>
                   {selectedCustom.instructions && (
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3">

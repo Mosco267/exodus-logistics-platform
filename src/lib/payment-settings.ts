@@ -41,6 +41,7 @@ export type CustomMethod = {
   enabled: boolean;
   name: string;
   emoji: string;
+  logoImageUrl?: string;  // NEW — admin-uploaded logo
   description: string;
   instructions: string;
   fields: Array<{ label: string; value: string }>;

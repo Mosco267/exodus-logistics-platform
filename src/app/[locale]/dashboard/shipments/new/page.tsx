@@ -1313,8 +1313,6 @@ const isValid = !firstMissing;
       addressStreet: senderStreet,
       addressCity: senderCity,
       addressState: senderState,
-      estimatedDeliveryDate: deliveryDateISO,
-      estimatedDeliveryDateMin: deliveryDateMinISO,
       addressPostalCode: senderPostal,
     }),
   });
@@ -1333,6 +1331,7 @@ const isValid = !firstMissing;
         shipmentScope: scope, serviceLevel: effectiveServiceLevel,
         shipmentType: finalPackageType, shipmentMeans: MEANS_CONFIG[means].label,
         packageDescription, estimatedDeliveryDate: deliveryDateISO,
+        estimatedDeliveryDateMin: deliveryDateMinISO,
         weightKg: weight,
         dimensionsCm: lengthCm || widthCm || heightCm ? { length: parseFloat(lengthCm)||0, width: parseFloat(widthCm)||0, height: parseFloat(heightCm)||0 } : null,
         declaredValue: dv, declaredValueCurrency: currency,

@@ -100,6 +100,7 @@ type CreateShipmentBody = {
   dimensionsCm?: DimensionsCm;
   shipmentMeans?: string;
   estimatedDeliveryDate?: string | null;
+estimatedDeliveryDateMin?: string | null;
 
   declaredValue?: number;
   declaredValueCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
@@ -410,6 +411,7 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
         packageDescription: String(body.packageDescription || "").trim() || null,
         shipmentMeans: body.shipmentMeans || null,
         estimatedDeliveryDate: body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null,
+estimatedDeliveryDateMin: body.estimatedDeliveryDateMin ? String(body.estimatedDeliveryDateMin) : null,
         weightKg: Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : null,
         dimensionsCm: body.dimensionsCm || null,
 
