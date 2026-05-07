@@ -11,6 +11,7 @@ import {
   PaymentSettings, CustomMethod,
   detectCardBrand, getCardBrandLabel, getCardCvvLength, getCardMaxLength, CardBrand,
 } from '@/lib/payment-settings';
+import { COUNTRIES_WITH_STATES, getCountryByName } from '@/lib/countriesData';
 
 // Supported card brands (Verve and others NOT supported)
 const SUPPORTED_BRANDS: CardBrand[] = ['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners', 'unionpay'];
@@ -233,6 +234,67 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
   );
 }
 
+// Country-specific ZIP/postal validation
+function validateZipForCountry(zip: string, countryCode: string): string {
+  const z = zip.trim();
+  if (!z) return 'Postal code is required';
+
+  const patterns: Record<string, { regex: RegExp; example: string }> = {
+    US: { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+    CA: { regex: /^[A-Z]\d[A-Z] ?\d[A-Z]\d$/i, example: 'A1A 1A1' },
+    GB: { regex: /^[A-Z]{1,2}\d{1,2}[A-Z]? ?\d[A-Z]{2}$/i, example: 'SW1A 1AA' },
+    AU: { regex: /^\d{4}$/, example: '1234' },
+    NZ: { regex: /^\d{4}$/, example: '1234' },
+    IE: { regex: /^[A-Z]\d{2} ?[A-Z0-9]{4}$/i, example: 'D02 X285' },
+    NG: { regex: /^\d{6}$/, example: '100001' },
+    IN: { regex: /^\d{6}$/, example: '110001' },
+    DE: { regex: /^\d{5}$/, example: '10115' },
+    FR: { regex: /^\d{5}$/, example: '75001' },
+    IT: { regex: /^\d{5}$/, example: '00100' },
+    ES: { regex: /^\d{5}$/, example: '28001' },
+    NL: { regex: /^\d{4} ?[A-Z]{2}$/i, example: '1011 AA' },
+    JP: { regex: /^\d{3}-?\d{4}$/, example: '100-0001' },
+    BR: { regex: /^\d{5}-?\d{3}$/, example: '01310-100' },
+    MX: { regex: /^\d{5}$/, example: '01000' },
+    PT: { regex: /^\d{4}-?\d{3}$/, example: '1000-001' },
+    PL: { regex: /^\d{2}-?\d{3}$/, example: '00-001' },
+    RU: { regex: /^\d{6}$/, example: '101000' },
+    CN: { regex: /^\d{6}$/, example: '100000' },
+    KR: { regex: /^\d{5}$/, example: '03187' },
+    SG: { regex: /^\d{6}$/, example: '238859' },
+    MY: { regex: /^\d{5}$/, example: '50000' },
+    TH: { regex: /^\d{5}$/, example: '10100' },
+    PH: { regex: /^\d{4}$/, example: '1000' },
+    ID: { regex: /^\d{5}$/, example: '10110' },
+    ZA: { regex: /^\d{4}$/, example: '0001' },
+    EG: { regex: /^\d{5}$/, example: '11511' },
+    AE: { regex: /^\d{5,6}$/, example: '00000' },
+    SA: { regex: /^\d{5}(-\d{4})?$/, example: '11564' },
+    IL: { regex: /^\d{5}(\d{2})?$/, example: '9999999' },
+    TR: { regex: /^\d{5}$/, example: '34000' },
+    CH: { regex: /^\d{4}$/, example: '8001' },
+    AT: { regex: /^\d{4}$/, example: '1010' },
+    BE: { regex: /^\d{4}$/, example: '1000' },
+    SE: { regex: /^\d{3} ?\d{2}$/, example: '111 22' },
+    NO: { regex: /^\d{4}$/, example: '0001' },
+    DK: { regex: /^\d{4}$/, example: '1000' },
+    FI: { regex: /^\d{5}$/, example: '00100' },
+    GR: { regex: /^\d{3} ?\d{2}$/, example: '104 31' },
+    CZ: { regex: /^\d{3} ?\d{2}$/, example: '110 00' },
+    HU: { regex: /^\d{4}$/, example: '1011' },
+  };
+
+  const p = patterns[countryCode];
+  if (p && !p.regex.test(z)) return `Invalid postal code (e.g. ${p.example})`;
+  if (z.length < 3 || z.length > 12) return 'Postal code must be 3-12 characters';
+  return '';
+}
+
+// Format currency amount with commas
+function formatAmountWithCommas(n: number): string {
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // Demo card form with real validation but fake processing
 function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }: {
   amount: number;
@@ -245,7 +307,30 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
-  const [touched, setTouched] = useState({ name: false, number: false, expiry: false, cvv: false });
+  const [country, setCountry] = useState('United States');
+  const [countryCode, setCountryCode] = useState('US');
+  const [stateValue, setStateValue] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [touched, setTouched] = useState({
+    name: false, number: false, expiry: false, cvv: false, zip: false, state: false,
+  });
+
+  // Country/state dropdowns
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const countryRef = useRef<HTMLDivElement>(null);
+  const [stateOpen, setStateOpen] = useState(false);
+  const [stateSearch, setStateSearch] = useState('');
+  const stateRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (countryRef.current && !countryRef.current.contains(e.target as Node)) setCountryOpen(false);
+      if (stateRef.current && !stateRef.current.contains(e.target as Node)) setStateOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
 
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
@@ -254,8 +339,23 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
   const brandLabel = getCardBrandLabel(brand);
   const cvvLength = getCardCvvLength(brand);
   const maxLength = getCardMaxLength(brand);
+  const cardInputMax = brand === 'amex' ? 17 : brand === 'diners' ? 16 : 19;
 
   const cardDigits = cardNumber.replace(/\s/g, '');
+
+  const countryEntry = getCountryByName(country);
+  const states = countryEntry?.states || [];
+  const hasStates = states.length > 0;
+
+  const filteredCountries = useMemo(() =>
+    COUNTRIES_WITH_STATES.filter(c =>
+      c.name.toLowerCase().includes(countrySearch.toLowerCase())
+    ), [countrySearch]);
+
+  const filteredStates = useMemo(() =>
+    states.filter(s => s.toLowerCase().includes(stateSearch.toLowerCase())),
+    [states, stateSearch]
+  );
 
   const nameError =
     touched.name && !cardName.trim() ? 'Cardholder name is required'
@@ -290,6 +390,9 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
     : touched.cvv && cvv.length !== cvvLength ? `CVV must be ${cvvLength} digits`
     : '';
 
+  const zipError = touched.zip ? validateZipForCountry(zipCode, countryCode) : '';
+  const stateError = touched.state && hasStates && !stateValue.trim() ? 'State / Province is required' : '';
+
   const isValid =
     !!cardName.trim() &&
     /^[a-zA-Z\s'-]+$/.test(cardName.trim()) &&
@@ -298,16 +401,18 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
     luhnCheck(cardDigits) &&
     expiry.replace(/\D/g, '').length === 4 &&
     !expiryError &&
-    cvv.length === cvvLength;
+    cvv.length === cvvLength &&
+    !!zipCode.trim() &&
+    !validateZipForCountry(zipCode, countryCode) &&
+    (!hasStates || !!stateValue.trim());
 
   const handleSubmit = async () => {
-    setTouched({ name: true, number: true, expiry: true, cvv: true });
+    setTouched({ name: true, number: true, expiry: true, cvv: true, zip: true, state: true });
     if (!isValid) return;
 
     setProcessing(true);
     setPaymentError('');
 
-    // 5-second fake processing delay
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     setProcessing(false);
@@ -316,46 +421,85 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
 
   const handleRetry = () => {
     setPaymentError('');
-    setTouched({ name: false, number: false, expiry: false, cvv: false });
+    setTouched({ name: false, number: false, expiry: false, cvv: false, zip: false, state: false });
     setCardName('');
     setCardNumber('');
     setExpiry('');
     setCvv('');
-  };
-
-  const brandColors: Record<CardBrand, string> = {
-    visa: 'bg-blue-100 text-blue-700 border-blue-200',
-    mastercard: 'bg-red-100 text-red-700 border-red-200',
-    amex: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-    discover: 'bg-orange-100 text-orange-700 border-orange-200',
-    jcb: 'bg-purple-100 text-purple-700 border-purple-200',
-    diners: 'bg-slate-100 text-slate-700 border-slate-200',
-    verve: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    unionpay: 'bg-rose-100 text-rose-700 border-rose-200',
-    unknown: '',
+    setZipCode('');
+    setStateValue('');
   };
 
   const baseInputCls = "w-full px-4 py-3 rounded-xl border bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none transition";
   const getInputCls = (err: string) => `${baseInputCls} ${err ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-white/10'}`;
 
+  // Card brand logo renderer
+  const renderBrandLogo = (b: CardBrand, size: 'sm' | 'lg' = 'sm') => {
+    const cls = size === 'lg' ? 'h-6' : 'h-5';
+    const containerCls = size === 'lg' ? 'h-7 w-12' : 'h-6 w-10';
+
+    const logos: Record<string, React.ReactNode> = {
+  visa: (
+        <div className={`${containerCls} rounded bg-white border border-gray-200 flex items-center justify-center px-1`}>
+          <svg viewBox="0 0 1000 324" className={cls} xmlns="http://www.w3.org/2000/svg">
+            <path fill="#1434CB" d="M433 314h-81l51-314h81l-51 314zM180 0l-78 214-9-47C76 113 23 54-36 24l71 290h88L254 0h-74zM702 314h74l-65-314h-65c-30 0-37 23-37 23L490 314h88l18-49h108l10 49zm-94-115l44-122 25 122h-69zM840 89c0-9 7-19 28-19 14 0 35 5 50 12l11-49C912 26 884 21 858 21c-67 0-114 31-114 76 0 33 35 51 60 62 26 11 35 18 35 28 0 16-19 23-37 23-31 0-50-7-66-15l-13 50c14 7 41 14 70 14 71 0 117-31 118-79 0-60-83-63-83-91z"/>
+          </svg>
+        </div>
+      ),
+      mastercard: (
+        <div className={`${containerCls} rounded bg-white border border-gray-200 flex items-center justify-center`}>
+          <svg viewBox="0 0 100 62" className={cls} xmlns="http://www.w3.org/2000/svg">
+            <circle cx="35" cy="31" r="26" fill="#EB001B"/>
+            <circle cx="65" cy="31" r="26" fill="#F79E1B"/>
+            <path fill="#FF5F00" d="M50 11a26 26 0 0 1 0 40 26 26 0 0 1 0-40z"/>
+          </svg>
+        </div>
+      ),
+      amex: (
+        <div className={`${containerCls} rounded bg-[#006FCF] flex items-center justify-center px-1`}>
+          <span className="text-white text-[8px] font-extrabold tracking-tight">AMEX</span>
+        </div>
+      ),
+      discover: (
+        <div className={`${containerCls} rounded bg-white border border-gray-200 flex items-center justify-center px-1 relative overflow-hidden`}>
+          <span className="text-[7px] font-extrabold text-gray-800 tracking-tight">DISCOVER</span>
+          <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500" />
+        </div>
+      ),
+      jcb: (
+        <div className={`${containerCls} rounded overflow-hidden flex items-center justify-center`}>
+          <div className="flex h-full w-full">
+            <div className="flex-1 bg-[#0E4C96] flex items-center justify-center text-white text-[7px] font-extrabold">J</div>
+            <div className="flex-1 bg-[#D02A2A] flex items-center justify-center text-white text-[7px] font-extrabold">C</div>
+            <div className="flex-1 bg-[#239E47] flex items-center justify-center text-white text-[7px] font-extrabold">B</div>
+          </div>
+        </div>
+      ),
+      diners: (
+        <div className={`${containerCls} rounded bg-white border border-gray-200 flex items-center justify-center px-0.5`}>
+          <span className="text-[6px] font-bold text-gray-700 leading-tight text-center">DINERS<br/>CLUB</span>
+        </div>
+      ),
+      unionpay: (
+        <div className={`${containerCls} rounded overflow-hidden flex`}>
+          <div className="flex-1 bg-[#D40020]" />
+          <div className="flex-1 bg-[#005FAB] flex items-center justify-center text-white text-[6px] font-extrabold">UPI</div>
+          <div className="flex-1 bg-[#00A651]" />
+        </div>
+      ),
+    };
+
+    return logos[b] || null;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Supported cards badge */}
+      {/* Supported cards row */}
       <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
         <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Accepted Cards</p>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { code: 'VISA', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-            { code: 'MASTERCARD', color: 'bg-red-100 text-red-700 border-red-200' },
-            { code: 'AMEX', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
-            { code: 'DISCOVER', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-            { code: 'JCB', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-            { code: 'DINERS', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-            { code: 'UNIONPAY', color: 'bg-rose-100 text-rose-700 border-rose-200' },
-          ].map(b => (
-            <span key={b.code} className={`text-[10px] font-bold px-2 py-1 rounded-md border ${b.color}`}>
-              {b.code}
-            </span>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {(['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners', 'unionpay'] as CardBrand[]).map(b => (
+            <div key={b}>{renderBrandLogo(b)}</div>
           ))}
         </div>
       </div>
@@ -367,9 +511,7 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
             <AlertCircle className="w-6 h-6 text-red-600" />
           </div>
           <p className="text-sm font-bold text-red-700 dark:text-red-400">Payment Failed</p>
-          <p className="text-xs text-red-600 dark:text-red-300 mt-1.5 leading-relaxed max-w-sm mx-auto">
-            {paymentError}
-          </p>
+          <p className="text-xs text-red-600 dark:text-red-300 mt-1.5 leading-relaxed max-w-sm mx-auto">{paymentError}</p>
           <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
             <button onClick={handleRetry}
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-500/30 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer transition">
@@ -387,6 +529,7 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
       {/* Card form */}
       {!paymentError && (
         <>
+          {/* Cardholder Name */}
           <div>
             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
               Cardholder Name
@@ -404,6 +547,7 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
             {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
           </div>
 
+          {/* Card Number with brand logo */}
           <div>
             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
               Card Number
@@ -413,26 +557,30 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
                 type="text"
                 inputMode="numeric"
                 value={cardNumber}
+                maxLength={cardInputMax}
                 onChange={e => {
-                  const digits = e.target.value.replace(/\D/g, '').slice(0, 19);
+                  const digits = e.target.value.replace(/\D/g, '');
                   const detectedBrand = detectCardBrand(digits);
-                  setCardNumber(formatCardNumber(digits, detectedBrand));
+                  const limit = getCardMaxLength(detectedBrand);
+                  const trimmed = digits.slice(0, limit);
+                  setCardNumber(formatCardNumber(trimmed, detectedBrand));
                 }}
                 onBlur={() => setTouched(t => ({ ...t, number: true }))}
-                placeholder="1234 5678 9012 3456"
+                placeholder={brand === 'amex' ? '1234 567890 12345' : '1234 5678 9012 3456'}
                 disabled={processing}
-                className={getInputCls(numberError) + ' pr-24 font-mono'}
+                className={getInputCls(numberError) + ' pr-16 font-mono'}
                 style={{ fontSize: '16px' }}
               />
-              {brand !== 'unknown' && brandLabel && (
-                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold px-2 py-1 rounded-md border ${brandColors[brand]}`}>
-                  {brandLabel.toUpperCase()}
-                </span>
+              {brand !== 'unknown' && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {renderBrandLogo(brand, 'sm')}
+                </div>
               )}
             </div>
             {numberError && <p className="text-xs text-red-500 mt-1">{numberError}</p>}
           </div>
 
+          {/* Expiry + CVV */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
@@ -472,6 +620,136 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
             </div>
           </div>
 
+          {/* Billing — Country, State (if applicable), ZIP */}
+          <div className="border-t border-gray-100 dark:border-white/10 pt-4 space-y-3">
+            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Billing Information
+            </p>
+
+            {/* Country dropdown */}
+            <div ref={countryRef} className="relative">
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                Country
+              </label>
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => { setCountryOpen(v => !v); setCountrySearch(''); }}
+                className={`${baseInputCls} border-gray-200 dark:border-white/10 flex items-center justify-between cursor-pointer text-left ${processing ? 'opacity-60' : ''}`}
+                style={{ fontSize: '16px' }}>
+                <span className="flex items-center gap-2">
+                  {countryEntry && (
+                    <img src={`https://flagcdn.com/w20/${countryEntry.code.toLowerCase()}.png`} width="20" height="15" alt={country} className="rounded-sm shrink-0" />
+                  )}
+                  <span>{country}</span>
+                </span>
+                <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${countryOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {countryOpen && !processing && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+                  <div className="p-2 border-b border-gray-100 dark:border-white/10">
+                    <input value={countrySearch} onChange={e => setCountrySearch(e.target.value)}
+                      placeholder="Search country" autoFocus
+                      style={{ fontSize: '16px' }}
+                      className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {filteredCountries.map(c => (
+                      <button key={c.code} type="button"
+                        onClick={() => {
+                          setCountry(c.name);
+                          setCountryCode(c.code);
+                          setStateValue('');
+                          setCountryOpen(false);
+                          setCountrySearch('');
+                          setTouched(t => ({ ...t, zip: false, state: false }));
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
+                        <img src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`} width="20" height="15" alt={c.name} className="rounded-sm shrink-0" />
+                        <span className={country === c.name ? 'font-bold text-blue-600' : 'text-gray-800 dark:text-gray-200'}>{c.name}</span>
+                      </button>
+                    ))}
+                    {filteredCountries.length === 0 && (
+                      <p className="px-4 py-3 text-sm text-gray-400">No results</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* State dropdown — only if country has states */}
+            {hasStates && (
+              <div ref={stateRef} className="relative">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                  State / Province
+                </label>
+                <button
+                  type="button"
+                  disabled={processing}
+                  onClick={() => { setStateOpen(v => !v); setStateSearch(''); }}
+                  className={`${getInputCls(stateError)} flex items-center justify-between cursor-pointer text-left ${processing ? 'opacity-60' : ''}`}
+                  style={{ fontSize: '16px' }}>
+                  <span className={stateValue ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>
+                    {stateValue || 'Select state'}
+                  </span>
+                  <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${stateOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {stateOpen && !processing && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+                    <div className="p-2 border-b border-gray-100 dark:border-white/10">
+                      <input value={stateSearch} onChange={e => setStateSearch(e.target.value)}
+                        placeholder="Search state" autoFocus
+                        style={{ fontSize: '16px' }}
+                        className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredStates.map(s => (
+                        <button key={s} type="button"
+                          onClick={() => {
+                            setStateValue(s);
+                            setStateOpen(false);
+                            setStateSearch('');
+                            setTouched(t => ({ ...t, state: true }));
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition cursor-pointer ${stateValue === s ? 'font-bold text-blue-600 bg-blue-50 dark:bg-blue-500/10' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10'}`}>
+                          {s}
+                        </button>
+                      ))}
+                      {filteredStates.length === 0 && (
+                        <p className="px-4 py-3 text-sm text-gray-400">No results</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {stateError && <p className="text-xs text-red-500 mt-1">{stateError}</p>}
+              </div>
+            )}
+
+            {/* ZIP / Postal code */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                Postal / ZIP Code
+              </label>
+              <input
+                type="text"
+                value={zipCode}
+                onChange={e => setZipCode(e.target.value.toUpperCase())}
+                onBlur={() => setTouched(t => ({ ...t, zip: true }))}
+                placeholder={countryCode === 'US' ? '12345' : countryCode === 'GB' ? 'SW1A 1AA' : countryCode === 'CA' ? 'A1A 1A1' : 'Postal code'}
+                disabled={processing}
+                maxLength={12}
+                className={getInputCls(zipError)}
+                style={{ fontSize: '16px' }}
+              />
+              {zipError && <p className="text-xs text-red-500 mt-1">{zipError}</p>}
+            </div>
+          </div>
+
+          {/* Pay button with comma-formatted amount */}
           <button
             onClick={handleSubmit}
             disabled={processing || !isValid}
@@ -486,7 +764,7 @@ function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }
             ) : (
               <>
                 <CreditCard size={15} />
-                Pay {currency} {amount.toFixed(2)}
+                Pay {currency} {formatAmountWithCommas(amount)}
               </>
             )}
           </button>
