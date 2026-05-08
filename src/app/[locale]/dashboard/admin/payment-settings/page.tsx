@@ -49,7 +49,7 @@ function QRUpload({ value, onChange, label }: { value: string; onChange: (url: s
     const form = new FormData();
     form.append('file', file);
     try {
-      const res = await fetch('/api/user/avatar', { method: 'POST', body: form });
+      const res = await fetch('/api/uploads', { method: 'POST', body: form });
       const data = await res.json();
       if (data.url) onChange(data.url);
     } catch {}

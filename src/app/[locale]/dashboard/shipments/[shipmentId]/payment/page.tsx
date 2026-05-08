@@ -206,7 +206,7 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch('/api/user/avatar', { method: 'POST', body: form });
+      const res = await fetch('/api/uploads', { method: 'POST', body: form });
       const data = await res.json();
       if (data.url) {
         onUploaded(data.url);
