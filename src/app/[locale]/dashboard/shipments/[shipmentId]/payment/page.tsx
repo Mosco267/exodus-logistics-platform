@@ -33,17 +33,19 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       document.body.style.overflow = '';
     };
   }, [onClose]);
- 
+
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+    <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-sm overflow-auto"
       onClick={onClose}>
       <button type="button" onClick={onClose}
-        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition z-10">
+        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition z-10">
         <X size={20} />
       </button>
-      <img src={src} alt="Preview"
-        onClick={e => e.stopPropagation()}
-        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+      <div className="min-h-full flex items-center justify-center p-4">
+        <img src={src} alt="Preview"
+          onClick={e => e.stopPropagation()}
+          className="max-w-full h-auto rounded-lg shadow-2xl" />
+      </div>
     </div>,
     document.body
   );
