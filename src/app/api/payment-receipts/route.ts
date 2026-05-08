@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { auth } from '@/auth';
+import { ObjectId } from 'mongodb';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -27,7 +28,6 @@ export async function POST(req: Request) {
     rejectedReason: null,
   });
 
-  // Update shipment to "payment under review"
   await db.collection('shipments').updateOne(
     { shipmentId },
     {
@@ -69,7 +69,6 @@ export async function PATCH(req: Request) {
   const { id, action, rejectedReason } = await req.json();
   if (!id || !action) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-  const { ObjectId } = require('mongodb');
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
@@ -100,7 +99,7 @@ export async function PATCH(req: Request) {
       }
     );
 
-    // Send paid email
+    // Send "invoice paid" email to sender (existing behavior)
     try {
       const { sendInvoiceUpdateEmail } = await import('@/lib/email');
       const shipment = await db.collection('shipments').findOne({ shipmentId: receipt.shipmentId });
@@ -117,9 +116,11 @@ export async function PATCH(req: Request) {
         });
       }
     } catch (e) {
-      console.error('Email send failed:', e);
+      console.error('Confirm email failed:', e);
     }
   } else if (action === 'reject') {
+    const reason = String(rejectedReason || '').trim();
+
     await db.collection('payment_receipts').updateOne(
       { _id: new ObjectId(id) },
       {
@@ -127,15 +128,50 @@ export async function PATCH(req: Request) {
           status: 'rejected',
           rejectedAt: new Date(),
           rejectedBy: (session?.user as any)?.email,
-          rejectedReason: rejectedReason || 'Receipt could not be verified',
+          rejectedReason: reason || null,
         },
       }
     );
 
     await db.collection('shipments').updateOne(
       { shipmentId: receipt.shipmentId },
-      { $set: { 'invoice.paymentStatus': 'rejected' } }
+      {
+        $set: {
+          'invoice.paymentStatus': 'rejected',
+          // Clear the under-review payment method so the user can pick again
+          'invoice.paid': false,
+        },
+      }
     );
+
+    // Send cancellation email to the SENDER only
+    try {
+      const shipment = await db.collection('shipments').findOne({ shipmentId: receipt.shipmentId });
+      if (shipment?.senderEmail) {
+        const { sendPaymentCancelledEmail } = await import('@/lib/email');
+        await sendPaymentCancelledEmail(shipment.senderEmail, {
+          name: shipment.senderName,
+          shipmentId: receipt.shipmentId,
+          trackingNumber: shipment.trackingNumber,
+          invoiceNumber: shipment.invoice?.invoiceNumber,
+          paymentMethod: receipt.paymentMethod,
+          reason, // empty string -> reason block omitted in email
+        });
+
+        // Dashboard notification too
+        await db.collection('notifications').insertOne({
+          userEmail: String(shipment.senderEmail).toLowerCase(),
+          userId: shipment.createdByUserId || undefined,
+          title: 'Payment Cancelled',
+          message: `Your payment for shipment ${receipt.shipmentId} was cancelled${reason ? ': ' + reason : '.'}`,
+          shipmentId: receipt.shipmentId,
+          read: false,
+          createdAt: new Date(),
+        });
+      }
+    } catch (e) {
+      console.error('Cancellation email failed:', e);
+    }
   }
 
   return NextResponse.json({ ok: true });

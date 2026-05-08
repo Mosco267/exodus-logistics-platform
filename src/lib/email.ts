@@ -2340,6 +2340,129 @@ export async function sendInvoiceStatusReceiverEmail(
   return sendEmail(to, subject, html);
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// ADD THIS FUNCTION TO src/lib/email.ts
+// Place it near the other invoice email functions, e.g. right after
+// sendInvoiceUpdateEmail() or sendInvoiceStatusReceiverEmail().
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * Sent to the SHIPMENT SENDER when admin rejects a payment receipt.
+ * Mirrors the paid-invoice email styling (badge, details card).
+ * If `reason` is empty, the reason block is omitted entirely.
+ */
+export async function sendPaymentCancelledEmail(
+  to: string,
+  args: {
+    name?: string;
+    shipmentId: string;
+    trackingNumber?: string;
+    invoiceNumber?: string;
+    paymentMethod?: string;
+    reason?: string;
+    locale?: string;
+  }
+) {
+  if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const name = cleanStr(args.name) || "Customer";
+  const locale = args.locale || DEFAULT_LOCALE;
+  const q = args.trackingNumber || args.shipmentId;
+
+  const trackUrl = buildTrackUrl(q, locale);
+  const invoiceUrl = buildInvoiceFullUrlByQ(q, locale);
+
+  const invoiceNumber = makeInvoiceNumber({
+    shipmentId: args.shipmentId,
+    trackingNumber: args.trackingNumber,
+    invoiceNumber: args.invoiceNumber,
+  });
+
+  const reason = cleanStr(args.reason);
+  const paymentMethod = cleanStr(args.paymentMethod);
+
+  // Mirror the paid-invoice template — badge, details card, etc.
+  const badgeHtml = renderToneBadge("Payment Cancelled", "red");
+
+  const detailsCardHtml = renderSimpleInfoCard([
+    { label: "Shipment Number", value: args.shipmentId },
+    { label: "Invoice Number", value: invoiceNumber },
+    { label: "Status", value: "CANCELLED" },
+  ]);
+
+  // Reason block — only rendered if a reason was provided
+  const reasonBlockHtml = reason
+    ? `
+      <div style="margin:16px 0 0 0;padding:14px 16px;border-left:4px solid #dc2626;background:#fef2f2;border-radius:10px;">
+        <p style="margin:0 0 6px 0;font-size:12px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.3px;">
+          Reason for cancellation
+        </p>
+        <p style="margin:0;font-size:14px;line-height:22px;color:#7f1d1d;">${esc(reason)}</p>
+      </div>
+    `
+    : "";
+
+  const paymentMethodLine = paymentMethod
+    ? `<p style="margin:0 0 14px 0;font-size:15px;line-height:24px;color:#6b7280;">
+         Payment method submitted: <strong style="color:#111827;">${esc(paymentMethod)}</strong>
+       </p>`
+    : "";
+
+  const subject = `Exodus Logistics: Payment cancelled for shipment ${args.shipmentId}`;
+  const title = "Payment cancelled";
+  const preheader = `Your payment for shipment ${args.shipmentId} has been cancelled.`;
+
+  const bodyHtml = `
+    ${badgeHtml}
+
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#111827;">
+      Hello ${esc(name)},
+    </p>
+
+    <p style="margin:0 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      We regret to inform you that the payment you submitted for shipment <strong>${esc(args.shipmentId)}</strong> has been cancelled and could not be confirmed by our team.
+    </p>
+
+    ${paymentMethodLine}
+
+    ${reasonBlockHtml}
+
+    <p style="margin:18px 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+      Your invoice remains outstanding. To continue processing your shipment, please return to the payment page and submit payment again, or contact our support team if you need assistance.
+    </p>
+
+    ${detailsCardHtml}
+
+    <p style="margin:20px 0 0 0;font-size:15px;line-height:24px;color:#6b7280;">
+      You can use the button below to return to the payment page and try again. If you believe this cancellation was made in error, please reach out to our support team.
+    </p>
+
+    <div style="margin-top:12px">
+      <a href="${invoiceUrl}" style="color:#2563eb;text-decoration:underline;font-weight:700;">
+        View Invoice
+      </a>
+    </div>
+  `;
+
+  // Button goes to the payment page so the customer can retry
+  const APP_URL_LOCAL = APP_URL;
+  const paymentPageUrl = `${APP_URL_LOCAL}/${locale}/dashboard/shipments/${encodeURIComponent(args.shipmentId)}/payment`;
+
+  const html = renderEmailTemplate({
+    subject,
+    title,
+    preheader,
+    bodyHtml,
+    button: { text: "Retry Payment", href: paymentPageUrl },
+    appUrl: APP_URL,
+    supportEmail: SUPPORT_EMAIL,
+    sentTo: to,
+  });
+
+  return sendEmail(to, subject, html);
+}
+
 /** -------------------------
  * NEW: shipment edited email
  * ------------------------- */

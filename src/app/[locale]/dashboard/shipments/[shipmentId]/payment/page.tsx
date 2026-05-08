@@ -23,6 +23,32 @@ const PAYPAL_SUPPORTED_CURRENCIES = [
   'CZK', 'HUF', 'ILS', 'MYR', 'BRL',
 ];
 
+function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+ 
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+      onClick={onClose}>
+      <button type="button" onClick={onClose}
+        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition z-10">
+        <X size={20} />
+      </button>
+      <img src={src} alt="Preview"
+        onClick={e => e.stopPropagation()}
+        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+    </div>,
+    document.body
+  );
+}
+
 type Shipment = {
   shipmentId: string;
   trackingNumber: string;
@@ -168,6 +194,8 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
   const [previewUrl, setPreviewUrl] = useState('');
   const [uploaded, setUploaded] = useState(false);
 
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -201,16 +229,22 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
       </div>
 
       {previewUrl && (
-        <div className="flex justify-center">
-          <div className="relative inline-block">
-            <img src={previewUrl} alt="Receipt preview" className="w-40 h-40 object-cover rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm" />
-            <button type="button" onClick={handleRemove}
-              className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition cursor-pointer">
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+  <div className="flex justify-center">
+    <div className="relative inline-block">
+      <img src={previewUrl} alt="Receipt preview"
+        onClick={() => setLightboxOpen(true)}
+        className="w-40 h-40 object-cover rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm cursor-zoom-in hover:opacity-90 transition" />
+      <button type="button" onClick={handleRemove}
+        className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition cursor-pointer">
+        <X size={14} />
+      </button>
+    </div>
+  </div>
+)}
+ 
+{lightboxOpen && previewUrl && (
+  <ImageLightbox src={previewUrl} onClose={() => setLightboxOpen(false)} />
+)}
 
       <div className="flex justify-center">
         <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
@@ -878,6 +912,7 @@ export default function PaymentPage() {
 
   // Success
   const [showDone, setShowDone] = useState(false);
+  const [qrLightbox, setQrLightbox] = useState('');
   const [doneTitle, setDoneTitle] = useState('Payment Successful!');
   const [doneMessage, setDoneMessage] = useState('');
 
@@ -1226,10 +1261,12 @@ export default function PaymentPage() {
                       </p>
                     </div>
                     {c.qrImageUrl && (
-                      <div className="flex justify-center">
-                        <img src={c.qrImageUrl} alt="QR Code" className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover" />
-                      </div>
-                    )}
+  <div className="flex justify-center">
+    <img src={c.qrImageUrl} alt="QR Code"
+      onClick={() => setQrLightbox(c.qrImageUrl || '')}
+      className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover cursor-zoom-in hover:opacity-90 transition" />
+  </div>
+)}
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-gray-500">Wallet Address</p>
                       <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 px-3 py-2.5">
@@ -1336,10 +1373,12 @@ export default function PaymentPage() {
                     <p className="text-xs text-gray-600 dark:text-gray-300">{selectedCustom.description}</p>
                   )}
                   {selectedCustom.qrImageUrl && (
-                    <div className="flex justify-center">
-                      <img src={selectedCustom.qrImageUrl} alt="QR" className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover" />
-                    </div>
-                  )}
+  <div className="flex justify-center">
+    <img src={selectedCustom.qrImageUrl} alt="QR"
+      onClick={() => setQrLightbox(selectedCustom.qrImageUrl || '')}
+      className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover cursor-zoom-in hover:opacity-90 transition" />
+  </div>
+)}
                   <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
                     {selectedCustom.fields.map((f, idx) => (
                       <InfoRow key={idx} label={f.label} value={f.value} />
@@ -1375,6 +1414,8 @@ export default function PaymentPage() {
           )}
         </>
       )}
+
+      {qrLightbox && <ImageLightbox src={qrLightbox} onClose={() => setQrLightbox('')} />}
 
       {/* Success modal */}
       {showDone && typeof document !== 'undefined' && createPortal(

@@ -3,15 +3,19 @@ import clientPromise from "@/lib/mongodb";
 import { generateShipmentId, generateTrackingNumber } from "@/lib/id";
 import {
   DEFAULT_PRICING,
-  computeInvoiceFromDeclaredValue,
-  type PricingSettings,
+  computeInvoice,
+  autoSelectMeans,
   type PricingProfiles,
+  type ShipmentMeans,
+  type ServiceLevel,
+  type ShipmentScope,
+  type ShipmentType,
 } from "@/lib/pricing";
 import {
   sendShipmentCreatedSenderEmail,
   sendShipmentCreatedReceiverEmailV2,
 } from "@/lib/email";
-import { createNotification } from "@/lib/notifications";  // ← ADD THIS
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(req: Request) {
   try {
@@ -92,18 +96,19 @@ type CreateShipmentBody = {
   receiverPostalCode?: string;
   receiverPhone?: string;
 
-  serviceLevel?: "Express" | "Standard" | string;
-  shipmentScope?: "international" | "local" | string;
+  serviceLevel?: ServiceLevel | string;
+  shipmentScope?: ShipmentScope | string;
   shipmentType?: string;
   packageDescription?: string;
   weightKg?: number;
   dimensionsCm?: DimensionsCm;
-  shipmentMeans?: string;
+  shipmentMeans?: string; // human label e.g. "Air Freight"
+  means?: ShipmentMeans;  // canonical key e.g. "air"
   estimatedDeliveryDate?: string | null;
-estimatedDeliveryDateMin?: string | null;
+  estimatedDeliveryDateMin?: string | null;
 
   declaredValue?: number;
-  declaredValueCurrency?: "USD" | "EUR" | "GBP" | "NGN" | string;
+  declaredValueCurrency?: string;
 
   invoicePaid?: boolean;
   invoiceStatus?: InvoiceStatus;
@@ -117,7 +122,11 @@ estimatedDeliveryDateMin?: string | null;
     paymentMethod?: string | null;
   };
 
-  pricing?: Partial<PricingSettings>;
+  // Per-shipment pricing override (admin only):
+  // shape: { international?: PricingSettings, local?: PricingSettings }
+  pricingOverride?: Partial<PricingProfiles>;
+  // Legacy field — also supported, treated as override for the active scope
+  pricing?: any;
 
   status?: ShipmentStatus | string;
   statusNote?: string;
@@ -147,12 +156,10 @@ function makeInvoiceNumber(seedA: string, seedB: string) {
   const now = new Date();
   const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, "0");
-
   const seed = `${seedA}::${seedB}`;
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   const seven = String((h % 9000000) + 1000000);
-
   return `EXS-INV-${yyyy}-${mm}-${seven}`;
 }
 
@@ -173,7 +180,6 @@ function normalizeInvoiceStatus(v: any): InvoiceStatus | null {
 function computeInvoiceStatus(paid: boolean, dueDate?: string | null): InvoiceStatus {
   if (paid) return "paid";
   if (!dueDate) return "unpaid";
-
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "unpaid";
   return Date.now() > d.getTime() ? "overdue" : "unpaid";
@@ -213,6 +219,23 @@ function makeCreatedEventSubEntry(
     color: "#22c55e", detailColor: "#22c55e",
     badgeText: "Completed", badgeColor: "#22c55e", badgeLocked: false,
   };
+}
+
+// Normalize means input — accepts label ("Air Freight") or key ("air")
+function normalizeMeans(label?: string, key?: string): ShipmentMeans | null {
+  const a = String(key || "").toLowerCase().trim();
+  if (a === "air" || a === "sea" || a === "land") return a;
+  const b = String(label || "").toLowerCase().trim();
+  if (b.includes("air")) return "air";
+  if (b.includes("sea") || b.includes("ship") || b.includes("ocean")) return "sea";
+  if (b.includes("land") || b.includes("truck") || b.includes("road") || b.includes("van")) return "land";
+  return null;
+}
+
+function normalizeServiceLevel(v?: string): ServiceLevel {
+  const s = String(v || "").toLowerCase().trim();
+  if (s === "express") return "Express";
+  return "Standard";
 }
 
 export async function POST(req: Request) {
@@ -255,8 +278,6 @@ export async function POST(req: Request) {
 
   const incomingInvoice = body.invoice || {};
 
-  
-
   const invoiceDueDate =
     incomingInvoice.dueDate !== undefined
       ? (incomingInvoice.dueDate ? String(incomingInvoice.dueDate) : null)
@@ -271,25 +292,23 @@ export async function POST(req: Request) {
 
   const invoicePaymentMethod = cleanStr(invoicePaymentMethodRaw) || null;
 
- const explicitInvoiceStatus = normalizeInvoiceStatus(
-  incomingInvoice.status ?? body.invoiceStatus
-);
+  const explicitInvoiceStatus = normalizeInvoiceStatus(
+    incomingInvoice.status ?? body.invoiceStatus
+  );
 
-let invoiceStatus: InvoiceStatus;
+  let invoiceStatus: InvoiceStatus;
+  if (explicitInvoiceStatus === "paid" || explicitInvoiceStatus === "cancelled") {
+    invoiceStatus = explicitInvoiceStatus;
+  } else if (invoiceDueDate) {
+    const computed = computeInvoiceStatus(false, invoiceDueDate);
+    invoiceStatus = computed === "overdue" ? "overdue" : (explicitInvoiceStatus || "unpaid");
+  } else {
+    invoiceStatus = explicitInvoiceStatus || "unpaid";
+  }
 
-if (explicitInvoiceStatus === "paid" || explicitInvoiceStatus === "cancelled") {
-  invoiceStatus = explicitInvoiceStatus;
-} else if (invoiceDueDate) {
-  const computed = computeInvoiceStatus(false, invoiceDueDate);
-  invoiceStatus = computed === "overdue" ? "overdue" : (explicitInvoiceStatus || "unpaid");
-} else {
-  invoiceStatus = explicitInvoiceStatus || "unpaid";
-}
-
-const invoicePaid = invoiceStatus === "paid";
+  const invoicePaid = invoiceStatus === "paid";
 
   const statusTitle = toTitleStatus(body.status || "Created");
-
   const defaultStatusNote =
     statusTitle === "Created"
       ? "Shipment has been created and is being processed."
@@ -301,16 +320,69 @@ const invoicePaid = invoiceStatus === "paid";
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
-  const shipmentScope =
-  String(body.shipmentScope || "").toLowerCase() === "local"
-    ? "local"
-    : "international";
+  const shipmentScope: ShipmentScope =
+    String(body.shipmentScope || "").toLowerCase() === "local" ? "local" : "international";
 
-const allPricing = await loadPricing(db);
-const basePricing = allPricing[shipmentScope] || DEFAULT_PRICING[shipmentScope];
-const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) };
+  // Build the pricing profiles used for THIS shipment:
+  //   defaults  →  stored profiles  →  per-shipment override
+  const storedPricing = await loadPricing(db);
 
-  const breakdown = computeInvoiceFromDeclaredValue(declaredValue, pricingUsed);
+  const overrideContainer: any = body.pricingOverride || {};
+  // Legacy fallback: body.pricing was a flat PricingSettings — apply to active scope
+  const legacyOverride = body.pricing && typeof body.pricing === "object"
+    ? { [shipmentScope]: body.pricing }
+    : {};
+
+  const mergedScope = {
+    ...DEFAULT_PRICING[shipmentScope],
+    ...(storedPricing[shipmentScope] || {}),
+    ...(legacyOverride[shipmentScope] || {}),
+    ...(overrideContainer[shipmentScope] || {}),
+  };
+
+  const pricingForCompute: PricingProfiles = {
+    ...DEFAULT_PRICING,
+    ...storedPricing,
+    international: shipmentScope === "international"
+      ? mergedScope
+      : { ...DEFAULT_PRICING.international, ...(storedPricing.international || {}) },
+    local: shipmentScope === "local"
+      ? mergedScope
+      : { ...DEFAULT_PRICING.local, ...(storedPricing.local || {}) },
+    air: { ...DEFAULT_PRICING.air, ...(storedPricing.air || {}) },
+    sea: { ...DEFAULT_PRICING.sea, ...(storedPricing.sea || {}) },
+    land: { ...DEFAULT_PRICING.land, ...(storedPricing.land || {}) },
+  };
+
+  // Determine means (explicit > derived from label > auto)
+  const explicitMeans = normalizeMeans(body.shipmentMeans, body.means);
+  const serviceLevel = normalizeServiceLevel(body.serviceLevel as string);
+  const shipmentType = String(body.shipmentType || "Parcel") as ShipmentType;
+  const weightKg = Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : 0;
+
+  const means: ShipmentMeans = explicitMeans
+    || autoSelectMeans(shipmentScope, serviceLevel, weightKg, shipmentType);
+
+  // Effective service level (sea/heavy → Standard)
+  const effectiveServiceLevel: ServiceLevel =
+    means === "sea" ? "Standard" : (weightKg >= 500 ? "Standard" : serviceLevel);
+
+  // Compute invoice using the SAME engine the user dashboard uses
+  const breakdown = computeInvoice({
+    scope: shipmentScope,
+    means,
+    serviceLevel: effectiveServiceLevel,
+    weightKg,
+    declaredValue,
+    currency: declaredValueCurrency,
+    senderCountryCode,
+    receiverCountryCode: destinationCountryCode,
+    senderCity: String(body.senderCity || ""),
+    senderState: String(body.senderState || ""),
+    receiverCity: String(body.receiverCity || ""),
+    receiverState: String(body.receiverState || ""),
+    pricing: pricingForCompute,
+  });
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const shipmentId = generateShipmentId();
@@ -319,6 +391,10 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
 
     try {
       const now = new Date();
+
+      const meansLabel =
+        means === "air" ? "Air Freight" :
+        means === "sea" ? "Sea Freight" : "Land Freight";
 
       const doc: any = {
         shipmentId,
@@ -336,55 +412,55 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
         cancelledAt: null,
 
         trackingEvents: [
-  {
-    key: "created",
-    label: statusTitle || "Created",
-    details: "",
-    note: String(body.statusNote || defaultStatusNote).trim(),
-    additionalNote: "",
-    occurredAt: now.toISOString(),
-    color: "#f59e0b",
-    detailColor: "#f59e0b",
-    badgeText: "",
-    badgeColor: "",
-    badgeLocked: false,
-    currentLocation: "",
-    location: {
-      country: String(body?.senderCountry || senderCountryCode || "").trim(),
-      state: String(body?.senderState || "").trim(),
-      city: String(body?.senderCity || "").trim(),
-      county: "",
-    },
-    meta: {
-      invoicePaid,
-      invoiceAmount: Number(breakdown.total),
-      currency: declaredValueCurrency,
-      origin: [body?.senderCity, body?.senderState, body?.senderCountry]
-        .map((x: any) => String(x || "").trim())
-        .filter(Boolean)
-        .join(", "),
-      destination: [body?.receiverCity, body?.receiverState, body?.receiverCountry]
-        .map((x: any) => String(x || "").trim())
-        .filter(Boolean)
-        .join(", "),
-    },
-  },
-  {
-    ...makeCreatedEventSubEntry(
-      invoiceStatus === "paid" ? "paid"
-      : invoiceStatus === "cancelled" ? "cancelled"
-      : invoiceStatus === "overdue" ? "overdue"
-      : "pending",
-      new Date(now.getTime() + 1000)
-    ),
-    location: {
-      country: String(body?.senderCountry || senderCountryCode || "").trim(),
-      state: String(body?.senderState || "").trim(),
-      city: String(body?.senderCity || "").trim(),
-      county: "",
-    },
-  },
-],
+          {
+            key: "created",
+            label: statusTitle || "Created",
+            details: "",
+            note: String(body.statusNote || defaultStatusNote).trim(),
+            additionalNote: "",
+            occurredAt: now.toISOString(),
+            color: "#f59e0b",
+            detailColor: "#f59e0b",
+            badgeText: "",
+            badgeColor: "",
+            badgeLocked: false,
+            currentLocation: "",
+            location: {
+              country: String(body?.senderCountry || senderCountryCode || "").trim(),
+              state: String(body?.senderState || "").trim(),
+              city: String(body?.senderCity || "").trim(),
+              county: "",
+            },
+            meta: {
+              invoicePaid,
+              invoiceAmount: Number(breakdown.total),
+              currency: declaredValueCurrency,
+              origin: [body?.senderCity, body?.senderState, body?.senderCountry]
+                .map((x: any) => String(x || "").trim())
+                .filter(Boolean)
+                .join(", "),
+              destination: [body?.receiverCity, body?.receiverState, body?.receiverCountry]
+                .map((x: any) => String(x || "").trim())
+                .filter(Boolean)
+                .join(", "),
+            },
+          },
+          {
+            ...makeCreatedEventSubEntry(
+              invoiceStatus === "paid" ? "paid"
+              : invoiceStatus === "cancelled" ? "cancelled"
+              : invoiceStatus === "overdue" ? "overdue"
+              : "pending",
+              new Date(now.getTime() + 1000)
+            ),
+            location: {
+              country: String(body?.senderCountry || senderCountryCode || "").trim(),
+              state: String(body?.senderState || "").trim(),
+              city: String(body?.senderCity || "").trim(),
+              county: "",
+            },
+          },
+        ],
 
         senderName: body.senderName || null,
         receiverName: body.receiverName || null,
@@ -405,14 +481,15 @@ const pricingUsed: PricingSettings = { ...basePricing, ...(body.pricing || {}) }
         receiverPostalCode: body.receiverPostalCode || null,
         receiverPhone: body.receiverPhone || null,
 
-        serviceLevel: body.serviceLevel || "Standard",
+        serviceLevel: effectiveServiceLevel,
         shipmentScope,
         shipmentType: body.shipmentType || null,
         packageDescription: String(body.packageDescription || "").trim() || null,
-        shipmentMeans: body.shipmentMeans || null,
+        shipmentMeans: meansLabel,
+        means,
         estimatedDeliveryDate: body.estimatedDeliveryDate ? String(body.estimatedDeliveryDate) : null,
-estimatedDeliveryDateMin: body.estimatedDeliveryDateMin ? String(body.estimatedDeliveryDateMin) : null,
-        weightKg: Number.isFinite(Number(body.weightKg)) ? Number(body.weightKg) : null,
+        estimatedDeliveryDateMin: body.estimatedDeliveryDateMin ? String(body.estimatedDeliveryDateMin) : null,
+        weightKg,
         dimensionsCm: body.dimensionsCm || null,
 
         declaredValue: breakdown.declaredValue,
@@ -430,13 +507,11 @@ estimatedDeliveryDateMin: body.estimatedDeliveryDateMin ? String(body.estimatedD
           dueDate: invoiceDueDate,
           paymentMethod: invoicePaymentMethod,
 
-          breakdown: {
-            ...breakdown,
-          },
+          breakdown: { ...breakdown },
 
-          pricingUsed: {
-            ...pricingUsed,
-          },
+          // Snapshot of the exact pricing profile used for this shipment
+          // (per-scope flat object, same shape used by the user dashboard's pricingOverride)
+          pricingUsed: { ...mergedScope },
         },
 
         createdAt: now,
@@ -445,19 +520,18 @@ estimatedDeliveryDateMin: body.estimatedDeliveryDateMin ? String(body.estimatedD
 
       await db.collection("shipments").insertOne(doc);
 
-// ── Create dashboard notification for the user who made the shipment ──
-if (createdByEmail) {
-  await createNotification({
-    userEmail: createdByEmail,
-    userId: createdByUserId || undefined,
-    title: "Shipment Created",
-    message: `Your shipment ${shipmentId} has been created and is being processed.`,
-    shipmentId,
-  });
-}
+      // Dashboard notification for the user who made the shipment
+      if (createdByEmail) {
+        await createNotification({
+          userEmail: createdByEmail,
+          userId: createdByUserId || undefined,
+          title: "Shipment Created",
+          message: `Your shipment ${shipmentId} has been created and is being processed.`,
+          shipmentId,
+        });
+      }
 
-const APP_URL = (
-  // ... rest stays the same
+      const APP_URL = (
         process.env.APP_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
         "https://www.goexoduslogistics.com"
@@ -467,19 +541,19 @@ const APP_URL = (
 
       if (senderEmail) {
         try {
-  await sendShipmentCreatedSenderEmail(senderEmail, {
-  name: doc.senderName || "Customer",
-  receiverName: doc.receiverName || "Receiver",
-  shipmentId,
-  trackingNumber,
-  paid: invoicePaid,
-  status: invoiceStatus,
-  invoiceNumber,
-  estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
-  estimatedDeliveryDateMin: doc.estimatedDeliveryDateMin || null,
-  shipmentScope: doc.shipmentScope || "international",
-  viewInvoiceUrl,
-});
+          await sendShipmentCreatedSenderEmail(senderEmail, {
+            name: doc.senderName || "Customer",
+            receiverName: doc.receiverName || "Receiver",
+            shipmentId,
+            trackingNumber,
+            paid: invoicePaid,
+            status: invoiceStatus,
+            invoiceNumber,
+            estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
+            estimatedDeliveryDateMin: doc.estimatedDeliveryDateMin || null,
+            shipmentScope: doc.shipmentScope || "international",
+            viewInvoiceUrl,
+          });
         } catch (e) {
           console.error("Sender email failed:", e);
         }
@@ -487,19 +561,19 @@ const APP_URL = (
 
       if (receiverEmail) {
         try {
-  await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
-  name: doc.receiverName || "Customer",
-  senderName: doc.senderName || "Sender",
-  shipmentId,
-  trackingNumber,
-  paid: invoicePaid,
-  status: invoiceStatus,
-  invoiceNumber,
-  estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
-  estimatedDeliveryDateMin: doc.estimatedDeliveryDateMin || null,
-  shipmentScope: doc.shipmentScope || "international",
-  viewInvoiceUrl,
-});
+          await sendShipmentCreatedReceiverEmailV2(receiverEmail, {
+            name: doc.receiverName || "Customer",
+            senderName: doc.senderName || "Sender",
+            shipmentId,
+            trackingNumber,
+            paid: invoicePaid,
+            status: invoiceStatus,
+            invoiceNumber,
+            estimatedDeliveryDate: doc.estimatedDeliveryDate || null,
+            estimatedDeliveryDateMin: doc.estimatedDeliveryDateMin || null,
+            shipmentScope: doc.shipmentScope || "international",
+            viewInvoiceUrl,
+          });
         } catch (e) {
           console.error("Receiver email failed:", e);
         }

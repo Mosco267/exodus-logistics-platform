@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   Loader2, RefreshCw, CheckCircle2, XCircle, Eye,
-  FileText, Clock, ExternalLink,
+  FileText, Clock, X, ZoomIn,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 type Receipt = {
   _id: string;
@@ -19,6 +20,33 @@ type Receipt = {
   rejectedReason?: string | null;
 };
 
+// ─── Image Lightbox ──────────────────────────────────────────────
+function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+      onClick={onClose}>
+      <button type="button" onClick={onClose}
+        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition z-10">
+        <X size={20} />
+      </button>
+      <img src={src} alt="Receipt"
+        onClick={e => e.stopPropagation()}
+        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+    </div>,
+    document.body
+  );
+}
+
 export default function AdminPaymentReceiptsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +54,7 @@ export default function AdminPaymentReceiptsPage() {
   const [viewing, setViewing] = useState<Receipt | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [lightboxSrc, setLightboxSrc] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -38,6 +67,11 @@ export default function AdminPaymentReceiptsPage() {
 
   useEffect(() => { load(); }, []);
 
+  const closeModal = () => {
+    setViewing(null);
+    setRejectReason('');
+  };
+
   const handleAction = async (id: string, action: 'confirm' | 'reject', reason?: string) => {
     setBusy(id);
     try {
@@ -47,11 +81,17 @@ export default function AdminPaymentReceiptsPage() {
       });
       if (res.ok) {
         await load();
-        setViewing(null);
-        setRejectReason('');
+        closeModal();
       }
     } finally { setBusy(null); }
   };
+
+  // Lock body scroll while modal open
+  useEffect(() => {
+    if (viewing) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [viewing]);
 
   const filtered = filter === 'all' ? receipts : receipts.filter(r => r.status === filter);
 
@@ -132,87 +172,115 @@ export default function AdminPaymentReceiptsPage() {
         </div>
       )}
 
-      {/* View modal */}
-      {viewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">Review Receipt</h3>
-              <button onClick={() => { setViewing(null); setRejectReason(''); }}
-                className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
-                <XCircle className="w-4 h-4 text-gray-400" />
+      {/* Review modal — compact, scrollable, fixed-height with sticky header */}
+      {viewing && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={closeModal}>
+          <div onClick={e => e.stopPropagation()}
+            className="w-full max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+
+            {/* Sticky header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-white/10 shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">Review Receipt</h3>
+                <p className="text-[11px] text-gray-500 truncate">{viewing.shipmentId}</p>
+              </div>
+              <button onClick={closeModal}
+                className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer shrink-0">
+                <X className="w-4 h-4 text-gray-400" />
               </button>
             </div>
-            <div className="p-5 space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Shipment</span>
-                <span className="font-bold text-gray-900 dark:text-white">{viewing.shipmentId}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Customer</span>
-                <span className="font-bold text-gray-900 dark:text-white">{viewing.submittedByName || viewing.submittedBy}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Method</span>
-                <span className="font-bold text-gray-900 dark:text-white">{viewing.paymentMethod}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Submitted</span>
-                <span className="font-bold text-gray-900 dark:text-white">
-                  {new Date(viewing.submittedAt).toLocaleString()}
-                </span>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+
+              {/* Compact info grid */}
+              <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 py-2 text-xs space-y-1.5">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500 shrink-0">Customer</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-right truncate">{viewing.submittedByName || viewing.submittedBy}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500 shrink-0">Method</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-right truncate">{viewing.paymentMethod}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500 shrink-0">Submitted</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-right">
+                    {new Date(viewing.submittedAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                </div>
               </div>
 
-              <a href={viewing.receiptUrl} target="_blank" rel="noopener noreferrer"
-                className="block rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden hover:opacity-90 transition">
-                <img src={viewing.receiptUrl} alt="Receipt" className="w-full h-auto" />
-                <div className="px-3 py-2 bg-gray-50 dark:bg-white/5 text-xs font-semibold text-blue-600 flex items-center gap-1">
-                  <ExternalLink size={10} /> Open full size
+              {/* Receipt image — click to zoom (no new tab) */}
+              <button type="button" onClick={() => setLightboxSrc(viewing.receiptUrl)}
+                className="block w-full rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden hover:opacity-95 transition cursor-zoom-in group">
+                <div className="relative">
+                  <img src={viewing.receiptUrl} alt="Receipt" className="w-full h-auto max-h-72 object-contain bg-gray-50 dark:bg-white/5" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition">
+                    <div className="opacity-0 group-hover:opacity-100 transition w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                      <ZoomIn size={16} className="text-gray-700" />
+                    </div>
+                  </div>
                 </div>
-              </a>
+                <div className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 text-[11px] font-semibold text-blue-600 flex items-center gap-1">
+                  <ZoomIn size={10} /> Click to zoom
+                </div>
+              </button>
 
               {viewing.notes && (
-                <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 px-3 py-2.5">
-                  <p className="text-[11px] font-bold uppercase text-blue-700 dark:text-blue-300 mb-1">Customer notes</p>
+                <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase text-blue-700 dark:text-blue-300 mb-0.5">Customer notes</p>
                   <p className="text-xs text-blue-700 dark:text-blue-300">{viewing.notes}</p>
                 </div>
               )}
 
               {viewing.status === 'pending' && (
-                <>
-                  <div className="border-t border-gray-100 dark:border-white/10 pt-4">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Rejection Reason (optional)</label>
-                    <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
-                      rows={2}
-                      placeholder="Only required if rejecting..."
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm resize-none" />
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleAction(viewing._id, 'reject', rejectReason)}
-                      disabled={busy === viewing._id}
-                      className="flex-1 cursor-pointer py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition disabled:opacity-60">
-                      Reject
-                    </button>
-                    <button onClick={() => handleAction(viewing._id, 'confirm')}
-                      disabled={busy === viewing._id}
-                      className="flex-1 cursor-pointer flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition disabled:opacity-60">
-                      {busy === viewing._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                      Confirm Payment
-                    </button>
-                  </div>
-                </>
+                <div className="border-t border-gray-100 dark:border-white/10 pt-3">
+                  <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                    Rejection Reason <span className="font-normal text-gray-400">(optional — only if rejecting)</span>
+                  </label>
+                  <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                    rows={2}
+                    placeholder="e.g. The amount on the receipt does not match the invoice."
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm resize-none focus:outline-none" />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    The reason (if provided) will be included in the cancellation email sent to the customer.
+                  </p>
+                </div>
               )}
 
               {viewing.status === 'rejected' && viewing.rejectedReason && (
-                <div className="rounded-xl bg-red-50 dark:bg-red-500/10 px-3 py-2.5">
-                  <p className="text-[11px] font-bold uppercase text-red-700 dark:text-red-300 mb-1">Rejection reason</p>
+                <div className="rounded-xl bg-red-50 dark:bg-red-500/10 px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase text-red-700 dark:text-red-300 mb-0.5">Rejection reason</p>
                   <p className="text-xs text-red-700 dark:text-red-300">{viewing.rejectedReason}</p>
                 </div>
               )}
             </div>
+
+            {/* Sticky footer (only for pending) */}
+            {viewing.status === 'pending' && (
+              <div className="px-5 py-3 border-t border-gray-100 dark:border-white/10 shrink-0 flex gap-2">
+                <button onClick={() => handleAction(viewing._id, 'reject', rejectReason)}
+                  disabled={busy === viewing._id}
+                  className="flex-1 cursor-pointer py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition disabled:opacity-60">
+                  {busy === viewing._id ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Reject'}
+                </button>
+                <button onClick={() => handleAction(viewing._id, 'confirm')}
+                  disabled={busy === viewing._id}
+                  className="flex-1 cursor-pointer flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition disabled:opacity-60">
+                  {busy === viewing._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Confirm
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      {/* Image lightbox */}
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc('')} />}
     </div>
   );
 }
