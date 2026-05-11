@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useContext, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter} from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, AlertCircle, Shield, Globe, Package, Zap, Mail, ArrowLeft, Fingerprint } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
@@ -35,6 +35,19 @@ type AuthMethod = 'password' | 'passkey' | null;
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
+
+  const [callbackUrl, setCallbackUrl] = useState('');
+
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const cb = params.get('callbackUrl') || '';
+    if (cb) setCallbackUrl(cb);
+  } catch {}
+}, []);
+
+ 
 
   const [navOpen, setNavOpen] = useState(false);
   const navItems = [
@@ -81,6 +94,22 @@ export default function SignInPage() {
     }`;
 
   const navigate = async () => {
+    console.log('[sign-in] navigate called, callbackUrl =', callbackUrl);
+    // If a callbackUrl was provided (e.g. from the payment cancelled
+    // email's "Retry Payment" button), honor it for non-admin users.
+    // Only allow same-origin relative paths to avoid open redirects.
+    if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+      const sessionRes = await fetch('/api/auth/session');
+      const session = await sessionRes.json();
+      // Admins still go to admin dashboard (callbackUrl is ignored for them)
+      if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
+        window.location.href = `/${locale}/dashboard/admin/users`;
+        return;
+      }
+      window.location.href = callbackUrl;
+      return;
+    }
+ 
     const sessionRes = await fetch('/api/auth/session');
     const session = await sessionRes.json();
     if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
@@ -210,10 +239,17 @@ const msg = errStr.includes('banned')
     } finally { setPasskeyLoading(false); }
   };
 
-  const handleGoogleSignIn = async () => {
+   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      await signIn('google', { callbackUrl: `/${locale}/auth/google-redirect` });
+      // Pass through the original callbackUrl so the google-redirect
+      // handler can forward to it after sign-in completes.
+      const base = `/${locale}/auth/google-redirect`;
+      const googleCallback =
+        callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+          ? `${base}?callbackUrl=${encodeURIComponent(callbackUrl)}`
+          : base;
+      await signIn('google', { callbackUrl: googleCallback });
     } catch { setGoogleLoading(false); }
   };
 
