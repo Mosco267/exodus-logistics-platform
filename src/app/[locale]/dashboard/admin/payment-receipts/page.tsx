@@ -36,7 +36,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
     <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-sm overflow-auto"
       onClick={onClose}>
       <button type="button" onClick={onClose}
-        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition z-10">
+        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition z-10 shadow-lg">
         <X size={20} />
       </button>
       <div className="min-h-full flex items-center justify-center p-4">

@@ -9,7 +9,6 @@ import {
 import {
   COUNTRIES_WITH_STATES,
   getCountryByName,
-  getCountryByCode,
   type CountryEntry,
 } from "@/lib/countriesData";
 import {
@@ -26,15 +25,152 @@ import {
 import { getCountryDistance, getStateDistance } from "@/lib/distances";
 import { addBusinessDays } from "@/lib/holidays";
 
-// ─── Helpers ────────────────────────────────────────────────────
+// ─── Currency list (same as user create shipment) ────────────────
+const ALL_CURRENCIES = [
+  { code:'USD', name:'US Dollar', country:'United States' },
+  { code:'EUR', name:'Euro', country:'Eurozone' },
+  { code:'GBP', name:'British Pound', country:'United Kingdom' },
+  { code:'JPY', name:'Japanese Yen', country:'Japan' },
+  { code:'CAD', name:'Canadian Dollar', country:'Canada' },
+  { code:'AUD', name:'Australian Dollar', country:'Australia' },
+  { code:'CHF', name:'Swiss Franc', country:'Switzerland' },
+  { code:'CNY', name:'Chinese Yuan', country:'China' },
+  { code:'HKD', name:'Hong Kong Dollar', country:'Hong Kong' },
+  { code:'SGD', name:'Singapore Dollar', country:'Singapore' },
+  { code:'SEK', name:'Swedish Krona', country:'Sweden' },
+  { code:'NOK', name:'Norwegian Krone', country:'Norway' },
+  { code:'DKK', name:'Danish Krone', country:'Denmark' },
+  { code:'NZD', name:'New Zealand Dollar', country:'New Zealand' },
+  { code:'MXN', name:'Mexican Peso', country:'Mexico' },
+  { code:'BRL', name:'Brazilian Real', country:'Brazil' },
+  { code:'INR', name:'Indian Rupee', country:'India' },
+  { code:'KRW', name:'South Korean Won', country:'South Korea' },
+  { code:'TWD', name:'New Taiwan Dollar', country:'Taiwan' },
+  { code:'IDR', name:'Indonesian Rupiah', country:'Indonesia' },
+  { code:'MYR', name:'Malaysian Ringgit', country:'Malaysia' },
+  { code:'THB', name:'Thai Baht', country:'Thailand' },
+  { code:'PHP', name:'Philippine Peso', country:'Philippines' },
+  { code:'VND', name:'Vietnamese Dong', country:'Vietnam' },
+  { code:'PKR', name:'Pakistani Rupee', country:'Pakistan' },
+  { code:'BDT', name:'Bangladeshi Taka', country:'Bangladesh' },
+  { code:'LKR', name:'Sri Lankan Rupee', country:'Sri Lanka' },
+  { code:'NPR', name:'Nepalese Rupee', country:'Nepal' },
+  { code:'AED', name:'UAE Dirham', country:'UAE' },
+  { code:'SAR', name:'Saudi Riyal', country:'Saudi Arabia' },
+  { code:'QAR', name:'Qatari Rial', country:'Qatar' },
+  { code:'KWD', name:'Kuwaiti Dinar', country:'Kuwait' },
+  { code:'BHD', name:'Bahraini Dinar', country:'Bahrain' },
+  { code:'OMR', name:'Omani Rial', country:'Oman' },
+  { code:'JOD', name:'Jordanian Dinar', country:'Jordan' },
+  { code:'ILS', name:'Israeli Shekel', country:'Israel' },
+  { code:'TRY', name:'Turkish Lira', country:'Turkey' },
+  { code:'NGN', name:'Nigerian Naira', country:'Nigeria' },
+  { code:'GHS', name:'Ghanaian Cedi', country:'Ghana' },
+  { code:'KES', name:'Kenyan Shilling', country:'Kenya' },
+  { code:'ZAR', name:'South African Rand', country:'South Africa' },
+  { code:'EGP', name:'Egyptian Pound', country:'Egypt' },
+  { code:'ETB', name:'Ethiopian Birr', country:'Ethiopia' },
+  { code:'TZS', name:'Tanzanian Shilling', country:'Tanzania' },
+  { code:'UGX', name:'Ugandan Shilling', country:'Uganda' },
+  { code:'MAD', name:'Moroccan Dirham', country:'Morocco' },
+  { code:'DZD', name:'Algerian Dinar', country:'Algeria' },
+  { code:'TND', name:'Tunisian Dinar', country:'Tunisia' },
+  { code:'XOF', name:'West African CFA', country:'West Africa' },
+  { code:'XAF', name:'Central African CFA', country:'Central Africa' },
+  { code:'RWF', name:'Rwandan Franc', country:'Rwanda' },
+  { code:'AOA', name:'Angolan Kwanza', country:'Angola' },
+  { code:'MZN', name:'Mozambican Metical', country:'Mozambique' },
+  { code:'ZMW', name:'Zambian Kwacha', country:'Zambia' },
+  { code:'PLN', name:'Polish Zloty', country:'Poland' },
+  { code:'CZK', name:'Czech Koruna', country:'Czech Republic' },
+  { code:'HUF', name:'Hungarian Forint', country:'Hungary' },
+  { code:'RON', name:'Romanian Leu', country:'Romania' },
+  { code:'BGN', name:'Bulgarian Lev', country:'Bulgaria' },
+  { code:'HRK', name:'Croatian Kuna', country:'Croatia' },
+  { code:'RSD', name:'Serbian Dinar', country:'Serbia' },
+  { code:'UAH', name:'Ukrainian Hryvnia', country:'Ukraine' },
+  { code:'RUB', name:'Russian Ruble', country:'Russia' },
+  { code:'KZT', name:'Kazakhstani Tenge', country:'Kazakhstan' },
+  { code:'ARS', name:'Argentine Peso', country:'Argentina' },
+  { code:'CLP', name:'Chilean Peso', country:'Chile' },
+  { code:'COP', name:'Colombian Peso', country:'Colombia' },
+  { code:'PEN', name:'Peruvian Sol', country:'Peru' },
+  { code:'UYU', name:'Uruguayan Peso', country:'Uruguay' },
+  { code:'BOB', name:'Bolivian Boliviano', country:'Bolivia' },
+  { code:'PYG', name:'Paraguayan Guaraní', country:'Paraguay' },
+  { code:'GTQ', name:'Guatemalan Quetzal', country:'Guatemala' },
+  { code:'DOP', name:'Dominican Peso', country:'Dominican Republic' },
+  { code:'CRC', name:'Costa Rican Colón', country:'Costa Rica' },
+  { code:'NIO', name:'Nicaraguan Córdoba', country:'Nicaragua' },
+  { code:'HNL', name:'Honduran Lempira', country:'Honduras' },
+  { code:'PAB', name:'Panamanian Balboa', country:'Panama' },
+  { code:'MMK', name:'Myanmar Kyat', country:'Myanmar' },
+  { code:'KHR', name:'Cambodian Riel', country:'Cambodia' },
+  { code:'LAK', name:'Lao Kip', country:'Laos' },
+  { code:'AFN', name:'Afghan Afghani', country:'Afghanistan' },
+  { code:'IRR', name:'Iranian Rial', country:'Iran' },
+  { code:'IQD', name:'Iraqi Dinar', country:'Iraq' },
+  { code:'LBP', name:'Lebanese Pound', country:'Lebanon' },
+  { code:'SYP', name:'Syrian Pound', country:'Syria' },
+  { code:'YER', name:'Yemeni Rial', country:'Yemen' },
+  { code:'PGK', name:'Papua New Guinean Kina', country:'Papua New Guinea' },
+  { code:'FJD', name:'Fijian Dollar', country:'Fiji' },
+  { code:'XCD', name:'East Caribbean Dollar', country:'East Caribbean' },
+  { code:'TTD', name:'Trinidad & Tobago Dollar', country:'Trinidad & Tobago' },
+  { code:'JMD', name:'Jamaican Dollar', country:'Jamaica' },
+  { code:'BBD', name:'Barbadian Dollar', country:'Barbados' },
+  { code:'BSD', name:'Bahamian Dollar', country:'Bahamas' },
+].sort((a, b) => a.code.localeCompare(b.code));
+
+// ─── Country → Currency map (same as user create shipment) ───────
+const COUNTRY_CURRENCY: Record<string, string> = {
+  US:'USD',CA:'CAD',GB:'GBP',AU:'AUD',NZ:'NZD',EU:'EUR',
+  DE:'EUR',FR:'EUR',IT:'EUR',ES:'EUR',PT:'EUR',NL:'EUR',BE:'EUR',AT:'EUR',
+  FI:'EUR',IE:'EUR',GR:'EUR',SK:'EUR',SI:'EUR',EE:'EUR',LV:'EUR',LT:'EUR',
+  LU:'EUR',MT:'EUR',CY:'EUR',
+  NG:'NGN',GH:'GHS',KE:'KES',ZA:'ZAR',EG:'EGP',TZ:'TZS',UG:'UGX',
+  RW:'RWF',ET:'ETB',MA:'MAD',TN:'TND',DZ:'DZD',SD:'SDG',SN:'XOF',
+  CI:'XOF',ML:'XOF',BF:'XOF',NE:'XOF',BJ:'XOF',TG:'XOF',GN:'GNF',
+  CM:'XAF',TD:'XAF',CF:'XAF',GA:'XAF',CG:'XAF',CD:'CDF',AO:'AOA',
+  MZ:'MZN',ZM:'ZMW',ZW:'ZWL',BW:'BWP',NA:'NAD',LS:'LSL',SZ:'SZL',
+  IN:'INR',CN:'CNY',JP:'JPY',KR:'KRW',ID:'IDR',MY:'MYR',TH:'THB',
+  PH:'PHP',VN:'VND',BD:'BDT',PK:'PKR',LK:'LKR',NP:'NPR',
+  AE:'AED',SA:'SAR',QA:'QAR',KW:'KWD',BH:'BHD',OM:'OMR',JO:'JOD',IL:'ILS',
+  TR:'TRY',
+  BR:'BRL',AR:'ARS',CO:'COP',CL:'CLP',PE:'PEN',
+  MX:'MXN',
+  NO:'NOK',SE:'SEK',DK:'DKK',CH:'CHF',PL:'PLN',CZ:'CZK',HU:'HUF',RO:'RON',
+  RU:'RUB',UA:'UAH',
+  HK:'HKD',SG:'SGD',TW:'TWD',
+};
+
+// ─── Number-formatting helpers (same as user page) ───────────────
+function formatMoney(value: number): string {
+  if (isNaN(value)) return '0.00';
+  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatWithCommas(raw: string): string {
+  if (!raw) return '';
+  const cleaned = raw.replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  const intPart = parts[0];
+  const decPart = parts.length > 1 ? '.' + parts.slice(1).join('').slice(0, 2) : '';
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return withCommas + decPart;
+}
+
+function stripCommas(formatted: string): string {
+  return formatted.replace(/,/g, '');
+}
+
+function cleanNumeric(raw: string): string {
+  return stripCommas(raw.replace(/[^0-9.,]/g, ''));
+}
+
 function numericOnly(val: string, allowDecimal = true): string {
   if (allowDecimal) return val.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
   return val.replace(/[^0-9]/g, "");
-}
-
-function formatMoney(n: number): string {
-  if (!Number.isFinite(n)) return "0.00";
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function toPct(rate: number) {
@@ -54,7 +190,7 @@ function fromMoney(s: string) {
   return Number.isFinite(n) ? n : 0;
 }
 
-// ─── Country dropdown ───────────────────────────────────────────
+// ─── Country dropdown (with real flag images) ────────────────────
 function CountrySelect({
   value, onChange, onCountryChange, label, required,
 }: {
@@ -93,7 +229,14 @@ function CountrySelect({
       >
         <span className="flex items-center gap-2">
           {selected
-            ? <><span>{selected.flag}</span><span>{selected.name}</span></>
+            ? <>
+                <img
+                  src={`https://flagcdn.com/w20/${selected.code.toLowerCase()}.png`}
+                  width={20} height={15} alt={selected.name}
+                  className="rounded-sm shrink-0"
+                />
+                <span>{selected.name}</span>
+              </>
             : <span className="text-gray-400">Select country…</span>}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -116,7 +259,12 @@ function CountrySelect({
                 onMouseDown={() => { onChange(c.name); onCountryChange?.(c); setOpen(false); setSearch(""); }}
                 className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-blue-50 transition ${value === c.name ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-800"}`}
               >
-                <span>{c.flag}</span><span>{c.name}</span>
+                <img
+                  src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`}
+                  width={20} height={15} alt={c.name}
+                  className="rounded-sm shrink-0"
+                />
+                <span>{c.name}</span>
                 <span className="ml-auto text-xs text-gray-400">{c.dial}</span>
               </button>
             ))}
@@ -164,36 +312,91 @@ function StateInput({
   );
 }
 
-// ─── Phone input ────────────────────────────────────────────────
+// ─── Dial-code dropdown (with flags, same as user page) ──────────
+function DialDropdown({ dial, flag, onChange }: {
+  dial: string; flag: string; onChange: (dial: string, flag: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const filtered = useMemo(() =>
+    COUNTRIES_WITH_STATES.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.dial.includes(search)
+    ), [search]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" onClick={() => { setOpen(v => !v); setSearch(''); }}
+        className="flex items-center gap-1.5 rounded-2xl border border-gray-300 bg-gray-50 px-3 h-full min-h-[48px] cursor-pointer hover:border-gray-400 transition">
+        {flag
+          ? <img src={`https://flagcdn.com/w20/${flag}.png`} width={18} height={13} alt="" className="rounded-sm shrink-0" />
+          : <span className="w-5 h-3.5 rounded-sm bg-gray-200 shrink-0 block" />}
+        <span className="text-sm font-semibold text-gray-700 min-w-[36px]">{dial || '+?'}</span>
+        <ChevronDown size={12} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-64 rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search country or code…"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none" />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.map(c => (
+              <button key={c.code} type="button"
+                onMouseDown={() => { onChange(c.dial, c.code.toLowerCase()); setOpen(false); setSearch(''); }}
+                className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-50 transition cursor-pointer">
+                <img src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`} width={18} height={13} alt="" className="rounded-sm shrink-0" />
+                <span className="font-semibold text-gray-700 w-10 shrink-0">{c.dial}</span>
+                <span className="text-gray-500 truncate">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Phone input — uses DialDropdown, syncs dial to country ─────
 function PhoneInput({
   countryName, value, onChange, label, required,
 }: {
   countryName: string; value: string; onChange: (v: string) => void; label: string; required?: boolean;
 }) {
   const entry = getCountryByName(countryName);
-  const [dialCode, setDialCode] = useState(entry?.dial || "");
-  const [localNumber, setLocalNumber] = useState("");
+  const [dial, setDial] = useState(entry?.dial || '');
+  const [flagCode, setFlagCode] = useState(entry?.code.toLowerCase() || '');
+  const [local, setLocal] = useState('');
 
+  // When parent country changes, sync the dial code to match.
+  const lastSyncedCountry = useRef(countryName);
   useEffect(() => {
-    const newDial = getCountryByName(countryName)?.dial || "";
-    setDialCode(newDial);
-    const full = newDial ? `${newDial} ${localNumber}`.trim() : localNumber;
-    onChange(full);
+    if (lastSyncedCountry.current !== countryName) {
+      const e = getCountryByName(countryName);
+      if (e) {
+        setDial(e.dial);
+        setFlagCode(e.code.toLowerCase());
+        onChange(local ? `${e.dial} ${local}`.trim() : '');
+      }
+      lastSyncedCountry.current = countryName;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countryName]);
 
-  const handleDialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.startsWith("+") ? e.target.value : "+" + e.target.value.replace(/\+/g, "");
-    setDialCode(v);
-    onChange(v ? `${v} ${localNumber}`.trim() : localNumber);
+  const handleLocal = (raw: string) => {
+    const v = numericOnly(raw, false);
+    setLocal(v);
+    onChange(dial ? `${dial} ${v}`.trim() : v);
   };
-  const handleLocalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = numericOnly(e.target.value, false);
-    setLocalNumber(v);
-    onChange(dialCode ? `${dialCode} ${v}`.trim() : v);
-  };
-
-  const flag = getCountryByName(countryName)?.flag || "🌐";
 
   return (
     <div>
@@ -201,18 +404,78 @@ function PhoneInput({
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="flex gap-2">
-        <div className="flex items-center gap-1.5 rounded-2xl border border-gray-300 px-3 py-3 bg-gray-50 shrink-0">
-          <span className="text-base">{flag}</span>
-          <input
-            value={dialCode} onChange={handleDialChange}
-            className="w-14 bg-transparent text-sm font-semibold text-gray-700 focus:outline-none" placeholder="+1"
-          />
-        </div>
-        <input
-          value={localNumber} onChange={handleLocalChange} inputMode="numeric" placeholder="Phone number"
-          className="flex-1 rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-        />
+        <DialDropdown dial={dial} flag={flagCode}
+          onChange={(newDial, newFlag) => {
+            setDial(newDial);
+            setFlagCode(newFlag);
+            setLocal('');
+            onChange('');
+          }} />
+        <input value={local} onChange={e => handleLocal(e.target.value)}
+          inputMode="numeric" placeholder="Phone number"
+          className="flex-1 rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
       </div>
+    </div>
+  );
+}
+
+// ─── Currency dropdown (same as user page) ───────────────────────
+function CurrencySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const filtered = useMemo(() =>
+    ALL_CURRENCIES.filter(c =>
+      c.code.toLowerCase().includes(search.toLowerCase()) ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.country.toLowerCase().includes(search.toLowerCase())
+    ), [search]);
+
+  const selected = ALL_CURRENCIES.find(c => c.code === value);
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => { setOpen(v => !v); setSearch(''); }}
+        className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border border-gray-300 bg-white text-sm cursor-pointer transition hover:border-gray-400 text-left">
+        <span className="font-bold">{selected?.code || value}</span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 bottom-full mb-1 w-72 right-0 rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search currency…"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none" />
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.map((c, i) => {
+              const prevCountry = i > 0 ? filtered[i - 1].country : null;
+              const showDivider = i > 0 && prevCountry !== c.country;
+              return (
+                <div key={c.code}>
+                  {showDivider && <div className="h-px bg-gray-100 mx-3" />}
+                  <button type="button"
+                    onMouseDown={() => { onChange(c.code); setOpen(false); setSearch(''); }}
+                    className={`w-full text-left px-4 py-2.5 transition cursor-pointer ${value === c.code ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                    {i === 0 || filtered[i - 1].country !== c.country ? (
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{c.country}</p>
+                    ) : null}
+                    <p className={`text-sm font-bold ${value === c.code ? 'text-blue-600' : 'text-gray-900'}`}>{c.code}</p>
+                  </button>
+                </div>
+              );
+            })}
+            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">No results</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -272,26 +535,26 @@ export default function AdminCreateShipmentPage() {
   const locale = (params?.locale as string) || "en";
   const router = useRouter();
 
-  // ── Parties ──
+  // ── Parties (start empty — admin fills these in) ──
   const [senderName, setSenderName] = useState("");
   const [senderEmail, setSenderEmail] = useState("");
-  const [senderCountryCode, setSenderCountryCode] = useState("US");
-  const [senderCountry, setSenderCountry] = useState("United States");
+  const [senderCountryCode, setSenderCountryCode] = useState("");
+  const [senderCountry, setSenderCountry] = useState("");
   const [senderState, setSenderState] = useState("");
   const [senderCity, setSenderCity] = useState("");
   const [senderAddress, setSenderAddress] = useState("");
   const [senderPostalCode, setSenderPostalCode] = useState("");
-  const [senderPhone, setSenderPhone] = useState("+1");
+  const [senderPhone, setSenderPhone] = useState("");
 
   const [receiverName, setReceiverName] = useState("");
   const [receiverEmail, setReceiverEmail] = useState("");
-  const [destinationCountryCode, setDestinationCountryCode] = useState("US");
-  const [receiverCountry, setReceiverCountry] = useState("United States");
+  const [destinationCountryCode, setDestinationCountryCode] = useState("");
+  const [receiverCountry, setReceiverCountry] = useState("");
   const [receiverState, setReceiverState] = useState("");
   const [receiverCity, setReceiverCity] = useState("");
   const [receiverAddress, setReceiverAddress] = useState("");
   const [receiverPostalCode, setReceiverPostalCode] = useState("");
-  const [receiverPhone, setReceiverPhone] = useState("+1");
+  const [receiverPhone, setReceiverPhone] = useState("");
 
   // ── Package / shipment ──
   const [packageType, setPackageType] = useState("Parcel");
@@ -299,6 +562,7 @@ export default function AdminCreateShipmentPage() {
   const [packageDescription, setPackageDescription] = useState("");
 
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>("Standard");
+  // Scope is auto-derived from sender vs receiver country (no manual override).
   const [scope, setScope] = useState<ShipmentScope>("international");
 
   // Means: auto by default, admin can override
@@ -308,14 +572,15 @@ export default function AdminCreateShipmentPage() {
   const [dateOverrideEnabled, setDateOverrideEnabled] = useState(false);
   const [dateOverride, setDateOverride] = useState("");
 
-  const [weightKg, setWeightKg] = useState("2");
-  const [lengthCm, setLengthCm] = useState("24");
-  const [widthCm, setWidthCm] = useState("18");
-  const [heightCm, setHeightCm] = useState("12");
+  // Weight & dimensions (raw string values; displayed with commas)
+  const [weightKg, setWeightKg] = useState("");
+  const [lengthCm, setLengthCm] = useState("");
+  const [widthCm, setWidthCm] = useState("");
+  const [heightCm, setHeightCm] = useState("");
 
   // ── Invoice ──
   const [currency, setCurrency] = useState("USD");
-  const [declaredValue, setDeclaredValue] = useState("1000");
+  const [declaredValue, setDeclaredValue] = useState("");
 
   const [invoiceStatus, setInvoiceStatus] = useState<"paid" | "unpaid" | "overdue" | "cancelled">("unpaid");
   const [invoiceDueDate, setInvoiceDueDate] = useState("");
@@ -347,6 +612,15 @@ export default function AdminCreateShipmentPage() {
   const [err, setErr] = useState("");
   const [okMsg, setOkMsg] = useState("");
   const [attempted, setAttempted] = useState(false);
+
+  // ── Auto-detect scope (same country → local, different → international) ──
+  useEffect(() => {
+    if (senderCountryCode && destinationCountryCode) {
+      const next: ShipmentScope =
+        senderCountryCode === destinationCountryCode ? "local" : "international";
+      setScope(prev => prev !== next ? next : prev);
+    }
+  }, [senderCountryCode, destinationCountryCode]);
 
   // ── Load pricing on mount ──
   useEffect(() => {
@@ -390,15 +664,6 @@ export default function AdminCreateShipmentPage() {
     setInsuranceRatePct(toPct(Number(active.insuranceRate ?? DEFAULT_PRICING[scope].insuranceRate)));
   }, [scope, pricingProfiles]);
 
-  // Lock receiver country to sender for local
-  useEffect(() => {
-    if (scope === "local") {
-      setReceiverCountry(senderCountry);
-      setDestinationCountryCode(senderCountryCode);
-      setReceiverState("");
-    }
-  }, [scope, senderCountry, senderCountryCode]);
-
   // ── Derived: weight, means, service level ──
   const actualWeight = parseFloat(weightKg) || 0;
   const lenN = parseFloat(lengthCm) || 0;
@@ -441,7 +706,7 @@ export default function AdminCreateShipmentPage() {
     [means, effectiveServiceLevel, distanceKm]
   );
 
-  // Auto delivery date range (max for storage; min for display)
+  // Auto delivery date range
   const autoDeliveryDateMaxISO = useMemo(() => {
     return addBusinessDays(new Date(), delivery.max).toISOString().split("T")[0];
   }, [delivery]);
@@ -449,7 +714,6 @@ export default function AdminCreateShipmentPage() {
     return addBusinessDays(new Date(), delivery.min).toISOString().split("T")[0];
   }, [delivery]);
 
-  // The actual estimated delivery date used (override or auto)
   const estimatedDeliveryDate = dateOverrideEnabled
     ? dateOverride
     : autoDeliveryDateMaxISO;
@@ -488,7 +752,7 @@ export default function AdminCreateShipmentPage() {
     };
   }, [scope, shippingFee, handlingFee, customsFee, taxFee, discountFee, fuelRatePct, insuranceRatePct]);
 
-  // ── Live invoice preview (uses computeInvoice — same as user page) ──
+  // ── Live invoice preview ──
   const breakdown = useMemo(() => {
     if (weight <= 0 || !senderCountryCode) return null;
     const safePricing: PricingProfiles = {
@@ -531,6 +795,21 @@ export default function AdminCreateShipmentPage() {
     receiverCity, receiverState, pricingProfiles, pricingOverride,
   ]);
 
+  // ── Country change handlers ──
+  const handleSenderCountryChange = (entry: CountryEntry) => {
+    setSenderCountry(entry.name);
+    setSenderCountryCode(entry.code);
+    setSenderState("");
+    const c = COUNTRY_CURRENCY[entry.code];
+    if (c) setCurrency(c);
+  };
+
+  const handleReceiverCountryChange = (entry: CountryEntry) => {
+    setReceiverCountry(entry.name);
+    setDestinationCountryCode(entry.code);
+    setReceiverState("");
+  };
+
   // ── Submit ──
   const submit = async () => {
     setAttempted(true);
@@ -569,53 +848,38 @@ export default function AdminCreateShipmentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          senderCountryCode,
-          destinationCountryCode,
-
+          senderCountryCode, destinationCountryCode,
           senderName, senderEmail,
           receiverName, receiverEmail,
-
           senderCountry, senderState, senderCity, senderAddress,
           senderPostalCode, senderPhone,
-
           receiverCountry, receiverState, receiverCity, receiverAddress,
           receiverPostalCode, receiverPhone,
-
           shipmentScope: scope,
           serviceLevel: effectiveServiceLevel,
           shipmentType: finalPackageType,
           packageDescription,
           shipmentMeans: MEANS_CONFIG[means].label,
           means,
-
           estimatedDeliveryDate: estimatedDeliveryDate
             ? new Date(estimatedDeliveryDate).toISOString()
             : null,
-          estimatedDeliveryDateMin: dateOverrideEnabled
-            ? null
-            : autoDeliveryDateMinISO,
-
+          estimatedDeliveryDateMin: dateOverrideEnabled ? null : autoDeliveryDateMinISO,
           weightKg: weight,
           dimensionsCm: {
             length: parseFloat(lengthCm) || 0,
             width: parseFloat(widthCm) || 0,
             height: parseFloat(heightCm) || 0,
           },
-
           declaredValue: dv,
           declaredValueCurrency: currency,
-
-          // Per-shipment pricing override (server merges with stored profiles)
           pricingOverride,
-
           invoice: {
             status: invoiceStatus,
             dueDate: invoiceDueDate || null,
             paymentMethod: finalPaymentMethod || null,
           },
-
-          status,
-          statusNote,
+          status, statusNote,
         }),
       });
 
@@ -636,7 +900,6 @@ export default function AdminCreateShipmentPage() {
     }
   };
 
-  // ── Render ──
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-cyan-50 py-10">
       <div className="max-w-6xl mx-auto px-4">
@@ -690,8 +953,8 @@ export default function AdminCreateShipmentPage() {
               <h2 className="font-extrabold text-gray-900 mb-3">Sender address</h2>
               <div className="space-y-3">
                 <CountrySelect label="Country" required value={senderCountry}
-                  onChange={name => { setSenderCountry(name); setSenderState(""); setSenderCity(""); }}
-                  onCountryChange={entry => { if (entry) setSenderCountryCode(entry.code); }} />
+                  onChange={name => { const e = getCountryByName(name); if (e) handleSenderCountryChange(e); }}
+                  onCountryChange={entry => { if (entry) handleSenderCountryChange(entry); }} />
                 <StateInput country={senderCountry} value={senderState} onChange={setSenderState} label="State / Province" required />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -718,16 +981,9 @@ export default function AdminCreateShipmentPage() {
             <section>
               <h2 className="font-extrabold text-gray-900 mb-3">Receiver address</h2>
               <div className="space-y-3">
-                <div>
-                  <CountrySelect label="Country" required value={receiverCountry}
-                    onChange={name => { setReceiverCountry(name); setReceiverState(""); setReceiverCity(""); }}
-                    onCountryChange={entry => { if (entry) setDestinationCountryCode(entry.code); }} />
-                  {scope === "local" && (
-                    <p className="text-xs text-blue-600 mt-1.5 flex items-center gap-1">
-                      <Info size={11} /> Receiver country locked to sender country for local shipments
-                    </p>
-                  )}
-                </div>
+                <CountrySelect label="Country" required value={receiverCountry}
+                  onChange={name => { const e = getCountryByName(name); if (e) handleReceiverCountryChange(e); }}
+                  onCountryChange={entry => { if (entry) handleReceiverCountryChange(entry); }} />
                 <StateInput country={receiverCountry} value={receiverState} onChange={setReceiverState} label="State / Province" required />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -755,12 +1011,16 @@ export default function AdminCreateShipmentPage() {
               <h2 className="font-extrabold text-gray-900 mb-3">Shipment details</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-semibold text-gray-700">Shipping type</label>
-                  <select value={scope} onChange={e => setScope(e.target.value as ShipmentScope)}
-                    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                    <option value="international">International</option>
-                    <option value="local">Local</option>
-                  </select>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Shipping type <span className="text-xs font-normal text-gray-400">(auto)</span>
+                  </label>
+                  <input
+                    value={scope === "local" ? "Local (within country)" : "International (cross-border)"}
+                    disabled
+                    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-gray-50 text-gray-700 font-semibold cursor-not-allowed" />
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <Info size={11} /> Determined by sender vs receiver country
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Service level</label>
@@ -819,7 +1079,11 @@ export default function AdminCreateShipmentPage() {
 
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Weight (kg) <span className="text-red-500">*</span></label>
-                  <input value={weightKg} onChange={e => setWeightKg(numericOnly(e.target.value))} inputMode="decimal"
+                  <input
+                    value={formatWithCommas(weightKg)}
+                    onChange={e => setWeightKg(cleanNumeric(e.target.value))}
+                    inputMode="decimal"
+                    placeholder="e.g. 2.5"
                     className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
                   {volumetricWeight > actualWeight && actualWeight > 0 && (
                     <p className="text-xs text-amber-700 mt-1 flex items-center gap-1">
@@ -831,11 +1095,20 @@ export default function AdminCreateShipmentPage() {
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Dimensions (cm) <span className="text-red-500">*</span></label>
                   <div className="mt-2 grid grid-cols-3 gap-2">
-                    <input value={lengthCm} onChange={e => setLengthCm(numericOnly(e.target.value))} inputMode="decimal" placeholder="L"
+                    <input
+                      value={formatWithCommas(lengthCm)}
+                      onChange={e => setLengthCm(cleanNumeric(e.target.value))}
+                      inputMode="decimal" placeholder="L"
                       className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
-                    <input value={widthCm} onChange={e => setWidthCm(numericOnly(e.target.value))} inputMode="decimal" placeholder="W"
+                    <input
+                      value={formatWithCommas(widthCm)}
+                      onChange={e => setWidthCm(cleanNumeric(e.target.value))}
+                      inputMode="decimal" placeholder="W"
                       className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
-                    <input value={heightCm} onChange={e => setHeightCm(numericOnly(e.target.value))} inputMode="decimal" placeholder="H"
+                    <input
+                      value={formatWithCommas(heightCm)}
+                      onChange={e => setHeightCm(cleanNumeric(e.target.value))}
+                      inputMode="decimal" placeholder="H"
                       className="rounded-2xl border border-gray-300 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
                   </div>
                 </div>
@@ -884,72 +1157,18 @@ export default function AdminCreateShipmentPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Declared value <span className="text-red-500">*</span></label>
-                  <input value={declaredValue} onChange={e => setDeclaredValue(numericOnly(e.target.value))} inputMode="decimal"
+                  <input
+                    value={formatWithCommas(declaredValue)}
+                    onChange={e => setDeclaredValue(cleanNumeric(e.target.value))}
+                    inputMode="decimal"
+                    placeholder="e.g. 500"
                     className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Currency <span className="text-red-500">*</span></label>
-                  <select value={currency} onChange={e => setCurrency(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                    <option value="USD">USD – US Dollar</option>
-                    <option value="EUR">EUR – Euro</option>
-                    <option value="GBP">GBP – British Pound</option>
-                    <option value="NGN">NGN – Nigerian Naira</option>
-                    <option value="AED">AED – UAE Dirham</option>
-                    <option value="CAD">CAD – Canadian Dollar</option>
-                    <option value="AUD">AUD – Australian Dollar</option>
-                    <option value="JPY">JPY – Japanese Yen</option>
-                    <option value="CNY">CNY – Chinese Yuan</option>
-                    <option value="INR">INR – Indian Rupee</option>
-                    <option value="BRL">BRL – Brazilian Real</option>
-                    <option value="MXN">MXN – Mexican Peso</option>
-                    <option value="ZAR">ZAR – South African Rand</option>
-                    <option value="KES">KES – Kenyan Shilling</option>
-                    <option value="GHS">GHS – Ghanaian Cedi</option>
-                    <option value="EGP">EGP – Egyptian Pound</option>
-                    <option value="SAR">SAR – Saudi Riyal</option>
-                    <option value="TRY">TRY – Turkish Lira</option>
-                    <option value="SGD">SGD – Singapore Dollar</option>
-                    <option value="MYR">MYR – Malaysian Ringgit</option>
-                    <option value="THB">THB – Thai Baht</option>
-                    <option value="PHP">PHP – Philippine Peso</option>
-                    <option value="IDR">IDR – Indonesian Rupiah</option>
-                    <option value="VND">VND – Vietnamese Dong</option>
-                    <option value="PKR">PKR – Pakistani Rupee</option>
-                    <option value="BDT">BDT – Bangladeshi Taka</option>
-                    <option value="CHF">CHF – Swiss Franc</option>
-                    <option value="SEK">SEK – Swedish Krona</option>
-                    <option value="NOK">NOK – Norwegian Krone</option>
-                    <option value="DKK">DKK – Danish Krone</option>
-                    <option value="PLN">PLN – Polish Zloty</option>
-                    <option value="CZK">CZK – Czech Koruna</option>
-                    <option value="HUF">HUF – Hungarian Forint</option>
-                    <option value="RUB">RUB – Russian Ruble</option>
-                    <option value="UAH">UAH – Ukrainian Hryvnia</option>
-                    <option value="ARS">ARS – Argentine Peso</option>
-                    <option value="CLP">CLP – Chilean Peso</option>
-                    <option value="COP">COP – Colombian Peso</option>
-                    <option value="PEN">PEN – Peruvian Sol</option>
-                    <option value="NZD">NZD – New Zealand Dollar</option>
-                    <option value="HKD">HKD – Hong Kong Dollar</option>
-                    <option value="TWD">TWD – Taiwan Dollar</option>
-                    <option value="KRW">KRW – Korean Won</option>
-                    <option value="ILS">ILS – Israeli Shekel</option>
-                    <option value="QAR">QAR – Qatari Rial</option>
-                    <option value="KWD">KWD – Kuwaiti Dinar</option>
-                    <option value="OMR">OMR – Omani Rial</option>
-                    <option value="JOD">JOD – Jordanian Dinar</option>
-                    <option value="LBP">LBP – Lebanese Pound</option>
-                    <option value="MAD">MAD – Moroccan Dirham</option>
-                    <option value="TND">TND – Tunisian Dinar</option>
-                    <option value="DZD">DZD – Algerian Dinar</option>
-                    <option value="ETB">ETB – Ethiopian Birr</option>
-                    <option value="UGX">UGX – Ugandan Shilling</option>
-                    <option value="TZS">TZS – Tanzanian Shilling</option>
-                    <option value="RWF">RWF – Rwandan Franc</option>
-                    <option value="XOF">XOF – West African CFA</option>
-                    <option value="XAF">XAF – Central African CFA</option>
-                  </select>
+                  <div className="mt-2">
+                    <CurrencySelect value={currency} onChange={setCurrency} />
+                  </div>
                 </div>
 
                 <div>

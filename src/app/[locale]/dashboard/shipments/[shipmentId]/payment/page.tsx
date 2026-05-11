@@ -24,6 +24,22 @@ const PAYPAL_SUPPORTED_CURRENCIES = [
 ];
 
 function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  const [accentSolid, setAccentSolid] = useState('#0b3aa4');
+ 
+  useEffect(() => {
+    const map: Record<string, string> = {
+      default: '#0b3aa4',
+      ocean: '#0891b2',
+      sunset: '#f97316',
+      arctic: '#0284c7',
+      midnight: '#06b6d4',
+    };
+    try {
+      const t = localStorage.getItem('exodus_theme_cache');
+      if (t && map[t]) setAccentSolid(map[t]);
+    } catch {}
+  }, []);
+ 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -33,12 +49,13 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       document.body.style.overflow = '';
     };
   }, [onClose]);
-
+ 
   return createPortal(
     <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-sm overflow-auto"
       onClick={onClose}>
       <button type="button" onClick={onClose}
-        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition z-10">
+        style={{ background: accentSolid }}
+        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full text-white cursor-pointer transition hover:opacity-90 z-10 shadow-lg">
         <X size={20} />
       </button>
       <div className="min-h-full flex items-center justify-center p-4">
