@@ -2342,10 +2342,33 @@ export async function sendInvoiceStatusReceiverEmail(
 
 
 // ════════════════════════════════════════════════════════════════
-// ADD THIS FUNCTION TO src/lib/email.ts
-// Place it near the other invoice email functions, e.g. right after
-// sendInvoiceUpdateEmail() or sendInvoiceStatusReceiverEmail().
+// REPLACE the existing sendPaymentCancelledEmail function in
+// src/lib/email.ts with this updated version.
 // ════════════════════════════════════════════════════════════════
+//
+// Changes:
+//   1. Payment method is now capitalized (bitcoin → Bitcoin)
+//   2. Reason for cancellation block moved to after "Your invoice
+//      remains..." text and before the shipment details card
+//   3. Retry Payment button now goes through sign-in with a
+//      callbackUrl so the user is redirected to the payment page
+//      automatically after signing in
+//
+
+/**
+ * Capitalize the first letter of each word and lowercase the rest.
+ * "bitcoin" → "Bitcoin"
+ * "BANK TRANSFER" → "Bank Transfer"
+ * "paypal.me" → "Paypal.Me"
+ */
+function capitalizePaymentMethod(s: string): string {
+  if (!s) return "";
+  return s
+    .toLowerCase()
+    .split(/(\s+)/)
+    .map(part => /\s+/.test(part) ? part : (part.charAt(0).toUpperCase() + part.slice(1)))
+    .join("");
+}
 
 /**
  * Sent to the SHIPMENT SENDER when admin rejects a payment receipt.
@@ -2380,7 +2403,7 @@ export async function sendPaymentCancelledEmail(
   });
 
   const reason = cleanStr(args.reason);
-  const paymentMethod = cleanStr(args.paymentMethod);
+  const paymentMethod = capitalizePaymentMethod(cleanStr(args.paymentMethod));
 
   // Mirror the paid-invoice template — badge, details card, etc.
   const badgeHtml = renderToneBadge("Payment Cancelled", "red");
@@ -2394,7 +2417,7 @@ export async function sendPaymentCancelledEmail(
   // Reason block — only rendered if a reason was provided
   const reasonBlockHtml = reason
     ? `
-      <div style="margin:16px 0 0 0;padding:14px 16px;border-left:4px solid #dc2626;background:#fef2f2;border-radius:10px;">
+      <div style="margin:18px 0;padding:14px 16px;border-left:4px solid #dc2626;background:#fef2f2;border-radius:10px;">
         <p style="margin:0 0 6px 0;font-size:12px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.3px;">
           Reason for cancellation
         </p>
@@ -2413,6 +2436,15 @@ export async function sendPaymentCancelledEmail(
   const title = "Payment cancelled";
   const preheader = `Your payment for shipment ${args.shipmentId} has been cancelled.`;
 
+  // Body order:
+  //   1. Badge
+  //   2. Greeting
+  //   3. "We regret to inform you…"
+  //   4. Payment method line
+  //   5. "Your invoice remains outstanding…"
+  //   6. Reason for cancellation block  ← moved here
+  //   7. Shipment details card
+  //   8. Closing paragraph + invoice link
   const bodyHtml = `
     ${badgeHtml}
 
@@ -2426,11 +2458,11 @@ export async function sendPaymentCancelledEmail(
 
     ${paymentMethodLine}
 
-    ${reasonBlockHtml}
-
-    <p style="margin:18px 0 14px 0;font-size:16px;line-height:26px;color:#111827;">
+    <p style="margin:18px 0 0 0;font-size:16px;line-height:26px;color:#111827;">
       Your invoice remains outstanding. To continue processing your shipment, please return to the payment page and submit payment again, or contact our support team if you need assistance.
     </p>
+
+    ${reasonBlockHtml}
 
     ${detailsCardHtml}
 
@@ -2445,16 +2477,18 @@ export async function sendPaymentCancelledEmail(
     </div>
   `;
 
-  // Button goes to the payment page so the customer can retry
+  // Button: goes through sign-in with a callbackUrl so user is
+  // auto-redirected to payment page after they sign in.
   const APP_URL_LOCAL = APP_URL;
-  const paymentPageUrl = `${APP_URL_LOCAL}/${locale}/dashboard/shipments/${encodeURIComponent(args.shipmentId)}/payment`;
+  const paymentPagePath = `/${locale}/dashboard/shipments/${encodeURIComponent(args.shipmentId)}/payment`;
+  const signInWithCallback = `${APP_URL_LOCAL}/${locale}/sign-in?callbackUrl=${encodeURIComponent(paymentPagePath)}`;
 
   const html = renderEmailTemplate({
     subject,
     title,
     preheader,
     bodyHtml,
-    button: { text: "Retry Payment", href: paymentPageUrl },
+    button: { text: "Retry Payment", href: signInWithCallback },
     appUrl: APP_URL,
     supportEmail: SUPPORT_EMAIL,
     sentTo: to,
