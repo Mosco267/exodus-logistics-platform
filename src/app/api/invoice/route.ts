@@ -167,11 +167,11 @@ export async function GET(req: Request) {
     }
 
     if (!shipment && q) {
-  const qq = normUpper(q);
-  shipment = await db.collection("shipments").findOne(
-    { trackingNumber: { $regex: `^${escapeRegex(qq)}$`, $options: "i" } },
-    { projection: { _id: 0 } }
-  );
+      const qq = normUpper(q);
+      shipment = await db.collection("shipments").findOne(
+        { trackingNumber: { $regex: `^${escapeRegex(qq)}$`, $options: "i" } },
+        { projection: { _id: 0 } }
+      );
 
       if (!shipment) {
         return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
@@ -193,40 +193,40 @@ export async function GET(req: Request) {
     }
 
     const currency = normUpper(inv?.currency || "USD") || "USD";
-const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
+    const dueDate = inv?.dueDate ? String(inv.dueDate) : null;
 
-const explicitStatus = normalizeInvoiceStatus(inv?.status || inv?.invoiceStatus);
-const computedStatus = computeInvoiceStatus(false, dueDate);
+    const explicitStatus = normalizeInvoiceStatus(inv?.status || inv?.invoiceStatus);
+    const computedStatus = computeInvoiceStatus(false, dueDate);
 
-let status: InvoiceStatus;
+    let status: InvoiceStatus;
 
-if (explicitStatus === "paid") {
-  status = "paid";
-} else if (explicitStatus === "cancelled") {
-  status = "cancelled";
-} else if (explicitStatus === "overdue") {
-  status = "overdue";
-} else if (computedStatus === "overdue") {
-  status = "overdue";
-} else {
-  status = "unpaid";
-}
-
-const paid = status === "paid";
-
-if (status !== cleanStr(inv?.status).toLowerCase()) {
-  await db.collection("shipments").updateOne(
-    { shipmentId: s?.shipmentId },
-    {
-      $set: {
-        "invoice.status": status,
-        "invoice.paid": paid,
-        "invoice.paidAt": paid ? (inv?.paidAt || new Date()) : null,
-        updatedAt: new Date(),
-      },
+    if (explicitStatus === "paid") {
+      status = "paid";
+    } else if (explicitStatus === "cancelled") {
+      status = "cancelled";
+    } else if (explicitStatus === "overdue") {
+      status = "overdue";
+    } else if (computedStatus === "overdue") {
+      status = "overdue";
+    } else {
+      status = "unpaid";
     }
-  );
-}
+
+    const paid = status === "paid";
+
+    if (status !== cleanStr(inv?.status).toLowerCase()) {
+      await db.collection("shipments").updateOne(
+        { shipmentId: s?.shipmentId },
+        {
+          $set: {
+            "invoice.status": status,
+            "invoice.paid": paid,
+            "invoice.paidAt": paid ? (inv?.paidAt || new Date()) : null,
+            updatedAt: new Date(),
+          },
+        }
+      );
+    }
 
     const paymentMethod = cleanStr(inv?.paymentMethod) || null;
 
@@ -238,10 +238,24 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
       ? { ...pricingDefaults, ...inv.pricingUsed }
       : { ...pricingDefaults };
 
+    // Map shipping → baseFreight so the new public invoice page sees it.
+    // Keep both keys to remain backward-compatible.
+    const rawBreakdown = inv?.breakdown || {};
+    const baseFreightVal = Number(
+      rawBreakdown.baseFreight ?? rawBreakdown.shipping ?? 0
+    ) || 0;
+
     const breakdown = inv?.breakdown
-      ? { ...inv.breakdown, declaredValue: Number(inv?.breakdown?.declaredValue ?? declaredValue) || 0 }
+      ? {
+          ...rawBreakdown,
+          declaredValue: Number(rawBreakdown.declaredValue ?? declaredValue) || 0,
+          baseFreight: baseFreightVal,
+          shipping: Number(rawBreakdown.shipping ?? baseFreightVal) || 0,
+        }
       : {
           declaredValue,
+          baseFreight: 0,
+          shipping: 0,
           pricingUsed,
         };
 
@@ -262,7 +276,7 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
       cleanStr(s?.destination) ||
       "—";
 
-      // Find the most recent tracking event occurredAt
+    // Find the most recent tracking event occurredAt
     const trackingEvents = Array.isArray(s?.trackingEvents) ? s.trackingEvents : [];
     const lastEventAt = trackingEvents.length > 0
       ? trackingEvents.reduce((latest: any, ev: any) =>
@@ -270,7 +284,6 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
         , trackingEvents[0])?.occurredAt || null
       : null;
 
-    // Most recent status = label of the tracking event with the latest occurredAt
     const lastEventLabel = trackingEvents.length > 0
       ? trackingEvents.reduce((latest: any, ev: any) =>
           new Date(ev?.occurredAt || 0).getTime() > new Date(latest?.occurredAt || 0).getTime() ? ev : latest
@@ -293,6 +306,12 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
       breakdown,
       pricingUsed,
 
+      // NEW: expose estimated delivery so the public invoice page can show
+      // the same min/max range as the create-shipment page
+      estimatedDelivery: s?.estimatedDeliveryDate || s?.estimatedDelivery || null,
+      estimatedDeliveryDateMin: s?.estimatedDeliveryDateMin || null,
+      shipmentScope: cleanStr(s?.shipmentScope) || null,
+
       shipment: {
         shipmentId: cleanStr(s?.shipmentId),
         trackingNumber: cleanStr(s?.trackingNumber),
@@ -304,6 +323,8 @@ if (status !== cleanStr(inv?.status).toLowerCase()) {
 
         shipmentType: s?.shipmentType || s?.packageType || null,
         serviceLevel: s?.serviceLevel || s?.serviceType || s?.speed || null,
+        // NEW: shipmentMeans for the breakdown label
+        shipmentMeans: cleanStr(s?.shipmentMeans) || null,
         weightKg: s?.weightKg ?? s?.weight ?? null,
         dimensionsCm: s?.dimensionsCm ?? s?.dimensions ?? null,
       },

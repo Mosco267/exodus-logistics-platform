@@ -25,6 +25,7 @@ type ApiResponse = {
     declaredValue?: number; shipping?: number; fuel?: number; handling?: number;
     customs?: number; insurance?: number; subtotal?: number; tax?: number;
     discount?: number; total?: number; rates?: any; pricingUsed?: any;
+    baseFreight?: number;
   };
   declaredValue?: number;
   shipment?: {
@@ -32,11 +33,15 @@ type ApiResponse = {
     destinationFull?: string; status?: string; shipmentType?: string | null;
     serviceLevel?: string | null; weightKg?: number | string | null;
     dimensionsCm?: { length?: any; width?: any; height?: any; unit?: string } | null;
+    shipmentMeans?: string | null;
   };
   parties?: { senderName?: string; senderEmail?: string; receiverName?: string; receiverEmail?: string };
- currentStatus?: string;
+  currentStatus?: string;
   lastEventAt?: string | null;
   dates?: { createdAt?: string | null; updatedAt?: string | null };
+  estimatedDelivery?: string | null;
+  estimatedDeliveryDateMin?: string | null;
+  shipmentScope?: string | null;
   error?: string;
 };
 
@@ -55,9 +60,26 @@ function fmtDate(iso?: string | null): string {
 
 function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
+// ─── Comma formatting helpers ─────────────────────────────────────
+function fmtNumberWithCommas(value: number, decimals = 2): string {
+  if (!Number.isFinite(value)) return "0.00";
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
 function fmtMoney(amount: number, currency: string) {
   const c = (currency || "USD").toUpperCase();
-  return `${c} ${num(amount).toFixed(2)}`;
+  return `${c} ${fmtNumberWithCommas(num(amount), 2)}`;
+}
+
+function fmtIntWithCommas(value: any): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return safeStr(value) || "—";
+  // Show as-is if integer; otherwise up to 2 decimals
+  if (Number.isInteger(n)) return n.toLocaleString("en-US");
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 function fmtPercent(v: any) {
@@ -74,6 +96,38 @@ function isOverdue(dueDate?: string | null) {
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return false;
   return Date.now() > d.getTime();
+}
+
+// ─── Estimated delivery formatter (mirrors admin create-shipment) ───
+// Uses real min/max from API if available; falls back to +2/+3 days
+function fmtEstimatedDelivery(
+  maxISO?: string | null,
+  minISO?: string | null,
+  scope?: string | null
+): string {
+  if (!maxISO) return "—";
+  const maxD = new Date(maxISO);
+  if (Number.isNaN(maxD.getTime())) return "—";
+
+  let minD: Date;
+  if (minISO) {
+    const d = new Date(minISO);
+    minD = Number.isNaN(d.getTime()) ? new Date(maxD) : d;
+  } else {
+    // Fallback: extrapolate min from max
+    const extra = String(scope || "").toLowerCase() === "local" ? 2 : 3;
+    minD = new Date(maxD);
+    minD.setDate(minD.getDate() - extra);
+  }
+
+  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const fmtFull = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+  if (minD.getTime() === maxD.getTime()) return fmtFull(maxD);
+  if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
+    return `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
+  }
+  return `${fmt(minD)} – ${fmtFull(maxD)}`;
 }
 
 export default function InvoiceFullPage() {
@@ -129,20 +183,24 @@ export default function InvoiceFullPage() {
     return "unpaid";
   }, [statusFromApi, dueDate]);
 
+  // ─── Breakdown values (mirrors admin create-shipment Invoice Preview) ───
   const calc = useMemo(() => {
     const b = data?.breakdown || {};
-    const shipping = num(b.shipping); const fuel = num(b.fuel);
-    const handling = num(b.handling); const customs = num(b.customs);
-    const insurance = num(b.insurance); const discount = num(b.discount);
+    const baseFreight = num(b.baseFreight ?? b.shipping);
+    const fuel = num(b.fuel);
+    const handling = num(b.handling);
+    const customs = num(b.customs);
+    const insurance = num(b.insurance);
+    const discount = num(b.discount);
     const tax = num(b.tax);
-    const subtotal = num(b.subtotal) || (shipping + fuel + handling + customs + insurance - discount);
+    const subtotal = num(b.subtotal) || (baseFreight + fuel + handling + customs + insurance - discount);
     const total = num(b.total) || (subtotal + tax);
-    return { shipping, fuel, handling, customs, insurance, discount, tax, subtotal, total };
+    return { baseFreight, fuel, handling, customs, insurance, discount, tax, subtotal, total };
   }, [data]);
 
- const pricingUsed = (data as any)?.pricingUsed || (data as any)?.breakdown?.pricingUsed || {};
-const fuelRate = pricingUsed?.fuelSurchargeRate ?? pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? 0;
-const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pricingUsed?.insurancePercent ?? 0;
+  const pricingUsed = (data as any)?.pricingUsed || (data as any)?.breakdown?.pricingUsed || {};
+  const fuelRate = pricingUsed?.fuelSurchargeRate ?? pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? 0;
+  const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pricingUsed?.insurancePercent ?? 0;
 
   const paymentMethodRaw = safeStr(data?.paymentMethod);
 
@@ -155,11 +213,26 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
   const destinationFull = safeStr(data?.shipment?.destinationFull) || "—";
   const shipmentType = safeStr(data?.shipment?.shipmentType) || "—";
   const serviceLevel = safeStr(data?.shipment?.serviceLevel) || "—";
+  const shipmentMeans = safeStr(data?.shipment?.shipmentMeans) || "—";
   const weightKg = data?.shipment?.weightKg;
-  const weightLine = weightKg != null && safeStr(weightKg) !== "" ? `${safeStr(weightKg)} kg` : "—";
+  const weightLine = weightKg != null && safeStr(weightKg) !== ""
+    ? `${fmtIntWithCommas(weightKg)} kg`
+    : "—";
   const dim = data?.shipment?.dimensionsCm;
   const dimUnit = safeStr(dim?.unit) || "cm";
-  const dimLine = dim ? `${safeStr(dim.length) || "—"} × ${safeStr(dim.width) || "—"} × ${safeStr(dim.height) || "—"} ${dimUnit}` : "—";
+  const dimLine = dim
+    ? `${fmtIntWithCommas(dim.length)} × ${fmtIntWithCommas(dim.width)} × ${fmtIntWithCommas(dim.height)} ${dimUnit}`
+    : "—";
+
+  // Estimated delivery (using new format, with real min if available)
+  const estDeliveryStr = useMemo(
+    () => fmtEstimatedDelivery(
+      data?.estimatedDelivery,
+      data?.estimatedDeliveryDateMin,
+      data?.shipmentScope,
+    ),
+    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope]
+  );
 
   const statusBadge = status === "paid" ? "PAID" : status === "overdue" ? "OVERDUE" : status === "cancelled" ? "CANCELLED" : "UNPAID";
   const statusColor = status === "paid" ? "bg-green-50 border-green-200 text-green-800" : status === "overdue" ? "bg-red-50 border-red-200 text-red-800" : status === "cancelled" ? "bg-gray-50 border-gray-200 text-gray-700" : "bg-amber-50 border-amber-200 text-amber-800";
@@ -198,50 +271,30 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
       <style jsx global>{`
         @media print {
-  @page { margin: 0; size: A4 portrait; }
-  body * { visibility: hidden !important; }
-  .print-area, .print-area * { visibility: visible !important; }
-  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-  header, nav, footer { display: none !important; }
-  .no-print { display: none !important; }
-  body { background: white !important; }
-  .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .print-white * { color: white !important; }
-
-  /* Force desktop header layout on print regardless of screen size */
-  .print-white > div {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    text-align: left !important;
-  }
-  .print-white > div > div:first-child {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 16px !important;
-  }
-  .print-white > div > div:first-child > div {
-    text-align: left !important;
-  }
-  .print-white > div > div:first-child > div > div {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-  }
-  .print-white img {
-    height: 40px !important;
-    width: auto !important;
-    content: url('/logo.svg') !important;
-  }
-  .print-white > div > div:last-child {
-    text-align: right !important;
-    min-width: 200px !important;
-  }
-}
+          @page { margin: 0; size: A4 portrait; }
+          body * { visibility: hidden !important; }
+          .print-area, .print-area * { visibility: visible !important; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          header, nav, footer { display: none !important; }
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-white * { color: white !important; }
+          .print-white > div {
+            display: flex !important; flex-direction: row !important;
+            align-items: center !important; justify-content: space-between !important; text-align: left !important;
+          }
+          .print-white > div > div:first-child {
+            display: flex !important; flex-direction: row !important; align-items: center !important; gap: 16px !important;
+          }
+          .print-white > div > div:first-child > div { text-align: left !important; }
+          .print-white > div > div:first-child > div > div {
+            display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important;
+          }
+          .print-white img { height: 40px !important; width: auto !important; content: url('/logo.svg') !important; }
+          .print-white > div > div:last-child { text-align: right !important; min-width: 200px !important; }
+        }
       `}</style>
 
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
@@ -249,9 +302,9 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
         {/* ── TOP NAV ── */}
         <div className="no-print mb-6 flex flex-col sm:flex-row gap-2">
           <button type="button" onClick={() => router.replace(`/${locale}/invoice`)}
-  className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-  <ArrowLeft className="w-4 h-4" /> Back to Invoice Search
-</button>
+            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+            <ArrowLeft className="w-4 h-4" /> Back to Invoice Search
+          </button>
           {backToTrackTarget && (
             <Link href={`/${locale}/track/${encodeURIComponent(backToTrackTarget)}`}
               className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
@@ -291,51 +344,34 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                 style={{ background: "linear-gradient(to right, #1d4ed8 0%, #0891b2 100%)" }}
                 className="p-6 sm:p-8 print-white"
               >
-                {/* Mobile: centered stack | Desktop: logo+info left, invoice right */}
                 <div className="flex flex-col items-center text-center md:flex-row md:items-center md:justify-between md:text-left gap-5">
 
-                  {/* LEFT — logo + company info */}
                   <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
-                    {/* Logo */}
                     <Image
                       src="/logo.svg"
                       alt="Exodus Logistics"
-                      width={160}
-                      height={50}
-                      priority
+                      width={160} height={50} priority
                       className="h-10 sm:h-14 w-auto object-contain shrink-0"
                     />
-                    {/* Company info */}
                     <div className="min-w-0">
-                      <p className="text-white font-extrabold text-base sm:text-lg leading-tight">
-                        {companyName}
-                      </p>
-                      <p className="text-white/80 text-xs sm:text-sm mt-0.5">
-                        {companyAddress}
-                      </p>
+                      <p className="text-white font-extrabold text-base sm:text-lg leading-tight">{companyName}</p>
+                      <p className="text-white/80 text-xs sm:text-sm mt-0.5">{companyAddress}</p>
                       <div className="mt-2 flex flex-col items-center md:items-start md:flex-row flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
-                        <a
-                          href={`tel:${cleanTel(companyPhone)}`}
-                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2"
-                        >
+                        <a href={`tel:${cleanTel(companyPhone)}`}
+                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
                           <Phone className="w-3.5 h-3.5 shrink-0" /> {companyPhone}
                         </a>
-                        <a
-                          href={`mailto:${companyEmail}`}
-                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2"
-                        >
+                        <a href={`mailto:${companyEmail}`}
+                          className="cursor-pointer inline-flex items-center gap-1.5 text-white hover:text-white/80 transition underline underline-offset-2">
                           <Mail className="w-3.5 h-3.5 shrink-0" /> {companyEmail}
                         </a>
                       </div>
                     </div>
                   </div>
 
-                  {/* RIGHT — invoice number + status */}
                   <div className="shrink-0 md:text-right">
                     <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Invoice</p>
-                    <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide">
-                      {invoiceNumber || "—"}
-                    </p>
+                    <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide">{invoiceNumber || "—"}</p>
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold bg-white/10 border-white/30 text-white">
                       <span className={`w-2 h-2 rounded-full ${statusDot}`} />
                       {statusBadge}
@@ -359,6 +395,12 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                     <p className="text-sm font-bold text-gray-900">{fmtDate(data?.dates?.createdAt || null)}</p>
                     <p className="text-xs text-gray-500 mt-2 mb-0.5">Last updated</p>
                     <p className="text-sm font-bold text-gray-900">{fmtDate(data?.lastEventAt || data?.dates?.updatedAt || null)}</p>
+                    {data?.estimatedDelivery && (
+                      <>
+                        <p className="text-xs text-gray-500 mt-2 mb-0.5">Est. delivery</p>
+                        <p className="text-sm font-bold text-gray-900">{estDeliveryStr}</p>
+                      </>
+                    )}
                     <p className="mt-2 text-[10px] text-gray-400">Times shown in your local timezone</p>
                   </div>
 
@@ -444,7 +486,7 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                   </div>
                 </div>
 
-                {/* Payment + Charges */}
+                {/* Payment + Charges Breakdown */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
@@ -475,29 +517,69 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
                     </div>
                   </div>
 
+                  {/* ─── Charges Breakdown (mirrors admin create-shipment style) ─── */}
                   <div className={card5}>
                     <div className="flex items-center gap-2 mb-3">
                       <FileText className="w-4 h-4 text-blue-600" />
                       <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">Charges Breakdown</h2>
                     </div>
                     <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                      All charges are computed based on the applicable service rates for this shipment. Fees are inclusive of applicable surcharges and standard service provisions.
+                      Computed using full pricing rules for this shipment.
                     </p>
-                    <div className="space-y-2 text-sm">
-                      <Row label="Shipping fee" value={fmtMoney(calc.shipping, currency)} />
-                      <Row label={`Fuel surcharge (${fmtPercent(fuelRate)})`} value={fmtMoney(calc.fuel, currency)} />
-                      <Row label="Handling fee" value={fmtMoney(calc.handling, currency)} />
-                      <Row label="Customs fee" value={fmtMoney(calc.customs, currency)} />
-                      <Row label={`Insurance (${fmtPercent(insuranceRate)})`} value={fmtMoney(calc.insurance, currency)} />
-                      <Row label="Tax" value={fmtMoney(calc.tax, currency)} />
-                      <Row label="Discount" value={calc.discount > 0 ? `-${fmtMoney(calc.discount, currency)}` : fmtMoney(calc.discount, currency)} />
-                      <div className="pt-3 mt-1 border-t border-gray-200 flex items-center justify-between">
-                        <span className="font-bold text-gray-900 text-base">Subtotal</span>
-                        <span className="font-bold text-gray-900 text-base">{fmtMoney(calc.subtotal, currency)}</span>
+
+                    <div className="rounded-2xl border border-gray-200 overflow-hidden">
+                      <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+                        <p className="font-extrabold text-gray-900">Declared Value</p>
+                        <p className="text-sm text-gray-700">{fmtNumberWithCommas(declaredValue, 2)} {currency}</p>
                       </div>
-                      <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5 flex items-center justify-between">
-                        <span className="text-blue-900 font-extrabold text-lg">Total </span>
-                        <span className="text-blue-900 font-extrabold text-2xl">{fmtMoney(calc.total, currency)}</span>
+
+                      <div className="p-5 space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span>Base Freight ({shipmentMeans !== "—" ? shipmentMeans : "Shipping"})</span>
+                          <span className="font-semibold">{fmtNumberWithCommas(calc.baseFreight, 2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fuel Surcharge ({fmtPercent(fuelRate)})</span>
+                          <span className="font-semibold">{fmtNumberWithCommas(calc.fuel, 2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Insurance ({fmtPercent(insuranceRate)})</span>
+                          <span className="font-semibold">{fmtNumberWithCommas(calc.insurance, 2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Handling</span>
+                          <span className="font-semibold">{fmtNumberWithCommas(calc.handling, 2)}</span>
+                        </div>
+                        {calc.customs > 0 && (
+                          <div className="flex justify-between">
+                            <span>Customs</span>
+                            <span className="font-semibold">{fmtNumberWithCommas(calc.customs, 2)}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between pt-3 border-t">
+                          <span className="font-bold">Subtotal</span>
+                          <span className="font-bold">{fmtNumberWithCommas(calc.subtotal, 2)}</span>
+                        </div>
+                        {calc.tax > 0 && (
+                          <div className="flex justify-between">
+                            <span>Tax</span>
+                            <span className="font-semibold">{fmtNumberWithCommas(calc.tax, 2)}</span>
+                          </div>
+                        )}
+                        {calc.discount > 0 && (
+                          <div className="flex justify-between text-green-600">
+                            <span>Discount</span>
+                            <span className="font-semibold">−{fmtNumberWithCommas(calc.discount, 2)}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between pt-4 border-t text-lg">
+                          <span className="font-extrabold text-gray-900">Total</span>
+                          <span className="font-extrabold text-blue-700">
+                            {fmtNumberWithCommas(calc.total, 2)} {currency}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -529,15 +611,6 @@ const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pr
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-3">
-      <span className="text-gray-600 text-sm">{label}</span>
-      <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">{value}</span>
     </div>
   );
 }

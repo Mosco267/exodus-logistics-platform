@@ -94,7 +94,7 @@ useEffect(() => {
     }`;
 
   const navigate = async () => {
-    console.log('[sign-in] navigate called, callbackUrl =', callbackUrl);
+    
     // If a callbackUrl was provided (e.g. from the payment cancelled
     // email's "Retry Payment" button), honor it for non-admin users.
     // Only allow same-origin relative paths to avoid open redirects.

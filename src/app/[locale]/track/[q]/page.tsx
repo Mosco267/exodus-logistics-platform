@@ -79,6 +79,7 @@ type TrackApiResponse = {
   } | null;
   events: GroupedEvent[];
   estimatedDelivery?: string | null;
+  estimatedDeliveryDateMin?: string | null;
   shipmentMeans?: string | null;
   shipmentScope?: string | null;
   serviceLevel?: string | null;
@@ -88,6 +89,7 @@ type TrackApiResponse = {
   carrierName?: string | null;
 };
 
+// ─── Date helpers ──────────────────────────────────────────────
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -102,19 +104,59 @@ function fmtDate(iso?: string | null): string {
   }).format(d);
 }
 
-function fmtEstimatedRange(
-  iso?: string | null,
-  shipmentScope?: string | null
+// ─── Number / comma helpers ────────────────────────────────────
+function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+
+function fmtNumberWithCommas(value: number, decimals = 2): string {
+  if (!Number.isFinite(value)) return "0.00";
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+function fmtIntWithCommas(value: any): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? "").trim() || "—";
+  if (Number.isInteger(n)) return n.toLocaleString("en-US");
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+// ─── Estimated delivery formatter (mirrors admin create-shipment) ───
+// Uses real min/max from API if available; falls back to +2/+3 days
+function fmtEstimatedDelivery(
+  maxISO?: string | null,
+  minISO?: string | null,
+  scope?: string | null
 ): { text: string; endDate: Date | null } {
-  if (!iso) return { text: "—", endDate: null };
-  const start = new Date(iso);
-  if (Number.isNaN(start.getTime())) return { text: "—", endDate: null };
-  const end = new Date(start);
-  const extraDays = String(shipmentScope || "").toLowerCase() === "local" ? 2 : 3;
-  end.setDate(end.getDate() + extraDays);
-  const startText = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const endText = end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  return { text: `${startText} – ${endText}`, endDate: end };
+  if (!maxISO) return { text: "—", endDate: null };
+  const maxD = new Date(maxISO);
+  if (Number.isNaN(maxD.getTime())) return { text: "—", endDate: null };
+
+  let minD: Date;
+  if (minISO) {
+    const d = new Date(minISO);
+    minD = Number.isNaN(d.getTime()) ? new Date(maxD) : d;
+  } else {
+    // Fallback: extrapolate min from max
+    const extra = String(scope || "").toLowerCase() === "local" ? 2 : 3;
+    minD = new Date(maxD);
+    minD.setDate(minD.getDate() - extra);
+  }
+
+  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const fmtFull = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+  let text: string;
+  if (minD.getTime() === maxD.getTime()) {
+    text = fmtFull(maxD);
+  } else if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
+    text = `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
+  } else {
+    text = `${fmt(minD)} – ${fmtFull(maxD)}`;
+  }
+
+  return { text, endDate: maxD };
 }
 
 function isDeliveryOverdue(endDate: Date | null): boolean {
@@ -134,7 +176,6 @@ function safeColor(c?: string): string {
 }
 
 function getBadgeStyle(color: string): React.CSSProperties {
-  // Map common hex colors to exact Tailwind equivalents
   const map: Record<string, { bg: string; border: string; text: string }> = {
     "#22c55e": { bg: "#dcfce7", border: "#bbf7d0", text: "#15803d" },
     "#ef4444": { bg: "#fee2e2", border: "#fecaca", text: "#b91c1c" },
@@ -175,7 +216,6 @@ function getStageIcon(label?: string, iconKey?: string) {
   return CircleDashed;
 }
 
-// Fix 3 — icon-only button, no title/tooltip (removes browser "Copy" tooltip)
 function CopyIconButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
   if (!value) return null;
   return (
@@ -257,24 +297,23 @@ export default function TrackResultPage() {
       return new Date(a?.occurredAt || 0).getTime() - new Date(b?.occurredAt || 0).getTime();
     });
     evs.forEach((ev: any) => {
-  if (Array.isArray(ev?.entries)) {
-    ev.entries.sort((x: any, y: any) => new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime());
-  } else { ev.entries = []; }
-});
-// Filter out groups that have no entries to display
-return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
+      if (Array.isArray(ev?.entries)) {
+        ev.entries.sort((x: any, y: any) => new Date(x?.occurredAt || 0).getTime() - new Date(y?.occurredAt || 0).getTime());
+      } else { ev.entries = []; }
+    });
+    return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
   }, [data]);
 
   const currentIndex = useMemo(() => {
-  if (events.length === 0) return 0;
-  let maxIdx = 0;
-  let maxTime = new Date(events[0]?.occurredAt || 0).getTime();
-  events.forEach((ev, idx) => {
-    const t = new Date(ev?.occurredAt || 0).getTime();
-    if (t > maxTime) { maxTime = t; maxIdx = idx; }
-  });
-  return maxIdx;
-}, [events]);
+    if (events.length === 0) return 0;
+    let maxIdx = 0;
+    let maxTime = new Date(events[0]?.occurredAt || 0).getTime();
+    events.forEach((ev, idx) => {
+      const t = new Date(ev?.occurredAt || 0).getTime();
+      if (t > maxTime) { maxTime = t; maxIdx = idx; }
+    });
+    return maxIdx;
+  }, [events]);
 
   const invoicePaid = Boolean(data?.invoice?.paid);
   const invoiceStatus = String(data?.invoice?.status || (invoicePaid ? "paid" : "unpaid")).toLowerCase();
@@ -283,9 +322,14 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
   const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
   const invoiceQ = data?.trackingNumber || data?.shipmentId || q;
 
+  // Estimated delivery — uses real min if API provides it, else falls back to +2/+3 days
   const { text: estimatedRangeText, endDate: estimatedEndDate } = useMemo(
-    () => fmtEstimatedRange(data?.estimatedDelivery, data?.shipmentScope),
-    [data?.estimatedDelivery, data?.shipmentScope]
+    () => fmtEstimatedDelivery(
+      data?.estimatedDelivery,
+      data?.estimatedDeliveryDateMin,
+      data?.shipmentScope,
+    ),
+    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope]
   );
 
   const deliveryOverdue = useMemo(() => {
@@ -314,21 +358,30 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
     : invoiceStatus === "cancelled" ? "CANCELLED"
     : "UNPAID";
 
+  // Weight/dimensions with commas
+  const weightLine = data?.weightKg != null && String(data.weightKg).trim() !== ""
+    ? `${fmtIntWithCommas(data.weightKg)} kg`
+    : "—";
+
+  const dimLine = data?.dimensionsCm
+    ? `${fmtIntWithCommas(data.dimensionsCm.length)} × ${fmtIntWithCommas(data.dimensionsCm.width)} × ${fmtIntWithCommas(data.dimensionsCm.height)} cm`
+    : "—";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/40 to-white">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
 
         <div className="mb-6 flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
           <button type="button" onClick={() => router.replace(`/${locale}/track`)}
-  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-  <MapPin className="w-4 h-4" /><span>Back to Track</span>
-</button>
+            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+            <MapPin className="w-4 h-4" /><span>Back to Track</span>
+          </button>
           {invoiceQ && (
             <Link
-  href={`/${locale}/invoice${invoiceNumber ? `?invoice=${encodeURIComponent(invoiceNumber)}` : ""}`}
-  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-  <FileText className="w-4 h-4" /><span>View Invoice</span>
-</Link>
+              href={`/${locale}/invoice${invoiceNumber ? `?invoice=${encodeURIComponent(invoiceNumber)}` : ""}`}
+              className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
+              <FileText className="w-4 h-4" /><span>View Invoice</span>
+            </Link>
           )}
         </div>
 
@@ -380,10 +433,10 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
                   <div className="sm:text-right shrink-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
                     <p className="text-lg sm:text-xl font-extrabold text-blue-700 leading-tight">
-  {events[currentIndex]?.label || data.currentStatus || "—"}
-</p>
+                      {events[currentIndex]?.label || data.currentStatus || "—"}
+                    </p>
                     <p className="mt-1 text-xs text-gray-500">
-                     Last updated: <span className="font-semibold text-gray-700">{fmtDate(events[currentIndex]?.occurredAt || data.updatedAt)}</span>
+                      Last updated: <span className="font-semibold text-gray-700">{fmtDate(events[currentIndex]?.occurredAt || data.updatedAt)}</span>
                     </p>
                     {data.estimatedDelivery && (
                       <p className="mt-1 text-xs text-gray-500">
@@ -434,7 +487,7 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Invoice</p>
                     </div>
                     <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>{invoiceStatusLabel}</div>
-                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceCurrency} {invoiceAmount.toFixed(2)}</p>
+                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceCurrency} {fmtNumberWithCommas(invoiceAmount, 2)}</p>
                     {invoiceNumber && <p className="mt-1 text-xs text-gray-500 font-medium">{invoiceNumber}</p>}
                   </div>
 
@@ -462,8 +515,8 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
                       <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Package</p>
                     </div>
                     <div className="space-y-1 text-xs text-gray-700">
-                      <p><span className="font-semibold">Weight:</span> {data.weightKg != null && String(data.weightKg).trim() !== "" ? `${data.weightKg} kg` : "—"}</p>
-                      <p><span className="font-semibold">Dimensions:</span> {data.dimensionsCm ? `${data.dimensionsCm.length || "—"} × ${data.dimensionsCm.width || "—"} × ${data.dimensionsCm.height || "—"} cm` : "—"}</p>
+                      <p><span className="font-semibold">Weight:</span> {weightLine}</p>
+                      <p><span className="font-semibold">Dimensions:</span> {dimLine}</p>
                       <p><span className="font-semibold">Type:</span> {data.shipmentType || "—"}</p>
                     </div>
                   </div>
@@ -521,7 +574,7 @@ return evs.filter((ev: any) => (ev?.entries?.length || 0) > 0);
                       const stageLoc = fmtLoc(ev.location);
                       const stageWhen = fmtDate(ev.occurredAt);
                       const lastEntryColor = ev?.entries?.[ev.entries.length - 1];
-const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) || "";
+                      const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) || "";
                       const isCompleted = idx < currentIndex;
                       const isCurrent = idx === currentIndex;
                       const labelLower = String(ev.label || "").toLowerCase();
@@ -530,66 +583,60 @@ const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) 
                       const isLast = idx === events.length - 1;
 
                       const lastEntry = ev?.entries?.[ev.entries.length - 1];
-const customBadgeText = (lastEntry as any)?.badgeText || "";
-const customBadgeColor = (lastEntry as any)?.badgeColor || "";
+                      const customBadgeText = (lastEntry as any)?.badgeText || "";
+                      const customBadgeColor = (lastEntry as any)?.badgeColor || "";
 
                       const currentDotColor = safeColor(stageBaseColor) || "#f59e0b";
                       const nextEvent = events[idx + 1];
-                     const nextDotColor = !isLast
-  ? (safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
-  : currentDotColor;
+                      const nextDotColor = !isLast
+                        ? (safeColor(nextEvent?.entries?.[0]?.color) || safeColor(nextEvent?.color) || "#d1d5db")
+                        : currentDotColor;
 
                       return (
                         <div key={`${ev.key || ev.label}-${idx}`} className="flex relative">
-
-                          {/* Fix 2 — rail: dot centred at top of card, line fills gap to next dot */}
                           <div className="relative shrink-0 flex flex-col items-center" style={{ width: "14px" }}>
-  {/* dot */}
-  <div
-    className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
-    style={{ background: currentDotColor, width: "19px", height: "19px", marginTop: "19px" }}
-  >
-    {(() => {
-  const completedBadges = new Set(["completed", "delivered", "done", "finished"]);
-  const badgeIsCompletion = completedBadges.has(customBadgeText.toLowerCase());
-  const showCheck = (isCompleted && (!customBadgeText || badgeIsCompletion))
-    || (!customBadgeText && isDelivered)
-    || badgeIsCompletion;
-  return showCheck ? <CheckCircle2 className="w-3 h-3 text-white" /> : null;
-})()}
-  </div>
-  {/* line — absolutely positioned from dot bottom to bottom of entire row */}
-  {!isLast && (
-    <div
-      className="absolute"
-      style={{
-        top: "40px",
-        bottom: "-24px",
-        width: "3px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
-        borderRadius: "0 0 4px 4px",
-      }}
-    />
-  )}
-</div>
+                            <div
+                              className="rounded-full border-[3px] border-white shadow-md flex items-center justify-center z-10 shrink-0"
+                              style={{ background: currentDotColor, width: "19px", height: "19px", marginTop: "19px" }}
+                            >
+                              {(() => {
+                                const completedBadges = new Set(["completed", "delivered", "done", "finished"]);
+                                const badgeIsCompletion = completedBadges.has(customBadgeText.toLowerCase());
+                                const showCheck = (isCompleted && (!customBadgeText || badgeIsCompletion))
+                                  || (!customBadgeText && isDelivered)
+                                  || badgeIsCompletion;
+                                return showCheck ? <CheckCircle2 className="w-3 h-3 text-white" /> : null;
+                              })()}
+                            </div>
+                            {!isLast && (
+                              <div
+                                className="absolute"
+                                style={{
+                                  top: "40px",
+                                  bottom: "-24px",
+                                  width: "3px",
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                  background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
+                                  borderRadius: "0 0 4px 4px",
+                                }}
+                              />
+                            )}
+                          </div>
 
-                          {/* Fix 1 — card: left margin so it aligns with the boxes below (invoice/dest/loc) */}
-                          {/* pb-3 creates the gap between stages so the line runs through it */}
                           <div className="flex-1 min-w-0 pb-4 ml-3">
                             <div
-  className={`rounded-2xl border shadow-sm overflow-hidden transition ${
-    !customBadgeColor
-      ? isCompleted ? "border-green-200 bg-green-50/40"
-        : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
-        : isCurrent && isDelivered ? "border-green-200 bg-green-50/40 shadow-md"
-        : isCurrent ? "border-blue-200 bg-blue-50/40 shadow-md"
-        : "border-gray-200 bg-white"
-      : "border"
-  }`}
- style={customBadgeColor ? { borderColor: customBadgeColor + "60" } : undefined}
->
+                              className={`rounded-2xl border shadow-sm overflow-hidden transition ${
+                                !customBadgeColor
+                                  ? isCompleted ? "border-green-200 bg-green-50/40"
+                                    : isCurrent && isCancelled ? "border-red-200 bg-red-50/40 shadow-md"
+                                    : isCurrent && isDelivered ? "border-green-200 bg-green-50/40 shadow-md"
+                                    : isCurrent ? "border-blue-200 bg-blue-50/40 shadow-md"
+                                    : "border-gray-200 bg-white"
+                                  : "border"
+                              }`}
+                              style={customBadgeColor ? { borderColor: customBadgeColor + "60" } : undefined}
+                            >
                               <button
                                 type="button"
                                 onClick={() => setOpenIdx((cur) => (cur === idx ? null : idx))}
@@ -598,17 +645,17 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex items-start gap-3 min-w-0">
                                     <div
-  className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center border ${
-    !customBadgeColor
-      ? isCompleted ? "bg-green-100 border-green-200 text-green-700"
-        : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
-        : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
-        : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
-        : "bg-gray-100 border-gray-200 text-gray-500"
-      : ""
-  }`}
- style={customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
->
+                                      className={`shrink-0 h-10 w-10 rounded-xl flex items-center justify-center border ${
+                                        !customBadgeColor
+                                          ? isCompleted ? "bg-green-100 border-green-200 text-green-700"
+                                            : isCurrent && isCancelled ? "bg-red-100 border-red-200 text-red-700"
+                                            : isCurrent && isDelivered ? "bg-green-100 border-green-200 text-green-700"
+                                            : isCurrent ? "bg-blue-100 border-blue-200 text-blue-700"
+                                            : "bg-gray-100 border-gray-200 text-gray-500"
+                                          : ""
+                                      }`}
+                                      style={customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
+                                    >
                                       {(() => {
                                         const Icon = getStageIcon(ev.label, ev.icon);
                                         return <Icon className="w-5 h-5" />;
@@ -618,21 +665,20 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
-                                        {/* Fix 2 — "Current" → "Current Stage" */}
                                         <span
-  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-    !customBadgeText
-      ? isCompleted ? "bg-green-100 text-green-700 border-green-200"
-        : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
-        : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
-        : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
-        : "bg-gray-100 text-gray-500 border-gray-200"
-      : ""
-  }`}
-  style={customBadgeText && customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
->
-  {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
-</span>
+                                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                                            !customBadgeText
+                                              ? isCompleted ? "bg-green-100 text-green-700 border-green-200"
+                                                : isCurrent && isCancelled ? "bg-red-100 text-red-700 border-red-200"
+                                                : isCurrent && isDelivered ? "bg-green-100 text-green-700 border-green-200"
+                                                : isCurrent ? "bg-blue-100 text-blue-700 border-blue-200"
+                                                : "bg-gray-100 text-gray-500 border-gray-200"
+                                              : ""
+                                          }`}
+                                          style={customBadgeText && customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
+                                        >
+                                          {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
+                                        </span>
                                       </div>
                                       <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
                                     </div>
@@ -643,27 +689,26 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
 
                                 {isOpen && (
                                   <div className="mt-4 border-t border-gray-200 pt-4">
-                                    {/* Fix 2 inner line — entries also connect properly */}
                                     <div className="space-y-2">
                                       {(ev.entries || []).length > 0 && (ev.entries || []).map((en, j) => {
                                         const loc = fmtLoc(en.location);
                                         const when = fmtDate(en.occurredAt);
                                         const isLastEntry = j === (ev.entries?.length || 0) - 1;
-                                       const entryDotBg = safeColor(en.detailColor) || safeColor(en.color) || "#9ca3af";
+                                        const entryDotBg = safeColor(en.detailColor) || safeColor(en.color) || "#9ca3af";
 
                                         return (
                                           <div key={`entry-${j}`} className="relative pl-1">
                                             {!isLastEntry && (
-  <div className="absolute left-[-8px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[j + 1]?.detailColor) || safeColor(ev.entries?.[j + 1]?.color) || "#d1d5db"} 100%)` }} />
-)}
-<div className="absolute left-[-12px] top-[11px]">
+                                              <div className="absolute left-[-8px] top-[14px] bottom-[-20px] w-[2px] rounded-full" style={{ background: `linear-gradient(to bottom, ${entryDotBg} 0%, ${safeColor(ev.entries?.[j + 1]?.detailColor) || safeColor(ev.entries?.[j + 1]?.color) || "#d1d5db"} 100%)` }} />
+                                            )}
+                                            <div className="absolute left-[-12px] top-[11px]">
                                               <div className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ background: entryDotBg }} />
                                             </div>
                                             <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                               <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
                                               {(en as any).details?.trim() && (
-  <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
-)}
+                                                <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
+                                              )}
                                             </div>
                                           </div>
                                         );
@@ -673,22 +718,22 @@ const customBadgeColor = (lastEntry as any)?.badgeColor || "";
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
                                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Invoice</p>
-                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {invoiceAmount.toFixed(2)} {invoiceCurrency}</p>
+                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {fmtNumberWithCommas(invoiceAmount, 2)} {invoiceCurrency}</p>
                                       </div>
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
                                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Destination</p>
                                         <p className="mt-0.5 text-xs font-bold text-gray-900">{data.destination || "—"}</p>
                                       </div>
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-    {isCurrent ? "Current Location" : "Location"}
-  </p>
-  <p className="mt-0.5 text-xs font-bold text-gray-900">
-    {isCurrent
-      ? (data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—")
-      : (fmtLoc(ev.location) || "—")}
-  </p>
-</div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                          {isCurrent ? "Current Location" : "Location"}
+                                        </p>
+                                        <p className="mt-0.5 text-xs font-bold text-gray-900">
+                                          {isCurrent
+                                            ? (data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—")
+                                            : (fmtLoc(ev.location) || "—")}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
                                 )}
