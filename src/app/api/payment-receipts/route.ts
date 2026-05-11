@@ -134,15 +134,17 @@ export async function PATCH(req: Request) {
     );
 
     await db.collection('shipments').updateOne(
-      { shipmentId: receipt.shipmentId },
-      {
-        $set: {
-          'invoice.paymentStatus': 'rejected',
-          // Clear the under-review payment method so the user can pick again
-          'invoice.paid': false,
-        },
-      }
-    );
+  { shipmentId: receipt.shipmentId },
+  {
+    $set: {
+      'invoice.paymentStatus': 'rejected',
+      'invoice.paid': false,
+    },
+    $unset: {
+      'invoice.paymentMethod': '',
+    },
+  }
+);
 
     // Send cancellation email to the SENDER only
     try {
