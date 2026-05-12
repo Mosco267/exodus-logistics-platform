@@ -1,13 +1,4 @@
 // src/app/api/user/shipments/route.ts
-//
-// Lists shipments belonging to the signed-in user:
-//   - senderEmail === user.email, OR
-//   - createdByEmail === user.email, OR
-//   - receiverEmail === user.email
-//
-// Returns lightweight summaries suitable for the dashboard track + invoice list pages.
-// Drill-in detail still uses /api/track and /api/invoice.
-
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
@@ -17,133 +8,170 @@ function cleanStr(v: any) {
   return s || "";
 }
 
-function safeNum(v: any) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
+function escapeRegex(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function joinNice(parts: Array<any>) {
-  return parts.map(x => String(x || "").trim()).filter(Boolean).join(", ");
-}
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
+/**
+ * Returns the shipments that belong to the signed-in user.
+ *
+ * Query params:
+ *   ?type=invoices                              → only shipments with an invoice
+ *   ?status=paid|unpaid|overdue|cancelled       → filter by invoice status
+ *   ?q=...                                      → search (track: trackingNumber only; invoices: invoice number only)
+ *   ?searchField=tracking|invoice               → which field to search
+ *   ?limit=...                                  → default 100, max 500
+ */
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const email = String(session.user.email).toLowerCase();
-  const escaped = escapeRegex(email);
-
-  const url = new URL(req.url);
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "100", 10), 200);
-  const status = cleanStr(url.searchParams.get("status")).toLowerCase();
-  const invoiceStatus = cleanStr(url.searchParams.get("invoiceStatus")).toLowerCase();
-
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB);
-
-  const baseQuery: any = {
-    $or: [
-      { senderEmail: { $regex: `^${escaped}$`, $options: "i" } },
-      { receiverEmail: { $regex: `^${escaped}$`, $options: "i" } },
-      { createdByEmail: { $regex: `^${escaped}$`, $options: "i" } },
-    ],
-  };
-
-  if (status && status !== "all") {
-    baseQuery.status = { $regex: `^${escapeRegex(status)}$`, $options: "i" };
-  }
-
-  if (invoiceStatus && invoiceStatus !== "all") {
-    baseQuery["invoice.status"] = invoiceStatus;
-  }
-
-  const shipments = await db
-    .collection("shipments")
-    .find(baseQuery, { projection: { _id: 0 } })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .toArray();
-
-  const now = Date.now();
-
-  const summaries = shipments.map((s: any) => {
-    const inv = s?.invoice || {};
-    let invStatusRaw = cleanStr(inv?.status).toLowerCase();
-    if (invStatusRaw === "canceled") invStatusRaw = "cancelled";
-
-    let invStatus: "paid" | "unpaid" | "overdue" | "cancelled" =
-      invStatusRaw === "paid" ? "paid"
-      : invStatusRaw === "cancelled" ? "cancelled"
-      : invStatusRaw === "overdue" ? "overdue"
-      : "unpaid";
-
-    if (invStatus === "unpaid" && inv?.dueDate) {
-      const d = new Date(inv.dueDate);
-      if (!Number.isNaN(d.getTime()) && now > d.getTime()) {
-        invStatus = "overdue";
-      }
+  try {
+    const session = await auth();
+    const email = cleanStr((session?.user as any)?.email).toLowerCase();
+    if (!email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const events = Array.isArray(s?.trackingEvents) ? s.trackingEvents : [];
-    let lastEventLabel = "";
-    if (events.length > 0) {
-      const latest = events.reduce((a: any, b: any) =>
-        new Date(a?.occurredAt || 0).getTime() > new Date(b?.occurredAt || 0).getTime() ? a : b
-      , events[0]);
-      lastEventLabel = cleanStr(latest?.label);
-    }
+    const url = new URL(req.url);
+    const type = cleanStr(url.searchParams.get("type")).toLowerCase();
+    const status = cleanStr(url.searchParams.get("status")).toLowerCase();
+    const q = cleanStr(url.searchParams.get("q"));
+    const searchField = cleanStr(url.searchParams.get("searchField")).toLowerCase();
+    const limitRaw = parseInt(url.searchParams.get("limit") || "100", 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 500) : 100;
 
-    const origin = joinNice([s?.senderCity, s?.senderState, s?.senderCountry]);
-    const destination = joinNice([s?.receiverCity, s?.receiverState, s?.receiverCountry]);
+    const dbName = process.env.MONGODB_DB;
+    if (!dbName) return NextResponse.json({ error: "Server config error" }, { status: 500 });
 
-    let role: "sender" | "receiver" | "creator" = "creator";
-    if (cleanStr(s?.senderEmail).toLowerCase() === email) role = "sender";
-    else if (cleanStr(s?.receiverEmail).toLowerCase() === email) role = "receiver";
+    const client = await clientPromise;
+    const db = client.db(dbName);
 
-    return {
-      shipmentId: cleanStr(s?.shipmentId),
-      trackingNumber: cleanStr(s?.trackingNumber),
-      invoiceNumber: cleanStr(inv?.invoiceNumber),
-
-      status: cleanStr(s?.status) || "Created",
-      currentStatus: lastEventLabel || cleanStr(s?.status) || "—",
-      statusNote: cleanStr(s?.statusNote),
-
-      origin: origin || "—",
-      destination: destination || "—",
-
-      shipmentMeans: cleanStr(s?.shipmentMeans) || null,
-      shipmentScope: cleanStr(s?.shipmentScope) || "international",
-      serviceLevel: cleanStr(s?.serviceLevel) || null,
-
-      weightKg: s?.weightKg ?? null,
-
-      role,
-
-      invoice: {
-        status: invStatus,
-        amount: safeNum(inv?.amount),
-        currency: cleanStr(inv?.currency || s?.declaredValueCurrency || "USD") || "USD",
-        dueDate: inv?.dueDate || null,
-        invoiceNumber: cleanStr(inv?.invoiceNumber),
-      },
-
-      estimatedDelivery: s?.estimatedDeliveryDate || s?.estimatedDelivery || null,
-      estimatedDeliveryDateMin: s?.estimatedDeliveryDateMin || null,
-
-      createdAt: s?.createdAt || null,
-      updatedAt: s?.updatedAt || null,
+    // Ownership filter
+    const ownership = {
+      $or: [
+        { senderEmail: { $regex: `^${escapeRegex(email)}$`, $options: "i" } },
+        { createdByEmail: { $regex: `^${escapeRegex(email)}$`, $options: "i" } },
+        { receiverEmail: { $regex: `^${escapeRegex(email)}$`, $options: "i" } },
+      ],
     };
-  });
 
-  return NextResponse.json({
-    count: summaries.length,
-    shipments: summaries,
-  });
+    const projection = {
+      _id: 0,
+      shipmentId: 1,
+      trackingNumber: 1,
+      status: 1,
+      senderName: 1,
+      senderEmail: 1,
+      senderCountry: 1,
+      senderCity: 1,
+      senderState: 1,
+      receiverName: 1,
+      receiverEmail: 1,
+      receiverCountry: 1,
+      receiverCity: 1,
+      receiverState: 1,
+      shipmentType: 1,
+      shipmentMeans: 1,
+      shipmentScope: 1,
+      serviceLevel: 1,
+      packageDescription: 1,
+      weightKg: 1,
+      dimensionsCm: 1,
+      declaredValue: 1,
+      declaredValueCurrency: 1,
+      estimatedDeliveryDate: 1,
+      estimatedDeliveryDateMin: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      statusUpdatedAt: 1,
+      "invoice.invoiceNumber": 1,
+      "invoice.status": 1,
+      "invoice.amount": 1,
+      "invoice.currency": 1,
+      "invoice.dueDate": 1,
+      "invoice.paid": 1,
+      "invoice.paymentStatus": 1,
+      "invoice.paymentMethod": 1,
+    };
+
+    // ============================================================
+    // Step 1: Pull ALL user-owned shipments (within limit) WITHOUT filters
+    // so we can compute correct counts before applying status filter.
+    // ============================================================
+    const allOwned = await db.collection("shipments")
+      .find(ownership, { projection })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    // Normalise effective status for each shipment (overdue if past dueDate)
+    const now = Date.now();
+    const allWithEffectiveStatus = allOwned.map((d: any) => {
+      const inv = d?.invoice || {};
+      const dueDate = inv?.dueDate ? new Date(inv.dueDate) : null;
+      const rawStatus = cleanStr(inv?.status).toLowerCase();
+
+      let effectiveStatus = rawStatus;
+      if (rawStatus === "unpaid" && dueDate && !Number.isNaN(dueDate.getTime()) && now > dueDate.getTime()) {
+        effectiveStatus = "overdue";
+      }
+      if (!effectiveStatus && inv?.paid) effectiveStatus = "paid";
+      if (!effectiveStatus) effectiveStatus = "unpaid";
+
+      return {
+        ...d,
+        invoice: inv && Object.keys(inv).length ? { ...inv, status: effectiveStatus } : null,
+      };
+    });
+
+    // ============================================================
+    // Step 2: For "invoices" mode, narrow down to only shipments
+    // that have an invoice. This is the "all" universe for counts.
+    // ============================================================
+    let countsUniverse = allWithEffectiveStatus;
+    if (type === "invoices") {
+      countsUniverse = allWithEffectiveStatus.filter(
+        (d: any) => d?.invoice && (d.invoice.invoiceNumber || d.invoice.amount)
+      );
+    }
+
+    // Counts computed BEFORE the status filter (so tab numbers are correct)
+    const counts = {
+      all: countsUniverse.length,
+      paid: countsUniverse.filter((d: any) => d?.invoice?.status === "paid").length,
+      unpaid: countsUniverse.filter((d: any) => d?.invoice?.status === "unpaid").length,
+      overdue: countsUniverse.filter((d: any) => d?.invoice?.status === "overdue").length,
+      cancelled: countsUniverse.filter((d: any) => d?.invoice?.status === "cancelled").length,
+    };
+
+    // ============================================================
+    // Step 3: Apply status + search filters to produce the response list.
+    // ============================================================
+    let shipments = countsUniverse;
+
+    if (status && ["paid", "unpaid", "overdue", "cancelled"].includes(status)) {
+      shipments = shipments.filter((d: any) => d?.invoice?.status === status);
+    }
+
+    if (q) {
+      const qUpper = q.toUpperCase();
+      shipments = shipments.filter((d: any) => {
+        if (searchField === "tracking") {
+          return String(d.trackingNumber || "").toUpperCase().includes(qUpper);
+        }
+        if (searchField === "invoice") {
+          return String(d?.invoice?.invoiceNumber || "").toUpperCase().includes(qUpper);
+        }
+        // Default — search anywhere
+        return (
+          String(d.trackingNumber || "").toUpperCase().includes(qUpper) ||
+          String(d.shipmentId || "").toUpperCase().includes(qUpper) ||
+          String(d?.invoice?.invoiceNumber || "").toUpperCase().includes(qUpper)
+        );
+      });
+    }
+
+    return NextResponse.json({ shipments, counts });
+  } catch (e) {
+    console.error("/api/user/shipments error", e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

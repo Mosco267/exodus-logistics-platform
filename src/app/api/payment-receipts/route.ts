@@ -61,6 +61,12 @@ export async function GET() {
   });
 }
 
+// Capitalize first letter of each word
+function capWords(s: string): string {
+  if (!s) return '';
+  return s.toLowerCase().split(/(\s+)/).map(p => /\s+/.test(p) ? p : (p.charAt(0).toUpperCase() + p.slice(1))).join('');
+}
+
 export async function PATCH(req: Request) {
   const session = await auth();
   if ((session?.user as any)?.role !== 'ADMIN')
@@ -75,6 +81,26 @@ export async function PATCH(req: Request) {
   const receipt = await db.collection('payment_receipts').findOne({ _id: new ObjectId(id) });
   if (!receipt) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // Fetch the shipment so we can re-use its current location for the new event
+  const shipment = await db.collection('shipments').findOne({ shipmentId: receipt.shipmentId });
+
+  // Build a default "location" from the latest event (fallback to sender) so the
+  // new payment event aligns visually with the existing timeline rail.
+  let eventLocation: any = {
+    country: shipment?.senderCountry || '',
+    state: shipment?.senderState || '',
+    city: shipment?.senderCity || '',
+    county: '',
+  };
+  if (Array.isArray(shipment?.trackingEvents) && shipment.trackingEvents.length > 0) {
+    const lastEvent = shipment.trackingEvents[shipment.trackingEvents.length - 1];
+    if (lastEvent?.location && (lastEvent.location.country || lastEvent.location.city)) {
+      eventLocation = { ...lastEvent.location };
+    }
+  }
+
+  const prettyMethod = capWords(String(receipt.paymentMethod || ''));
+
   if (action === 'confirm') {
     await db.collection('payment_receipts').updateOne(
       { _id: new ObjectId(id) },
@@ -87,6 +113,26 @@ export async function PATCH(req: Request) {
       }
     );
 
+    // New tracking event for the confirmed payment.
+    // This is the "Payment Confirmed" sub-event under the Created stage with a
+    // green badge. We keep it grouped under the "created" key so it shows up
+    // as another entry inside the existing Created card on the timeline.
+    const confirmEvent = {
+      key: 'created',
+      label: 'Created',
+      details: `Your payment of ${shipment?.invoice?.currency || 'USD'} ${(Number(shipment?.invoice?.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been confirmed${prettyMethod ? ` (paid via ${prettyMethod})` : ''}. Your shipment is now being prepared for dispatch.`,
+      note: '',
+      additionalNote: '',
+      occurredAt: new Date().toISOString(),
+      color: '#22c55e',
+      detailColor: '#22c55e',
+      badgeText: 'Paid',
+      badgeColor: '#22c55e',
+      badgeLocked: true,
+      currentLocation: '',
+      location: eventLocation,
+    };
+
     await db.collection('shipments').updateOne(
       { shipmentId: receipt.shipmentId },
       {
@@ -95,14 +141,15 @@ export async function PATCH(req: Request) {
           'invoice.status': 'paid',
           'invoice.paidAt': new Date(),
           'invoice.paymentStatus': 'confirmed',
+          updatedAt: new Date(),
         },
+        $push: { trackingEvents: confirmEvent as any },
       }
     );
 
-    // Send "invoice paid" email to sender (existing behavior)
+    // Send paid email to sender (existing behavior)
     try {
       const { sendInvoiceUpdateEmail } = await import('@/lib/email');
-      const shipment = await db.collection('shipments').findOne({ shipmentId: receipt.shipmentId });
       if (shipment?.senderEmail) {
         await sendInvoiceUpdateEmail(shipment.senderEmail, {
           name: shipment.senderName,
@@ -133,22 +180,38 @@ export async function PATCH(req: Request) {
       }
     );
 
-    await db.collection('shipments').updateOne(
-  { shipmentId: receipt.shipmentId },
-  {
-    $set: {
-      'invoice.paymentStatus': 'rejected',
-      'invoice.paid': false,
-    },
-    $unset: {
-      'invoice.paymentMethod': '',
-    },
-  }
-);
+    // Add a tracking event for the rejection
+    const rejectEvent = {
+      key: 'created',
+      label: 'Created',
+      details: `Your payment${prettyMethod ? ` via ${prettyMethod}` : ''} was cancelled and could not be confirmed by our team.${reason ? ` Reason: ${reason}` : ''} Please return to the payment page and submit payment again.`,
+      note: '',
+      additionalNote: '',
+      occurredAt: new Date().toISOString(),
+      color: '#ef4444',
+      detailColor: '#ef4444',
+      badgeText: 'Payment Cancelled',
+      badgeColor: '#ef4444',
+      badgeLocked: true,
+      currentLocation: '',
+      location: eventLocation,
+    };
 
-    // Send cancellation email to the SENDER only
+    await db.collection('shipments').updateOne(
+      { shipmentId: receipt.shipmentId },
+      {
+        $set: {
+          'invoice.paymentStatus': 'rejected',
+          'invoice.paid': false,
+          updatedAt: new Date(),
+        },
+        $unset: { 'invoice.paymentMethod': '' },
+        $push: { trackingEvents: rejectEvent as any },
+      }
+    );
+
+    // Cancellation email + dashboard notification (existing behavior)
     try {
-      const shipment = await db.collection('shipments').findOne({ shipmentId: receipt.shipmentId });
       if (shipment?.senderEmail) {
         const { sendPaymentCancelledEmail } = await import('@/lib/email');
         await sendPaymentCancelledEmail(shipment.senderEmail, {
@@ -157,10 +220,9 @@ export async function PATCH(req: Request) {
           trackingNumber: shipment.trackingNumber,
           invoiceNumber: shipment.invoice?.invoiceNumber,
           paymentMethod: receipt.paymentMethod,
-          reason, // empty string -> reason block omitted in email
+          reason,
         });
 
-        // Dashboard notification too
         await db.collection('notifications').insertOne({
           userEmail: String(shipment.senderEmail).toLowerCase(),
           userId: shipment.createdByUserId || undefined,

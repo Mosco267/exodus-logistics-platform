@@ -39,6 +39,21 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       if (t && map[t]) setAccentSolid(map[t]);
     } catch {}
   }, []);
+
+  const [isMidnightTheme, setIsMidnightTheme] = useState(false);
+ 
+  useEffect(() => {
+    const apply = () => {
+      try {
+        const t = localStorage.getItem('exodus_theme_cache');
+        setIsMidnightTheme(t === 'midnight');
+      } catch {}
+    };
+    apply();
+    window.addEventListener('storage', apply);
+    const id = setInterval(apply, 1000);
+    return () => { window.removeEventListener('storage', apply); clearInterval(id); };
+  }, []);
  
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -895,7 +910,9 @@ export default function PaymentPage() {
   const router = useRouter();
 
   // Theme
+  // Theme
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
+  const [isMidnightTheme, setIsMidnightTheme] = useState(false);
   useEffect(() => {
     const map: Record<string, string> = {
       default: 'linear-gradient(135deg, #0b3aa4, #0e7490)',
@@ -904,12 +921,16 @@ export default function PaymentPage() {
       arctic: 'linear-gradient(135deg, #0284c7, #bae6fd)',
       midnight: 'linear-gradient(135deg, #0f172a, #0e7490)',
     };
-    const apply = () => { const c = localStorage.getItem('exodus_theme_cache'); if (c && map[c]) setAccent(map[c]); };
+    const apply = () => {
+      const c = localStorage.getItem('exodus_theme_cache');
+      if (c && map[c]) setAccent(map[c]);
+      setIsMidnightTheme(c === 'midnight');
+    };
     apply();
     const t = setInterval(apply, 1000);
     return () => clearInterval(t);
   }, []);
-
+  
   const themeColors = useMemo(() => {
     const matches = accent.match(/#[0-9a-fA-F]{6}/g) || ['#0b3aa4', '#0e7490'];
     return { primary: matches[0], secondary: matches[1] || matches[0] };
@@ -1066,7 +1087,9 @@ export default function PaymentPage() {
           <ArrowLeft size={16} className="text-gray-600 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white">Complete Payment</h1>
+          <h1 className={`text-2xl font-extrabold ${isMidnightTheme ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+    Complete Payment
+  </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Shipment {shipmentId}</p>
         </div>
       </div>

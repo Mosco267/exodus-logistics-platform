@@ -250,7 +250,15 @@ export default function DashboardInvoiceDetailPage() {
       : `Due by ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`)
     : status === "paid" ? "Paid in full" : "No due date set";
 
-  const printNow = () => window.print();
+  const printNow = () => {
+    // Safari sometimes blocks programmatic prints — give the browser
+    // a tick to commit any pending state changes before opening the
+    // print dialog. The button click is a user gesture so this is
+    // permitted by the browser.
+    setTimeout(() => {
+      try { window.print(); } catch {}
+    }, 50);
+  };
   const card = "rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4";
   const card5 = "rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5";
 
@@ -258,16 +266,52 @@ export default function DashboardInvoiceDetailPage() {
     <div className="max-w-4xl mx-auto pb-12 space-y-5">
 
       <style jsx global>{`
-        @media print {
-          @page { margin: 0; size: A4 portrait; }
-          body * { visibility: hidden !important; }
-          .print-area, .print-area * { visibility: visible !important; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: black !important; }
-        }
-      `}</style>
+    @media print {
+      @page { margin: 12mm; size: A4 portrait; }
+ 
+      /* Hide everything by default */
+      html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+      body > *:not(.print-portal) { display: none !important; }
+ 
+      /* Show only the print area */
+      .print-portal { display: block !important; }
+      .print-portal .no-print { display: none !important; }
+ 
+      /* Force colors to print */
+      .print-portal, .print-portal * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+ 
+      /* Prevent cards from being cut in half across pages */
+      .print-portal .rounded-2xl,
+      .print-portal .rounded-xl {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+ 
+      /* Force light backgrounds even if dark mode is active */
+      .print-portal {
+        background: white !important;
+        color: black !important;
+      }
+      .print-portal .bg-gray-900,
+      .print-portal .dark\\:bg-gray-900,
+      .print-portal .bg-white {
+        background: white !important;
+      }
+      .print-portal .text-white,
+      .print-portal .dark\\:text-white {
+        color: black !important;
+      }
+ 
+      /* Keep the header gradient on print */
+      .print-portal [style*="background"] {
+        -webkit-print-color-adjust: exact !important;
+      }
+    }
+  `}</style>
 
       {/* ── Top nav ─────────────────────────────────────── */}
       <div className="no-print flex flex-col sm:flex-row gap-2">
@@ -310,7 +354,7 @@ export default function DashboardInvoiceDetailPage() {
       )}
 
       {!loading && data && (
-        <div className="print-area">
+        <div className="print-portal">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
 
