@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Menu, X, LogOut, User, Settings, Package,
-  FileText, Clock, LayoutDashboard, PlusCircle, Moon, Sun, Sparkles, Palette, Languages,
+  FileText, Clock, LayoutDashboard, PlusCircle, Moon, Sun, Sparkles, Palette, Languages, LifeBuoy,
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from "@/components/dashboard/SearchBar";
@@ -269,6 +269,7 @@ const toggleDark = () => {
     { href: `/${locale}/dashboard/shipments/new`, label: 'New Shipment', icon: <PlusCircle className="w-5 h-5" />, mobileOnly: true },
     { href: `/${locale}/dashboard/track`, label: 'Track Shipment', icon: <Package className="w-5 h-5" /> },
     { href: `/${locale}/dashboard/invoices`, label: 'Invoices', icon: <FileText className="w-5 h-5" /> },
+    { href: `/${locale}/dashboard/support`, label: 'Support', icon: <LifeBuoy className="w-5 h-5" /> },
     { href: `/${locale}/dashboard/history`, label: 'History', icon: <Clock className="w-5 h-5" /> },
     { href: `/${locale}/dashboard/settings`, label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
