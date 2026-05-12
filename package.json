@@ -22,6 +22,8 @@
     "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.8.2",
     "otplib": "^12.0.1",
+    "pusher": "^5.3.3",
+    "pusher-js": "^8.5.0",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",

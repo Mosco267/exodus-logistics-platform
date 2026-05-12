@@ -161,9 +161,19 @@ export async function PATCH(req: Request) {
           recipientRole: 'sender',
           otherPartyName: shipment.receiverName,
         });
+
+        await db.collection('notifications').insertOne({
+          userEmail: String(shipment.senderEmail).toLowerCase(),
+          userId: shipment.createdByUserId || undefined,
+          title: 'Payment Confirmed',
+          message: `Your payment for shipment ${receipt.shipmentId} has been confirmed. Your shipment is being prepared for dispatch.`,
+          shipmentId: receipt.shipmentId,
+          read: false,
+          createdAt: new Date(),
+        });
       }
     } catch (e) {
-      console.error('Confirm email failed:', e);
+      console.error('Confirm email/notification failed:', e);
     }
   } else if (action === 'reject') {
     const reason = String(rejectedReason || '').trim();
