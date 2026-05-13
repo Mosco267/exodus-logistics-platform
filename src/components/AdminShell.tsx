@@ -20,6 +20,7 @@ import {
   Ban,
   MapPin,
   Receipt,
+  Headphones,
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -109,6 +110,11 @@ export default function AdminShell({ children }: Props) {
       href: `/${locale}/dashboard/admin/shipments`,
       label: "Shipments",
       icon: <Package className="w-5 h-5" />,
+    },
+      {
+      href: `/${locale}/dashboard/admin/support`,
+      label: "Support",
+      icon: <Headphones className="w-5 h-5" />,
     },
     {
       href: `/${locale}/dashboard/admin/statuses`,

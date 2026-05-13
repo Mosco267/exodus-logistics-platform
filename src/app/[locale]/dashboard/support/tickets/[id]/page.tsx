@@ -218,7 +218,7 @@ export default function UserTicketDetailPage() {
   if (err || !ticket) {
     return (
       <div className="max-w-4xl mx-auto pb-12 space-y-4">
-        <button onClick={() => router.push(`/${locale}/dashboard/support?tab=tickets`)}
+        <button onClick={() => router.push(`/${locale}/dashboard/support/tickets`)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
           <ArrowLeft className="w-4 h-4" /> Back to Tickets
         </button>
@@ -237,7 +237,7 @@ export default function UserTicketDetailPage() {
 
       {/* Top nav */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <button onClick={() => router.push(`/${locale}/dashboard/support?tab=tickets`)}
+        <button onClick={() => router.push(`/${locale}/dashboard/support/tickets`)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
           <ArrowLeft className="w-4 h-4" /> Back to Tickets
         </button>
