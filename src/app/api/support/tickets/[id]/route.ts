@@ -7,22 +7,16 @@ import { pusherServer, userChatChannel, adminEventsChannel } from "@/lib/pusher-
 
 function cleanStr(v: any) { return String(v ?? "").trim(); }
 
+const SUPPORT_DISPLAY_NAME = "Exodus Logistics";
+
 const VALID_STATUSES = new Set([
-  "open",
-  "awaiting_customer",
-  "in_progress",
-  "resolved",
-  "closed",
+  "open", "awaiting_customer", "in_progress", "resolved", "closed",
 ]);
 
 function safeOid(id: string): ObjectId | null {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-/**
- * GET — fetch a single ticket with all its messages.
- * Marks messages as read by the requester.
- */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -51,15 +45,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .sort({ createdAt: 1 })
       .toArray();
 
-    // Mark messages as read by the requesting side
     if (isAdmin) {
       await db.collection("support_messages").updateMany(
         { ticketId: id, readByAdmin: false },
         { $set: { readByAdmin: true } }
       );
       await db.collection("support_tickets").updateOne(
-        { _id: oid },
-        { $set: { unreadByAdmin: 0 } }
+        { _id: oid }, { $set: { unreadByAdmin: 0 } }
       );
     } else {
       await db.collection("support_messages").updateMany(
@@ -67,8 +59,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         { $set: { readByUser: true } }
       );
       await db.collection("support_tickets").updateOne(
-        { _id: oid },
-        { $set: { unreadByUser: 0 } }
+        { _id: oid }, { $set: { unreadByUser: 0 } }
       );
     }
 
@@ -82,13 +73,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-/**
- * POST — reply to a ticket.
- *   Body: { body, attachments? }
- *
- * If the ticket is "resolved" and the user replies, it reopens to "open".
- * If the ticket is "closed", replies are not allowed.
- */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -121,7 +105,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Closed tickets are frozen
     if (ticket.status === "closed") {
       return NextResponse.json(
         { error: "This ticket is closed. Please open a new ticket." },
@@ -133,32 +116,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const previewText = messageBody.slice(0, 100);
     const authorType = isAdmin ? "admin" : "user";
 
-    // Determine new ticket status
+    // Admin display name override
+    const displayName = isAdmin ? SUPPORT_DISPLAY_NAME : userName;
+
     let newStatus = ticket.status;
     if (isAdmin) {
-      // Admin replied — moves to awaiting_customer unless already in_progress
       if (ticket.status === "open") newStatus = "awaiting_customer";
-      if (ticket.status === "resolved") newStatus = "awaiting_customer"; // admin re-engaged
+      if (ticket.status === "resolved") newStatus = "awaiting_customer";
     } else {
-      // User replied — reopens resolved tickets, moves awaiting back to open
       if (ticket.status === "resolved") newStatus = "open";
       else if (ticket.status === "awaiting_customer") newStatus = "open";
     }
 
-    // Insert the reply
     await db.collection("support_messages").insertOne({
       ticketId: id,
       authorType,
       authorEmail: email,
-      authorName: userName,
+      authorName: displayName,
       body: messageBody,
       attachments,
       createdAt: now,
-      readByUser: !isAdmin,    // user reads their own message immediately
-      readByAdmin: isAdmin,    // admin reads their own message immediately
+      readByUser: !isAdmin,
+      readByAdmin: isAdmin,
     });
 
-    // Update ticket counters
     const update: any = {
       $set: {
         updatedAt: now,
@@ -168,19 +149,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         status: newStatus,
       },
     };
-    if (isAdmin) {
-      update.$inc = { unreadByUser: 1 };
-    } else {
-      update.$inc = { unreadByAdmin: 1 };
-    }
-    if (newStatus === "open" && ticket.status === "resolved") {
-      update.$set.resolvedAt = null;
-    }
+    if (isAdmin) update.$inc = { unreadByUser: 1 };
+    else update.$inc = { unreadByAdmin: 1 };
+    if (newStatus === "open" && ticket.status === "resolved") update.$set.resolvedAt = null;
     await db.collection("support_tickets").updateOne({ _id: oid }, update);
 
-    // ─── Notifications + Pusher events ─────────────────────────
     if (isAdmin) {
-      // Admin replied → notify the user (notification + email)
       try {
         await db.collection("notifications").insertOne({
           userEmail: cleanStr(ticket.userEmail).toLowerCase(),
@@ -189,11 +163,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           message: `Support replied to your ticket ${ticket.ticketNumber}: "${ticket.subject}"`,
           ticketId: id,
           ticketNumber: ticket.ticketNumber,
+          link: `/dashboard/support/tickets/${id}`,
           read: false,
           createdAt: now,
         });
 
-        // Email the user
         const { sendSupportTicketReplyUserEmail } = await import("@/lib/email-support");
         await sendSupportTicketReplyUserEmail(ticket.userEmail, {
           ticketNumber: ticket.ticketNumber,
@@ -205,7 +179,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         console.error("Notify user (ticket reply) failed:", e);
       }
 
-      // Push to user's chat channel (so the ticket detail page updates live)
       try {
         await pusherServer.trigger(userChatChannel(ticket.userId), "ticket:reply", {
           ticketId: id,
@@ -218,7 +191,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         console.error("Pusher trigger (ticket:reply admin) failed:", e);
       }
     } else {
-      // User replied → notify admin (notification only, no email)
       try {
         const adminEmail = process.env.SUPPORT_ADMIN_EMAIL;
         if (adminEmail) {
@@ -229,6 +201,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             message: `${userName} replied to ticket ${ticket.ticketNumber}: "${ticket.subject}"`,
             ticketId: id,
             ticketNumber: ticket.ticketNumber,
+            link: `/dashboard/admin/support/tickets/${id}`,
             read: false,
             createdAt: now,
           });
@@ -237,7 +210,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         console.error("Notify admin (ticket reply) failed:", e);
       }
 
-      // Push to admin events channel
       try {
         await pusherServer.trigger(adminEventsChannel(), "ticket:reply", {
           ticketId: id,
@@ -260,11 +232,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-/**
- * PATCH — admin updates ticket status. (Users can also reopen-on-reply
- * implicitly, but explicit status changes are admin-only.)
- *   Body: { status: "open"|"in_progress"|"resolved"|"closed" }
- */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -300,7 +267,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     await db.collection("support_tickets").updateOne({ _id: oid }, update);
 
-    // Notify user that status changed (notification only, not email)
     try {
       await db.collection("notifications").insertOne({
         userEmail: cleanStr(ticket.userEmail).toLowerCase(),
@@ -309,15 +275,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         message: `Your ticket ${ticket.ticketNumber} has been marked as "${newStatus.replace("_", " ")}".`,
         ticketId: id,
         ticketNumber: ticket.ticketNumber,
+        link: `/dashboard/support/tickets/${id}`,
         read: false,
         createdAt: now,
       });
 
-      // Pusher push to update user's UI
       if (ticket.userId) {
         await pusherServer.trigger(userChatChannel(ticket.userId), "ticket:status", {
-          ticketId: id,
-          status: newStatus,
+          ticketId: id, status: newStatus,
         });
       }
     } catch (e) {

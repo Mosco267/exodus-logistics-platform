@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 type Props = { children: ReactNode };
 
@@ -305,13 +306,16 @@ export default function AdminShell({ children }: Props) {
               </div>
             </div>
 
-            <Link
-              href={`/${locale}/dashboard/admin/shipments/new`}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold shadow-sm cursor-pointer"
-            >
-              <PlusCircle className="w-5 h-5" />
-              Create Shipment
-            </Link>
+           <div className="flex items-center gap-2">
+    <AdminNotificationsBell />
+    <Link
+      href={`/${locale}/dashboard/admin/shipments/new`}
+      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold shadow-sm cursor-pointer"
+    >
+      <PlusCircle className="w-5 h-5" />
+      Create Shipment
+    </Link>
+  </div>
           </div>
         </header>
 

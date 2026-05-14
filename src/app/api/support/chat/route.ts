@@ -7,11 +7,28 @@ import { pusherServer, userChatChannel, adminEventsChannel } from "@/lib/pusher-
 
 function cleanStr(v: any) { return String(v ?? "").trim(); }
 
+// ─── Constants ─────────────────────────────────────────────
+const SUPPORT_DISPLAY_NAME = "Exodus Logistics";
+const USER_HISTORY_DAYS = 3;
+const AUTO_WELCOME_COOLDOWN_HOURS = 24;
+const AUTO_WELCOME_BODY =
+  "Hi! Our team is currently away. Please describe your issue in detail and an agent will join you here as soon as they're available.";
+
+// Helper: does any admin appear to be available right now?
+async function isAnyAdminAvailable(db: any): Promise<boolean> {
+  const doc = await db.collection("admin_presence").findOne({ _id: "current" } as any);
+  const onlineCount = Number(doc?.onlineCount || 0);
+  const awayEmails = Array.isArray(doc?.awayEmails) ? doc.awayEmails : [];
+  return Math.max(0, onlineCount - awayEmails.length) > 0;
+}
+
 /**
  * GET — load chat messages.
- *   For users: their own chat.
- *   For admins: pass ?userId=... to load a specific user's chat.
- * Also marks messages as read for the requester.
+ *   For users: their own chat. Older-than-3-days messages are filtered out
+ *     and `historyTruncated` flag is returned if older messages exist.
+ *   Auto-welcome message is inserted if no admin is available and there
+ *     hasn't been one in the last 24 hours.
+ *   For admins: pass ?userId=... — full history is returned.
  */
 export async function GET(req: Request) {
   try {
@@ -25,20 +42,93 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const targetUserId = isAdmin ? cleanStr(url.searchParams.get("userId")) : userId;
-    if (!targetUserId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
-    }
+    if (!targetUserId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
+    // ─── Auto-welcome logic (user side only) ──────────────────
+    let historyTruncated = false;
+
+    if (!isAdmin) {
+      const adminAvailable = await isAnyAdminAvailable(db);
+
+      if (!adminAvailable) {
+        // Check if we've sent an auto-welcome within the cooldown window
+        const cooldownAgo = new Date(Date.now() - AUTO_WELCOME_COOLDOWN_HOURS * 60 * 60 * 1000);
+        const recentWelcome = await db.collection("chat_messages").findOne({
+          userId: targetUserId,
+          isAutoWelcome: true,
+          createdAt: { $gte: cooldownAgo },
+        });
+
+        if (!recentWelcome) {
+          // Insert auto-welcome message authored by "Exodus Logistics"
+          const now = new Date();
+          await db.collection("chat_messages").insertOne({
+            userId: targetUserId,
+            userEmail: email,
+            authorType: "admin",
+            authorEmail: "support@goexoduslogistics.com",
+            authorName: SUPPORT_DISPLAY_NAME,
+            body: AUTO_WELCOME_BODY,
+            attachments: [],
+            createdAt: now,
+            readByUser: false,
+            readByAdmin: true,
+            deleted: false,
+            deletedAt: null,
+            isAutoWelcome: true,
+          });
+
+          // Upsert the chat_sessions doc so admin inbox shows this user
+          await db.collection("chat_sessions").updateOne(
+            { userId: targetUserId },
+            {
+              $set: {
+                userId: targetUserId,
+                userEmail: email,
+                userName: String((session.user as any).name || email),
+                lastMessageAt: now,
+                lastMessageBy: "admin",
+                lastMessagePreview: AUTO_WELCOME_BODY.slice(0, 100),
+                updatedAt: now,
+              },
+              $setOnInsert: { createdAt: now, unreadByAdmin: 0, unreadByUser: 0 },
+            },
+            { upsert: true }
+          );
+        }
+      }
+    }
+
+    // ─── Build query ──────────────────────────────────────────
+    const query: any = {
+      userId: targetUserId,
+      deleted: { $ne: true },
+    };
+
+    if (!isAdmin) {
+      // User only sees the last N days
+      const cutoff = new Date(Date.now() - USER_HISTORY_DAYS * 24 * 60 * 60 * 1000);
+      query.createdAt = { $gte: cutoff };
+
+      // Check if there are older messages so we can tell the user
+      const olderCount = await db.collection("chat_messages").countDocuments({
+        userId: targetUserId,
+        deleted: { $ne: true },
+        createdAt: { $lt: cutoff },
+      });
+      historyTruncated = olderCount > 0;
+    }
+
     const messages = await db.collection("chat_messages")
-      .find({ userId: targetUserId, deleted: { $ne: true } })
+      .find(query)
       .sort({ createdAt: 1 })
       .limit(500)
       .toArray();
 
-    // Mark all messages addressed to this side as read
+    // ─── Mark as read ─────────────────────────────────────────
     if (isAdmin) {
       await db.collection("chat_messages").updateMany(
         { userId: targetUserId, readByAdmin: false, deleted: { $ne: true } },
@@ -58,7 +148,6 @@ export async function GET(req: Request) {
         { $set: { unreadByUser: 0 } }
       );
 
-      // Tell admins that user has read everything (for read receipts)
       try {
         await pusherServer.trigger(adminEventsChannel(), "chat:read", {
           userId: targetUserId,
@@ -67,7 +156,6 @@ export async function GET(req: Request) {
       } catch {}
     }
 
-    // Tell the other side (via the user's private channel) that messages were read
     try {
       await pusherServer.trigger(userChatChannel(targetUserId), "chat:read", {
         by: isAdmin ? "admin" : "user",
@@ -76,6 +164,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       messages: messages.map((m: any) => ({ ...m, _id: m._id.toString() })),
+      historyTruncated,
     });
   } catch (e) {
     console.error("GET chat error", e);
@@ -87,6 +176,7 @@ export async function GET(req: Request) {
  * POST — send a chat message.
  *   For users: { body, attachments? }
  *   For admins: { userId, body, attachments? }
+ *   Admin messages have authorName = "Exodus Logistics" for display.
  */
 export async function POST(req: Request) {
   try {
@@ -112,7 +202,6 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // For admin sending to a user, look up the user's email + name from chat_sessions
     let targetUserEmail = email;
     let targetUserName = userName;
 
@@ -129,12 +218,15 @@ export async function POST(req: Request) {
     const preview = messageBody.slice(0, 100);
     const authorType = isAdmin ? "admin" : "user";
 
+    // Admin display name override
+    const displayName = isAdmin ? SUPPORT_DISPLAY_NAME : userName;
+
     const msgDoc: any = {
       userId: targetUserId,
       userEmail: targetUserEmail.toLowerCase(),
       authorType,
       authorEmail: email,
-      authorName: userName,
+      authorName: displayName,
       body: messageBody,
       attachments,
       createdAt: now,
@@ -146,7 +238,6 @@ export async function POST(req: Request) {
 
     const insert = await db.collection("chat_messages").insertOne(msgDoc);
 
-    // Upsert the chat_sessions document
     const sessionUpdate: any = {
       $set: {
         userId: targetUserId,
@@ -168,27 +259,23 @@ export async function POST(req: Request) {
 
     const outgoingMessage = { ...msgDoc, _id: insert.insertedId.toString() };
 
-    // ─── Pusher events ─────────────────────────────────────────
     try {
-      // Send to user's private channel (both sides subscribe)
       await pusherServer.trigger(userChatChannel(targetUserId), "chat:message", outgoingMessage);
-
-      // Also tell admins (so the admin chat list updates immediately)
       await pusherServer.trigger(adminEventsChannel(), "chat:message", outgoingMessage);
     } catch (e) {
       console.error("Pusher trigger (chat:message) failed:", e);
     }
 
-    // ─── Notifications ─────────────────────────────────────────
+    // ─── Notifications with link field ─────────────────────────
     if (isAdmin) {
-      // Admin sent to user → notification only (no email)
+      // Admin sent to user → user notification, link to chat
       try {
         await db.collection("notifications").insertOne({
           userEmail: targetUserEmail.toLowerCase(),
           userId: targetUserId,
           title: "New Message from Support",
-          message: messageBody.slice(0, 140),
-          link: "/dashboard/support",
+          message: messageBody.slice(0, 140) || "Sent you a message",
+          link: "/dashboard/support/chat",
           read: false,
           createdAt: now,
         });
@@ -196,7 +283,7 @@ export async function POST(req: Request) {
         console.error("Notify user (chat) failed:", e);
       }
     } else {
-      // User sent to admin → notification only (no email per your requirement)
+      // User sent to admin → admin notification
       try {
         const adminEmail = process.env.SUPPORT_ADMIN_EMAIL;
         if (adminEmail) {
@@ -205,7 +292,7 @@ export async function POST(req: Request) {
             isAdmin: true,
             title: "New Chat Message",
             message: `${userName}: ${messageBody.slice(0, 140)}`,
-            link: `/dashboard/admin/support?userId=${targetUserId}`,
+            link: `/dashboard/admin/support?tab=chats&userId=${encodeURIComponent(targetUserId)}`,
             read: false,
             createdAt: now,
           });
@@ -224,7 +311,6 @@ export async function POST(req: Request) {
 
 /**
  * DELETE — admin soft-deletes a chat message.
- *   Body: { messageId }
  */
 export async function DELETE(req: Request) {
   try {
@@ -255,12 +341,9 @@ export async function DELETE(req: Request) {
     );
 
     try {
-      await pusherServer.trigger(userChatChannel(msg.userId), "chat:delete", {
-        messageId,
-      });
+      await pusherServer.trigger(userChatChannel(msg.userId), "chat:delete", { messageId });
       await pusherServer.trigger(adminEventsChannel(), "chat:delete", {
-        messageId,
-        userId: msg.userId,
+        messageId, userId: msg.userId,
       });
     } catch {}
 

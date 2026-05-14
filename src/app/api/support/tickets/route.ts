@@ -15,27 +15,13 @@ function makeTicketNumber(): string {
 }
 
 const VALID_CATEGORIES = new Set([
-  "billing",
-  "shipment",
-  "account",
-  "technical",
-  "feature",
-  "other",
+  "billing", "shipment", "account", "technical", "feature", "other",
 ]);
 
 const VALID_STATUSES = new Set([
-  "open",
-  "awaiting_customer",
-  "in_progress",
-  "resolved",
-  "closed",
+  "open", "awaiting_customer", "in_progress", "resolved", "closed",
 ]);
 
-/**
- * GET — list tickets.
- *   For users: only their own tickets.
- *   For admins: all tickets, optionally filtered by ?status=...&category=...&q=...
- */
 export async function GET(req: Request) {
   try {
     const session = await auth();
@@ -54,9 +40,7 @@ export async function GET(req: Request) {
     const db = client.db(process.env.MONGODB_DB);
 
     const query: any = {};
-    if (!isAdmin) {
-      query.userEmail = email;
-    }
+    if (!isAdmin) query.userEmail = email;
     if (status && VALID_STATUSES.has(status)) query.status = status;
     if (category && VALID_CATEGORIES.has(category)) query.category = category;
 
@@ -80,17 +64,11 @@ export async function GET(req: Request) {
       .limit(200)
       .toArray();
 
-    // Counts per status (regardless of currently applied status filter)
     const countsQuery: any = {};
     if (!isAdmin) countsQuery.userEmail = email;
 
     const counts = {
-      all: 0,
-      open: 0,
-      awaiting_customer: 0,
-      in_progress: 0,
-      resolved: 0,
-      closed: 0,
+      all: 0, open: 0, awaiting_customer: 0, in_progress: 0, resolved: 0, closed: 0,
     };
     const aggregate = await db.collection("support_tickets").aggregate([
       { $match: countsQuery },
@@ -111,10 +89,6 @@ export async function GET(req: Request) {
   }
 }
 
-/**
- * POST — create a new ticket.
- *   Body: { subject, category, body, shipmentRef?, attachments? }
- */
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -144,7 +118,6 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // Generate a unique ticket number (retry up to 5 times if collision)
     let ticketNumber = "";
     for (let i = 0; i < 5; i++) {
       const candidate = makeTicketNumber();
@@ -157,83 +130,54 @@ export async function POST(req: Request) {
     const previewText = messageBody.slice(0, 100);
 
     const ticketDoc: any = {
-      ticketNumber,
-      userEmail: email,
-      userId,
-      userName,
-      category,
-      subject,
-      status: "open",
-      shipmentRef,
-      createdAt: now,
-      updatedAt: now,
-      resolvedAt: null,
-      closedAt: null,
-      unreadByAdmin: 1,    // the initial message is unread by admin
-      unreadByUser: 0,
-      lastMessageAt: now,
-      lastMessageBy: "user",
-      lastMessagePreview: previewText,
+      ticketNumber, userEmail: email, userId, userName,
+      category, subject, status: "open", shipmentRef,
+      createdAt: now, updatedAt: now,
+      resolvedAt: null, closedAt: null,
+      unreadByAdmin: 1, unreadByUser: 0,
+      lastMessageAt: now, lastMessageBy: "user", lastMessagePreview: previewText,
     };
 
     const insert = await db.collection("support_tickets").insertOne(ticketDoc);
     const ticketId = insert.insertedId.toString();
 
-    // Insert the initial message
     await db.collection("support_messages").insertOne({
-      ticketId,
-      authorType: "user",
-      authorEmail: email,
-      authorName: userName,
-      body: messageBody,
-      attachments,
-      createdAt: now,
-      readByUser: true,
-      readByAdmin: false,
+      ticketId, authorType: "user",
+      authorEmail: email, authorName: userName,
+      body: messageBody, attachments, createdAt: now,
+      readByUser: true, readByAdmin: false,
     });
 
-    // Notify admins via Pusher (so admin support page updates in real-time)
     try {
       await pusherServer.trigger(adminEventsChannel(), "ticket:new", {
-        ticketId,
-        ticketNumber,
-        userEmail: email,
-        userName,
-        subject,
-        category,
-        preview: previewText,
+        ticketId, ticketNumber,
+        userEmail: email, userName,
+        subject, category, preview: previewText,
         createdAt: now.toISOString(),
       });
     } catch (e) {
       console.error("Pusher trigger failed (ticket:new):", e);
     }
 
-    // Email + notification to admin support inbox
     try {
       const adminEmail = process.env.SUPPORT_ADMIN_EMAIL;
       if (adminEmail) {
-        // Dashboard notification for admin
         await db.collection("notifications").insertOne({
           userEmail: adminEmail.toLowerCase(),
           isAdmin: true,
           title: "New Support Ticket",
           message: `${userName} (${email}) opened ticket ${ticketNumber}: "${subject}"`,
-          ticketId,
-          ticketNumber,
+          ticketId, ticketNumber,
+          link: `/dashboard/admin/support/tickets/${ticketId}`,
           read: false,
           createdAt: now,
         });
 
-        // Email to admin
         const { sendSupportTicketCreatedAdminEmail } = await import("@/lib/email-support");
         await sendSupportTicketCreatedAdminEmail(adminEmail, {
-          ticketNumber,
-          subject,
-          category,
-          userName,
-          userEmail: email,
-          body: messageBody,
-          shipmentRef,
+          ticketNumber, subject, category,
+          userName, userEmail: email,
+          body: messageBody, shipmentRef,
         });
       }
     } catch (e) {
