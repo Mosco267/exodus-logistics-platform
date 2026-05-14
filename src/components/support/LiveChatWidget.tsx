@@ -56,6 +56,7 @@ export default function LiveChatWidget({
 
   // Fullscreen
   const [fullscreen, setFullscreen] = useState(false);
+  const [adminOnline, setAdminOnline] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +87,21 @@ export default function LiveChatWidget({
     if (!userId) return;
     void loadMessages();
   }, [userId, viewer]);
+
+  // ─── Admin presence poll (user side only) ─────────────────
+  useEffect(() => {
+    if (viewer !== "user") return;
+    const loadPresence = async () => {
+      try {
+        const res = await fetch("/api/support/presence", { cache: "no-store" });
+        const json = await res.json();
+        if (res.ok) setAdminOnline(Boolean(json?.online));
+      } catch {}
+    };
+    void loadPresence();
+    const id = setInterval(loadPresence, 30000);
+    return () => clearInterval(id);
+  }, [viewer]);
 
   // ─── Body scroll lock when fullscreen ─────────────────────
   useEffect(() => {
@@ -284,9 +300,18 @@ export default function LiveChatWidget({
           <div className="min-w-0">
             <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{otherPartyLabel}</p>
             {viewer === "user" && (
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                Typically replies within a few hours
-              </p>
+              adminOnline ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <p className="text-[11px] font-semibold text-green-600 dark:text-green-400">
+                    Online · We're here
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Typically replies within a few hours
+                </p>
+              )
             )}
           </div>
         </div>
