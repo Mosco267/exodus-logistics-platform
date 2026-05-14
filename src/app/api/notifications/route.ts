@@ -1,3 +1,4 @@
+// src/app/api/notifications/route.ts
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
@@ -7,11 +8,11 @@ export async function GET(req: Request) {
   try {
     const session = await auth();
     const email = String((session as any)?.user?.email || "").toLowerCase().trim();
-const userId = String((session as any)?.user?.id || "");
+    const userId = String((session as any)?.user?.id || "");
 
-if (!email) {
-  return NextResponse.json({ notifications: [], unreadCount: 0 });
-}
+    if (!email) {
+      return NextResponse.json({ notifications: [], unreadCount: 0 });
+    }
 
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get("limit") || "5"), 200);
@@ -20,11 +21,11 @@ if (!email) {
     const db = client.db(process.env.MONGODB_DB);
 
     const raw = await db
-  .collection("notifications")
-  .find(userId
-    ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
-    : { userEmail: email }
-  )
+      .collection("notifications")
+      .find(userId
+        ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
+        : { userEmail: email }
+      )
       .sort({ createdAt: -1 })
       .limit(limit)
       .toArray();
@@ -35,11 +36,11 @@ if (!email) {
     }));
 
     const unreadCount = await db.collection("notifications").countDocuments({
-  ...(userId
-    ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
-    : { userEmail: email }),
-  read: false,
-});
+      ...(userId
+        ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
+        : { userEmail: email }),
+      read: false,
+    });
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (err) {
@@ -62,18 +63,40 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    // ─── Branch 1: Mark all read ──────────────────────────────
+    if (body?.markAllRead) {
+      const ownership = userId
+        ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
+        : { userEmail: email };
+
+      const result = await db.collection("notifications").updateMany(
+        { ...ownership, read: false },
+        { $set: { read: true, readAt: new Date() } }
+      );
+
+      return NextResponse.json({ ok: true, modifiedCount: result.modifiedCount });
+    }
+
+    // ─── Branch 2: Single id ──────────────────────────────────
     const id = String(body?.id || "").trim();
 
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
     }
 
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    // Only mark as read if this notification belongs to the logged-in user.
+    // Use the same ownership rule as GET so notifications written with userId
+    // (no userEmail match) still resolve correctly.
+    const ownership = userId
+      ? { $or: [{ userId }, { userEmail: email, userId: { $exists: false } }] }
+      : { userEmail: email };
 
-    // Only mark as read if this notification belongs to the logged-in user
     const result = await db.collection("notifications").updateOne(
-      { _id: new ObjectId(id), userEmail: email },
+      { _id: new ObjectId(id), ...ownership },
       { $set: { read: true, readAt: new Date() } }
     );
 
