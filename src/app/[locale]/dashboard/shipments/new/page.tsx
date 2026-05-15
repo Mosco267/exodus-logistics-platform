@@ -1850,7 +1850,7 @@ const handleSubmit = async () => {
       
 
       <button
-  onClick={hasLimitWarning ? () => router.push(`/${locale}/support`) : handleSubmit}
+  onClick={hasLimitWarning ? () => router.push(`/${locale}/dashboard/support`) : handleSubmit}
   disabled={loading || (!pricing && !pricingError) || isLocalUnsupported}
   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
   style={{ background: isLocalUnsupported ? '#9ca3af' : hasLimitWarning ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : accent }}>
