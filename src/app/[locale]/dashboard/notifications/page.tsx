@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, Search, RefreshCw, Trash2, CheckCheck, X, ArrowLeft,
   MessageCircle, Ticket, CreditCard, Truck, Package, Inbox,
-  Loader2, Sparkles, AlertCircle, MoreVertical,
+  Loader2, Sparkles, AlertCircle,
 } from "lucide-react";
 
 type Notif = {
@@ -24,6 +24,9 @@ type Notif = {
 
 const PAGE_SIZE = 20;
 const LONG_PRESS_MS = 500;
+
+// Shipment ID regex — matches "EXS-XXXXXX-XXXXXX" patterns
+const SHIPMENT_ID_REGEX = /\b(EXS-[A-Z0-9]+-[A-Z0-9]+)\b/g;
 
 function timeAgo(dateStr?: string) {
   if (!dateStr) return "";
@@ -84,10 +87,8 @@ export default function NotificationsPage() {
   const [search, setSearch] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Selection state
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // Confirm + toast + details modal
   const [confirmDelete, setConfirmDelete] = useState<{ ids: string[]; isBulk: boolean } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
@@ -101,7 +102,6 @@ export default function NotificationsPage() {
 
   const openId = useMemo(() => String(searchParams.get("open") || "").trim(), [searchParams]);
 
-  // ─── Load ──────────────────────────────────────────────────
   const load = async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
     try {
@@ -118,14 +118,12 @@ export default function NotificationsPage() {
 
   useEffect(() => { void load(); }, []);
 
-  // Auto-open from ?open= query (when arriving from bell click)
   useEffect(() => {
     if (!openId) { setOpenDetails(null); return; }
     const found = items.find(x => String(x._id) === openId);
     if (found) setOpenDetails(found);
   }, [openId, items]);
 
-  // ─── Filter + search ───────────────────────────────────────
   const filtered = useMemo(() => {
     let r = items;
     if (filter === "unread") r = r.filter(n => !n.read);
@@ -141,20 +139,17 @@ export default function NotificationsPage() {
     return r;
   }, [items, filter, search]);
 
-  // Reset visibleCount when filter/search changes
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [filter, search]);
 
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = filtered.length > visible.length;
 
-  // ─── Counts for filter pills ──────────────────────────────
   const counts = useMemo(() => ({
     all: items.length,
     unread: items.filter(n => !n.read).length,
     read: items.filter(n => Boolean(n.read)).length,
   }), [items]);
 
-  // ─── Resolve where a notification should route to ─────────
   const resolveLink = (n: Notif): string => {
     if (n.link && typeof n.link === "string" && n.link.trim()) {
       return `/${locale}${n.link.startsWith("/") ? n.link : `/${n.link}`}`;
@@ -164,15 +159,9 @@ export default function NotificationsPage() {
     return "";
   };
 
-  // ─── Open notification ────────────────────────────────────
   const openNotif = async (n: Notif) => {
-    // If we're in selection mode, clicking a row toggles selection
-    if (selected.size > 0) {
-      toggleSelect(n._id);
-      return;
-    }
+    if (selected.size > 0) { toggleSelect(n._id); return; }
 
-    // Mark read optimistically
     setItems(prev => prev.map(x => x._id === n._id ? { ...x, read: true } : x));
     void fetch("/api/notifications", {
       method: "PATCH",
@@ -180,12 +169,18 @@ export default function NotificationsPage() {
       body: JSON.stringify({ id: n._id }),
     }).catch(() => {});
 
-    const dest = resolveLink(n);
-    if (dest) {
-      router.push(dest);
+    // ─── For admin custom messages, ALWAYS open the details modal ────
+    // (Even if a shipmentId is attached — we surface it as a button inside)
+    if (n.isCustomAdminMessage) {
+      setOpenDetails(n);
+      router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
       return;
     }
-    // No destination — open the details modal
+
+    const dest = resolveLink(n);
+    if (dest) { router.push(dest); return; }
+
+    // No destination — open details modal
     setOpenDetails(n);
     router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
   };
@@ -195,12 +190,10 @@ export default function NotificationsPage() {
     router.replace(`/${locale}/dashboard/notifications`);
   };
 
-  // ─── Selection ────────────────────────────────────────────
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -213,7 +206,6 @@ export default function NotificationsPage() {
     setSelected(next);
   };
 
-  // ─── Long-press support (mobile) ──────────────────────────
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressed = useRef(false);
 
@@ -230,7 +222,6 @@ export default function NotificationsPage() {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
-  // ─── Bulk actions ─────────────────────────────────────────
   const bulkMarkRead = async () => {
     if (selected.size === 0 || markingRead) return;
     setMarkingRead(true);
@@ -260,7 +251,6 @@ export default function NotificationsPage() {
     setDeleting(true);
     const ids = confirmDelete.ids;
     try {
-      // Optimistic
       const snapshot = items;
       setItems(prev => prev.filter(n => !ids.includes(n._id)));
 
@@ -276,7 +266,6 @@ export default function NotificationsPage() {
       } else {
         clearSelection();
         showToast(ids.length === 1 ? "Notification deleted." : `${ids.length} notifications deleted.`);
-        // If we were viewing one of the deleted, close the modal
         if (openDetails && ids.includes(openDetails._id)) closeDetails();
       }
     } catch {
@@ -296,14 +285,13 @@ export default function NotificationsPage() {
     setConfirmDelete({ ids: [id], isBulk: false });
   };
 
-  // ─── Markup ───────────────────────────────────────────────
   const inSelectionMode = selected.size > 0;
   const allVisibleSelected = visible.length > 0 && visible.every(n => selected.has(n._id));
 
   return (
     <div className="max-w-3xl mx-auto pb-12">
 
-      {/* ── Header ──────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-5 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
           <button onClick={() => router.push(`/${locale}/dashboard`)}
@@ -325,7 +313,7 @@ export default function NotificationsPage() {
         </button>
       </div>
 
-      {/* ── Filter pills + search ───────────────────────── */}
+      {/* Filter pills + search */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex gap-1 rounded-xl bg-gray-100 dark:bg-white/5 p-1">
           {([
@@ -360,9 +348,12 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ── Selection action bar (sticky) ───────────────── */}
+      {/* ✅ FIX #3 — Sticky action bar — `top` adjusted for mobile header height
+          On mobile: dashboard header (~56px) + search row (~64px) = ~120px
+          On desktop (md+): just header (~56px) → 14
+      */}
       {inSelectionMode && (
-        <div className="sticky top-14 z-20 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 backdrop-blur-md shadow-sm p-3 flex items-center justify-between gap-2 flex-wrap">
+        <div className="sticky top-[120px] md:top-14 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <button onClick={clearSelection}
               className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/60 dark:hover:bg-white/10 transition text-blue-700 dark:text-blue-300">
@@ -393,7 +384,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* ── Notifications list ──────────────────────────── */}
+      {/* Notifications list */}
       <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
 
         {loading ? (
@@ -446,13 +437,11 @@ export default function NotificationsPage() {
                               : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                       }`}>
 
-                      {/* Admin message left bar */}
                       {isAdminMsg && !isSelected && (
                         <span className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-violet-500 via-blue-600 to-cyan-500" />
                       )}
 
                       <div className="flex items-start gap-3">
-                        {/* Checkbox (selection) */}
                         <div
                           onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
                           className={`shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition ${
@@ -470,7 +459,6 @@ export default function NotificationsPage() {
                           )}
                         </div>
 
-                        {/* Icon */}
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 relative ${
                           isAdminMsg
                             ? "bg-gradient-to-br from-violet-500 via-blue-600 to-cyan-500 shadow-sm"
@@ -487,7 +475,6 @@ export default function NotificationsPage() {
                           )}
                         </div>
 
-                        {/* Body */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -524,7 +511,6 @@ export default function NotificationsPage() {
                           </div>
                         </div>
 
-                        {/* Delete button (per-row, desktop only) */}
                         <button
                           onClick={(e) => { e.stopPropagation(); askDeleteSingle(n._id); }}
                           className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer"
@@ -538,7 +524,6 @@ export default function NotificationsPage() {
               })}
             </ul>
 
-            {/* Load more */}
             {hasMore && (
               <div className="px-4 py-4 border-t border-gray-100 dark:border-white/10 text-center">
                 <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
@@ -551,15 +536,18 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* ── Details modal ───────────────────────────────── */}
       {openDetails && (
         <DetailsModal
           notif={openDetails}
+          locale={locale}
           onClose={closeDetails}
-          onDelete={() => askDeleteSingle(openDetails._id)} />
+          onDelete={() => askDeleteSingle(openDetails._id)}
+          onNavigateShipment={(id) => {
+            closeDetails();
+            router.push(`/${locale}/dashboard/status/${encodeURIComponent(id)}`);
+          }} />
       )}
 
-      {/* ── Confirm delete modal ────────────────────────── */}
       {confirmDelete && (
         <ConfirmDeleteModal
           count={confirmDelete.ids.length}
@@ -569,16 +557,18 @@ export default function NotificationsPage() {
           onConfirm={bulkDelete} />
       )}
 
-      {/* ── Toast ───────────────────────────────────────── */}
+      {/* ✅ FIX #1 — Toast: lifted above the iOS Safari bottom URL bar, centered text */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className={`px-4 py-2.5 rounded-xl shadow-xl text-sm font-bold flex items-center gap-2 ${
+        <div className="fixed left-0 right-0 bottom-24 sm:bottom-8 z-[9999] flex justify-center px-4 pointer-events-none">
+          <div className={`pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center justify-center gap-2 text-center max-w-sm ${
             toast.type === "success"
               ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
               : "bg-red-600 text-white"
           }`}>
-            {toast.type === "success" ? <CheckCheck size={14} /> : <AlertCircle size={14} />}
-            {toast.msg}
+            {toast.type === "success"
+              ? <CheckCheck size={14} className="shrink-0" />
+              : <AlertCircle size={14} className="shrink-0" />}
+            <span>{toast.msg}</span>
           </div>
         </div>
       )}
@@ -587,28 +577,58 @@ export default function NotificationsPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DETAILS MODAL
+// DETAILS MODAL — ✅ FIX #2: always centered + shipment ID handling
 // ═══════════════════════════════════════════════════════════════
 
 function DetailsModal({
-  notif, onClose, onDelete,
+  notif, locale, onClose, onDelete, onNavigateShipment,
 }: {
   notif: Notif;
+  locale: string;
   onClose: () => void;
   onDelete: () => void;
+  onNavigateShipment: (shipmentId: string) => void;
 }) {
-  const { Icon, bg, fg, label } = classifyNotif(notif);
+  const { Icon, bg, fg } = classifyNotif(notif);
   const isAdminMsg = Boolean(notif.isCustomAdminMessage);
 
+  // ─── Parse message body — detect EXS-* IDs and turn them into links ────
+  const messageNodes = useMemo(() => {
+    const text = notif.message || "";
+    if (!text) return null;
+
+    const nodes: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let m: RegExpExecArray | null;
+    SHIPMENT_ID_REGEX.lastIndex = 0;
+
+    while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
+      if (m.index > lastIndex) {
+        nodes.push(text.slice(lastIndex, m.index));
+      }
+      const id = m[1];
+      nodes.push(
+        <button
+          key={`${m.index}-${id}`}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onNavigateShipment(id); }}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 font-bold font-mono text-[12px] hover:bg-violet-200 dark:hover:bg-violet-500/30 transition cursor-pointer">
+          <Truck size={11} /> {id}
+        </button>
+      );
+      lastIndex = m.index + m[0].length;
+    }
+    if (lastIndex < text.length) {
+      nodes.push(text.slice(lastIndex));
+    }
+    return nodes.length > 0 ? nodes : text;
+  }, [notif.message, onNavigateShipment]);
+
   return (
-    <div className="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full sm:max-w-lg bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-gray-100 dark:border-white/10 max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Drag handle (mobile only) */}
-        <div className="sm:hidden flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-white/20" />
-        </div>
+      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] overflow-hidden flex flex-col">
 
         {/* Admin gradient bar */}
         {isAdminMsg && (
@@ -646,10 +666,22 @@ function DetailsModal({
           </button>
         </div>
 
-        {/* Body */}
+        {/* Body — with inline shipment ID links */}
         <div className="flex-1 overflow-y-auto px-5 py-4 text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
-          {notif.message || ""}
+          {messageNodes}
         </div>
+
+        {/* Attached shipment ID button — primary CTA when admin attached one */}
+        {notif.shipmentId && (
+          <div className="px-5 pt-2 pb-2">
+            <button
+              onClick={() => onNavigateShipment(notif.shipmentId!)}
+              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 hover:opacity-90 text-white text-sm font-bold transition shadow-sm">
+              <Truck size={15} />
+              View Shipment {notif.shipmentId}
+            </button>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-100 dark:border-white/10 flex justify-end gap-2">
