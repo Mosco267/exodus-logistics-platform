@@ -4,10 +4,11 @@ import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { ObjectId } from "mongodb";
 
+function cleanStr(v: any) { return String(v ?? "").trim(); }
+
 /**
- * GET — list admin notifications (notifications with isAdmin: true that
- * belong to the support admin email).
- * Returns { notifications, unreadCount }.
+ * GET — list admin notifications (for the admin bell).
+ * These are notifications addressed to SUPPORT_ADMIN_EMAIL with isAdmin: true.
  */
 export async function GET(req: Request) {
   try {
@@ -50,8 +51,67 @@ export async function GET(req: Request) {
 }
 
 /**
- * PATCH — mark notifications as read.
- *   Body: { id } to mark a single one, OR { markAllRead: true } for all.
+ * POST — admin sends a custom notification to a user.
+ *   Body: { userId, userEmail, title, message, shipmentId? }
+ *
+ * The notification is flagged with isCustomAdminMessage: true so the user UI
+ * can render it with a distinct "from Exodus Logistics" style.
+ */
+export async function POST(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const role = String((session.user as any).role || "USER");
+    if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const body = await req.json().catch(() => ({}));
+    const userId = cleanStr(body?.userId);
+    const userEmail = cleanStr(body?.userEmail).toLowerCase();
+    const title = cleanStr(body?.title);
+    const message = cleanStr(body?.message);
+    const shipmentId = cleanStr(body?.shipmentId) || undefined;
+
+    if (!title || title.length < 1) {
+      return NextResponse.json({ error: "Title is required." }, { status: 400 });
+    }
+    if (!message || message.length < 1) {
+      return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    }
+    if (!userId && !userEmail) {
+      return NextResponse.json({ error: "Missing recipient (userId or userEmail)." }, { status: 400 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB);
+
+    const doc: any = {
+      title,
+      message,
+      isCustomAdminMessage: true,    // ✅ distinguishes admin-sent custom notifications
+      sentByAdminEmail: String((session.user as any).email || "").toLowerCase(),
+      read: false,
+      createdAt: new Date(),
+    };
+    if (userId) doc.userId = userId;
+    if (userEmail) doc.userEmail = userEmail;
+    if (shipmentId) doc.shipmentId = shipmentId;
+
+    const result = await db.collection("notifications").insertOne(doc);
+
+    return NextResponse.json({
+      ok: true,
+      notification: { ...doc, _id: result.insertedId.toString() },
+    });
+  } catch (e) {
+    console.error("POST admin notifications error", e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH — mark admin notifications as read (for the admin bell).
+ *   Body: { id } single, OR { markAllRead: true }.
  */
 export async function PATCH(req: Request) {
   try {
