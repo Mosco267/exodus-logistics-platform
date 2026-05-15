@@ -70,7 +70,6 @@ export default function AdminNotificationsBell() {
     return () => clearInterval(id);
   }, []);
 
-  // Live updates via Pusher
   useEffect(() => {
     const pusher = getPusherClient();
     if (!pusher) return;
@@ -88,7 +87,6 @@ export default function AdminNotificationsBell() {
     };
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
@@ -122,6 +120,9 @@ export default function AdminNotificationsBell() {
     setUnreadCount(prev => n.read ? prev : Math.max(0, prev - 1));
   };
 
+  // Plain string — no template literal with newlines.
+  const dropdownClass = "absolute right-0 top-full mt-2 w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden z-50";
+
   return (
     <div className="relative" ref={wrapRef}>
       <button
@@ -137,12 +138,13 @@ export default function AdminNotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden z-50">
+        <div className={dropdownClass}>
 
           <div className="px-4 py-3 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
             <p className="text-sm font-extrabold text-gray-900 dark:text-white">Notifications</p>
             {unreadCount > 0 && (
-              <button onClick={markAllRead}
+              <button
+                onClick={markAllRead}
                 className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700">
                 <CheckCheck size={11} /> Mark all read
               </button>
@@ -168,19 +170,24 @@ export default function AdminNotificationsBell() {
               <div className="divide-y divide-gray-100 dark:divide-white/10">
                 {items.map(n => {
                   const href = n.link ? `/${locale}${n.link}` : null;
+                  const rowClass = `px-4 py-3 transition cursor-pointer ${
+                    n.read
+                      ? "hover:bg-gray-50 dark:hover:bg-white/5"
+                      : "bg-blue-50/50 dark:bg-blue-500/5 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                  }`;
+                  const titleClass = `text-xs font-bold truncate ${
+                    n.read ? "text-gray-700 dark:text-gray-300" : "text-gray-900 dark:text-white"
+                  }`;
+
                   const inner = (
-                    <div className={`px-4 py-3 transition cursor-pointer ${
-                      n.read ? "hover:bg-gray-50 dark:hover:bg-white/5" : "bg-blue-50/50 dark:bg-blue-500/5 hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                    }`}>
+                    <div className={rowClass}>
                       <div className="flex items-start gap-2.5">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-gray-100 dark:bg-white/5">
                           {iconForTitle(n.title)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className={`text-xs font-bold truncate ${n.read ? "text-gray-700 dark:text-gray-300" : "text-gray-900 dark:text-white"}`}>
-                              {n.title}
-                            </p>
+                            <p className={titleClass}>{n.title}</p>
                             {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1" />}
                           </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{n.message}</p>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Bell, MessageCircle, Ticket, CreditCard, Package, Truck,
-  AlertCircle, CheckCheck, Inbox, Loader2,
+  CheckCheck, Inbox, Loader2,
 } from "lucide-react";
 
 type Notif = {
@@ -39,7 +39,6 @@ function timeAgo(dateStr?: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** Categorize a notification so we can show the right icon + color. */
 function classifyNotif(n: Notif): {
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   bg: string;
@@ -85,7 +84,7 @@ export default function NotificationsBell() {
       setItems(Array.isArray(json?.notifications) ? json.notifications : []);
       setUnreadCount(Number(json?.unreadCount || 0));
     } catch {
-      // Silent — keep current state on transient failure
+      // silent
     } finally {
       if (!silent) setLoading(false);
     }
@@ -97,10 +96,8 @@ export default function NotificationsBell() {
     return () => window.clearInterval(t);
   }, []);
 
-  // Close on outside click + ESC
   useEffect(() => {
     if (!open) return;
-
     const onDown = (e: MouseEvent) => {
       const el = boxRef.current;
       if (el && !el.contains(e.target as Node)) setOpen(false);
@@ -108,7 +105,6 @@ export default function NotificationsBell() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-
     window.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
     return () => {
@@ -145,7 +141,6 @@ export default function NotificationsBell() {
         setItems(prev => prev.map(n => ({ ...n, read: true })));
         setUnreadCount(0);
       } else {
-        // Fall back: mark each unread one individually so UI clears
         const unread = items.filter(n => !n.read);
         await Promise.all(unread.map(n => markRead(String(n._id))));
         setItems(prev => prev.map(n => ({ ...n, read: true })));
@@ -156,41 +151,40 @@ export default function NotificationsBell() {
     }
   };
 
-  /** Resolve where a notification should route to when clicked. */
   const resolveLink = (n: Notif): string => {
-    // 1) Explicit link field (preferred — set by chat/ticket notifications)
     if (n.link && typeof n.link === "string" && n.link.trim()) {
       return `/${locale}${n.link.startsWith("/") ? n.link : `/${n.link}`}`;
     }
-    // 2) Ticket-flavored fallback
     if (n.ticketId) {
       return `/${locale}/dashboard/support/tickets/${n.ticketId}`;
     }
-    // 3) Shipment-flavored fallback (your original behavior)
     if (n.shipmentId) {
       return `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`;
     }
-    // 4) Last resort — go to notifications page with this one expanded
     return `/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`;
   };
 
   const openNotif = async (n: Notif) => {
-    // Optimistic UI
     setItems(prev => prev.map(x => x._id === n._id ? { ...x, read: true } : x));
     if (!n.read) setUnreadCount(c => Math.max(0, c - 1));
-
     void markRead(String(n._id));
     setOpen(false);
-
     router.push(resolveLink(n));
   };
 
   const hasUnread = unreadCount > 0;
 
+  // Build className arrays as plain strings — no template literals with newlines.
+  const panelClass = [
+    "z-50 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-200",
+    "md:absolute md:right-0 md:mt-2 md:w-[380px] md:max-w-[calc(100vw-2rem)] md:rounded-2xl md:border md:border-gray-200 md:dark:border-white/10",
+    "fixed left-0 right-0 top-16 mx-3 rounded-2xl border border-gray-200 dark:border-white/10",
+  ].join(" ");
+
   return (
     <div className="relative" ref={boxRef}>
 
-      {/* ── Bell trigger ──────────────────────────────────── */}
+      {/* Bell trigger */}
       <button
         type="button"
         onClick={handleOpen}
@@ -204,29 +198,13 @@ export default function NotificationsBell() {
         )}
       </button>
 
-      {/* ── Dropdown / mobile sheet ───────────────────────── */}
+      {/* Dropdown / mobile sheet */}
       {open && (
         <>
           {/* Mobile backdrop */}
           <div className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={() => setOpen(false)} />
 
-          <div
-            className="
-              z-50 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden
-              md:absolute md:right-0 md:mt-2 md:w-[380px] md:max-w-[calc(100vw-2rem)] md:rounded-2xl md:border md:border-gray-200 md:dark:border-white/10
-              fixed left-0 right-0 top-16 mx-3 rounded-2xl border border-gray-200 dark:border-white/10
-              animate-[notif-in_180ms_ease-out]
-            "
-            style={{
-              animation: "notif-in 180ms ease-out",
-            }}>
-
-            <style jsx>{`
-              @keyframes notif-in {
-                from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-                to   { opacity: 1; transform: translateY(0) scale(1); }
-              }
-            `}</style>
+          <div className={panelClass}>
 
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 dark:border-white/10 bg-gradient-to-b from-gray-50 to-white dark:from-white/[0.03] dark:to-transparent">
@@ -286,12 +264,9 @@ export default function NotificationsBell() {
                               : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                           }`}>
                           <div className="flex items-start gap-3">
-                            {/* Icon */}
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
                               <Icon size={16} className={fg} />
                             </div>
-
-                            {/* Body */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className={`text-sm leading-tight truncate ${isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"}`}>
