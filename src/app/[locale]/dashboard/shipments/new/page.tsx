@@ -1923,7 +1923,7 @@ const handleSubmit = async () => {
             <CheckCircle2 size={15} />
             Yes, my details are correct
           </button>
-          <button onClick={() => { setShowConfirmDetailsModal(false); router.push(`/${locale}/support`); }}
+          <button onClick={() => { setShowConfirmDetailsModal(false); router.push(`/${locale}/dashboard/support`); }}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
             Contact Support
           </button>

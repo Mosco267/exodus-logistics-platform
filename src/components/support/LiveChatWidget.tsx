@@ -304,7 +304,7 @@ export default function LiveChatWidget({
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   <p className="text-[11px] font-semibold text-green-600 dark:text-green-400">
-                    Online · We're here
+                    Support is online
                   </p>
                 </div>
               ) : (
