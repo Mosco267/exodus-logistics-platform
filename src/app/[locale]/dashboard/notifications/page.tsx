@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Search, RefreshCw, Trash2, CheckCheck, X, ArrowLeft,
   MessageCircle, Ticket, CreditCard, Truck, Package, Inbox,
-  Loader2, Sparkles, AlertCircle, FileText,
+  Loader2, AlertCircle, FileText, Mail,
 } from "lucide-react";
 
 type Notif = {
@@ -28,13 +28,12 @@ const PAGE_SIZE = 20;
 const LONG_PRESS_MS = 500;
 
 // ─── Identifier regexes ─────────────────────────────────────
-// Shipment IDs follow the pattern EXS-XXXXXX-XXXXXX
-const SHIPMENT_ID_REGEX = /\b(EXS-[A-Z0-9]+-[A-Z0-9]+)\b/g;
-// Tracking number: EX + 2 digits (year) + 2 letters (country) + 7 digits + 1 letter
-  // e.g. EX26USQE12345WL
-  const TRACKING_NUMBER_REGEX = /\bEX\d{2}[A-Z]{2}\d{7}[A-Z]\b/g;
-// Invoice numbers — INV-XXXXX or INVOICE-XXXXX patterns
-const INVOICE_NUMBER_REGEX = /\b(INV(?:OICE)?[-_]?[A-Z0-9]{4,})\b/gi;
+// Shipment IDs: EXS-XXXXXX-XXXXXX (e.g. EXS-260508-70BC17)
+const SHIPMENT_ID_REGEX = /\bEXS-[A-Z0-9]+-[A-Z0-9]+\b/g;
+// Invoice numbers: EXS-INV-YYYY-MM-XXXXXXX (e.g. EXS-INV-2026-05-8154429)
+const INVOICE_NUMBER_REGEX = /\bEXS-INV-\d{4}-\d{2}-\d{7}\b/g;
+// Tracking numbers: EX + 2 digits + 2 letters + 7 digits + 1 letter (e.g. EX26CA8853535B)
+const TRACKING_NUMBER_REGEX = /\bEX\d{2}[A-Z]{2}\d{7}[A-Z]\b/g;
 
 type ParsedToken =
   | { type: "text"; value: string }
@@ -42,40 +41,34 @@ type ParsedToken =
   | { type: "tracking"; value: string }
   | { type: "invoice"; value: string };
 
-/**
- * Parse a message string into tokens that include detected identifiers.
- * Order of detection: shipment IDs first (most specific), then invoice numbers,
- * then tracking numbers (least specific).
- */
 function parseMessageTokens(text: string): ParsedToken[] {
   if (!text) return [];
 
-  // Collect all matches with their position + type
   type Match = { start: number; end: number; type: "shipment" | "tracking" | "invoice"; value: string };
   const matches: Match[] = [];
 
-  // 1. Shipment IDs
-  SHIPMENT_ID_REGEX.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
-    matches.push({ start: m.index, end: m.index + m[0].length, type: "shipment", value: m[1] });
-  }
-
-  // 2. Invoice numbers
+  // 1. Invoices (most specific — starts with EXS-INV-)
   INVOICE_NUMBER_REGEX.lastIndex = 0;
+  let m: RegExpExecArray | null;
   while ((m = INVOICE_NUMBER_REGEX.exec(text)) !== null) {
-    const s = m.index, e = m.index + m[0].length;
-    // Skip if already captured by another regex (overlap)
-    if (matches.some(x => s < x.end && e > x.start)) continue;
-    matches.push({ start: s, end: e, type: "invoice", value: m[1] });
+    matches.push({ start: m.index, end: m.index + m[0].length, type: "invoice", value: m[0] });
   }
 
-  // 3. Tracking numbers
+  // 2. Shipment IDs (starts with EXS- but not EXS-INV-)
+  SHIPMENT_ID_REGEX.lastIndex = 0;
+  while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
+    const s = m.index, e = m.index + m[0].length;
+    // Skip if already matched as an invoice
+    if (matches.some(x => s < x.end && e > x.start)) continue;
+    matches.push({ start: s, end: e, type: "shipment", value: m[0] });
+  }
+
+  // 3. Tracking numbers (starts with EX + digit, not EXS-)
   TRACKING_NUMBER_REGEX.lastIndex = 0;
   while ((m = TRACKING_NUMBER_REGEX.exec(text)) !== null) {
     const s = m.index, e = m.index + m[0].length;
     if (matches.some(x => s < x.end && e > x.start)) continue;
-    matches.push({ start: s, end: e, type: "tracking", value: m[1] });
+    matches.push({ start: s, end: e, type: "tracking", value: m[0] });
   }
 
   // Sort by position
@@ -122,6 +115,10 @@ function classifyNotif(n: Notif): {
   fg: string;
   label: string;
 } {
+  // Admin custom messages get a friendly mail icon — no fancy treatment
+  if (n.isCustomAdminMessage) {
+    return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400", label: "Message" };
+  }
   const t = (n.title || "").toLowerCase();
   const m = (n.message || "").toLowerCase();
   const blob = `${t} ${m}`;
@@ -234,7 +231,7 @@ export default function NotificationsPage() {
     } else if (type === "tracking") {
       router.push(`/${locale}/dashboard/track?q=${encodeURIComponent(value)}`);
     } else if (type === "invoice") {
-      router.push(`/${locale}/dashboard/invoices?q=${encodeURIComponent(value)}`);
+      router.push(`/${locale}/dashboard/invoices/${encodeURIComponent(value)}`);
     }
   };
 
@@ -248,8 +245,6 @@ export default function NotificationsPage() {
       body: JSON.stringify({ id: n._id }),
     }).catch(() => {});
 
-    // Admin custom messages — always open the details modal so the
-    // user sees the full content + any clickable IDs / attached shipment button
     if (n.isCustomAdminMessage) {
       setOpenDetails(n);
       router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
@@ -426,37 +421,73 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ✅ Selection action bar — sits right under the mobile header (top-14 on both) */}
+      {/* ✅ Selection bar — FIXED at the very top, covering the dashboard header (mobile only) */}
       {inSelectionMode && (
-        <div className="sticky top-14 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <button onClick={clearSelection}
-              className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/60 dark:hover:bg-white/10 transition text-blue-700 dark:text-blue-300">
-              <X size={14} />
-            </button>
-            <p className="text-sm font-bold text-blue-700 dark:text-blue-300 truncate">
-              {selected.size} selected
-            </p>
-            {!allVisibleSelected && visible.length > 0 && (
-              <button onClick={selectAllVisible}
-                className="cursor-pointer ml-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline">
-                Select all visible
+        <>
+          {/* Mobile: fixed across the top, covers header */}
+          <div className="md:hidden fixed top-0 left-0 right-0 z-[100] bg-blue-600 dark:bg-blue-700 shadow-lg">
+            <div className="px-3 py-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <button onClick={clearSelection}
+                  className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/15 transition text-white">
+                  <X size={16} />
+                </button>
+                <p className="text-sm font-bold text-white truncate">
+                  {selected.size} selected
+                </p>
+                {!allVisibleSelected && visible.length > 0 && (
+                  <button onClick={selectAllVisible}
+                    className="cursor-pointer ml-1 text-[11px] font-bold text-white/90 hover:text-white underline">
+                    Select all
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button onClick={bulkMarkRead} disabled={markingRead}
+                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition disabled:opacity-60">
+                  {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
+                  <span>Read</span>
+                </button>
+                <button onClick={askDeleteSelected}
+                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition">
+                  <Trash2 size={12} />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: sticky just under the header */}
+          <div className="hidden md:flex sticky top-14 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
+              <button onClick={clearSelection}
+                className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/60 dark:hover:bg-white/10 transition text-blue-700 dark:text-blue-300">
+                <X size={14} />
               </button>
-            )}
+              <p className="text-sm font-bold text-blue-700 dark:text-blue-300 truncate">
+                {selected.size} selected
+              </p>
+              {!allVisibleSelected && visible.length > 0 && (
+                <button onClick={selectAllVisible}
+                  className="cursor-pointer ml-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline">
+                  Select all visible
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button onClick={bulkMarkRead} disabled={markingRead}
+                className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-500/30 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/20 transition disabled:opacity-60">
+                {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
+                <span>Read</span>
+              </button>
+              <button onClick={askDeleteSelected}
+                className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition">
+                <Trash2 size={12} />
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button onClick={bulkMarkRead} disabled={markingRead}
-              className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-500/30 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/20 transition disabled:opacity-60">
-              {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-              <span>Read</span>
-            </button>
-            <button onClick={askDeleteSelected}
-              className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition">
-              <Trash2 size={12} />
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Notifications list */}
@@ -492,7 +523,6 @@ export default function NotificationsPage() {
                 const { Icon, bg, fg, label } = classifyNotif(n);
                 const isUnread = !n.read;
                 const isSelected = selected.has(n._id);
-                const isAdminMsg = Boolean(n.isCustomAdminMessage);
 
                 return (
                   <li key={n._id}
@@ -505,17 +535,10 @@ export default function NotificationsPage() {
                       className={`w-full text-left px-4 py-4 cursor-pointer transition relative group ${
                         isSelected
                           ? "bg-blue-50 dark:bg-blue-500/15"
-                          : isAdminMsg
-                            ? "bg-gradient-to-r from-violet-50/60 to-blue-50/40 dark:from-violet-500/[0.06] dark:to-blue-500/[0.04] hover:from-violet-50 hover:to-blue-50 dark:hover:from-violet-500/10 dark:hover:to-blue-500/[0.08]"
-                            : isUnread
-                              ? "bg-blue-50/40 dark:bg-blue-500/[0.04] hover:bg-blue-50 dark:hover:bg-blue-500/[0.08]"
-                              : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                          : isUnread
+                            ? "bg-blue-50/40 dark:bg-blue-500/[0.04] hover:bg-blue-50 dark:hover:bg-blue-500/[0.08]"
+                            : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                       }`}>
-
-                      {isAdminMsg && !isSelected && (
-                        <span className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-violet-500 via-blue-600 to-cyan-500" />
-                      )}
-
                       <div className="flex items-start gap-3">
                         <div
                           onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
@@ -534,36 +557,17 @@ export default function NotificationsPage() {
                           )}
                         </div>
 
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 relative ${
-                          isAdminMsg
-                            ? "bg-gradient-to-br from-violet-500 via-blue-600 to-cyan-500 shadow-sm"
-                            : bg
-                        }`}>
-                          {isAdminMsg
-                            ? <Sparkles size={18} className="text-white" />
-                            : <Icon size={18} className={fg} />
-                          }
-                          {isAdminMsg && (
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-gray-900 border-2 border-white dark:border-gray-900 flex items-center justify-center">
-                              <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-                            </span>
-                          )}
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                          <Icon size={18} className={fg} />
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              {isAdminMsg && (
-                                <p className="text-[10px] font-extrabold uppercase tracking-widest bg-gradient-to-r from-violet-600 to-blue-600 dark:from-violet-400 dark:to-blue-400 bg-clip-text text-transparent mb-0.5">
-                                  Message from Exodus Logistics
-                                </p>
-                              )}
-                              <p className={`text-sm leading-tight ${
-                                isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"
-                              }`}>
-                                {n.title || "Notification"}
-                              </p>
-                            </div>
+                            <p className={`text-sm leading-tight ${
+                              isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"
+                            }`}>
+                              {n.title || "Notification"}
+                            </p>
                             <div className="flex items-center gap-1.5 shrink-0">
                               {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1.5" aria-label="Unread" />}
                             </div>
@@ -574,10 +578,8 @@ export default function NotificationsPage() {
                             {n.message || ""}
                           </p>
                           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${
-                              isAdminMsg ? "text-violet-600 dark:text-violet-400" : fg
-                            }`}>
-                              {isAdminMsg ? "Custom" : label}
+                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${fg}`}>
+                              {label}
                             </span>
                             <span className="text-gray-300 dark:text-gray-600 text-[10px]">•</span>
                             <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">
@@ -628,7 +630,6 @@ export default function NotificationsPage() {
           onConfirm={bulkDelete} />
       )}
 
-      {/* ✅ Toast — lifted high above mobile URL bar, text centered */}
       {toast && (
         <div className="fixed left-0 right-0 bottom-24 sm:bottom-8 z-[9999] flex justify-center px-4 pointer-events-none">
           <div className={`pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center justify-center gap-2 text-center max-w-sm ${
@@ -648,7 +649,7 @@ export default function NotificationsPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DETAILS MODAL — centered + parses identifiers in message body
+// DETAILS MODAL — centered + clickable identifier pills
 // ═══════════════════════════════════════════════════════════════
 
 function DetailsModal({
@@ -660,7 +661,6 @@ function DetailsModal({
   onNavigateToken: (type: "shipment" | "tracking" | "invoice", value: string) => void;
 }) {
   const { Icon, bg, fg } = classifyNotif(notif);
-  const isAdminMsg = Boolean(notif.isCustomAdminMessage);
 
   const tokens = useMemo(() => parseMessageTokens(notif.message || ""), [notif.message]);
 
@@ -668,9 +668,9 @@ function DetailsModal({
     type, value,
   }: { type: "shipment" | "tracking" | "invoice"; value: string }) => {
     const style = {
-      shipment:  { bg: "bg-violet-100 dark:bg-violet-500/20",  fg: "text-violet-700 dark:text-violet-300",  hov: "hover:bg-violet-200 dark:hover:bg-violet-500/30",   Icon: Truck },
-      tracking:  { bg: "bg-blue-100 dark:bg-blue-500/20",      fg: "text-blue-700 dark:text-blue-300",      hov: "hover:bg-blue-200 dark:hover:bg-blue-500/30",       Icon: Package },
-      invoice:   { bg: "bg-emerald-100 dark:bg-emerald-500/20", fg: "text-emerald-700 dark:text-emerald-300", hov: "hover:bg-emerald-200 dark:hover:bg-emerald-500/30", Icon: FileText },
+      shipment: { bg: "bg-violet-100 dark:bg-violet-500/20",   fg: "text-violet-700 dark:text-violet-300",   hov: "hover:bg-violet-200 dark:hover:bg-violet-500/30",   Icon: Truck },
+      tracking: { bg: "bg-blue-100 dark:bg-blue-500/20",       fg: "text-blue-700 dark:text-blue-300",       hov: "hover:bg-blue-200 dark:hover:bg-blue-500/30",       Icon: Package },
+      invoice:  { bg: "bg-emerald-100 dark:bg-emerald-500/20", fg: "text-emerald-700 dark:text-emerald-300", hov: "hover:bg-emerald-200 dark:hover:bg-emerald-500/30", Icon: FileText },
     }[type];
     const I = style.Icon;
     return (
@@ -689,26 +689,12 @@ function DetailsModal({
 
       <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] overflow-hidden flex flex-col">
 
-        {isAdminMsg && (
-          <div className="h-1.5 bg-gradient-to-r from-violet-500 via-blue-600 to-cyan-500" />
-        )}
-
         <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-white/10">
           <div className="flex items-start gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-              isAdminMsg ? "bg-gradient-to-br from-violet-500 via-blue-600 to-cyan-500" : bg
-            }`}>
-              {isAdminMsg
-                ? <Sparkles size={18} className="text-white" />
-                : <Icon size={18} className={fg} />
-              }
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+              <Icon size={18} className={fg} />
             </div>
             <div className="min-w-0">
-              {isAdminMsg && (
-                <p className="text-[10px] font-extrabold uppercase tracking-widest bg-gradient-to-r from-violet-600 to-blue-600 dark:from-violet-400 dark:to-blue-400 bg-clip-text text-transparent mb-0.5">
-                  Message from Exodus Logistics
-                </p>
-              )}
               <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">
                 {notif.title || "Notification"}
               </h3>
@@ -723,7 +709,6 @@ function DetailsModal({
           </button>
         </div>
 
-        {/* Body with clickable identifier pills */}
         <div className="flex-1 overflow-y-auto px-5 py-4 text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
           {tokens.map((tok, i) => {
             if (tok.type === "text") return <span key={i}>{tok.value}</span>;
@@ -731,12 +716,11 @@ function DetailsModal({
           })}
         </div>
 
-        {/* Attached shipment ID CTA — primary action when admin attached one via the form */}
         {notif.shipmentId && (
           <div className="px-5 pt-2 pb-2">
             <button
               onClick={() => onNavigateToken("shipment", notif.shipmentId!)}
-              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 hover:opacity-90 text-white text-sm font-bold transition shadow-sm">
+              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition shadow-sm">
               <Truck size={15} />
               View Shipment {notif.shipmentId}
             </button>
