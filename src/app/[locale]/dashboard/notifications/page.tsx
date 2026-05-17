@@ -28,11 +28,8 @@ const PAGE_SIZE = 20;
 const LONG_PRESS_MS = 500;
 
 // ─── Identifier regexes ─────────────────────────────────────
-// Shipment IDs: EXS-XXXXXX-XXXXXX (e.g. EXS-260508-70BC17)
 const SHIPMENT_ID_REGEX = /\bEXS-[A-Z0-9]+-[A-Z0-9]+\b/g;
-// Invoice numbers: EXS-INV-YYYY-MM-XXXXXXX (e.g. EXS-INV-2026-05-8154429)
 const INVOICE_NUMBER_REGEX = /\bEXS-INV-\d{4}-\d{2}-\d{7}\b/g;
-// Tracking numbers: EX + 2 digits + 2 letters + 7 digits + 1 letter (e.g. EX26CA8853535B)
 const TRACKING_NUMBER_REGEX = /\bEX\d{2}[A-Z]{2}\d{7}[A-Z]\b/g;
 
 type ParsedToken =
@@ -47,23 +44,19 @@ function parseMessageTokens(text: string): ParsedToken[] {
   type Match = { start: number; end: number; type: "shipment" | "tracking" | "invoice"; value: string };
   const matches: Match[] = [];
 
-  // 1. Invoices (most specific — starts with EXS-INV-)
   INVOICE_NUMBER_REGEX.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = INVOICE_NUMBER_REGEX.exec(text)) !== null) {
     matches.push({ start: m.index, end: m.index + m[0].length, type: "invoice", value: m[0] });
   }
 
-  // 2. Shipment IDs (starts with EXS- but not EXS-INV-)
   SHIPMENT_ID_REGEX.lastIndex = 0;
   while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
     const s = m.index, e = m.index + m[0].length;
-    // Skip if already matched as an invoice
     if (matches.some(x => s < x.end && e > x.start)) continue;
     matches.push({ start: s, end: e, type: "shipment", value: m[0] });
   }
 
-  // 3. Tracking numbers (starts with EX + digit, not EXS-)
   TRACKING_NUMBER_REGEX.lastIndex = 0;
   while ((m = TRACKING_NUMBER_REGEX.exec(text)) !== null) {
     const s = m.index, e = m.index + m[0].length;
@@ -71,10 +64,8 @@ function parseMessageTokens(text: string): ParsedToken[] {
     matches.push({ start: s, end: e, type: "tracking", value: m[0] });
   }
 
-  // Sort by position
   matches.sort((a, b) => a.start - b.start);
 
-  // Build tokens
   const tokens: ParsedToken[] = [];
   let cursor = 0;
   for (const match of matches) {
@@ -115,7 +106,6 @@ function classifyNotif(n: Notif): {
   fg: string;
   label: string;
 } {
-  // Admin custom messages get a friendly mail icon — no fancy treatment
   if (n.isCustomAdminMessage) {
     return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400", label: "Message" };
   }
@@ -184,10 +174,15 @@ export default function NotificationsPage() {
 
   useEffect(() => { void load(); }, []);
 
+  // ✅ FIX — Auto-open from ?open=<id> ONLY when notif arrived from bell click.
+  // If user manually clicked a notification on this page, openNotif() already
+  // sets openDetails directly, so don't re-trigger from the URL change.
   useEffect(() => {
-    if (!openId) { setOpenDetails(null); return; }
+    if (!openId) return;
+    if (openDetails && openDetails._id === openId) return; // already showing right one
     const found = items.find(x => String(x._id) === openId);
     if (found) setOpenDetails(found);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId, items]);
 
   const filtered = useMemo(() => {
@@ -229,12 +224,16 @@ export default function NotificationsPage() {
     if (type === "shipment") {
       router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
     } else if (type === "tracking") {
-      router.push(`/${locale}/dashboard/track?q=${encodeURIComponent(value)}`);
+      // ✅ FIX — Send to the shipment status page, NOT the search page.
+      // The status page accepts a tracking number too and shows the timeline.
+      router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
     } else if (type === "invoice") {
       router.push(`/${locale}/dashboard/invoices/${encodeURIComponent(value)}`);
     }
   };
 
+  // ✅ FIX — Immediately set openDetails so the user sees the right
+  // content on the first paint. Avoid waiting for URL state to round-trip.
   const openNotif = async (n: Notif) => {
     if (selected.size > 0) { toggleSelect(n._id); return; }
 
@@ -246,8 +245,9 @@ export default function NotificationsPage() {
     }).catch(() => {});
 
     if (n.isCustomAdminMessage) {
+      // Set details FIRST (sync), then update URL (async). No blink.
       setOpenDetails(n);
-      router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
+      router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`, { scroll: false });
       return;
     }
 
@@ -255,12 +255,12 @@ export default function NotificationsPage() {
     if (dest) { router.push(dest); return; }
 
     setOpenDetails(n);
-    router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
+    router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`, { scroll: false });
   };
 
   const closeDetails = () => {
     setOpenDetails(null);
-    router.replace(`/${locale}/dashboard/notifications`);
+    router.replace(`/${locale}/dashboard/notifications`, { scroll: false });
   };
 
   const toggleSelect = (id: string) => {
@@ -421,11 +421,11 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ✅ Selection bar — FIXED at the very top, covering the dashboard header (mobile only) */}
+      {/* ✅ Selection bar — z-index bumped to outrank any dashboard header */}
       {inSelectionMode && (
         <>
-          {/* Mobile: fixed across the top, covers header */}
-          <div className="md:hidden fixed top-0 left-0 right-0 z-[100] bg-blue-600 dark:bg-blue-700 shadow-lg">
+          {/* Mobile: fixed across the top, fully covers the dashboard header */}
+          <div className="md:hidden fixed top-0 left-0 right-0 z-[9000] bg-blue-600 dark:bg-blue-700 shadow-lg" style={{ paddingTop: "env(safe-area-inset-top)" }}>
             <div className="px-3 py-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <button onClick={clearSelection}
@@ -532,7 +532,7 @@ export default function NotificationsPage() {
                     <button
                       type="button"
                       onClick={() => openNotif(n)}
-                      className={`w-full text-left px-4 py-4 cursor-pointer transition relative group ${
+                      className={`w-full text-left px-4 py-4 cursor-pointer transition-colors duration-150 relative group ${
                         isSelected
                           ? "bg-blue-50 dark:bg-blue-500/15"
                           : isUnread
@@ -540,22 +540,35 @@ export default function NotificationsPage() {
                             : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                       }`}>
                       <div className="flex items-start gap-3">
-                        <div
-                          onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
-                          className={`shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition ${
-                            isSelected
-                              ? "bg-blue-600 border-blue-600"
-                              : "border-gray-300 dark:border-white/20 group-hover:border-blue-400 dark:group-hover:border-blue-500/50 bg-white dark:bg-gray-900"
-                          } ${inSelectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"}`}
-                          style={{ opacity: inSelectionMode || isSelected ? 1 : undefined }}
-                          role="checkbox"
-                          aria-checked={isSelected}>
-                          {isSelected && (
-                            <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
-                              <path d="M2.5 6L5 8.5L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </div>
+
+                        {/* ✅ Checkbox — only rendered when in selection mode OR on hover on desktop.
+                            Content reflows naturally when this appears/disappears. */}
+                        {(inSelectionMode || isSelected) && (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
+                            className={`shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition ${
+                              isSelected
+                                ? "bg-blue-600 border-blue-600"
+                                : "border-gray-300 dark:border-white/20 hover:border-blue-400 dark:hover:border-blue-500/50 bg-white dark:bg-gray-900"
+                            }`}
+                            role="checkbox"
+                            aria-checked={isSelected}>
+                            {isSelected && (
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M2.5 6L5 8.5L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Desktop hover-only checkbox (visible only on hover, not in selection mode) */}
+                        {!inSelectionMode && !isSelected && (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
+                            className="hidden md:flex shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 items-center justify-center cursor-pointer transition opacity-0 group-hover:opacity-100 border-gray-300 dark:border-white/20 hover:border-blue-400 dark:hover:border-blue-500/50 bg-white dark:bg-gray-900"
+                            role="checkbox"
+                            aria-checked={false} />
+                        )}
 
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
                           <Icon size={18} className={fg} />
@@ -615,6 +628,7 @@ export default function NotificationsPage() {
 
       {openDetails && (
         <DetailsModal
+          key={openDetails._id /* ✅ remounts on switch — no leftover stale content */}
           notif={openDetails}
           onClose={closeDetails}
           onDelete={() => askDeleteSingle(openDetails._id)}
@@ -649,7 +663,7 @@ export default function NotificationsPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DETAILS MODAL — centered + clickable identifier pills
+// DETAILS MODAL
 // ═══════════════════════════════════════════════════════════════
 
 function DetailsModal({
