@@ -30,8 +30,9 @@ const LONG_PRESS_MS = 500;
 // ─── Identifier regexes ─────────────────────────────────────
 // Shipment IDs follow the pattern EXS-XXXXXX-XXXXXX
 const SHIPMENT_ID_REGEX = /\b(EXS-[A-Z0-9]+-[A-Z0-9]+)\b/g;
-// Tracking numbers — typically uppercase alphanumeric, 8–20 chars, NOT starting with EXS-
-const TRACKING_NUMBER_REGEX = /\b(?!EXS-)([A-Z]{2,3}[0-9]{6,16}[A-Z]{0,2})\b/g;
+// Tracking number: EX + 2 digits (year) + 2 letters (country) + 7 digits + 1 letter
+  // e.g. EX26USQE12345WL
+  const TRACKING_NUMBER_REGEX = /\bEX\d{2}[A-Z]{2}\d{7}[A-Z]\b/g;
 // Invoice numbers — INV-XXXXX or INVOICE-XXXXX patterns
 const INVOICE_NUMBER_REGEX = /\b(INV(?:OICE)?[-_]?[A-Z0-9]{4,})\b/gi;
 
