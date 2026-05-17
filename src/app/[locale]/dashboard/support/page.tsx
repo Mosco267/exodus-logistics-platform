@@ -50,7 +50,8 @@ export default function SupportLandingPage() {
   const headerSubCls = isMidnight ? "text-white/70" : "text-gray-500 dark:text-gray-400";
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 space-y-6">
+    // ✅ Container narrowed to max-w-2xl so cards + header + help panel align
+    <div className="max-w-2xl mx-auto pb-12 space-y-6">
 
       <div>
         <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>Support</h1>
@@ -59,7 +60,8 @@ export default function SupportLandingPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+      {/* ✅ Grid fills the centered container — no extra max-width needed */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Live Chat */}
         <Link
@@ -100,7 +102,8 @@ export default function SupportLandingPage() {
         </a>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] p-5 max-w-2xl">
+      {/* ✅ Help panel — matches container width naturally now */}
+      <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] p-5">
         <h3 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3">Which option should I use?</h3>
         <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
           <li className="flex gap-2">

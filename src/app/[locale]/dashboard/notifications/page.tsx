@@ -4,9 +4,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
-  Bell, Search, RefreshCw, Trash2, CheckCheck, X, ArrowLeft,
+  Search, RefreshCw, Trash2, CheckCheck, X, ArrowLeft,
   MessageCircle, Ticket, CreditCard, Truck, Package, Inbox,
-  Loader2, Sparkles, AlertCircle,
+  Loader2, Sparkles, AlertCircle, FileText,
 } from "lucide-react";
 
 type Notif = {
@@ -14,6 +14,8 @@ type Notif = {
   title?: string;
   message?: string;
   shipmentId?: string;
+  trackingNumber?: string;
+  invoiceNumber?: string;
   link?: string;
   ticketId?: string;
   ticketNumber?: string;
@@ -25,8 +27,74 @@ type Notif = {
 const PAGE_SIZE = 20;
 const LONG_PRESS_MS = 500;
 
-// Shipment ID regex — matches "EXS-XXXXXX-XXXXXX" patterns
+// ─── Identifier regexes ─────────────────────────────────────
+// Shipment IDs follow the pattern EXS-XXXXXX-XXXXXX
 const SHIPMENT_ID_REGEX = /\b(EXS-[A-Z0-9]+-[A-Z0-9]+)\b/g;
+// Tracking numbers — typically uppercase alphanumeric, 8–20 chars, NOT starting with EXS-
+const TRACKING_NUMBER_REGEX = /\b(?!EXS-)([A-Z]{2,3}[0-9]{6,16}[A-Z]{0,2})\b/g;
+// Invoice numbers — INV-XXXXX or INVOICE-XXXXX patterns
+const INVOICE_NUMBER_REGEX = /\b(INV(?:OICE)?[-_]?[A-Z0-9]{4,})\b/gi;
+
+type ParsedToken =
+  | { type: "text"; value: string }
+  | { type: "shipment"; value: string }
+  | { type: "tracking"; value: string }
+  | { type: "invoice"; value: string };
+
+/**
+ * Parse a message string into tokens that include detected identifiers.
+ * Order of detection: shipment IDs first (most specific), then invoice numbers,
+ * then tracking numbers (least specific).
+ */
+function parseMessageTokens(text: string): ParsedToken[] {
+  if (!text) return [];
+
+  // Collect all matches with their position + type
+  type Match = { start: number; end: number; type: "shipment" | "tracking" | "invoice"; value: string };
+  const matches: Match[] = [];
+
+  // 1. Shipment IDs
+  SHIPMENT_ID_REGEX.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
+    matches.push({ start: m.index, end: m.index + m[0].length, type: "shipment", value: m[1] });
+  }
+
+  // 2. Invoice numbers
+  INVOICE_NUMBER_REGEX.lastIndex = 0;
+  while ((m = INVOICE_NUMBER_REGEX.exec(text)) !== null) {
+    const s = m.index, e = m.index + m[0].length;
+    // Skip if already captured by another regex (overlap)
+    if (matches.some(x => s < x.end && e > x.start)) continue;
+    matches.push({ start: s, end: e, type: "invoice", value: m[1] });
+  }
+
+  // 3. Tracking numbers
+  TRACKING_NUMBER_REGEX.lastIndex = 0;
+  while ((m = TRACKING_NUMBER_REGEX.exec(text)) !== null) {
+    const s = m.index, e = m.index + m[0].length;
+    if (matches.some(x => s < x.end && e > x.start)) continue;
+    matches.push({ start: s, end: e, type: "tracking", value: m[1] });
+  }
+
+  // Sort by position
+  matches.sort((a, b) => a.start - b.start);
+
+  // Build tokens
+  const tokens: ParsedToken[] = [];
+  let cursor = 0;
+  for (const match of matches) {
+    if (match.start > cursor) {
+      tokens.push({ type: "text", value: text.slice(cursor, match.start) });
+    }
+    tokens.push({ type: match.type, value: match.value });
+    cursor = match.end;
+  }
+  if (cursor < text.length) {
+    tokens.push({ type: "text", value: text.slice(cursor) });
+  }
+  return tokens;
+}
 
 function timeAgo(dateStr?: string) {
   if (!dateStr) return "";
@@ -159,6 +227,16 @@ export default function NotificationsPage() {
     return "";
   };
 
+  const navigateToIdentifier = (type: "shipment" | "tracking" | "invoice", value: string) => {
+    if (type === "shipment") {
+      router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
+    } else if (type === "tracking") {
+      router.push(`/${locale}/dashboard/track?q=${encodeURIComponent(value)}`);
+    } else if (type === "invoice") {
+      router.push(`/${locale}/dashboard/invoices?q=${encodeURIComponent(value)}`);
+    }
+  };
+
   const openNotif = async (n: Notif) => {
     if (selected.size > 0) { toggleSelect(n._id); return; }
 
@@ -169,8 +247,8 @@ export default function NotificationsPage() {
       body: JSON.stringify({ id: n._id }),
     }).catch(() => {});
 
-    // ─── For admin custom messages, ALWAYS open the details modal ────
-    // (Even if a shipmentId is attached — we surface it as a button inside)
+    // Admin custom messages — always open the details modal so the
+    // user sees the full content + any clickable IDs / attached shipment button
     if (n.isCustomAdminMessage) {
       setOpenDetails(n);
       router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
@@ -180,7 +258,6 @@ export default function NotificationsPage() {
     const dest = resolveLink(n);
     if (dest) { router.push(dest); return; }
 
-    // No destination — open details modal
     setOpenDetails(n);
     router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`);
   };
@@ -348,12 +425,9 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ✅ FIX #3 — Sticky action bar — `top` adjusted for mobile header height
-          On mobile: dashboard header (~56px) + search row (~64px) = ~120px
-          On desktop (md+): just header (~56px) → 14
-      */}
+      {/* ✅ Selection action bar — sits right under the mobile header (top-14 on both) */}
       {inSelectionMode && (
-        <div className="sticky top-[120px] md:top-14 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-2 flex-wrap">
+        <div className="sticky top-14 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <button onClick={clearSelection}
               className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/60 dark:hover:bg-white/10 transition text-blue-700 dark:text-blue-300">
@@ -539,13 +613,9 @@ export default function NotificationsPage() {
       {openDetails && (
         <DetailsModal
           notif={openDetails}
-          locale={locale}
           onClose={closeDetails}
           onDelete={() => askDeleteSingle(openDetails._id)}
-          onNavigateShipment={(id) => {
-            closeDetails();
-            router.push(`/${locale}/dashboard/status/${encodeURIComponent(id)}`);
-          }} />
+          onNavigateToken={navigateToIdentifier} />
       )}
 
       {confirmDelete && (
@@ -557,7 +627,7 @@ export default function NotificationsPage() {
           onConfirm={bulkDelete} />
       )}
 
-      {/* ✅ FIX #1 — Toast: lifted above the iOS Safari bottom URL bar, centered text */}
+      {/* ✅ Toast — lifted high above mobile URL bar, text centered */}
       {toast && (
         <div className="fixed left-0 right-0 bottom-24 sm:bottom-8 z-[9999] flex justify-center px-4 pointer-events-none">
           <div className={`pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center justify-center gap-2 text-center max-w-sm ${
@@ -577,52 +647,40 @@ export default function NotificationsPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DETAILS MODAL — ✅ FIX #2: always centered + shipment ID handling
+// DETAILS MODAL — centered + parses identifiers in message body
 // ═══════════════════════════════════════════════════════════════
 
 function DetailsModal({
-  notif, locale, onClose, onDelete, onNavigateShipment,
+  notif, onClose, onDelete, onNavigateToken,
 }: {
   notif: Notif;
-  locale: string;
   onClose: () => void;
   onDelete: () => void;
-  onNavigateShipment: (shipmentId: string) => void;
+  onNavigateToken: (type: "shipment" | "tracking" | "invoice", value: string) => void;
 }) {
   const { Icon, bg, fg } = classifyNotif(notif);
   const isAdminMsg = Boolean(notif.isCustomAdminMessage);
 
-  // ─── Parse message body — detect EXS-* IDs and turn them into links ────
-  const messageNodes = useMemo(() => {
-    const text = notif.message || "";
-    if (!text) return null;
+  const tokens = useMemo(() => parseMessageTokens(notif.message || ""), [notif.message]);
 
-    const nodes: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let m: RegExpExecArray | null;
-    SHIPMENT_ID_REGEX.lastIndex = 0;
-
-    while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
-      if (m.index > lastIndex) {
-        nodes.push(text.slice(lastIndex, m.index));
-      }
-      const id = m[1];
-      nodes.push(
-        <button
-          key={`${m.index}-${id}`}
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onNavigateShipment(id); }}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 font-bold font-mono text-[12px] hover:bg-violet-200 dark:hover:bg-violet-500/30 transition cursor-pointer">
-          <Truck size={11} /> {id}
-        </button>
-      );
-      lastIndex = m.index + m[0].length;
-    }
-    if (lastIndex < text.length) {
-      nodes.push(text.slice(lastIndex));
-    }
-    return nodes.length > 0 ? nodes : text;
-  }, [notif.message, onNavigateShipment]);
+  const TokenPill = ({
+    type, value,
+  }: { type: "shipment" | "tracking" | "invoice"; value: string }) => {
+    const style = {
+      shipment:  { bg: "bg-violet-100 dark:bg-violet-500/20",  fg: "text-violet-700 dark:text-violet-300",  hov: "hover:bg-violet-200 dark:hover:bg-violet-500/30",   Icon: Truck },
+      tracking:  { bg: "bg-blue-100 dark:bg-blue-500/20",      fg: "text-blue-700 dark:text-blue-300",      hov: "hover:bg-blue-200 dark:hover:bg-blue-500/30",       Icon: Package },
+      invoice:   { bg: "bg-emerald-100 dark:bg-emerald-500/20", fg: "text-emerald-700 dark:text-emerald-300", hov: "hover:bg-emerald-200 dark:hover:bg-emerald-500/30", Icon: FileText },
+    }[type];
+    const I = style.Icon;
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onNavigateToken(type, value); }}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${style.bg} ${style.fg} ${style.hov} font-bold font-mono text-[12px] transition cursor-pointer align-baseline`}>
+        <I size={11} /> {value}
+      </button>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
@@ -630,12 +688,10 @@ function DetailsModal({
 
       <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] overflow-hidden flex flex-col">
 
-        {/* Admin gradient bar */}
         {isAdminMsg && (
           <div className="h-1.5 bg-gradient-to-r from-violet-500 via-blue-600 to-cyan-500" />
         )}
 
-        {/* Header */}
         <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-white/10">
           <div className="flex items-start gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -666,16 +722,19 @@ function DetailsModal({
           </button>
         </div>
 
-        {/* Body — with inline shipment ID links */}
+        {/* Body with clickable identifier pills */}
         <div className="flex-1 overflow-y-auto px-5 py-4 text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
-          {messageNodes}
+          {tokens.map((tok, i) => {
+            if (tok.type === "text") return <span key={i}>{tok.value}</span>;
+            return <TokenPill key={i} type={tok.type} value={tok.value} />;
+          })}
         </div>
 
-        {/* Attached shipment ID button — primary CTA when admin attached one */}
+        {/* Attached shipment ID CTA — primary action when admin attached one via the form */}
         {notif.shipmentId && (
           <div className="px-5 pt-2 pb-2">
             <button
-              onClick={() => onNavigateShipment(notif.shipmentId!)}
+              onClick={() => onNavigateToken("shipment", notif.shipmentId!)}
               className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-600 hover:opacity-90 text-white text-sm font-bold transition shadow-sm">
               <Truck size={15} />
               View Shipment {notif.shipmentId}
@@ -683,7 +742,6 @@ function DetailsModal({
           </div>
         )}
 
-        {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-100 dark:border-white/10 flex justify-end gap-2">
           <button onClick={onClose}
             className="cursor-pointer px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition">
