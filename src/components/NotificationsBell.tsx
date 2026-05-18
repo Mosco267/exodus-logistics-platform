@@ -1,3 +1,4 @@
+// src/components/NotificationsBell.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -5,7 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Bell, MessageCircle, Ticket, CreditCard, Package, Truck,
-  CheckCheck, Inbox, Loader2,
+  CheckCheck, Inbox, Loader2, Mail,
 } from "lucide-react";
 
 type Notif = {
@@ -16,6 +17,7 @@ type Notif = {
   link?: string;
   ticketId?: string;
   ticketNumber?: string;
+  isCustomAdminMessage?: boolean;
   read?: boolean;
   createdAt?: string;
 };
@@ -44,11 +46,14 @@ function classifyNotif(n: Notif): {
   bg: string;
   fg: string;
 } {
+  if (n.isCustomAdminMessage) {
+    return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400" };
+  }
   const t = (n.title || "").toLowerCase();
   const m = (n.message || "").toLowerCase();
   const blob = `${t} ${m}`;
 
-  if (n.link?.includes("/support/chat") || blob.includes("chat") || blob.includes("message from support")) {
+  if (n.link?.includes("/support/chat") || blob.includes("message from support")) {
     return { Icon: MessageCircle, bg: "bg-blue-100 dark:bg-blue-500/15", fg: "text-blue-600 dark:text-blue-400" };
   }
   if (n.ticketId || n.ticketNumber || blob.includes("ticket")) {
@@ -151,16 +156,17 @@ export default function NotificationsBell() {
     }
   };
 
+  // ✅ Routes to use existing tracking page
   const resolveLink = (n: Notif): string => {
+    // Admin custom notifications: always go to the full notifications page
+    if (n.isCustomAdminMessage) {
+      return `/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`;
+    }
     if (n.link && typeof n.link === "string" && n.link.trim()) {
       return `/${locale}${n.link.startsWith("/") ? n.link : `/${n.link}`}`;
     }
-    if (n.ticketId) {
-      return `/${locale}/dashboard/support/tickets/${n.ticketId}`;
-    }
-    if (n.shipmentId) {
-      return `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`;
-    }
+    if (n.ticketId) return `/${locale}/dashboard/support/tickets/${n.ticketId}`;
+    if (n.shipmentId) return `/${locale}/dashboard/track/${encodeURIComponent(n.shipmentId)}`;
     return `/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`;
   };
 
@@ -174,17 +180,18 @@ export default function NotificationsBell() {
 
   const hasUnread = unreadCount > 0;
 
-  // Build className arrays as plain strings — no template literals with newlines.
+  // ✅ Desktop dropdown — clamp to viewport so it doesn't overflow when
+  // the bell is at the right edge of the screen.
+  // The trick is to anchor it from the RIGHT and use min(380px, calc(100vw - 2rem)).
   const panelClass = [
     "z-50 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-200",
-    "md:absolute md:right-0 md:mt-2 md:w-[380px] md:max-w-[calc(100vw-2rem)] md:rounded-2xl md:border md:border-gray-200 md:dark:border-white/10",
-    "fixed left-0 right-0 top-16 mx-3 rounded-2xl border border-gray-200 dark:border-white/10",
+    "md:absolute md:right-0 md:mt-2 md:rounded-2xl md:border md:border-gray-200 md:dark:border-white/10",
+    "fixed left-3 right-3 top-16 mx-auto rounded-2xl border border-gray-200 dark:border-white/10",
+    "md:left-auto md:top-auto md:mx-0",
   ].join(" ");
 
   return (
     <div className="relative" ref={boxRef}>
-
-      {/* Bell trigger */}
       <button
         type="button"
         onClick={handleOpen}
@@ -198,15 +205,18 @@ export default function NotificationsBell() {
         )}
       </button>
 
-      {/* Dropdown / mobile sheet */}
       {open && (
         <>
           {/* Mobile backdrop */}
           <div className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={() => setOpen(false)} />
 
-          <div className={panelClass}>
+          <div
+            className={panelClass}
+            style={{
+              // Desktop: 380px wide, but never wider than viewport minus margins
+              width: "min(380px, calc(100vw - 1.5rem))",
+            }}>
 
-            {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 dark:border-white/10 bg-gradient-to-b from-gray-50 to-white dark:from-white/[0.03] dark:to-transparent">
               <div className="flex items-center gap-2 min-w-0">
                 <p className="font-extrabold text-gray-900 dark:text-white text-base">Notifications</p>
@@ -231,7 +241,6 @@ export default function NotificationsBell() {
               </div>
             </div>
 
-            {/* List */}
             <div className="max-h-[60vh] md:max-h-[440px] overflow-y-auto overscroll-contain">
               {loading && items.length === 0 ? (
                 <div className="p-10 flex flex-col items-center justify-center gap-2">
@@ -292,7 +301,6 @@ export default function NotificationsBell() {
               )}
             </div>
 
-            {/* Footer */}
             <div className="px-4 py-2.5 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/[0.03]">
               <Link
                 href={`/${locale}/dashboard/notifications`}

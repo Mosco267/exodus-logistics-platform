@@ -1,3 +1,4 @@
+// src/app/api/invoice/route.ts
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { DEFAULT_PRICING } from "@/lib/pricing";
@@ -20,32 +21,20 @@ type CompanySettingsDoc = {
   registrationNumber?: string;
 };
 
-function cleanStr(v: any) {
-  const s = String(v ?? "").trim();
-  return s || "";
-}
-
-function normUpper(v: any) {
-  return cleanStr(v).toUpperCase();
-}
-
+function cleanStr(v: any) { const s = String(v ?? "").trim(); return s || ""; }
+function normUpper(v: any) { return cleanStr(v).toUpperCase(); }
 function joinNice(parts: Array<any>) {
-  return parts
-    .map((x) => String(x || "").trim())
-    .filter(Boolean)
-    .join(", ");
+  return parts.map((x) => String(x || "").trim()).filter(Boolean).join(", ");
 }
 
 function makeInvoiceNumber(seedA: string, seedB: string) {
   const now = new Date();
   const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, "0");
-
   const seed = `${seedA}::${seedB}`;
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   const seven = String((h % 9000000) + 1000000);
-
   return `EXS-INV-${yyyy}-${mm}-${seven}`;
 }
 
@@ -63,11 +52,13 @@ function normalizeInvoiceStatus(v: any): InvoiceStatus | null {
 function computeInvoiceStatus(paid: boolean, dueDate?: string | null): InvoiceStatus {
   if (paid) return "paid";
   if (!dueDate) return "unpaid";
-
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "unpaid";
   return Date.now() > d.getTime() ? "overdue" : "unpaid";
 }
+
+// ✅ Detect EXS-INV-YYYY-MM-XXXXXXX pattern
+const INVOICE_NUMBER_REGEX = /^EXS-INV-\d{4}-\d{2}-\d{7}$/i;
 
 export async function GET(req: Request) {
   try {
@@ -78,18 +69,12 @@ export async function GET(req: Request) {
     const emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
 
     if (!q && !invoiceParam) {
-      return NextResponse.json(
-        { error: "Provide q OR invoice (+ email)." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Provide q OR invoice (+ email)." }, { status: 400 });
     }
 
     const dbName = process.env.MONGODB_DB;
     if (!dbName) {
-      return NextResponse.json(
-        { error: "Server is missing MONGODB_DB environment variable." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Server is missing MONGODB_DB environment variable." }, { status: 500 });
     }
 
     const client = await clientPromise;
@@ -101,9 +86,7 @@ export async function GET(req: Request) {
 
     const company = {
       name: companyDoc?.name || "Exodus Logistics Ltd.",
-      address:
-        companyDoc?.address ||
-        "1199 E Calaveras Blvd, California, USA 90201",
+      address: companyDoc?.address || "1199 E Calaveras Blvd, California, USA 90201",
       phone: companyDoc?.phone || "+1 (516) 243-7836",
       email: companyDoc?.email || "support@goexoduslogistics.com",
       registrationNumber: companyDoc?.registrationNumber || "",
@@ -117,12 +100,10 @@ export async function GET(req: Request) {
 
     let shipment: any | null = null;
 
+    // ─── Public-facing invoice lookup (with email proof) ─────────────
     if (invoiceParam) {
       if (!emailParam) {
-        return NextResponse.json(
-          { error: "email is required when using invoice." },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "email is required when using invoice." }, { status: 400 });
       }
 
       const invUpper = normUpper(invoiceParam);
@@ -141,9 +122,7 @@ export async function GET(req: Request) {
 
       if (!shipment) {
         shipment = await db.collection("shipments").findOne(
-          {
-            $or: [ciExact("trackingNumber", invUpper), ciExact("shipmentId", invUpper)],
-          },
+          { $or: [ciExact("trackingNumber", invUpper), ciExact("shipmentId", invUpper)] },
           { projection: { _id: 0 } }
         );
       }
@@ -166,12 +145,44 @@ export async function GET(req: Request) {
       }
     }
 
+    // ─── Dashboard lookup using `q` ──────────────────────────────────
+    // ✅ FIXED — `q` can now be EITHER:
+    //   - a shipment ID (EXS-XXXXXX-XXXXXX)
+    //   - a tracking number (EX26CA8853535B etc.)
+    //   - an invoice number (EXS-INV-YYYY-MM-XXXXXXX)
     if (!shipment && q) {
       const qq = normUpper(q);
-      shipment = await db.collection("shipments").findOne(
-        { trackingNumber: { $regex: `^${escapeRegex(qq)}$`, $options: "i" } },
-        { projection: { _id: 0 } }
-      );
+
+      // Try invoice number first if it matches the pattern
+      if (INVOICE_NUMBER_REGEX.test(qq)) {
+        shipment = await db.collection("shipments").findOne(
+          {
+            $or: [
+              ciExact("invoice.invoiceNumber", qq),
+              ciExact("invoiceNumber", qq),
+              ciExact("invoice.invoiceNo", qq),
+              ciExact("invoice.invoice_number", qq),
+            ],
+          },
+          { projection: { _id: 0 } }
+        );
+      }
+
+      // Then try trackingNumber
+      if (!shipment) {
+        shipment = await db.collection("shipments").findOne(
+          { trackingNumber: { $regex: `^${escapeRegex(qq)}$`, $options: "i" } },
+          { projection: { _id: 0 } }
+        );
+      }
+
+      // Then try shipmentId
+      if (!shipment) {
+        shipment = await db.collection("shipments").findOne(
+          { shipmentId: { $regex: `^${escapeRegex(qq)}$`, $options: "i" } },
+          { projection: { _id: 0 } }
+        );
+      }
 
       if (!shipment) {
         return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
@@ -199,18 +210,11 @@ export async function GET(req: Request) {
     const computedStatus = computeInvoiceStatus(false, dueDate);
 
     let status: InvoiceStatus;
-
-    if (explicitStatus === "paid") {
-      status = "paid";
-    } else if (explicitStatus === "cancelled") {
-      status = "cancelled";
-    } else if (explicitStatus === "overdue") {
-      status = "overdue";
-    } else if (computedStatus === "overdue") {
-      status = "overdue";
-    } else {
-      status = "unpaid";
-    }
+    if (explicitStatus === "paid") status = "paid";
+    else if (explicitStatus === "cancelled") status = "cancelled";
+    else if (explicitStatus === "overdue") status = "overdue";
+    else if (computedStatus === "overdue") status = "overdue";
+    else status = "unpaid";
 
     const paid = status === "paid";
 
@@ -238,12 +242,8 @@ export async function GET(req: Request) {
       ? { ...pricingDefaults, ...inv.pricingUsed }
       : { ...pricingDefaults };
 
-    // Map shipping → baseFreight so the new public invoice page sees it.
-    // Keep both keys to remain backward-compatible.
     const rawBreakdown = inv?.breakdown || {};
-    const baseFreightVal = Number(
-      rawBreakdown.baseFreight ?? rawBreakdown.shipping ?? 0
-    ) || 0;
+    const baseFreightVal = Number(rawBreakdown.baseFreight ?? rawBreakdown.shipping ?? 0) || 0;
 
     const breakdown = inv?.breakdown
       ? {
@@ -252,12 +252,7 @@ export async function GET(req: Request) {
           baseFreight: baseFreightVal,
           shipping: Number(rawBreakdown.shipping ?? baseFreightVal) || 0,
         }
-      : {
-          declaredValue,
-          baseFreight: 0,
-          shipping: 0,
-          pricingUsed,
-        };
+      : { declaredValue, baseFreight: 0, shipping: 0, pricingUsed };
 
     const amount = Number(inv?.amount ?? breakdown?.total ?? 0) || 0;
 
@@ -266,17 +261,9 @@ export async function GET(req: Request) {
     const receiverCountry =
       cleanStr(s?.receiverCountry || s?.receiverCountryName || s?.destinationCountryCode) || null;
 
-    const fromFull =
-      joinNice([s?.senderCity, s?.senderState, senderCountry]) ||
-      cleanStr(s?.origin) ||
-      "—";
+    const fromFull = joinNice([s?.senderCity, s?.senderState, senderCountry]) || cleanStr(s?.origin) || "—";
+    const toFull = joinNice([s?.receiverCity, s?.receiverState, receiverCountry]) || cleanStr(s?.destination) || "—";
 
-    const toFull =
-      joinNice([s?.receiverCity, s?.receiverState, receiverCountry]) ||
-      cleanStr(s?.destination) ||
-      "—";
-
-    // Find the most recent tracking event occurredAt
     const trackingEvents = Array.isArray(s?.trackingEvents) ? s.trackingEvents : [];
     const lastEventAt = trackingEvents.length > 0
       ? trackingEvents.reduce((latest: any, ev: any) =>
@@ -292,57 +279,40 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       company,
-
       invoiceNumber,
       status,
       currency,
       total: amount,
       paid,
-
       dueDate,
       paymentMethod,
-
       declaredValue,
       breakdown,
       pricingUsed,
-
-      // NEW: expose estimated delivery so the public invoice page can show
-      // the same min/max range as the create-shipment page
       estimatedDelivery: s?.estimatedDeliveryDate || s?.estimatedDelivery || null,
       estimatedDeliveryDateMin: s?.estimatedDeliveryDateMin || null,
       shipmentScope: cleanStr(s?.shipmentScope) || null,
-
       shipment: {
         shipmentId: cleanStr(s?.shipmentId),
         trackingNumber: cleanStr(s?.trackingNumber),
-
         originFull: fromFull,
         destinationFull: toFull,
-
         status: lastEventLabel || cleanStr(s?.status) || "—",
-
         shipmentType: s?.shipmentType || s?.packageType || null,
         serviceLevel: s?.serviceLevel || s?.serviceType || s?.speed || null,
-        // NEW: shipmentMeans for the breakdown label
         shipmentMeans: cleanStr(s?.shipmentMeans) || null,
         weightKg: s?.weightKg ?? s?.weight ?? null,
         dimensionsCm: s?.dimensionsCm ?? s?.dimensions ?? null,
       },
-
       parties: {
         senderName: cleanStr(s?.senderName) || "Sender",
         senderEmail: cleanStr(s?.senderEmail) || cleanStr(s?.createdByEmail) || "",
         receiverName: cleanStr(s?.receiverName) || "Receiver",
         receiverEmail: cleanStr(s?.receiverEmail) || "",
       },
-
       currentStatus: lastEventLabel || cleanStr(s?.status) || "—",
       lastEventAt: lastEventAt || null,
-
-      dates: {
-        createdAt: s?.createdAt || null,
-        updatedAt: s?.updatedAt || null,
-      },
+      dates: { createdAt: s?.createdAt || null, updatedAt: s?.updatedAt || null },
     });
   } catch (e) {
     console.error(e);

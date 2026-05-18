@@ -27,7 +27,6 @@ type Notif = {
 const PAGE_SIZE = 20;
 const LONG_PRESS_MS = 500;
 
-// ─── Identifier regexes ─────────────────────────────────────
 const SHIPMENT_ID_REGEX = /\bEXS-[A-Z0-9]+-[A-Z0-9]+\b/g;
 const INVOICE_NUMBER_REGEX = /\bEXS-INV-\d{4}-\d{2}-\d{7}\b/g;
 const TRACKING_NUMBER_REGEX = /\bEX\d{2}[A-Z]{2}\d{7}[A-Z]\b/g;
@@ -49,14 +48,12 @@ function parseMessageTokens(text: string): ParsedToken[] {
   while ((m = INVOICE_NUMBER_REGEX.exec(text)) !== null) {
     matches.push({ start: m.index, end: m.index + m[0].length, type: "invoice", value: m[0] });
   }
-
   SHIPMENT_ID_REGEX.lastIndex = 0;
   while ((m = SHIPMENT_ID_REGEX.exec(text)) !== null) {
     const s = m.index, e = m.index + m[0].length;
     if (matches.some(x => s < x.end && e > x.start)) continue;
     matches.push({ start: s, end: e, type: "shipment", value: m[0] });
   }
-
   TRACKING_NUMBER_REGEX.lastIndex = 0;
   while ((m = TRACKING_NUMBER_REGEX.exec(text)) !== null) {
     const s = m.index, e = m.index + m[0].length;
@@ -69,15 +66,11 @@ function parseMessageTokens(text: string): ParsedToken[] {
   const tokens: ParsedToken[] = [];
   let cursor = 0;
   for (const match of matches) {
-    if (match.start > cursor) {
-      tokens.push({ type: "text", value: text.slice(cursor, match.start) });
-    }
+    if (match.start > cursor) tokens.push({ type: "text", value: text.slice(cursor, match.start) });
     tokens.push({ type: match.type, value: match.value });
     cursor = match.end;
   }
-  if (cursor < text.length) {
-    tokens.push({ type: "text", value: text.slice(cursor) });
-  }
+  if (cursor < text.length) tokens.push({ type: "text", value: text.slice(cursor) });
   return tokens;
 }
 
@@ -151,6 +144,10 @@ export default function NotificationsPage() {
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [openDetails, setOpenDetails] = useState<Notif | null>(null);
 
+  // ✅ Track WHICH notification the user clicked locally — don't react to URL changes
+  // that match what we're already showing.
+  const clickedIdRef = useRef<string | null>(null);
+
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
     window.setTimeout(() => setToast(null), 3000);
@@ -174,12 +171,12 @@ export default function NotificationsPage() {
 
   useEffect(() => { void load(); }, []);
 
-  // ✅ FIX — Auto-open from ?open=<id> ONLY when notif arrived from bell click.
-  // If user manually clicked a notification on this page, openNotif() already
-  // sets openDetails directly, so don't re-trigger from the URL change.
+  // ✅ Auto-open ONLY when arriving from outside (e.g. from bell click).
+  // If we already set openDetails locally, skip URL-driven re-opens.
   useEffect(() => {
     if (!openId) return;
-    if (openDetails && openDetails._id === openId) return; // already showing right one
+    if (clickedIdRef.current === openId) return; // local click, already handled
+    if (openDetails && openDetails._id === openId) return;
     const found = items.find(x => String(x._id) === openId);
     if (found) setOpenDetails(found);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,24 +213,26 @@ export default function NotificationsPage() {
       return `/${locale}${n.link.startsWith("/") ? n.link : `/${n.link}`}`;
     }
     if (n.ticketId) return `/${locale}/dashboard/support/tickets/${n.ticketId}`;
-    if (n.shipmentId) return `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`;
+    if (n.shipmentId) return `/${locale}/dashboard/track/${encodeURIComponent(n.shipmentId)}`;
     return "";
   };
 
+  // ✅ FIXED — Use the actual routes from your codebase:
+  //   - track/[q]: accepts trackingNumber OR shipmentId
+  //   - invoices/[q]: accepts trackingNumber OR shipmentId (NOT invoice number directly)
   const navigateToIdentifier = (type: "shipment" | "tracking" | "invoice", value: string) => {
     if (type === "shipment") {
-      router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
+      router.push(`/${locale}/dashboard/track/${encodeURIComponent(value)}`);
     } else if (type === "tracking") {
-      // ✅ FIX — Send to the shipment status page, NOT the search page.
-      // The status page accepts a tracking number too and shows the timeline.
-      router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
+      router.push(`/${locale}/dashboard/track/${encodeURIComponent(value)}`);
     } else if (type === "invoice") {
+      // Invoice page accepts the invoice number directly — API patched separately
       router.push(`/${locale}/dashboard/invoices/${encodeURIComponent(value)}`);
     }
   };
 
-  // ✅ FIX — Immediately set openDetails so the user sees the right
-  // content on the first paint. Avoid waiting for URL state to round-trip.
+  // ✅ FIXED — clear openDetails first, then set the new one on the next tick.
+  // This guarantees the modal unmounts the old content before mounting the new.
   const openNotif = async (n: Notif) => {
     if (selected.size > 0) { toggleSelect(n._id); return; }
 
@@ -244,21 +243,26 @@ export default function NotificationsPage() {
       body: JSON.stringify({ id: n._id }),
     }).catch(() => {});
 
-    if (n.isCustomAdminMessage) {
-      // Set details FIRST (sync), then update URL (async). No blink.
-      setOpenDetails(n);
-      router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`, { scroll: false });
+    const isAdmin = Boolean(n.isCustomAdminMessage);
+    const dest = isAdmin ? "" : resolveLink(n);
+
+    if (dest) {
+      router.push(dest);
       return;
     }
 
-    const dest = resolveLink(n);
-    if (dest) { router.push(dest); return; }
-
-    setOpenDetails(n);
-    router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`, { scroll: false });
+    // Open the details modal — force a clean remount by clearing first
+    clickedIdRef.current = n._id;
+    setOpenDetails(null);
+    // Use rAF (not setTimeout) for the cleanest paint cycle
+    requestAnimationFrame(() => {
+      setOpenDetails(n);
+      router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`, { scroll: false });
+    });
   };
 
   const closeDetails = () => {
+    clickedIdRef.current = null;
     setOpenDetails(null);
     router.replace(`/${locale}/dashboard/notifications`, { scroll: false });
   };
@@ -312,11 +316,7 @@ export default function NotificationsPage() {
       } else {
         showToast("Failed to mark as read.", "error");
       }
-    } catch {
-      showToast("Network error.", "error");
-    } finally {
-      setMarkingRead(false);
-    }
+    } catch { showToast("Network error.", "error"); } finally { setMarkingRead(false); }
   };
 
   const bulkDelete = async () => {
@@ -341,12 +341,7 @@ export default function NotificationsPage() {
         showToast(ids.length === 1 ? "Notification deleted." : `${ids.length} notifications deleted.`);
         if (openDetails && ids.includes(openDetails._id)) closeDetails();
       }
-    } catch {
-      showToast("Network error.", "error");
-    } finally {
-      setDeleting(false);
-      setConfirmDelete(null);
-    }
+    } catch { showToast("Network error.", "error"); } finally { setDeleting(false); setConfirmDelete(null); }
   };
 
   const askDeleteSelected = () => {
@@ -421,73 +416,37 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ✅ Selection bar — z-index bumped to outrank any dashboard header */}
+      {/* ✅ Selection bar — same style on mobile and desktop, sticky just above the list */}
       {inSelectionMode && (
-        <>
-          {/* Mobile: fixed across the top, fully covers the dashboard header */}
-          <div className="md:hidden fixed top-0 left-0 right-0 z-[9000] bg-blue-600 dark:bg-blue-700 shadow-lg" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-            <div className="px-3 py-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <button onClick={clearSelection}
-                  className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/15 transition text-white">
-                  <X size={16} />
-                </button>
-                <p className="text-sm font-bold text-white truncate">
-                  {selected.size} selected
-                </p>
-                {!allVisibleSelected && visible.length > 0 && (
-                  <button onClick={selectAllVisible}
-                    className="cursor-pointer ml-1 text-[11px] font-bold text-white/90 hover:text-white underline">
-                    Select all
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button onClick={bulkMarkRead} disabled={markingRead}
-                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition disabled:opacity-60">
-                  {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-                  <span>Read</span>
-                </button>
-                <button onClick={askDeleteSelected}
-                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition">
-                  <Trash2 size={12} />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
+        <div className="sticky top-2 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <button onClick={clearSelection}
+              className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/60 dark:hover:bg-white/10 transition text-blue-700 dark:text-blue-300">
+              <X size={14} />
+            </button>
+            <p className="text-sm font-bold text-blue-700 dark:text-blue-300 truncate">
+              {selected.size} selected
+            </p>
+            {!allVisibleSelected && visible.length > 0 && (
+              <button onClick={selectAllVisible}
+                className="cursor-pointer ml-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline">
+                Select all visible
+              </button>
+            )}
           </div>
-
-          {/* Desktop: sticky just under the header */}
-          <div className="hidden md:flex sticky top-14 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 min-w-0">
-              <button onClick={clearSelection}
-                className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/60 dark:hover:bg-white/10 transition text-blue-700 dark:text-blue-300">
-                <X size={14} />
-              </button>
-              <p className="text-sm font-bold text-blue-700 dark:text-blue-300 truncate">
-                {selected.size} selected
-              </p>
-              {!allVisibleSelected && visible.length > 0 && (
-                <button onClick={selectAllVisible}
-                  className="cursor-pointer ml-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline">
-                  Select all visible
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button onClick={bulkMarkRead} disabled={markingRead}
-                className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-500/30 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/20 transition disabled:opacity-60">
-                {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-                <span>Read</span>
-              </button>
-              <button onClick={askDeleteSelected}
-                className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition">
-                <Trash2 size={12} />
-                <span>Delete</span>
-              </button>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <button onClick={bulkMarkRead} disabled={markingRead}
+              className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-500/30 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/20 transition disabled:opacity-60">
+              {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
+              <span>Read</span>
+            </button>
+            <button onClick={askDeleteSelected}
+              className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition">
+              <Trash2 size={12} />
+              <span>Delete</span>
+            </button>
           </div>
-        </>
+        </div>
       )}
 
       {/* Notifications list */}
@@ -504,16 +463,13 @@ export default function NotificationsPage() {
               <Inbox className="w-7 h-7 text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
-              {search.trim()
-                ? "No results match your search"
+              {search.trim() ? "No results match your search"
                 : filter === "unread" ? "No unread notifications"
                 : filter === "read" ? "No read notifications"
                 : "No notifications yet"}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {search.trim()
-                ? "Try a different search term."
-                : "You'll see updates here when something happens."}
+              {search.trim() ? "Try a different search term." : "You'll see updates here when something happens."}
             </p>
           </div>
         ) : (
@@ -541,8 +497,6 @@ export default function NotificationsPage() {
                       }`}>
                       <div className="flex items-start gap-3">
 
-                        {/* ✅ Checkbox — only rendered when in selection mode OR on hover on desktop.
-                            Content reflows naturally when this appears/disappears. */}
                         {(inSelectionMode || isSelected) && (
                           <div
                             onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
@@ -551,8 +505,7 @@ export default function NotificationsPage() {
                                 ? "bg-blue-600 border-blue-600"
                                 : "border-gray-300 dark:border-white/20 hover:border-blue-400 dark:hover:border-blue-500/50 bg-white dark:bg-gray-900"
                             }`}
-                            role="checkbox"
-                            aria-checked={isSelected}>
+                            role="checkbox" aria-checked={isSelected}>
                             {isSelected && (
                               <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M2.5 6L5 8.5L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -561,13 +514,11 @@ export default function NotificationsPage() {
                           </div>
                         )}
 
-                        {/* Desktop hover-only checkbox (visible only on hover, not in selection mode) */}
                         {!inSelectionMode && !isSelected && (
                           <div
                             onClick={(e) => { e.stopPropagation(); toggleSelect(n._id); }}
                             className="hidden md:flex shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 items-center justify-center cursor-pointer transition opacity-0 group-hover:opacity-100 border-gray-300 dark:border-white/20 hover:border-blue-400 dark:hover:border-blue-500/50 bg-white dark:bg-gray-900"
-                            role="checkbox"
-                            aria-checked={false} />
+                            role="checkbox" aria-checked={false} />
                         )}
 
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
@@ -591,13 +542,9 @@ export default function NotificationsPage() {
                             {n.message || ""}
                           </p>
                           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${fg}`}>
-                              {label}
-                            </span>
+                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${fg}`}>{label}</span>
                             <span className="text-gray-300 dark:text-gray-600 text-[10px]">•</span>
-                            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">
-                              {timeAgo(n.createdAt)}
-                            </span>
+                            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">{timeAgo(n.createdAt)}</span>
                           </div>
                         </div>
 
@@ -628,7 +575,7 @@ export default function NotificationsPage() {
 
       {openDetails && (
         <DetailsModal
-          key={openDetails._id /* ✅ remounts on switch — no leftover stale content */}
+          key={openDetails._id}
           notif={openDetails}
           onClose={closeDetails}
           onDelete={() => askDeleteSingle(openDetails._id)}
@@ -651,9 +598,7 @@ export default function NotificationsPage() {
               ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
               : "bg-red-600 text-white"
           }`}>
-            {toast.type === "success"
-              ? <CheckCheck size={14} className="shrink-0" />
-              : <AlertCircle size={14} className="shrink-0" />}
+            {toast.type === "success" ? <CheckCheck size={14} className="shrink-0" /> : <AlertCircle size={14} className="shrink-0" />}
             <span>{toast.msg}</span>
           </div>
         </div>
@@ -661,10 +606,6 @@ export default function NotificationsPage() {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════
-// DETAILS MODAL
-// ═══════════════════════════════════════════════════════════════
 
 function DetailsModal({
   notif, onClose, onDelete, onNavigateToken,
@@ -675,12 +616,9 @@ function DetailsModal({
   onNavigateToken: (type: "shipment" | "tracking" | "invoice", value: string) => void;
 }) {
   const { Icon, bg, fg } = classifyNotif(notif);
-
   const tokens = useMemo(() => parseMessageTokens(notif.message || ""), [notif.message]);
 
-  const TokenPill = ({
-    type, value,
-  }: { type: "shipment" | "tracking" | "invoice"; value: string }) => {
+  const TokenPill = ({ type, value }: { type: "shipment" | "tracking" | "invoice"; value: string }) => {
     const style = {
       shipment: { bg: "bg-violet-100 dark:bg-violet-500/20",   fg: "text-violet-700 dark:text-violet-300",   hov: "hover:bg-violet-200 dark:hover:bg-violet-500/30",   Icon: Truck },
       tracking: { bg: "bg-blue-100 dark:bg-blue-500/20",       fg: "text-blue-700 dark:text-blue-300",       hov: "hover:bg-blue-200 dark:hover:bg-blue-500/30",       Icon: Package },
@@ -700,21 +638,15 @@ function DetailsModal({
   return (
     <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-
       <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] overflow-hidden flex flex-col">
-
         <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-white/10">
           <div className="flex items-start gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
               <Icon size={18} className={fg} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">
-                {notif.title || "Notification"}
-              </h3>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}
-              </p>
+              <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">{notif.title || "Notification"}</h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}</p>
             </div>
           </div>
           <button onClick={onClose}
@@ -756,10 +688,6 @@ function DetailsModal({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CONFIRM DELETE MODAL
-// ═══════════════════════════════════════════════════════════════
-
 function ConfirmDeleteModal({
   count, isBulk, deleting, onCancel, onConfirm,
 }: {
@@ -772,7 +700,6 @@ function ConfirmDeleteModal({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-
       <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-5">
         <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-4">
           <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -783,7 +710,6 @@ function ConfirmDeleteModal({
         <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
           This action cannot be undone. {isBulk ? "These notifications" : "This notification"} will be permanently removed.
         </p>
-
         <div className="mt-5 flex gap-2">
           <button onClick={onCancel} disabled={deleting}
             className="cursor-pointer flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition disabled:opacity-60">
