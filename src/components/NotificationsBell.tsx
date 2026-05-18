@@ -241,7 +241,7 @@ export default function NotificationsBell() {
               </div>
             </div>
 
-            <div className="max-h-[60vh] md:max-h-[440px] overflow-y-auto overscroll-contain">
+            <div className="max-h-[60vh] md:max-h-[340px] overflow-y-auto overscroll-contain">
               {loading && items.length === 0 ? (
                 <div className="p-10 flex flex-col items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
