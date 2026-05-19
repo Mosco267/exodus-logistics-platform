@@ -1,31 +1,30 @@
-'use client';
+// src/app/[locale]/dashboard/status/[shipmentId]/page.tsx
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import {
-  ArrowLeft,
-  Truck,
-  BadgeCheck,
-  Clock,
-  MapPin,
-  Package,
-  ReceiptText,
-  Info,
-} from 'lucide-react';
+  ArrowLeft, Truck, BadgeCheck, Clock, MapPin, Package,
+  ReceiptText, Info, Copy, Check, AlertCircle, CheckCircle2,
+  ShieldCheck, CornerDownRight, FileText, CreditCard,
+} from "lucide-react";
+import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 
+// ─── Color map for status badges ─────────────────────────────
 const colorMap: Record<string, string> = {
-  blue: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/20",
-  green: "bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/20",
-  red: "bg-red-100 text-red-800 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/20",
-  orange: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/20",
-  yellow: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-300 dark:border-yellow-500/20",
-  purple: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/20",
-  pink: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-500/15 dark:text-pink-300 dark:border-pink-500/20",
-  cyan: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/20",
-  indigo: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/20",
-  emerald: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/20",
-  rose: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/20",
+  blue: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30",
+  green: "bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/30",
+  red: "bg-red-100 text-red-800 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30",
+  orange: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
+  yellow: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-300 dark:border-yellow-500/30",
+  purple: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30",
+  pink: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-500/15 dark:text-pink-300 dark:border-pink-500/30",
+  cyan: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30",
+  indigo: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30",
+  emerald: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
+  rose: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
   slate: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-white/10 dark:text-slate-200 dark:border-white/10",
   gray: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-white/10 dark:text-gray-200 dark:border-white/10",
 };
@@ -41,11 +40,14 @@ type ShipmentStatusResponse = {
   senderCountryCode?: string;
   destinationCountryCode?: string;
 
+  // ✅ added invoiceNumber to the type
   invoice?: {
+    invoiceNumber?: string;
     amount?: number;
     currency?: string;
     paid?: boolean;
     paidAt?: string | null;
+    status?: "paid" | "unpaid" | "overdue" | "cancelled";
   };
 };
 
@@ -59,50 +61,94 @@ type StatusConfig = {
 };
 
 function normalizeStatus(status?: string) {
-  return (status ?? '').toLowerCase().trim().replace(/[\s_-]+/g, '');
+  return (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 }
 
 function formatMoney(currency: string, amount: number) {
-  const cur = (currency || '').toUpperCase();
+  const cur = (currency || "").toUpperCase();
   return `${cur} ${Number(amount || 0).toLocaleString()}`.trim();
 }
 
 function getStatusBadgeClass(status: string) {
   const s = normalizeStatus(status);
-  if (s === 'delivered')
-    return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/20';
-  if (s === 'intransit')
-    return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/20';
-  if (s === 'customclearance')
-    return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/20';
-  if (s === 'unclaimed')
-    return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/20';
-  return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-white/10 dark:text-slate-200 dark:border-white/10';
+  if (s === "delivered") return colorMap.green;
+  if (s === "intransit") return colorMap.blue;
+  if (s === "customclearance") return colorMap.orange;
+  if (s === "unclaimed") return colorMap.red;
+  if (s === "cancelled" || s === "canceled") return colorMap.red;
+  return colorMap.slate;
+}
+
+async function copyToClipboard(text: string) {
+  const v = String(text || "").trim();
+  if (!v) return;
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(v);
+    return;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = v;
+  ta.style.position = "fixed"; ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
+function CopyButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
+  if (!value) return null;
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      aria-label={copied ? "Copied" : "Copy"}
+      title={copied ? "Copied" : "Copy"}
+      className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition shrink-0">
+      {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
 }
 
 export default function ShipmentStatusPage() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'en';
-  const shipmentId = decodeURIComponent((params?.shipmentId as string) || '');
+  const locale = (params?.locale as string) || "en";
+  const shipmentId = decodeURIComponent((params?.shipmentId as string) || "");
+
+  const [accentSolid, setAccentSolid] = useState("#0b3aa4");
+  const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
+
+  useEffect(() => {
+    const apply = () => {
+      try {
+        const t = (localStorage.getItem("exodus_theme_cache") as ThemeId | null) || "default";
+        const theme = THEMES.find(x => x.id === t) || THEMES[0];
+        setAccentSolid(theme.accent || "#0b3aa4");
+        setAccentGradient(theme.sidebar || "linear-gradient(135deg, #0b3aa4, #0e7490)");
+      } catch {}
+    };
+    apply();
+    window.addEventListener("storage", apply);
+    const t = setInterval(apply, 1000);
+    return () => { window.removeEventListener("storage", apply); clearInterval(t); };
+  }, []);
 
   const [data, setData] = useState<ShipmentStatusResponse | null>(null);
   const [statusConfig, setStatusConfig] = useState<StatusConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copiedKey, setCopiedKey] = useState<null | "ship" | "track" | "inv">(null);
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
       try {
-        // 1) shipment
-        const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, { cache: 'no-store' });
+        const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}`, { cache: "no-store" });
         const json = await res.json();
         const shipment = res.ok ? (json?.shipment ?? null) : null;
         setData(shipment);
 
-        // 2) status config (admin-defined)
-        const key = shipment?.status ? normalizeStatus(shipment.status) : '';
+        const key = shipment?.status ? normalizeStatus(shipment.status) : "";
         if (key) {
-          const sres = await fetch(`/api/statuses?key=${encodeURIComponent(key)}`, { cache: 'no-store' });
+          const sres = await fetch(`/api/statuses?key=${encodeURIComponent(key)}`, { cache: "no-store" });
           const sjson = await sres.json();
 
           const found: StatusConfig | null =
@@ -122,329 +168,300 @@ export default function ShipmentStatusPage() {
         setLoading(false);
       }
     };
-
     run();
   }, [shipmentId]);
 
   const normalized = useMemo(() => normalizeStatus(data?.status), [data?.status]);
-  const isInTransit = normalized === 'intransit';
 
-  const routeText = `${(data?.senderCountryCode || '—').toUpperCase()} → ${(data?.destinationCountryCode || '—').toUpperCase()}`;
-
-  // ✅ show 0 properly; only show "—" when amount is missing
-  const invoiceCurrency = (data?.invoice?.currency || 'USD').toUpperCase();
+  const invoiceCurrency = (data?.invoice?.currency || "USD").toUpperCase();
   const invoicePaid = Boolean(data?.invoice?.paid);
-  const hasInvoiceAmount = typeof data?.invoice?.amount === 'number';
+  const hasInvoiceAmount = typeof data?.invoice?.amount === "number";
   const invoiceAmount = hasInvoiceAmount ? Number(data!.invoice!.amount) : null;
-  const moneyText = hasInvoiceAmount ? formatMoney(invoiceCurrency, invoiceAmount as number) : '—';
+  const moneyText = hasInvoiceAmount ? formatMoney(invoiceCurrency, invoiceAmount as number) : "—";
+  const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
 
-  // base fallback text (only used if admin has nothing + shipment has nothing)
+  const routeText = `${(data?.senderCountryCode || "—").toUpperCase()} → ${(data?.destinationCountryCode || "—").toUpperCase()}`;
+
   const shipmentUpdateFallback =
-    normalized === 'created'
-      ? 'Shipment created successfully and is being prepared for dispatch.'
-      : normalized === 'intransit'
-      ? 'Shipment is in transit and moving toward the destination.'
-      : normalized === 'customclearance'
-      ? 'Shipment is undergoing customs clearance. Additional verification may be required.'
-      : normalized === 'delivered'
-      ? 'Shipment has been delivered successfully to the destination.'
-      : normalized === 'unclaimed'
-      ? 'Shipment is available for pickup but has not yet been claimed.'
-      : `Shipment status updated: ${data?.status || '—'}.`;
+    normalized === "created"
+      ? "Shipment created successfully and is being prepared for dispatch."
+      : normalized === "intransit"
+      ? "Shipment is in transit and moving toward the destination."
+      : normalized === "customclearance"
+      ? "Shipment is undergoing customs clearance. Additional verification may be required."
+      : normalized === "delivered"
+      ? "Shipment has been delivered successfully to the destination."
+      : normalized === "unclaimed"
+      ? "Shipment is available for pickup but has not yet been claimed."
+      : `Shipment status updated: ${data?.status || "—"}.`;
 
   const nextStepFallback =
-    normalized === 'created'
-      ? 'Dispatch will be scheduled once processing is complete.'
-      : normalized === 'intransit'
-      ? 'Continue tracking for real-time movement updates.'
-      : normalized === 'customclearance'
-      ? 'We will update you once customs clearance is completed.'
-      : normalized === 'delivered'
-      ? 'If there are delivery concerns, please contact support with your tracking number.'
-      : normalized === 'unclaimed'
-      ? 'Please arrange pickup or contact support for assistance.'
-      : '';
+    normalized === "created"
+      ? "Dispatch will be scheduled once processing is complete."
+      : normalized === "intransit"
+      ? "Continue tracking for real-time movement updates."
+      : normalized === "customclearance"
+      ? "We will update you once customs clearance is completed."
+      : normalized === "delivered"
+      ? "If there are delivery concerns, please contact support with your tracking number."
+      : normalized === "unclaimed"
+      ? "Please arrange pickup or contact support for assistance."
+      : "";
 
-  // ✅ Priority order:
-  // Shipment Update: shipment.statusNote > admin defaultUpdate > built-in fallback
- const shipmentUpdateText =
-  statusConfig?.defaultUpdate && statusConfig.defaultUpdate.trim().length > 0
-    ? statusConfig.defaultUpdate.trim()
-    : (data?.statusNote && data.statusNote.trim().length > 0
-        ? data.statusNote.trim()
-        : shipmentUpdateFallback);
+  const shipmentUpdateText =
+    statusConfig?.defaultUpdate && statusConfig.defaultUpdate.trim().length > 0
+      ? statusConfig.defaultUpdate.trim()
+      : (data?.statusNote && data.statusNote.trim().length > 0
+          ? data.statusNote.trim()
+          : shipmentUpdateFallback);
 
-  // Next Step: shipment.nextStep > admin nextStep > built-in fallback
   const nextStepText =
-  statusConfig?.nextStep && statusConfig.nextStep.trim().length > 0
-    ? statusConfig.nextStep.trim()
-    : (data?.nextStep && data.nextStep.trim().length > 0
-        ? data.nextStep.trim()
-        : nextStepFallback);
+    statusConfig?.nextStep && statusConfig.nextStep.trim().length > 0
+      ? statusConfig.nextStep.trim()
+      : (data?.nextStep && data.nextStep.trim().length > 0
+          ? data.nextStep.trim()
+          : nextStepFallback);
 
-  // Badge color: shipment.statusColor > admin status color > built-in
- const effectiveColor = (statusConfig?.color || data?.statusColor || '').toLowerCase();
-const statusBadgeClass = colorMap[effectiveColor] || getStatusBadgeClass(data?.status || '');
+  const effectiveColor = (statusConfig?.color || data?.statusColor || "").toLowerCase();
+  const statusBadgeClass = colorMap[effectiveColor] || getStatusBadgeClass(data?.status || "");
 
+  const handleCopy = async (key: "ship" | "track" | "inv", value: string) => {
+    try {
+      await copyToClipboard(value);
+      setCopiedKey(key);
+      window.setTimeout(() => { setCopiedKey((cur) => (cur === key ? null : cur)); }, 1500);
+    } catch {}
+  };
+
+  // ─── Loading state ──────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white/80 dark:bg-gray-900/60 backdrop-blur px-6 py-4 shadow-sm">
-          <p className="text-sm text-gray-700 dark:text-gray-200">Loading shipment…</p>
+      <div className="max-w-4xl mx-auto pb-12">
+        <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-8 shadow-sm flex items-center gap-3">
+          <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
+          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Loading shipment status…</p>
         </div>
       </div>
     );
   }
 
+  // ─── Error / not found ──────────────────────────────────
   if (!data) {
     return (
-      <div className="min-h-[70vh] bg-gradient-to-br from-white via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-10">
-          <div className="rounded-3xl p-6 bg-white/90 dark:bg-gray-900/70 backdrop-blur border border-gray-100 dark:border-white/10 shadow-md">
-            <h1 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Shipment Status</h1>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              Shipment not found. Please confirm the shipment ID and try again.
-            </p>
-
-            <div className="mt-6">
-              <Link
-                href={`/${locale}/dashboard`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10
-                           bg-white/70 dark:bg-white/5
-                           text-gray-900 dark:text-gray-100 font-semibold
-                           hover:bg-blue-600 hover:text-white hover:border-blue-600
-                           dark:hover:bg-cyan-500 dark:hover:border-cyan-500 transition"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to dashboard
-              </Link>
-            </div>
+      <div className="max-w-4xl mx-auto pb-12 space-y-5">
+        <Link href={`/${locale}/dashboard`}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </Link>
+        <div className="rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-6">
+          <div className="flex items-center gap-3 text-red-700 dark:text-red-400 font-semibold">
+            <AlertCircle className="w-5 h-5 shrink-0" /> Shipment not found
           </div>
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400/80 pl-8">
+            Please confirm the shipment ID and try again.
+          </p>
         </div>
       </div>
     );
   }
 
+  // ─── Main content ───────────────────────────────────────
   return (
-    <div className="min-h-[75vh] bg-gradient-to-br from-white via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Page header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-wide text-blue-700/80 dark:text-cyan-300/90">
-              DASHBOARD / SHIPMENTS
-            </p>
-            <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-              Shipment Status
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              Track shipment progress and invoice/payment information.
-            </p>
-          </div>
+    <div className="max-w-4xl mx-auto pb-12 space-y-5">
 
-          <Link
-            href={`/${locale}/dashboard`}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10
-                       bg-white/70 dark:bg-gray-900/40 backdrop-blur
-                       text-gray-900 dark:text-gray-100 font-semibold
-                       hover:bg-blue-600 hover:text-white hover:border-blue-600
-                       dark:hover:bg-cyan-500 dark:hover:border-cyan-500 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
+      {/* ── Top nav ─────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Link href={`/${locale}/dashboard/history`}
+          className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
+          <ArrowLeft className="w-4 h-4" /> Back to History
+        </Link>
+        {data.trackingNumber && (
+          <Link href={`/${locale}/dashboard/track/${encodeURIComponent(data.trackingNumber)}`}
+            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
+            <Truck className="w-4 h-4" /> Track Shipment
           </Link>
+        )}
+        {invoiceNumber && (
+          <Link href={`/${locale}/dashboard/invoices/${encodeURIComponent(invoiceNumber)}`}
+            className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
+            <FileText className="w-4 h-4" /> View Invoice
+          </Link>
+        )}
+        {!invoicePaid && invoiceNumber && (
+          <Link href={`/${locale}/dashboard/shipments/${encodeURIComponent(data.shipmentId)}/payment`}
+            className="cursor-pointer w-full sm:w-auto sm:ml-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold transition shadow-sm hover:opacity-90"
+            style={{ background: accentGradient }}>
+            <CreditCard className="w-4 h-4" /> Pay Now
+          </Link>
+        )}
+      </div>
+
+      {/* ── Main status card ────────────────────────────── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+
+        {/* Gradient header */}
+        <div style={{ background: accentGradient }} className="p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Shipment Status</p>
+              <div className="flex items-center gap-2 mt-1">
+                <h1 className="text-white font-extrabold text-xl sm:text-2xl tracking-wide whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px] sm:max-w-none">
+                  {data.shipmentId || "—"}
+                </h1>
+                <CopyButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} />
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start sm:items-end gap-1.5">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold ${statusBadgeClass}`}>
+                <BadgeCheck className="w-3.5 h-3.5" />
+                {data.status || "—"}
+              </span>
+              {data.statusUpdatedAt && (
+                <p className="text-[11px] text-white/80 flex items-center gap-1.5">
+                  <Clock className="w-3 h-3" />
+                  Updated {new Date(data.statusUpdatedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Main card */}
-        <div className="mt-6 rounded-3xl border border-gray-100 dark:border-white/10 bg-white/85 dark:bg-gray-900/60 backdrop-blur shadow-lg overflow-hidden">
-          {/* Top bar */}
-          <div className="p-6 border-b border-gray-100 dark:border-white/10">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${statusBadgeClass}`}
-                >
-                  <BadgeCheck className="w-4 h-4" />
-                  {data.status || '—'}
-                </span>
+        {/* Body */}
+        <div className="p-5 sm:p-6 space-y-4">
 
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border
-                    ${
-                      invoicePaid
-                        ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/20'
-                        : 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/20'
-                    }`}
-                >
-                  <ReceiptText className="w-4 h-4" />
-                  {invoicePaid ? 'Invoice Paid' : 'Invoice Pending'}
-                  {hasInvoiceAmount ? ` • ${moneyText}` : ''}
-                </span>
-              </div>
+          {/* Top 3 cards: Route, IDs, Invoice */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-              <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Updated:{' '}
-                <span className="font-semibold text-gray-800 dark:text-gray-100">
-                  {data.statusUpdatedAt ? new Date(data.statusUpdatedAt).toLocaleString() : '—'}
-                </span>
+            {/* Route */}
+            <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4" style={{ color: accentSolid }} />
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Route</p>
               </div>
+              <p className="text-base font-extrabold text-gray-900 dark:text-white tracking-wide">{routeText}</p>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Origin → Destination</p>
             </div>
-          </div>
 
-          {/* Content grid */}
-          <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* LEFT: Summary */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm">
-                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  Shipment Summary
-                </p>
-
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                    <span className="text-gray-500 dark:text-gray-400">Shipment ID</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 truncate whitespace-nowrap">
-                      {data.shipmentId}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                    <span className="text-gray-500 dark:text-gray-400">Tracking #</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 truncate whitespace-nowrap">
-                      {data.trackingNumber}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                    <span className="text-gray-500 dark:text-gray-400">Route</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      {routeText}
-                    </span>
+            {/* IDs */}
+            <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Package className="w-4 h-4" style={{ color: accentSolid }} />
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">References</p>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">Tracking</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{data.trackingNumber || "—"}</p>
+                    <CopyButton value={data.trackingNumber} copied={copiedKey === "track"} onCopy={() => handleCopy("track", data.trackingNumber)} />
                   </div>
                 </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex flex-col gap-3">
-                {isInTransit && (
-                  <Link
-                    href={`/${locale}/dashboard/track?tracking=${encodeURIComponent(data.trackingNumber)}`}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                               bg-blue-600 text-white font-semibold shadow-sm
-                               hover:bg-blue-700 hover:shadow-md hover:-translate-y-[1px]
-                               active:translate-y-0 transition"
-                  >
-                    <Truck className="w-4 h-4" />
-                    Track Shipment
-                  </Link>
+                {invoiceNumber && (
+                  <div>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">Invoice</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{invoiceNumber}</p>
+                      <CopyButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} />
+                    </div>
+                  </div>
                 )}
-
-                <Link
-                  href={`/${locale}/dashboard/invoices`}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                             bg-white border border-gray-200 dark:border-white/10 dark:bg-white/5
-                             text-gray-900 dark:text-gray-100 font-semibold shadow-sm
-                             hover:bg-blue-600 hover:text-white hover:border-blue-600
-                             dark:hover:bg-cyan-500 dark:hover:border-cyan-500
-                             hover:shadow-md hover:-translate-y-[1px]
-                             active:translate-y-0 transition"
-                >
-                  <ReceiptText className="w-4 h-4" />
-                  View Invoice
-                </Link>
-
-                <Link
-                  href={`/${locale}/dashboard`}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                             border border-gray-200 dark:border-white/10
-                             bg-white/70 dark:bg-white/5
-                             text-gray-900 dark:text-gray-100 font-semibold shadow-sm
-                             hover:bg-blue-600 hover:text-white hover:border-blue-600
-                             dark:hover:bg-cyan-500 dark:hover:border-cyan-500
-                             hover:shadow-md hover:-translate-y-[1px]
-                             active:translate-y-0 transition"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Link>
               </div>
             </div>
 
-            {/* RIGHT: Details */}
-            <div className="lg:col-span-8 space-y-4">
-              <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm">
-                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Shipment Update</p>
-                <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
-                  {shipmentUpdateText}
+            {/* Invoice amount + status */}
+            <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CreditCard className="w-4 h-4" style={{ color: accentSolid }} />
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Invoice</p>
+              </div>
+              <p className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">{moneyText}</p>
+              <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${
+                invoicePaid
+                  ? "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400"
+                  : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${invoicePaid ? "bg-green-500" : "bg-amber-500"}`} />
+                {invoicePaid ? "PAID" : "PENDING"}
+              </div>
+              {invoicePaid && data.invoice?.paidAt && (
+                <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                  Paid {new Date(data.invoice.paidAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 </p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm">
-                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Invoice Information</p>
-
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Invoice Status</p>
-                    <p className="mt-1 font-bold text-gray-900 dark:text-gray-100">
-                      {invoicePaid ? 'Paid' : 'Pending'}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Amount</p>
-                    <p className="mt-1 font-bold text-gray-900 dark:text-gray-100">
-                      {moneyText}
-                    </p>
-                  </div>
-
-                  {invoicePaid && data.invoice?.paidAt && (
-                    <div className="sm:col-span-2 rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Payment Recorded</p>
-                      <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
-                        {new Date(data.invoice.paidAt).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-
-                  {!invoicePaid && (
-                    <div className="sm:col-span-2 rounded-xl border border-orange-200 bg-orange-50 p-4 text-orange-900
-                                    dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">
-                      <p className="text-sm font-semibold">
-                        Payment is required to avoid processing delays.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {nextStepText && nextStepText.trim().length > 0 && (
-                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Next Step</p>
-                  <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
-                    {nextStepText}
-                  </p>
-                </div>
               )}
             </div>
           </div>
 
-          {/* Bottom bar */}
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-white/10 bg-white/60 dark:bg-gray-900/40">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600 dark:text-gray-300">
-              <span className="flex items-center gap-2">
-                <Info className="w-4 h-4" />
-                Keep your tracking number handy for support requests.
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {data.shipmentId}
-              </span>
+          {/* Shipment Update */}
+          <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-4 h-4" style={{ color: accentSolid }} />
+              <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Status Update</h2>
             </div>
+            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+              {shipmentUpdateText}
+            </p>
+          </div>
+
+          {/* Next Step */}
+          {nextStepText && nextStepText.trim().length > 0 && (
+            <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <CornerDownRight className="w-4 h-4" style={{ color: accentSolid }} />
+                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Next Step</h2>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+                {nextStepText}
+              </p>
+            </div>
+          )}
+
+          {/* Payment reminder banner — only when unpaid */}
+          {!invoicePaid && (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                  Payment required
+                </p>
+                <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300/80 leading-relaxed">
+                  Complete payment to avoid processing delays. Use the Pay Now button at the top of this page.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Delivered confirmation banner — only when delivered */}
+          {normalized === "delivered" && (
+            <div className="rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-4 flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-green-900 dark:text-green-200">
+                  Shipment delivered
+                </p>
+                <p className="mt-0.5 text-xs text-green-800 dark:text-green-300/80 leading-relaxed">
+                  This shipment has been successfully delivered. If there are concerns, contact support with your tracking number.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="px-2 py-5 flex flex-col items-center text-center gap-2 border-t border-gray-100 dark:border-white/10 mt-2">
+            <ShieldCheck className="w-5 h-5" style={{ color: accentSolid }} />
+            <p className="text-xs font-extrabold text-gray-800 dark:text-gray-200 tracking-wide uppercase">
+              Officially Issued by Exodus Logistics Ltd.
+            </p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
+              For questions about this shipment, contact{" "}
+              <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>
+                support@goexoduslogistics.com
+              </a>.
+            </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
