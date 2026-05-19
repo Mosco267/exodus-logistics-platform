@@ -87,15 +87,21 @@ function getInvoiceBadge(status?: string) {
 }
 
 function joinLoc(...parts: any[]) {
-  return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
-}
-
-function fmtDate(iso?: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
+    return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
+  }
+ 
+  function fmtDate(iso?: string | null): string {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+ 
+  function fmtMoney(amount: any, currency = "USD"): string {
+    const n = Number(amount);
+    if (!Number.isFinite(n)) return `${currency} 0.00`;
+    return `${currency} ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
 
 export default function DashboardHome() {
   const params = useParams();
@@ -349,8 +355,18 @@ export default function DashboardHome() {
                         {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt)}
                       </p>
                     </div>
-
+ 
+                    {/* Amount on desktop — matches history page */}
+                    <div className="hidden sm:flex flex-col items-end shrink-0">
+                      {s?.invoice?.amount != null && (
+                        <p className="text-sm font-extrabold text-gray-900 dark:text-white">
+                          {fmtMoney(s.invoice.amount, s.invoice.currency || "USD")}
+                        </p>
+                      )}
+                    </div>
+ 
                     <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-300 transition shrink-0" />
+ 
                   </div>
                 </Link>
               );
