@@ -20,9 +20,16 @@ import { getCountryDistance, getStateDistance } from '@/lib/distances';
 import { addBusinessDays } from '@/lib/holidays';
 
 function formatMoney(value: number): string {
-  if (isNaN(value)) return '0.00';
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+    if (isNaN(value)) return '0.00';
+    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+ 
+  function fmtPercent(v: any): string {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n === 0) return '0%';
+    const pct = n < 1 ? n * 100 : n;
+    return `${pct % 1 === 0 ? String(pct) : pct.toFixed(2).replace(/\.?0+$/, '')}%`;
+  }
 
 function formatWithCommas(raw: string): string {
   if (!raw) return '';
@@ -1820,14 +1827,37 @@ const handleSubmit = async () => {
   <Section title="Invoice Breakdown" accent={accent}>
           <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Estimated invoice — final amount confirmed on payment page.</p>
           <div className="space-y-2 text-sm">
-            {[
-              { label: `Base Freight (${MEANS_CONFIG[means].label})`, value: breakdown.baseFreight },
-              { label: 'Fuel Surcharge', value: breakdown.fuel },
-              { label: 'Insurance', value: breakdown.insurance },
-              { label: 'Handling Fee', value: breakdown.handling },
-              ...(breakdown.customs > 0 ? [{ label: 'Customs Clearance', value: breakdown.customs }] : []),
-              ...(breakdown.tax > 0 ? [{ label: 'Tax', value: breakdown.tax }] : []),
-            ].map(({ label, value }) => (
+            {(() => {
+              // Pull rates from the currently selected means profile (air/sea/land)
+              const meansProfile = (pricing as any)?.[means] || (DEFAULT_PRICING as any)[means] || {};
+              const fuelRate =
+                meansProfile.fuelSurchargeRate ??
+                meansProfile.fuelRate ??
+                meansProfile.fuel ?? 0;
+              const insuranceRate =
+                meansProfile.insuranceRate ??
+                meansProfile.insurance ??
+                meansProfile.insurancePercent ?? 0;
+              const taxRate =
+                meansProfile.taxRate ??
+                meansProfile.tax ?? 0;
+              const customsRate =
+                meansProfile.customsRate ??
+                meansProfile.customs ?? 0;
+ 
+              return [
+                { label: `Base Freight (${MEANS_CONFIG[means].label})`, value: breakdown.baseFreight },
+                { label: `Fuel Surcharge (${fmtPercent(fuelRate)})`, value: breakdown.fuel },
+                { label: `Insurance (${fmtPercent(insuranceRate)})`, value: breakdown.insurance },
+                { label: 'Handling Fee', value: breakdown.handling },
+                ...(breakdown.customs > 0
+                  ? [{ label: customsRate ? `Customs Clearance (${fmtPercent(customsRate)})` : 'Customs Clearance', value: breakdown.customs }]
+                  : []),
+                ...(breakdown.tax > 0
+                  ? [{ label: taxRate ? `Tax (${fmtPercent(taxRate)})` : 'Tax', value: breakdown.tax }]
+                  : []),
+              ];
+            })().map(({ label, value }) => (
               <div key={label} className="flex justify-between text-gray-600 dark:text-gray-400">
   <span>{label}</span>
   <span className="font-semibold">{currency} {formatMoney(value)}</span>
