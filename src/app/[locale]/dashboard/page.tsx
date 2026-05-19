@@ -166,7 +166,6 @@ export default function DashboardHome() {
     run();
   }, []);
 
-  // Take most recent 6 by activity for the dashboard preview
   const recentHistory = useMemo(() => {
     return [...shipments]
       .sort((a, b) => {
@@ -177,15 +176,35 @@ export default function DashboardHome() {
       .slice(0, 6);
   }, [shipments]);
 
-  const pendingInvoiceLines: string[] =
-    dash.pendingInvoicesCount > 0
-      ? (dash.pendingInvoicesCurrencies.length ? dash.pendingInvoicesCurrencies : Object.keys(dash.pendingInvoicesByCurrency || {}).sort())
-          .map(cur => `${cur} ${Number(dash.pendingInvoicesByCurrency?.[cur] || 0).toLocaleString()}`)
-      : ["—"];
+  // ✅ Pending invoices — show "0" if none, otherwise show only the latest
+  // currency's total. Hint at additional currencies inline so the card stays
+  // the same height as the others.
+  const pendingInvoiceDisplay = useMemo(() => {
+    if (dash.pendingInvoicesCount === 0) {
+      return { primary: "0", hint: "" };
+    }
+    const orderedCurrencies = dash.pendingInvoicesCurrencies.length
+      ? dash.pendingInvoicesCurrencies
+      : Object.keys(dash.pendingInvoicesByCurrency || {}).sort();
 
-  const stats = [
+    const top = orderedCurrencies[0];
+    const topAmount = Number(dash.pendingInvoicesByCurrency?.[top] || 0);
+    const primary = `${top} ${topAmount.toLocaleString()}`;
+    const more = orderedCurrencies.length - 1;
+    const hint = more > 0 ? `+${more} more ${more === 1 ? "currency" : "currencies"}` : "";
+    return { primary, hint };
+  }, [dash]);
+
+  const stats: Array<{
+    title: string;
+    value: string;
+    hint?: string;
+    icon: any;
+    iconBg: string;
+    iconColor: string;
+  }> = [
     { title: "Total Shipments", value: String(dash.total), icon: Package, iconBg: "bg-blue-100 dark:bg-blue-500/15", iconColor: "text-blue-600 dark:text-blue-400" },
-    { title: "Pending Invoice", value: pendingInvoiceLines, icon: FileText, iconBg: "bg-amber-100 dark:bg-amber-500/15", iconColor: "text-amber-600 dark:text-amber-400" },
+    { title: "Pending Invoice", value: pendingInvoiceDisplay.primary, hint: pendingInvoiceDisplay.hint, icon: FileText, iconBg: "bg-amber-100 dark:bg-amber-500/15", iconColor: "text-amber-600 dark:text-amber-400" },
     { title: "In Transit", value: String(dash.inTransit), icon: TrendingUp, iconBg: "bg-cyan-100 dark:bg-cyan-500/15", iconColor: "text-cyan-600 dark:text-cyan-400" },
     { title: "Delivered", value: String(dash.delivered), icon: CheckCircle2, iconBg: "bg-emerald-100 dark:bg-emerald-500/15", iconColor: "text-emerald-600 dark:text-emerald-400" },
     { title: "Custom Clearance", value: String(dash.custom), icon: AlertCircle, iconBg: "bg-orange-100 dark:bg-orange-500/15", iconColor: "text-orange-600 dark:text-orange-400" },
@@ -197,32 +216,30 @@ export default function DashboardHome() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-tour="overview">
-        {stats.map(({ title, value, icon: Icon, iconBg, iconColor }) => {
-          const lines = Array.isArray(value) ? value : [value];
-          return (
-            <div key={title} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 leading-tight">{title}</p>
-                <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
-                  <Icon className={`w-4 h-4 ${iconColor}`} />
-                </div>
+        {stats.map(({ title, value, hint, icon: Icon, iconBg, iconColor }) => (
+          <div key={title} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 leading-tight">{title}</p>
+              <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                <Icon className={`w-4 h-4 ${iconColor}`} />
               </div>
-              {loading ? (
-                <div className="h-8 w-16 bg-gray-100 dark:bg-white/10 rounded-lg animate-pulse" />
-              ) : (
-                <div>
-                  {lines.map((line, i) => (
-                    <p key={i} className={i === 0
-                      ? "text-2xl font-extrabold text-gray-900 dark:text-gray-100 leading-none"
-                      : "text-sm font-semibold text-gray-600 dark:text-gray-300 mt-1"}>
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              )}
             </div>
-          );
-        })}
+            {loading ? (
+              <div className="h-8 w-16 bg-gray-100 dark:bg-white/10 rounded-lg animate-pulse" />
+            ) : (
+              <div>
+                <p className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 leading-none truncate">
+                  {value}
+                </p>
+                {hint && (
+                  <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1.5 truncate">
+                    {hint}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Quick Actions */}
