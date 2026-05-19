@@ -24,9 +24,17 @@ export async function GET() {
           ],
         };
 
+  // ✅ Pull the timestamps too so we can sort by latest invoice
   const shipments = await db
     .collection("shipments")
-    .find(match, { projection: { status: 1, invoice: 1 } })
+    .find(match, {
+      projection: {
+        status: 1,
+        invoice: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    })
     .toArray();
 
   const total = shipments.length;
@@ -38,6 +46,9 @@ export async function GET() {
 
   let pendingInvoicesCount = 0;
   const pendingInvoicesByCurrency: Record<string, number> = {};
+
+  // ✅ Track the most-recent invoice timestamp per currency
+  const latestByCurrency: Record<string, number> = {};
 
   for (const s of shipments) {
     const st = normalize(String((s as any).status || ""));
@@ -57,11 +68,25 @@ export async function GET() {
       pendingInvoicesCount++;
       pendingInvoicesByCurrency[currency] =
         (pendingInvoicesByCurrency[currency] || 0) + amount;
+
+      // ✅ Pick the best "this invoice was last touched" timestamp.
+      // Priority: invoice.createdAt > invoice.updatedAt > shipment.updatedAt > shipment.createdAt
+      const invoiceTime = new Date(
+        invoice?.createdAt ??
+          invoice?.updatedAt ??
+          (s as any)?.updatedAt ??
+          (s as any)?.createdAt ??
+          0
+      ).getTime();
+
+      const prev = latestByCurrency[currency] || 0;
+      if (invoiceTime > prev) latestByCurrency[currency] = invoiceTime;
     }
   }
 
+  // ✅ Sort currencies by most-recent invoice first (newest at the top)
   const pendingInvoicesCurrencies = Object.keys(pendingInvoicesByCurrency).sort(
-    (a, b) => (pendingInvoicesByCurrency[b] || 0) - (pendingInvoicesByCurrency[a] || 0)
+    (a, b) => (latestByCurrency[b] || 0) - (latestByCurrency[a] || 0)
   );
 
   return NextResponse.json({
