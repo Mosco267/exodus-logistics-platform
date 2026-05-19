@@ -18,7 +18,7 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="search"]',
     title: 'Search Shipments',
-    desc: 'Search for any shipment using the shipment ID or tracking number.',
+    desc: 'Search for any shipment using the shipment number or tracking number.',
     position: 'bottom',
     desktopOnly: true,
   },
@@ -39,7 +39,7 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="profile"]',
     title: 'Your Profile',
-    desc: 'Access your profile, settings and logout from here.',
+    desc: 'Access your profile, settings, appearance, language, and logout from here.',
     position: 'bottom',
     desktopOnly: true,
   },
@@ -53,7 +53,7 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="nav"]',
     title: 'Navigation',
-    desc: 'Navigate between Track, Invoices, History and Settings from here.',
+    desc: 'Navigate between Track, Invoices, Support, History, Settings and Logout from here.',
     position: 'right',
     desktopOnly: true,
   },
@@ -67,7 +67,7 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="quick-actions"]',
     title: 'Quick Actions',
-    desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
+    desc: 'Quickly track a shipment, view your invoices or check shipment history from here.',
     position: 'top',
     desktopOnly: true,
   },
@@ -97,14 +97,14 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="profile"]',
     title: 'Your Profile',
-    desc: 'Access your profile, settings and logout from here.',
+    desc: 'Access your profile, settings,appearance, language, and logout from here.',
     position: 'bottom',
     mobileOnly: true,
   },
   {
     target: '[data-tour="mobile-search"]',
     title: 'Search Shipments',
-    desc: 'Search for any shipment using the shipment ID or tracking number.',
+    desc: 'Search for any shipment using the shipment number or tracking number.',
     position: 'bottom',
     mobileOnly: true,
   },
@@ -118,7 +118,7 @@ const STEPS: Step[] = [
   {
     target: '[data-tour="quick-actions"]',
     title: 'Quick Actions',
-    desc: 'Quickly track a shipment, view your invoices or check recent activity from here.',
+    desc: 'Quickly track a shipment, view your invoices or check shipment history from here.',
     position: 'bottom',
     mobileOnly: true,
   },
