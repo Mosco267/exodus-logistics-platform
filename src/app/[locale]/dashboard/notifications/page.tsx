@@ -213,7 +213,7 @@ export default function NotificationsPage() {
       return `/${locale}${n.link.startsWith("/") ? n.link : `/${n.link}`}`;
     }
     if (n.ticketId) return `/${locale}/dashboard/support/tickets/${n.ticketId}`;
-    if (n.shipmentId) return `/${locale}/dashboard/track/${encodeURIComponent(n.shipmentId)}`;
+    if (n.shipmentId) return `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`;
     return "";
   };
 
@@ -222,11 +222,12 @@ export default function NotificationsPage() {
   //   - invoices/[q]: accepts trackingNumber OR shipmentId (NOT invoice number directly)
   const navigateToIdentifier = (type: "shipment" | "tracking" | "invoice", value: string) => {
     if (type === "shipment") {
-      router.push(`/${locale}/dashboard/track/${encodeURIComponent(value)}`);
+      // Shipment IDs go to the status page
+      router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
     } else if (type === "tracking") {
+      // Tracking numbers go to the tracking page
       router.push(`/${locale}/dashboard/track/${encodeURIComponent(value)}`);
     } else if (type === "invoice") {
-      // Invoice page accepts the invoice number directly — API patched separately
       router.push(`/${locale}/dashboard/invoices/${encodeURIComponent(value)}`);
     }
   };

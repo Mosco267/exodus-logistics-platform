@@ -166,7 +166,7 @@ export default function NotificationsBell() {
       return `/${locale}${n.link.startsWith("/") ? n.link : `/${n.link}`}`;
     }
     if (n.ticketId) return `/${locale}/dashboard/support/tickets/${n.ticketId}`;
-    if (n.shipmentId) return `/${locale}/dashboard/track/${encodeURIComponent(n.shipmentId)}`;
+    if (n.shipmentId) return `/${locale}/dashboard/status/${encodeURIComponent(n.shipmentId)}`;
     return `/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`;
   };
 
