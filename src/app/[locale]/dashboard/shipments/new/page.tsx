@@ -1828,34 +1828,21 @@ const handleSubmit = async () => {
           <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Estimated invoice — final amount confirmed on payment page.</p>
           <div className="space-y-2 text-sm">
             {(() => {
-              // Pull rates from the currently selected means profile (air/sea/land)
-              const meansProfile = (pricing as any)?.[means] || (DEFAULT_PRICING as any)[means] || {};
-              const fuelRate =
-                meansProfile.fuelSurchargeRate ??
-                meansProfile.fuelRate ??
-                meansProfile.fuel ?? 0;
-              const insuranceRate =
-                meansProfile.insuranceRate ??
-                meansProfile.insurance ??
-                meansProfile.insurancePercent ?? 0;
-              const taxRate =
-                meansProfile.taxRate ??
-                meansProfile.tax ?? 0;
-              const customsRate =
-                meansProfile.customsRate ??
-                meansProfile.customs ?? 0;
+              // Rates live on the scope profile (international or local), NOT on means.
+              const scopeProfile =
+                (scope === 'local' ? (pricing as any)?.local : (pricing as any)?.international) ||
+                (scope === 'local' ? DEFAULT_PRICING.local : DEFAULT_PRICING.international);
+ 
+              const fuelRate = Number(scopeProfile?.fuelRate ?? 0);
+              const insuranceRate = Number(scopeProfile?.insuranceRate ?? 0);
  
               return [
                 { label: `Base Freight (${MEANS_CONFIG[means].label})`, value: breakdown.baseFreight },
                 { label: `Fuel Surcharge (${fmtPercent(fuelRate)})`, value: breakdown.fuel },
                 { label: `Insurance (${fmtPercent(insuranceRate)})`, value: breakdown.insurance },
                 { label: 'Handling Fee', value: breakdown.handling },
-                ...(breakdown.customs > 0
-                  ? [{ label: customsRate ? `Customs Clearance (${fmtPercent(customsRate)})` : 'Customs Clearance', value: breakdown.customs }]
-                  : []),
-                ...(breakdown.tax > 0
-                  ? [{ label: taxRate ? `Tax (${fmtPercent(taxRate)})` : 'Tax', value: breakdown.tax }]
-                  : []),
+                ...(breakdown.customs > 0 ? [{ label: 'Customs Clearance', value: breakdown.customs }] : []),
+                ...(breakdown.tax > 0 ? [{ label: 'Tax', value: breakdown.tax }] : []),
               ];
             })().map(({ label, value }) => (
               <div key={label} className="flex justify-between text-gray-600 dark:text-gray-400">
