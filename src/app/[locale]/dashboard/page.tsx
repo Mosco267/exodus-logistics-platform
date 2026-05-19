@@ -77,6 +77,15 @@ function getStatusBadge(status?: string, statusMap?: Record<string, StatusConfig
   return { ...colorMap.slate, label: status || "Created" };
 }
 
+// ✅ Invoice badge (matches the history page)
+function getInvoiceBadge(status?: string) {
+  const s = String(status || "").toLowerCase();
+  if (s === "paid") return { label: "PAID", bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
+  if (s === "overdue") return { label: "OVERDUE", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
+  if (s === "cancelled") return { label: "CANCELLED", bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
+  return { label: "UNPAID", bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
+}
+
 function joinLoc(...parts: any[]) {
   return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
 }
@@ -176,9 +185,6 @@ export default function DashboardHome() {
       .slice(0, 6);
   }, [shipments]);
 
-  // ✅ Pending invoices — show "0" if none, otherwise show only the latest
-  // currency's total. Hint at additional currencies inline so the card stays
-  // the same height as the others.
   const pendingInvoiceDisplay = useMemo(() => {
     if (dash.pendingInvoicesCount === 0) {
       return { primary: "0", hint: "" };
@@ -300,6 +306,7 @@ export default function DashboardHome() {
             {recentHistory.map(s => {
               const badge = getStatusBadge(s.status, statusMap, s.statusColor);
               const StatusIcon = badge.icon;
+              const invoiceBadge = getInvoiceBadge(s?.invoice?.status);
               const fromText = joinLoc(s.senderCity, s.senderState, s.senderCountry) || "—";
               const toText = joinLoc(s.receiverCity, s.receiverState, s.receiverCountry) || "—";
 
@@ -324,6 +331,12 @@ export default function DashboardHome() {
                           <StatusIcon size={9} />
                           {badge.label}
                         </span>
+                        {/* ✅ Invoice badge — matches history page */}
+                        {s?.invoice?.invoiceNumber && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold ${invoiceBadge.bg} ${invoiceBadge.text}`}>
+                            {invoiceBadge.label}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 flex-wrap">
                         <MapPin size={10} className="shrink-0" />
