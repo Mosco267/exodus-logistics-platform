@@ -1,23 +1,35 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { ArrowUpRight, Package, FileText, Clock, TrendingUp, MapPin, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import {
+  ArrowUpRight, Package, FileText, Clock, TrendingUp, MapPin,
+  AlertCircle, CheckCircle2, Loader2, History, ChevronRight, Truck, Clock3,
+} from "lucide-react";
+import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 
-type ShipmentStatus = 'Delivered' | 'In Transit' | 'Custom Clearance' | 'Unclaimed' | 'Created';
+type ShipmentStatus = "Delivered" | "In Transit" | "Custom Clearance" | "Unclaimed" | "Created";
 
 type Shipment = {
   shipmentId: string;
   trackingNumber: string;
+  senderCity?: string;
+  senderState?: string;
+  senderCountry?: string;
   senderCountryCode?: string;
+  receiverCity?: string;
+  receiverState?: string;
+  receiverCountry?: string;
   destinationCountryCode?: string;
   status: ShipmentStatus | string;
   statusColor?: string;
   createdAt?: string;
+  updatedAt?: string;
+  statusUpdatedAt?: string;
   receiverName?: string;
   receiverEmail?: string;
-  invoice?: { invoiceNumber?: string };
+  invoice?: { invoiceNumber?: string; status?: string; amount?: number; currency?: string };
 };
 
 type DashStats = {
@@ -37,40 +49,68 @@ type StatusConfig = {
   color?: string;
 };
 
-const statusPill: Record<string, string> = {
-  Delivered: 'bg-emerald-100 text-emerald-700',
-  'In Transit': 'bg-blue-100 text-blue-700',
-  'Custom Clearance': 'bg-amber-100 text-amber-700',
-  Unclaimed: 'bg-red-100 text-red-700',
-  Created: 'bg-slate-100 text-slate-600',
+const colorMap: Record<string, { bg: string; text: string; icon: any }> = {
+  blue: { bg: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300", text: "text-blue-700 dark:text-blue-300", icon: Truck },
+  green: { bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-300", icon: CheckCircle2 },
+  red: { bg: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300", text: "text-red-700 dark:text-red-300", icon: AlertCircle },
+  orange: { bg: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300", text: "text-orange-700 dark:text-orange-300", icon: AlertCircle },
+  yellow: { bg: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300", text: "text-yellow-700 dark:text-yellow-300", icon: Clock3 },
+  purple: { bg: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300", text: "text-purple-700 dark:text-purple-300", icon: Package },
+  emerald: { bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-300", icon: CheckCircle2 },
+  slate: { bg: "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300", text: "text-slate-700 dark:text-slate-300", icon: Package },
+  gray: { bg: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300", text: "text-gray-700 dark:text-gray-300", icon: Package },
 };
 
-const colorMap: Record<string, string> = {
-  blue: 'bg-blue-100 text-blue-700',
-  green: 'bg-emerald-100 text-emerald-700',
-  red: 'bg-red-100 text-red-700',
-  orange: 'bg-amber-100 text-amber-700',
-  yellow: 'bg-yellow-100 text-yellow-700',
-  purple: 'bg-purple-100 text-purple-700',
-  pink: 'bg-pink-100 text-pink-700',
-  cyan: 'bg-cyan-100 text-cyan-700',
-  indigo: 'bg-indigo-100 text-indigo-700',
-  emerald: 'bg-emerald-100 text-emerald-700',
-  rose: 'bg-rose-100 text-rose-700',
-  slate: 'bg-slate-100 text-slate-600',
-  gray: 'bg-gray-100 text-gray-600',
-};
+function getStatusBadge(status?: string, statusMap?: Record<string, StatusConfig>, statusColor?: string) {
+  const key = String(status || "").toLowerCase().trim().replace(/[\s_-]+/g, "");
+  const adminColor = (statusMap?.[key]?.color || "").toLowerCase();
+  const fallbackColor = (statusColor || "").toLowerCase();
 
-function normalizeStatusKey(status?: string) {
-  return (status ?? '').toLowerCase().trim().replace(/[\s_-]+/g, '');
+  const s = String(status || "").toLowerCase();
+  if (adminColor && colorMap[adminColor]) return { ...colorMap[adminColor], label: status || "—" };
+  if (fallbackColor && colorMap[fallbackColor]) return { ...colorMap[fallbackColor], label: status || "—" };
+  if (s === "delivered") return { ...colorMap.green, label: "Delivered" };
+  if (s === "in transit") return { ...colorMap.blue, label: "In Transit" };
+  if (s === "custom clearance") return { ...colorMap.orange, label: "Custom Clearance" };
+  if (s === "unclaimed") return { ...colorMap.red, label: "Unclaimed" };
+  if (s === "cancelled" || s === "canceled") return { ...colorMap.red, label: "Cancelled" };
+  return { ...colorMap.slate, label: status || "Created" };
+}
+
+function joinLoc(...parts: any[]) {
+  return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
+}
+
+function fmtDate(iso?: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export default function DashboardHome() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'en';
+  const locale = (params?.locale as string) || "en";
 
-  const [recentShipments, setRecentShipments] = useState<Shipment[]>([]);
-  const [newestShipments, setNewestShipments] = useState<Shipment[]>([]);
+  const [accentSolid, setAccentSolid] = useState("#0b3aa4");
+  const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
+
+  useEffect(() => {
+    const apply = () => {
+      try {
+        const t = (localStorage.getItem("exodus_theme_cache") as ThemeId | null) || "default";
+        const theme = THEMES.find(x => x.id === t) || THEMES[0];
+        setAccentSolid(theme.accent || "#0b3aa4");
+        setAccentGradient(theme.sidebar || "linear-gradient(135deg, #0b3aa4, #0e7490)");
+      } catch {}
+    };
+    apply();
+    window.addEventListener("storage", apply);
+    const t = setInterval(apply, 1000);
+    return () => { window.removeEventListener("storage", apply); clearInterval(t); };
+  }, []);
+
+  const [shipments, setShipments] = useState<Shipment[]>([]);
   const [statusList, setStatusList] = useState<StatusConfig[]>([]);
   const [dash, setDash] = useState<DashStats>({
     total: 0, inTransit: 0, delivered: 0, custom: 0, unclaimed: 0,
@@ -81,7 +121,7 @@ export default function DashboardHome() {
   const statusMap = useMemo(() => {
     const m: Record<string, StatusConfig> = {};
     for (const s of statusList) {
-      const k = String(s?.key || '').toLowerCase();
+      const k = String(s?.key || "").toLowerCase();
       if (k) m[k] = s;
     }
     return m;
@@ -90,22 +130,21 @@ export default function DashboardHome() {
   useEffect(() => {
     const run = async () => {
       try {
-        const [recentRes, newestRes, statsRes, statusRes] = await Promise.all([
-          fetch('/api/shipments/recent', { cache: 'no-store' }),
-          fetch('/api/shipments/newest', { cache: 'no-store' }),
-          fetch('/api/dashboard/stats', { cache: 'no-store' }),
-          fetch('/api/statuses', { cache: 'no-store' }),
+        const [shipsRes, statsRes, statusRes] = await Promise.all([
+          fetch("/api/user/shipments", { cache: "no-store" }),
+          fetch("/api/dashboard/stats", { cache: "no-store" }),
+          fetch("/api/statuses", { cache: "no-store" }),
         ]);
-        const recentData = await recentRes.json();
-        const newestData = await newestRes.json();
+        const shipsData = await shipsRes.json();
         const statsData = await statsRes.json();
         const statusData = await statusRes.json();
 
-        setRecentShipments(Array.isArray(recentData?.results) ? recentData.results : []);
-        setNewestShipments(Array.isArray(newestData?.results) ? newestData.results : []);
+        setShipments(Array.isArray(shipsData?.shipments) ? shipsData.shipments : []);
 
-        const byCurrency = typeof statsData?.pendingInvoicesByCurrency === 'object' ? statsData.pendingInvoicesByCurrency : {};
-        const currencies = Array.isArray(statsData?.pendingInvoicesCurrencies) ? statsData.pendingInvoicesCurrencies : Object.keys(byCurrency).sort();
+        const byCurrency = typeof statsData?.pendingInvoicesByCurrency === "object" ? statsData.pendingInvoicesByCurrency : {};
+        const currencies = Array.isArray(statsData?.pendingInvoicesCurrencies)
+          ? statsData.pendingInvoicesCurrencies
+          : Object.keys(byCurrency).sort();
 
         setDash({
           total: Number(statsData?.total || 0),
@@ -119,8 +158,7 @@ export default function DashboardHome() {
         });
         setStatusList(Array.isArray(statusData?.statuses) ? statusData.statuses : []);
       } catch {
-        setRecentShipments([]);
-        setNewestShipments([]);
+        setShipments([]);
       } finally {
         setLoading(false);
       }
@@ -128,19 +166,30 @@ export default function DashboardHome() {
     run();
   }, []);
 
+  // Take most recent 6 by activity for the dashboard preview
+  const recentHistory = useMemo(() => {
+    return [...shipments]
+      .sort((a, b) => {
+        const aT = new Date(a.statusUpdatedAt || a.updatedAt || a.createdAt || 0).getTime();
+        const bT = new Date(b.statusUpdatedAt || b.updatedAt || b.createdAt || 0).getTime();
+        return bT - aT;
+      })
+      .slice(0, 6);
+  }, [shipments]);
+
   const pendingInvoiceLines: string[] =
     dash.pendingInvoicesCount > 0
       ? (dash.pendingInvoicesCurrencies.length ? dash.pendingInvoicesCurrencies : Object.keys(dash.pendingInvoicesByCurrency || {}).sort())
           .map(cur => `${cur} ${Number(dash.pendingInvoicesByCurrency?.[cur] || 0).toLocaleString()}`)
-      : ['—'];
+      : ["—"];
 
   const stats = [
-    { title: 'Total Shipments', value: String(dash.total), icon: Package, iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
-    { title: 'Pending Invoice', value: pendingInvoiceLines, icon: FileText, iconBg: 'bg-amber-100', iconColor: 'text-amber-600' },
-    { title: 'In Transit', value: String(dash.inTransit), icon: TrendingUp, iconBg: 'bg-cyan-100', iconColor: 'text-cyan-600' },
-    { title: 'Delivered', value: String(dash.delivered), icon: CheckCircle2, iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600' },
-    { title: 'Custom Clearance', value: String(dash.custom), icon: AlertCircle, iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
-    { title: 'Unclaimed', value: String(dash.unclaimed), icon: MapPin, iconBg: 'bg-red-100', iconColor: 'text-red-600' },
+    { title: "Total Shipments", value: String(dash.total), icon: Package, iconBg: "bg-blue-100 dark:bg-blue-500/15", iconColor: "text-blue-600 dark:text-blue-400" },
+    { title: "Pending Invoice", value: pendingInvoiceLines, icon: FileText, iconBg: "bg-amber-100 dark:bg-amber-500/15", iconColor: "text-amber-600 dark:text-amber-400" },
+    { title: "In Transit", value: String(dash.inTransit), icon: TrendingUp, iconBg: "bg-cyan-100 dark:bg-cyan-500/15", iconColor: "text-cyan-600 dark:text-cyan-400" },
+    { title: "Delivered", value: String(dash.delivered), icon: CheckCircle2, iconBg: "bg-emerald-100 dark:bg-emerald-500/15", iconColor: "text-emerald-600 dark:text-emerald-400" },
+    { title: "Custom Clearance", value: String(dash.custom), icon: AlertCircle, iconBg: "bg-orange-100 dark:bg-orange-500/15", iconColor: "text-orange-600 dark:text-orange-400" },
+    { title: "Unclaimed", value: String(dash.unclaimed), icon: MapPin, iconBg: "bg-red-100 dark:bg-red-500/15", iconColor: "text-red-600 dark:text-red-400" },
   ];
 
   return (
@@ -164,8 +213,8 @@ export default function DashboardHome() {
                 <div>
                   {lines.map((line, i) => (
                     <p key={i} className={i === 0
-                      ? 'text-2xl font-extrabold text-gray-900 dark:text-gray-100 leading-none'
-                      : 'text-sm font-semibold text-gray-600 dark:text-gray-300 mt-1'}>
+                      ? "text-2xl font-extrabold text-gray-900 dark:text-gray-100 leading-none"
+                      : "text-sm font-semibold text-gray-600 dark:text-gray-300 mt-1"}>
                       {line}
                     </p>
                   ))}
@@ -178,12 +227,12 @@ export default function DashboardHome() {
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-4" data-tour="quick-actions">
-  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {[
-            { href: `/${locale}/dashboard/track`, icon: Package, title: 'Track Shipment', desc: 'Search by tracking number', bg: 'bg-blue-600' },
-            { href: `/${locale}/dashboard/invoices`, icon: FileText, title: 'View Invoices', desc: 'Pending & paid invoices', bg: 'bg-amber-500' },
-            { href: `/${locale}/dashboard/history`, icon: Clock, title: 'History', desc: 'Recent activity & updates', bg: 'bg-emerald-600' },
+            { href: `/${locale}/dashboard/track`, icon: Package, title: "Track Shipment", desc: "Search by tracking number", bg: "bg-blue-600" },
+            { href: `/${locale}/dashboard/invoices`, icon: FileText, title: "View Invoices", desc: "Pending & paid invoices", bg: "bg-amber-500" },
+            { href: `/${locale}/dashboard/history`, icon: Clock, title: "History", desc: "All shipment history", bg: "bg-emerald-600" },
           ].map(({ href, icon: Icon, title, desc, bg }) => (
             <Link key={title} href={href}
               className="group flex items-center gap-3 rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:border-gray-200 hover:shadow-sm p-3.5 transition-all duration-200">
@@ -200,128 +249,96 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Shipment Tables */}
-      <ShipmentsSection title="Newest Shipments" locale={locale} loading={loading} shipments={newestShipments} statusMap={statusMap} />
-      <ShipmentsSection title="Recent Activity" locale={locale} loading={loading} shipments={recentShipments} statusMap={statusMap} />
-    </div>
-  );
-}
-
-function ShipmentsSection({ title, locale, loading, shipments, statusMap }: {
-  title: string; locale: string; loading: boolean; shipments: Shipment[]; statusMap: Record<string, StatusConfig>;
-}) {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-white/10">
-        <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h2>
-        <Link href={`/${locale}/dashboard/track`}
-          className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 transition">
-          View all <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-        </div>
-      ) : shipments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/10 flex items-center justify-center mb-2.5">
-            <Package className="w-5 h-5 text-gray-400" />
+      {/* Shipment History */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10">
+          <div className="flex items-center gap-2 min-w-0">
+            <History className="w-4 h-4 shrink-0" style={{ color: accentSolid }} />
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Shipment History</h2>
+            <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{shipments.length}</span>
           </div>
-          <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">No shipments yet</p>
+          <Link href={`/${locale}/dashboard/history`}
+            className="inline-flex items-center gap-1 text-xs font-bold transition hover:opacity-80"
+            style={{ color: accentSolid }}>
+            View all <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-      ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
-                  {['Shipment Number', 'Tracking Number', 'Receiver', 'Invoice Number', 'Route', 'Status', 'Date'].map(h => (
-                    <th key={h} className="py-2.5 px-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {shipments.map((s, idx) => {
-                  const key = normalizeStatusKey(s.status);
-                  const adminColor = (statusMap[key]?.color || '').toLowerCase();
-                  const pillClass = colorMap[adminColor] || colorMap[(s.statusColor || '').toLowerCase()] || statusPill[s.status] || statusPill.Created;
-                  return (
-                    <tr key={`${s.shipmentId}-${idx}`} className="border-b border-gray-50 dark:border-white/5 hover:bg-blue-50/30 dark:hover:bg-white/5 transition-colors">
-                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap text-xs">{s.shipmentId}</td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400 whitespace-nowrap font-mono text-xs">{s.trackingNumber}</td>
-<td className="py-3 px-4 whitespace-nowrap text-xs">
-  <p className="font-semibold text-gray-800 dark:text-gray-200">{s.receiverName || '—'}</p>
-  <p className="text-gray-400 dark:text-gray-500">{s.receiverEmail || ''}</p>
-</td>
-<td className="py-3 px-4 whitespace-nowrap text-xs font-mono text-gray-500 dark:text-gray-400">
-  {s.invoice?.invoiceNumber || '—'}
-</td>
-<td className="py-3 px-4 whitespace-nowrap text-xs font-semibold text-gray-500 dark:text-gray-400">
-  {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
-</td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <Link href={`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`}>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold cursor-pointer hover:opacity-80 transition ${pillClass}`}>
-                            {s.status}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
-                        {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
 
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-gray-50 dark:divide-white/5">
-            {shipments.map((s, idx) => {
-              const key = normalizeStatusKey(s.status);
-              const adminColor = (statusMap[key]?.color || '').toLowerCase();
-              const pillClass = colorMap[adminColor] || colorMap[(s.statusColor || '').toLowerCase()] || statusPill[s.status] || statusPill.Created;
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: accentSolid }} />
+          </div>
+        ) : recentHistory.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-3">
+              <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No shipments yet</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Your shipment history will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-white/10">
+            {recentHistory.map(s => {
+              const badge = getStatusBadge(s.status, statusMap, s.statusColor);
+              const StatusIcon = badge.icon;
+              const fromText = joinLoc(s.senderCity, s.senderState, s.senderCountry) || "—";
+              const toText = joinLoc(s.receiverCity, s.receiverState, s.receiverCountry) || "—";
+
               return (
-                <div key={`${s.shipmentId}-${idx}`} className="px-4 py-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{s.shipmentId}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5 truncate">{s.trackingNumber}</p>
+                <Link
+                  key={s.shipmentId || s.trackingNumber}
+                  href={`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`}
+                  className="group block px-5 py-4 hover:bg-gray-50 dark:hover:bg-white/5 transition cursor-pointer">
+                  <div className="flex items-center gap-4">
+
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: `${accentSolid}15` }}>
+                      <Package className="w-5 h-5" style={{ color: accentSolid }} />
                     </div>
-                    <Link href={`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`}>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 ${pillClass}`}>
-                        {s.status}
-                      </span>
-                    </Link>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-mono font-bold text-gray-900 dark:text-white truncate">
+                          {s.shipmentId || "—"}
+                        </p>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${badge.bg}`}>
+                          <StatusIcon size={9} />
+                          {badge.label}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 flex-wrap">
+                        <MapPin size={10} className="shrink-0" />
+                        <span className="truncate">{fromText}</span>
+                        <ChevronRight size={10} className="shrink-0 opacity-60" />
+                        <span className="truncate">{toText}</span>
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                        <Clock size={9} />
+                        {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt)}
+                      </p>
+                    </div>
+
+                    <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-300 transition shrink-0" />
                   </div>
-                 {(s.receiverName || s.receiverEmail) && (
-  <div className="mt-1.5">
-    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{s.receiverName || ''}</p>
-    <p className="text-xs text-gray-400 dark:text-gray-500">{s.receiverEmail || ''}</p>
-  </div>
-)}
-{s.invoice?.invoiceNumber && (
-  <p className="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1">{s.invoice.invoiceNumber}</p>
-)}
-<div className="flex items-center justify-between mt-2">
-  <span className="text-xs text-gray-400 dark:text-gray-500 font-semibold">
-    {(s.senderCountryCode || '—').toUpperCase()} → {(s.destinationCountryCode || '—').toUpperCase()}
-  </span>
-  <span className="text-xs text-gray-400 dark:text-gray-500">
-    {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-  </span>
-</div>
-                  
-                </div>
+                </Link>
               );
             })}
           </div>
-        </>
-      )}
+        )}
+
+        {!loading && shipments.length > recentHistory.length && (
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-white/10 text-center bg-gray-50/50 dark:bg-white/[0.02]">
+            <Link href={`/${locale}/dashboard/history`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
+              style={{ color: accentSolid }}>
+              View all {shipments.length} shipments
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

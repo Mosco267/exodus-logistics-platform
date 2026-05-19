@@ -1183,16 +1183,17 @@ export default function PaymentPage() {
                 const isSelected = selectedKey === m.key;
                 return (
                   <button key={m.key} type="button"
-                    onClick={() => {
-                      setSelected(m.method);
-                      setReceiptUrl('');
-                      setReceiptSubmitted(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition cursor-pointer text-left hover:opacity-95 hover:shadow-sm"
-                    style={{
-                      borderColor: isSelected ? 'transparent' : '#e5e7eb',
-                      background: isSelected ? accent : '#f9fafb',
-                    }}>
+    onClick={() => {
+      setSelected(m.method);
+      setReceiptUrl('');
+      setReceiptSubmitted(false);
+    }}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition cursor-pointer text-left hover:opacity-95 hover:shadow-sm ${
+      isSelected
+        ? "border-transparent"
+        : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10"
+    }`}
+    style={isSelected ? { background: accent } : undefined}>
                     {m.logoUrl ? (
                       <div className="w-9 h-9 rounded-lg overflow-hidden bg-white flex items-center justify-center shrink-0">
                         <img src={m.logoUrl} alt={m.label} className="w-full h-full object-contain p-1" />
