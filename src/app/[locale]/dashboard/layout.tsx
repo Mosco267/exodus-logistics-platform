@@ -308,7 +308,7 @@ style={{
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo-transparent.png" alt="Exodus" className="h-9 w-auto" />
+                  <img src="/logo-transparent.png" alt="Exodus" className="h-12 w-auto" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
@@ -418,11 +418,10 @@ style={{
               <img
                 src="/logo-transparent.png"
                 alt="Exodus"
-                width={140}
-                height={36}
-                className="h-9 w-auto"
+                width={180}
+                height={48}
+                className="h-12 w-auto"
                 style={{
-                  // light mode → invert white text to dark; dark mode → leave as-is
                   filter: (darkMode || currentTheme === 'midnight') ? 'none' : 'invert(1) hue-rotate(180deg)',
                 }}
               />
@@ -433,9 +432,9 @@ style={{
               <img
                 src="/logo-transparent.png"
                 alt="Exodus"
-                width={180}
-                height={48}
-                className="h-12 w-auto"
+                width={240}
+                height={64}
+                className="h-16 w-auto"
                 style={{
                   filter: (darkMode || currentTheme === 'midnight') ? 'none' : 'invert(1) hue-rotate(180deg)',
                 }}
