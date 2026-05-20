@@ -16,7 +16,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center mb-4">
-              <img src="/logo.svg" alt="Exodus Logistics" className="h-8 w-auto brightness-0 invert" />
+              <img src="/logo-full.svg" alt="Exodus Logistics" className="h-8 w-auto brightness-0 invert" />
             </Link>
             <p className="text-gray-300 max-w-md">
               Your trusted partner for global logistics solutions. We deliver reliability, speed, and excellence in every shipment.

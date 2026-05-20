@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" aria-label="Exodus Logistics">
+  <defs>
+    <linearGradient id="exBg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b3aa4"/>
+      <stop offset="0.55" stop-color="#0e7490"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="exArrow" x1="0" y1="0" x2="128" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#exBg)"/>
+  <rect x="1" y="1" width="126" height="126" rx="27" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+
+  <path d="M 28 28 L 80 28 L 96 42 L 44 42 Z" fill="#ffffff"/>
+  <path d="M 80 28 L 96 42 L 88 42 L 76 28 Z" fill="url(#exArrow)"/>
+  <path d="M 28 57 L 68 57 L 84 71 L 44 71 Z" fill="#ffffff" fill-opacity="0.95"/>
+  <path d="M 28 86 L 80 86 L 96 100 L 44 100 Z" fill="#ffffff"/>
+</svg>

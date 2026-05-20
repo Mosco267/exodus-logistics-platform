@@ -308,7 +308,7 @@ style={{
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo-transparent.png" alt="Exodus" className="h-12 w-auto" />
+                  <img src="/logo-mark.svg" alt="Exodus" className="h-10 w-10" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
@@ -416,7 +416,7 @@ style={{
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
               <img
-                src="/logo-transparent.png"
+                src="/logo-mark.svg"
                 alt="Exodus"
                 width={180}
                 height={48}
@@ -430,7 +430,7 @@ style={{
             {/* Logo — desktop only */}
              <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
               <img
-                src="/logo-transparent.png"
+                src="/logo-mark.svg"
                 alt="Exodus"
                 width={240}
                 height={64}

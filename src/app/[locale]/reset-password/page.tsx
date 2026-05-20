@@ -182,7 +182,7 @@ function ResetPasswordContent() {
         </div>
 
         {/* Right Panel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-10 relative"
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:px-10 sm:py-12 relative"
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
 
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
@@ -192,16 +192,16 @@ function ResetPasswordContent() {
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }} className="w-full max-w-[420px] relative z-10">
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-8 sm:p-10">
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 p-6 sm:p-10">
 
               {!success ? (
                 <>
-                  <div className="mb-7">
-                    <div className="w-12 h-12 rounded-2xl mb-5 flex items-center justify-center"
+                  <div className="mb-5 sm:mb-7">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl mb-4 sm:mb-5 flex items-center justify-center"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
-                      <Lock className="w-6 h-6 text-white" />
+                      <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Set new password</h1>
+                    <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Set new password</h1>
                     <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">
                       Choose a strong password you haven't used before.
                     </p>
@@ -257,12 +257,12 @@ function ResetPasswordContent() {
                   </p>
                 </>
               ) : (
-                <div className="text-center py-4">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                <div className="text-center py-2 sm:py-4">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5"
                     style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
-                    <CheckCircle2 className="w-8 h-8 text-white" />
+                    <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                   </div>
-                  <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Password updated!</h2>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">Password updated!</h2>
                   <p className="mt-2 text-sm text-gray-500 leading-relaxed">
                     Your password has been reset successfully.<br />
                     Redirecting you to sign in...
