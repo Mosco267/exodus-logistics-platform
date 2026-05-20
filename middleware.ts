@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const SUPPORTED_LOCALES = ['en', 'es', 'fr', 'de', 'zh', 'it'];
+const SUPPORTED_LOCALES = ['en', 'es', 'fr', 'de', 'zh', 'it', 'ar', 'pt', 'ru', 'ja', 'ko', 'hi'];
 const DEFAULT_LOCALE = 'en';
 
 // Map country code -> locale. Anything not listed defaults to English.
@@ -14,15 +14,29 @@ const COUNTRY_TO_LOCALE: Record<string, string> = {
   FR: 'fr', BE: 'fr', CD: 'fr', CM: 'fr', CI: 'fr',
   SN: 'fr', ML: 'fr', BF: 'fr', NE: 'fr', GN: 'fr', TG: 'fr', BJ: 'fr',
   // German
-  DE: 'de', AT: 'de', LI: 'de',
+  DE: 'de', AT: 'de', LI: 'de', CH: 'de',
   // Chinese
-  CN: 'zh', TW: 'zh',
+  CN: 'zh', TW: 'zh', HK: 'zh',
   // Italian
   IT: 'it', SM: 'it', VA: 'it',
+  // Arabic
+  SA: 'ar', AE: 'ar', EG: 'ar', JO: 'ar', LB: 'ar', SY: 'ar', IQ: 'ar',
+  KW: 'ar', QA: 'ar', BH: 'ar', OM: 'ar', YE: 'ar', SD: 'ar', LY: 'ar',
+  TN: 'ar', DZ: 'ar', MA: 'ar', PS: 'ar', MR: 'ar',
+  // Portuguese
+  BR: 'pt', PT: 'pt', AO: 'pt', MZ: 'pt', CV: 'pt', GW: 'pt', ST: 'pt', TL: 'pt',
+  // Russian
+  RU: 'ru', BY: 'ru', KZ: 'ru', KG: 'ru', UA: 'ru',
+  // Japanese
+  JP: 'ja',
+  // Korean
+  KR: 'ko', KP: 'ko',
+  // Hindi
+  IN: 'hi',
   // English — explicitly listed (everything else also falls back to en)
   US: 'en', GB: 'en', CA: 'en', AU: 'en', NZ: 'en', IE: 'en',
   ZA: 'en', NG: 'en', GH: 'en', KE: 'en', UG: 'en', TZ: 'en',
-  IN: 'en', SG: 'en', PH: 'en', PK: 'en', BD: 'en', MY: 'en',
+  SG: 'en', PH: 'en', PK: 'en', BD: 'en', MY: 'en',
 };
 
 export function middleware(req: NextRequest) {

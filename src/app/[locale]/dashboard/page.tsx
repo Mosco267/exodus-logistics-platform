@@ -8,6 +8,7 @@ import {
   AlertCircle, CheckCircle2, Loader2, History, ChevronRight, Truck, Clock3,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+  import { useIntl } from 'react-intl';
 
 type ShipmentStatus = "Delivered" | "In Transit" | "Custom Clearance" | "Unclaimed" | "Created";
 
@@ -106,6 +107,8 @@ function joinLoc(...parts: any[]) {
 export default function DashboardHome() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -203,9 +206,9 @@ export default function DashboardHome() {
     const topAmount = Number(dash.pendingInvoicesByCurrency?.[top] || 0);
     const primary = `${top} ${topAmount.toLocaleString()}`;
     const more = orderedCurrencies.length - 1;
-    const hint = more > 0 ? `+${more} more ${more === 1 ? "currency" : "currencies"}` : "";
+    const hint = more > 0 ? intl.formatMessage({ id: 'Dashboard.moreCurrencies' }, { count: more }) : "";
     return { primary, hint };
-  }, [dash]);
+  }, [dash, intl.locale]);
 
   const stats: Array<{
     title: string;
@@ -215,12 +218,12 @@ export default function DashboardHome() {
     iconBg: string;
     iconColor: string;
   }> = [
-    { title: "Total Shipments", value: String(dash.total), icon: Package, iconBg: "bg-blue-100 dark:bg-blue-500/15", iconColor: "text-blue-600 dark:text-blue-400" },
-    { title: "Pending Invoice", value: pendingInvoiceDisplay.primary, hint: pendingInvoiceDisplay.hint, icon: FileText, iconBg: "bg-amber-100 dark:bg-amber-500/15", iconColor: "text-amber-600 dark:text-amber-400" },
-    { title: "In Transit", value: String(dash.inTransit), icon: TrendingUp, iconBg: "bg-cyan-100 dark:bg-cyan-500/15", iconColor: "text-cyan-600 dark:text-cyan-400" },
-    { title: "Delivered", value: String(dash.delivered), icon: CheckCircle2, iconBg: "bg-emerald-100 dark:bg-emerald-500/15", iconColor: "text-emerald-600 dark:text-emerald-400" },
-    { title: "Custom Clearance", value: String(dash.custom), icon: AlertCircle, iconBg: "bg-orange-100 dark:bg-orange-500/15", iconColor: "text-orange-600 dark:text-orange-400" },
-    { title: "Unclaimed", value: String(dash.unclaimed), icon: MapPin, iconBg: "bg-red-100 dark:bg-red-500/15", iconColor: "text-red-600 dark:text-red-400" },
+    { title: t('Dashboard.totalShipments'), value: String(dash.total), icon: Package, iconBg: "bg-blue-100 dark:bg-blue-500/15", iconColor: "text-blue-600 dark:text-blue-400" },
+    { title: t('Dashboard.pendingInvoice'), value: pendingInvoiceDisplay.primary, hint: pendingInvoiceDisplay.hint, icon: FileText, iconBg: "bg-amber-100 dark:bg-amber-500/15", iconColor: "text-amber-600 dark:text-amber-400" },
+    { title: t('Dashboard.inTransit'), value: String(dash.inTransit), icon: TrendingUp, iconBg: "bg-cyan-100 dark:bg-cyan-500/15", iconColor: "text-cyan-600 dark:text-cyan-400" },
+    { title: t('Dashboard.delivered'), value: String(dash.delivered), icon: CheckCircle2, iconBg: "bg-emerald-100 dark:bg-emerald-500/15", iconColor: "text-emerald-600 dark:text-emerald-400" },
+    { title: t('Dashboard.customClearance'), value: String(dash.custom), icon: AlertCircle, iconBg: "bg-orange-100 dark:bg-orange-500/15", iconColor: "text-orange-600 dark:text-orange-400" },
+    { title: t('Dashboard.unclaimed'), value: String(dash.unclaimed), icon: MapPin, iconBg: "bg-red-100 dark:bg-red-500/15", iconColor: "text-red-600 dark:text-red-400" },
   ];
 
   return (
@@ -256,12 +259,12 @@ export default function DashboardHome() {
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-4" data-tour="quick-actions">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">{t('Dashboard.quickActions')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {[
-            { href: `/${locale}/dashboard/track`, icon: Package, title: "Track Shipment", desc: "Search by tracking number", bg: "bg-blue-600" },
-            { href: `/${locale}/dashboard/invoices`, icon: FileText, title: "View Invoices", desc: "Pending & paid invoices", bg: "bg-amber-500" },
-            { href: `/${locale}/dashboard/history`, icon: Clock, title: "History", desc: "All shipment history", bg: "bg-emerald-600" },
+            { href: `/${locale}/dashboard/track`, icon: Package, title: t('Dashboard.qa.trackTitle'), desc: t('Dashboard.qa.trackDesc'), bg: "bg-blue-600" },
+            { href: `/${locale}/dashboard/invoices`, icon: FileText, title: t('Dashboard.qa.invoicesTitle'), desc: t('Dashboard.qa.invoicesDesc'), bg: "bg-amber-500" },
+            { href: `/${locale}/dashboard/history`, icon: Clock, title: t('Dashboard.qa.historyTitle'), desc: t('Dashboard.qa.historyDesc'), bg: "bg-emerald-600" },
           ].map(({ href, icon: Icon, title, desc, bg }) => (
             <Link key={title} href={href}
               className="group flex items-center gap-3 rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:border-gray-200 hover:shadow-sm p-3.5 transition-all duration-200">
@@ -283,13 +286,13 @@ export default function DashboardHome() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <div className="flex items-center gap-2 min-w-0">
             <History className="w-4 h-4 shrink-0" style={{ color: accentSolid }} />
-            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Shipment History</h2>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{t('Dashboard.shipmentHistory')}</h2>
             <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{shipments.length}</span>
           </div>
           <Link href={`/${locale}/dashboard/history`}
             className="inline-flex items-center gap-1 text-xs font-bold transition hover:opacity-80"
             style={{ color: accentSolid }}>
-            View all <ArrowUpRight className="w-3.5 h-3.5" />
+            {t('Dashboard.viewAll')} <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
@@ -302,9 +305,9 @@ export default function DashboardHome() {
             <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-3">
               <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
             </div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No shipments yet</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Dashboard.noShipments')}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Your shipment history will appear here.
+              {t('Dashboard.noShipmentsDesc')}
             </p>
           </div>
         ) : (
@@ -379,7 +382,7 @@ export default function DashboardHome() {
             <Link href={`/${locale}/dashboard/history`}
               className="inline-flex items-center gap-1.5 text-xs font-bold transition hover:opacity-80"
               style={{ color: accentSolid }}>
-              View all {shipments.length} shipments
+              {t('Dashboard.viewAllN', { count: shipments.length })}
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>

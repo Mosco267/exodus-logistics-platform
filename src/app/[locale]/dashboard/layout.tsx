@@ -15,6 +15,7 @@ import CongratulationsModal from "@/components/CongratulationsModal";
 import OnboardingTour from "@/components/OnboardingTour";
 import AppearancePanel, { THEMES, ThemeId, ColorMode } from "@/components/AppearancePanel";
 import LanguageModal from "@/components/LanguageModal";
+import { useIntl } from 'react-intl';
 
 
 
@@ -42,6 +43,8 @@ const [displayEmail, setDisplayEmail] = useState('');
   const profileRef = useRef<HTMLDivElement>(null);
 
   const { data: session, status } = useSession();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
 useEffect(() => {
   if (session?.user?.email) setDisplayEmail(session.user.email);
@@ -61,11 +64,11 @@ useEffect(() => {
 }, [userName]);
 
 const timeGreeting = useMemo(() => {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}, []);
+    const hour = new Date().getHours();
+    if (hour < 12) return t('Sidebar.greetingMorning');
+    if (hour < 17) return t('Sidebar.greetingAfternoon');
+    return t('Sidebar.greetingEvening');
+  }, [intl.locale]);
 
   const initials = useMemo(() => {
     const parts = userName.split(' ').filter(Boolean);
@@ -265,13 +268,13 @@ const toggleDark = () => {
   if (isAdmin) return <AdminShell>{children}</AdminShell>;
 
   const navItems = [
-    { href: `/${locale}/dashboard`, label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" />, exact: true },
-    { href: `/${locale}/dashboard/shipments/new`, label: 'New Shipment', icon: <PlusCircle className="w-5 h-5" />, mobileOnly: true },
-    { href: `/${locale}/dashboard/track`, label: 'Track Shipment', icon: <Package className="w-5 h-5" /> },
-    { href: `/${locale}/dashboard/invoices`, label: 'Invoices', icon: <FileText className="w-5 h-5" /> },
-    { href: `/${locale}/dashboard/support`, label: 'Support', icon: <LifeBuoy className="w-5 h-5" /> },
-    { href: `/${locale}/dashboard/history`, label: 'History', icon: <Clock className="w-5 h-5" /> },
-    { href: `/${locale}/dashboard/settings`, label: 'Settings', icon: <Settings className="w-5 h-5" /> },
+    { href: `/${locale}/dashboard`, label: t('Sidebar.overview'), icon: <LayoutDashboard className="w-5 h-5" />, exact: true },
+    { href: `/${locale}/dashboard/shipments/new`, label: t('Sidebar.newShipment'), icon: <PlusCircle className="w-5 h-5" />, mobileOnly: true },
+    { href: `/${locale}/dashboard/track`, label: t('Sidebar.trackShipment'), icon: <Package className="w-5 h-5" /> },
+    { href: `/${locale}/dashboard/invoices`, label: t('Sidebar.invoices'), icon: <FileText className="w-5 h-5" /> },
+    { href: `/${locale}/dashboard/support`, label: t('Sidebar.support'), icon: <LifeBuoy className="w-5 h-5" /> },
+    { href: `/${locale}/dashboard/history`, label: t('Sidebar.history'), icon: <Clock className="w-5 h-5" /> },
+    { href: `/${locale}/dashboard/settings`, label: t('Sidebar.settings'), icon: <Settings className="w-5 h-5" /> },
   ];
 
  return (
@@ -305,7 +308,7 @@ style={{
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo.svg" alt="Exodus" className="h-9 w-auto" />
+                  <img src="/logo-transparent.png" alt="Exodus" className="h-9 w-auto" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
@@ -329,10 +332,10 @@ style={{
                 <>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-                    <p className="text-[11px] font-bold text-yellow-300 uppercase tracking-wider">Welcome!</p>
+                    <p className="text-[11px] font-bold text-yellow-300 uppercase tracking-wider">{t('Sidebar.welcome')}</p>
                   </div>
-                  <p className="text-sm font-bold text-white">🎉 Congratulations, {greetingName}!</p>
-                  <p className="text-[11px] text-white/60 mt-0.5">Your account is ready to use.</p>
+                  <p className="text-sm font-bold text-white">{t('Sidebar.congrats', { name: greetingName })}</p>
+                  <p className="text-[11px] text-white/60 mt-0.5">{t('Sidebar.accountReady')}</p>
                 </>
               ) : (
                 <>
@@ -381,9 +384,9 @@ style={{
               onClick={() => setLogoutOpen(true)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/12 transition-all duration-200 font-semibold cursor-pointer text-sm text-white/80 hover:text-white
                 ${!sidebarOpen ? 'justify-center' : ''}`}
-              title={!sidebarOpen ? 'Logout' : undefined}>
+              title={!sidebarOpen ? t('Sidebar.logout') : undefined}>
               <LogOut className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span>Logout</span>}
+              {sidebarOpen && <span>{t('Sidebar.logout')}</span>}
             </button>
           </div>
         </div>
@@ -412,22 +415,31 @@ style={{
 
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
-              <div className="relative h-9" style={{ minWidth: 80 }}>
-                <img src="/logo.svg" alt="Exodus" className="h-9 w-auto absolute top-0 left-0"
-  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 1 : 0, transition: 'opacity 200ms ease' }} />
-<img src="/logo-dark.svg" alt="Exodus" className="h-9 w-auto"
-  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 0 : 1, transition: 'opacity 200ms ease' }} />
-              </div>
+              <img
+                src="/logo-transparent.png"
+                alt="Exodus"
+                width={140}
+                height={36}
+                className="h-9 w-auto"
+                style={{
+                  // light mode → invert white text to dark; dark mode → leave as-is
+                  filter: (darkMode || currentTheme === 'midnight') ? 'none' : 'invert(1) hue-rotate(180deg)',
+                }}
+              />
             </Link>
 
             {/* Logo — desktop only */}
-            <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
-              <div className="relative h-12" style={{ minWidth: 120 }}>
-                <img src="/logo.svg" alt="Exodus" className="h-12 w-auto absolute top-0 left-0"
-  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 1 : 0, transition: 'opacity 200ms ease' }} />
-<img src="/logo-dark.svg" alt="Exodus" className="h-12 w-auto"
-  style={{ opacity: (darkMode || currentTheme === 'midnight') ? 0 : 1, transition: 'opacity 200ms ease' }} />
-              </div>
+             <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
+              <img
+                src="/logo-transparent.png"
+                alt="Exodus"
+                width={180}
+                height={48}
+                className="h-12 w-auto"
+                style={{
+                  filter: (darkMode || currentTheme === 'midnight') ? 'none' : 'invert(1) hue-rotate(180deg)',
+                }}
+              />
             </Link>
 
             {/* Search — desktop */}
@@ -468,7 +480,7 @@ style={{
     className="hidden md:flex items-center gap-1.5 px-4 py-2 text-white rounded-xl transition font-bold shadow-sm text-sm cursor-pointer shrink-0 hover:opacity-90"
 style={{ background: activeTheme.sidebar }}>
     <PlusCircle className="w-4 h-4" />
-    <span>Create Shipment</span>
+    <span>{t('Header.createShipment')}</span>
   </Link>
 
   {/* Profile */}
@@ -517,7 +529,7 @@ style={{ background: activeTheme.sidebar }}>
     <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
       <User size={14} className="text-blue-600 dark:text-blue-400" />
     </div>
-    Profile
+    {t('Header.profile')}
   </Link>
   <Link href={`/${locale}/dashboard/settings`}
     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition group ${
@@ -534,7 +546,7 @@ style={{ background: activeTheme.sidebar }}>
     <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition">
       <Settings size={14} className="text-blue-600 dark:text-blue-400" />
     </div>
-    Settings
+    {t('Header.settings')}
   </Link>
   <button
     onClick={() => { setProfileOpen(false); setShowAppearance(true); }}
@@ -545,7 +557,7 @@ style={{ background: activeTheme.sidebar }}>
     <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0 group-hover:bg-purple-100 dark:group-hover:bg-purple-500/20 transition">
       <Palette size={14} className="text-purple-600 dark:text-purple-400" />
     </div>
-    Appearance
+    {t('Header.appearance')}
   </button>
   <button
     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition w-full text-left group cursor-pointer ${
@@ -556,7 +568,7 @@ style={{ background: activeTheme.sidebar }}>
     <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20 transition">
       <Languages size={14} className="text-cyan-600 dark:text-cyan-400" />
     </div>
-    Language
+    {t('Header.language')}
   </button>
 </div>
 
@@ -569,7 +581,7 @@ style={{ background: activeTheme.sidebar }}>
         <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 transition">
           <LogOut size={14} className="text-red-600" />
         </div>
-        Logout
+        {t('Header.logout')}
       </button>
     </div>
   </div>
@@ -599,19 +611,19 @@ style={{ background: activeTheme.sidebar }}>
   style={{ background: activeTheme.sidebar }}>
   <span className="text-white font-extrabold text-lg">?</span>
 </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Confirm logout</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Are you sure you want to logout?</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">{t('Header.confirmLogout')}</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">{t('Header.confirmLogoutMessage')}</p>
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleLogout}
                   className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-white/20 text-gray-700 dark:text-gray-200 hover:border-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition font-semibold cursor-pointer text-sm">
-                  Yes, logout
+                  {t('Header.yesLogout')}
                 </button>
                 <button
                   onClick={() => setLogoutOpen(false)}
                   className="flex-1 py-2.5 rounded-xl text-white hover:opacity-90 transition font-semibold cursor-pointer text-sm"
 style={{ background: activeTheme.sidebar }}>
-Cancel
+{t('Header.cancel')}
                 </button>
               </div>
             </div>

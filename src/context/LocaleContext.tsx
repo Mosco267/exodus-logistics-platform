@@ -2,7 +2,9 @@
 
 import { createContext, useState, ReactNode, useEffect } from 'react';
 
-export type Locale = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'it';
+export type Locale = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'it' | 'ar' | 'pt' | 'ru' | 'ja' | 'ko' | 'hi';
+
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'es', 'fr', 'de', 'zh', 'it', 'ar', 'pt', 'ru', 'ja', 'ko', 'hi'];
 
 interface LocaleContextType {
   locale: Locale;
@@ -19,16 +21,38 @@ export const LocaleProvider = ({ children }: { children: ReactNode }) => {
 
   // Load saved language BEFORE rendering
   useEffect(() => {
-    const saved = localStorage.getItem('selectedLanguage') as Locale | null;
+    let resolved: Locale = 'en';
 
-    if (
-      saved &&
-      ['en', 'es', 'fr', 'de', 'zh', 'it'].includes(saved)
-    ) {
-      setLocale(saved);
-    } else {
-      setLocale('en');
+    // 1) Try URL locale first (e.g. /fr/dashboard)
+    try {
+      const m = window.location.pathname.match(/^\/([a-z]{2})(\/|$)/);
+      if (m && (SUPPORTED_LOCALES as string[]).includes(m[1])) {
+        resolved = m[1] as Locale;
+      }
+    } catch {}
+
+    // 2) Fall back to localStorage
+    if (resolved === 'en') {
+      try {
+        const saved = localStorage.getItem('selectedLanguage') as Locale | null;
+        if (saved && (SUPPORTED_LOCALES as string[]).includes(saved)) {
+          resolved = saved;
+        }
+      } catch {}
     }
+
+    // 3) Fall back to cookie (set by middleware)
+    if (resolved === 'en') {
+      try {
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)exodus_locale=([^;]+)/);
+        const cookieLocale = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+        if (cookieLocale && (SUPPORTED_LOCALES as string[]).includes(cookieLocale)) {
+          resolved = cookieLocale as Locale;
+        }
+      } catch {}
+    }
+
+    setLocale(resolved);
   }, []);
 
   // Save locale when it changes
