@@ -1,13 +1,11 @@
 'use client';
 
-type Locale = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'it';
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Globe, Home, Info, Briefcase, Mail, MapPin, FileText, Calculator, Rocket } from 'lucide-react';
-import { LocaleContext } from '@/context/LocaleContext';
+import { LocaleContext, type Locale } from '@/context/LocaleContext';
 import { useIntl } from 'react-intl';
 
 export default function Header() {
@@ -18,18 +16,32 @@ export default function Header() {
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
 
-  const languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Italian'] as const;
-  const translate = (name: string) => intl.formatMessage({ id: `Header.${name}` });
-
+  // ✅ Display name shown in the language pill / dropdown — uses native names
+  //    so non-Latin languages render correctly (中文, العربية, etc.)
   const codeToLang: Record<Locale, string> = {
-    en: 'English', es: 'Spanish', fr: 'French',
-    de: 'German', zh: 'Chinese', it: 'Italian',
+    en: 'English',
+    es: 'Español',
+    fr: 'Français',
+    de: 'Deutsch',
+    zh: '中文',
+    it: 'Italiano',
+    ar: 'العربية',
+    pt: 'Português',
+    ru: 'Русский',
+    ja: '日本語',
+    ko: '한국어',
+    hi: 'हिन्दी',
   };
 
-  const langToCode: Record<string, Locale> = {
-    English: 'en', Spanish: 'es', French: 'fr',
-    German: 'de', Chinese: 'zh', Italian: 'it',
-  };
+  // Reverse map (used by older click handler)
+  const langToCode: Record<string, Locale> = Object.fromEntries(
+    (Object.entries(codeToLang) as [Locale, string][]).map(([c, n]) => [n, c])
+  ) as Record<string, Locale>;
+
+  // Ordered list for the dropdown
+  const languages = Object.values(codeToLang) as string[];
+
+  const translate = (name: string) => intl.formatMessage({ id: `Header.${name}` });
 
   const navigation = [
     { name: 'Home', href: `/${locale}`, icon: <Home className="w-4 h-4" /> },
@@ -45,12 +57,12 @@ export default function Header() {
   ] as const;
 
   const isActive = (href: string) => {
-  const pathWithoutLocale = pathname.split('/').slice(2).join('/');
-  const itemPathWithoutLocale = href.split('/').slice(2).join('/');
-  if (!itemPathWithoutLocale) return pathWithoutLocale === '';
-  return pathWithoutLocale === itemPathWithoutLocale ||
-    pathWithoutLocale.startsWith(itemPathWithoutLocale + '/');
-};
+    const pathWithoutLocale = pathname.split('/').slice(2).join('/');
+    const itemPathWithoutLocale = href.split('/').slice(2).join('/');
+    if (!itemPathWithoutLocale) return pathWithoutLocale === '';
+    return pathWithoutLocale === itemPathWithoutLocale ||
+      pathWithoutLocale.startsWith(itemPathWithoutLocale + '/');
+  };
 
   const isGetStartedActive = pathname.includes('/sign-in') || pathname.includes('/sign-up') || pathname.includes('/verify-email');
 
@@ -66,36 +78,35 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           <div className="flex justify-between items-center h-20 sm:h-28">
 
-            {/* Logo — left aligned on all screens */}
+            {/* Logo */}
             <Link href={`/${locale}`} className="flex items-center shrink-0">
-              <img src="/logo.svg" alt="Exodus Logistics" className="h-11 sm:h-16 w-auto" />
+              <img src="/logo-transparent.png" alt="Exodus Logistics" className="h-11 sm:h-16 w-auto" />
             </Link>
 
             {/* Desktop Right Section */}
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
 
-              {/* Track & Invoice */}
               {actions.map((item) => (
-  <Link key={item.name} href={item.href}
-    className="flex items-center gap-1.5 text-white text-sm font-medium transition-all duration-300 hover:scale-110 hover:font-bold hover:text-base">
-    <span className="transition-all duration-300">{item.icon}</span>
-    <span className="transition-all duration-300">{translate(item.name)}</span>
-  </Link>
-))}
+                <Link key={item.name} href={item.href}
+                  className="flex items-center gap-1.5 text-white text-sm font-medium transition-all duration-300 hover:scale-110 hover:font-bold hover:text-base">
+                  <span className="transition-all duration-300">{item.icon}</span>
+                  <span className="transition-all duration-300">{translate(item.name)}</span>
+                </Link>
+              ))}
 
               {/* Language Dropdown */}
               <div className="relative">
                 <button onClick={() => { setLanguageDropdownOpen(!languageDropdownOpen); setNavDropdownOpen(false); }}
-  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300 cursor-pointer">
-  <Globe className="w-4 h-4" />
-  {codeToLang[locale]}
-</button>
+                  className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-white/10 backdrop-blur-md hover:bg-white/20 hover:shadow-[0_8px_15px_rgba(0,0,0,0.7)] hover:font-bold transition-all duration-300 cursor-pointer">
+                  <Globe className="w-4 h-4" />
+                  {codeToLang[locale]}
+                </button>
                 <AnimatePresence>
                   {languageDropdownOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-3 w-40 bg-white rounded-xl shadow-2xl overflow-hidden z-50">
+                      className="absolute right-0 mt-3 w-44 bg-white rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto">
                       <div className="py-2">
                         {languages.map((lang) => {
                           const code = langToCode[lang];
@@ -138,10 +149,10 @@ export default function Header() {
                         {navigation.map((item) => (
                           <Link key={item.name} href={item.href} onClick={() => setNavDropdownOpen(false)}
                             className={`flex items-center gap-3 px-5 py-3 text-sm font-bold transition-all duration-200 ${
-  (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
-    ? 'text-orange-500 bg-orange-50'
-    : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'
-}`}>
+                              (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
+                                ? 'text-orange-500 bg-orange-50'
+                                : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'
+                            }`}>
                             {item.icon}
                             <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                           </Link>
@@ -153,95 +164,84 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Mobile: Track, Invoice icons + hamburger — all on the right */}
+            {/* Mobile right side */}
             <div className="md:hidden flex items-center gap-3">
-  {actions.map((item) => (
-    <Link key={item.name} href={item.href}
-      className="inline-flex flex-col items-center gap-0.5 text-white">
-      <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-      <span className="text-[9px] font-bold tracking-wide">{translate(item.name)}</span>
-    </Link>
-  ))}
-  <button
-  onClick={() => setIsMenuOpen(!isMenuOpen)}
-  className="inline-flex flex-col items-center gap-0.5 text-white hover:text-orange-400 transition-colors duration-300 p-1">
-  <Menu className="h-5 w-5" />
-  <span className="text-[9px] font-bold tracking-wide">Menu</span>
-</button>
-</div>
+              {actions.map((item) => (
+                <Link key={item.name} href={item.href}
+                  className="inline-flex flex-col items-center gap-0.5 text-white">
+                  <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
+                  <span className="text-[9px] font-bold tracking-wide">{translate(item.name)}</span>
+                </Link>
+              ))}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="inline-flex flex-col items-center gap-0.5 text-white hover:text-orange-400 transition-colors duration-300 p-1">
+                <Menu className="h-5 w-5" />
+                <span className="text-[9px] font-bold tracking-wide">Menu</span>
+              </button>
+            </div>
 
           </div>
         </div>
       </motion.header>
 
-      {/* ── MOBILE SIDEBAR DRAWER — outside header so it covers full screen ── */}
+      {/* MOBILE DRAWER */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-black/40 z-40 md:hidden"
               onClick={() => setIsMenuOpen(false)}
             />
-
-            {/* Sidebar panel */}
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ duration: 0.28, ease: 'easeInOut' }}
               className="fixed top-0 right-0 h-full w-full bg-white z-50 shadow-2xl flex flex-col md:hidden"
             >
-              {/* Sidebar Header */}
               <div
                 className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
                 style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
-                <img src="/logo.svg" alt="Exodus Logistics" className="h-10 w-auto" />
+                <img src="/logo-transparent.png" alt="Exodus Logistics" className="h-10 w-auto" />
                 <button
-  onClick={() => setIsMenuOpen(false)}
-  className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
-  <X className="h-6 w-6" />
-</button>
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
+                  <X className="h-6 w-6" />
+                </button>
               </div>
 
-              {/* Sidebar Content */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
 
-                {/* Nav links */}
                 {navigation.map((item) => (
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
-  (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
-    ? 'text-orange-500 bg-orange-50'
-    : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
-}`}>
+                      (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
+                        ? 'text-orange-500 bg-orange-50'
+                        : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
+                    }`}>
                     <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
                     <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                   </Link>
                 ))}
 
-                {/* Track, Invoice & Quote */}
                 <div className="border-t border-gray-100 pt-3 mt-3 space-y-1">
                   {actions.map((item) => (
-  <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
-    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
-    <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-    <span>{translate(item.name)}</span>
-  </Link>
-))}
+                    <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+                      <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
+                      <span>{translate(item.name)}</span>
+                    </Link>
+                  ))}
 
                   <Link href={`/${locale}/quote`} onClick={() => setIsMenuOpen(false)}
-  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(`/${locale}/quote`) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
-  <Calculator className="w-5 h-5" />
-  <span>{translate('Quote')}</span>
-</Link>
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(`/${locale}/quote`) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+                    <Calculator className="w-5 h-5" />
+                    <span>{translate('Quote')}</span>
+                  </Link>
                 </div>
 
-                {/* Language selector */}
+                {/* Language selector — now scrolls horizontally so 12 buttons fit */}
                 <div className="border-t border-gray-100 pt-4 mt-3 px-4">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-3">Language</p>
                   <div className="flex flex-wrap gap-2">
