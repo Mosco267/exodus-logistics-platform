@@ -215,6 +215,15 @@ useEffect(() => {
     return () => { document.documentElement.classList.remove('dark'); };
   }, []);
 
+  // Preload all logo variants so theme/sidebar swaps are flicker-free
+  useEffect(() => {
+    const urls = ['/logo-gradient.svg', '/logo-white.svg', '/logo-black.svg'];
+    urls.forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
+  }, []);
+
   const handleColorModeChange = (mode: ColorMode) => {
   setColorMode(mode);
   localStorage.setItem('exodus_color_mode', mode);
@@ -308,7 +317,8 @@ style={{
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo-gradient.svg" alt="Exodus" className="h-20 w-auto" />
+                  <img src="/logo-gradient.svg" alt="Exodus" className="h-20 w-auto"
+                       fetchPriority="high" decoding="sync" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
@@ -418,7 +428,9 @@ style={{
               <img
                 src={(darkMode || currentTheme === 'midnight') ? "/logo-black.svg" : "/logo-white.svg"}
                 alt="Exodus"
-                className="h-10 w-auto"
+                className="h-16 w-auto"
+                fetchPriority="high"
+                decoding="sync"
               />
             </Link>
 
@@ -428,6 +440,8 @@ style={{
                 src={(darkMode || currentTheme === 'midnight') ? "/logo-black.svg" : "/logo-white.svg"}
                 alt="Exodus"
                 className="h-24 w-auto"
+                fetchPriority="high"
+                decoding="sync"
               />
             </Link>
 

@@ -80,7 +80,7 @@ export default function Header() {
 
             {/* Logo */}
             <Link href={`/${locale}`} className="flex items-center shrink-0">
-              <img src="/logo-gradient.svg" alt="Exodus Logistics" className="h-20 sm:h-28 w-auto" />
+              <img src="/logo-gradient.svg" alt="Exodus Logistics" className="h-16 sm:h-20 w-auto" />
             </Link>
 
             {/* Desktop Right Section */}
