@@ -219,10 +219,11 @@ export default function Header() {
             />
             {/* ✅ Removed h-full so drawer fits its content height */}
             <motion.div
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ duration: 0.28, ease: 'easeInOut' }}
-              className="fixed top-0 right-0 w-full bg-white z-50 shadow-2xl flex flex-col md:hidden max-h-screen"
-            >
+  initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+  transition={{ duration: 0.28, ease: 'easeInOut' }}
+  className="fixed inset-0 bg-white z-50 shadow-2xl flex flex-col md:hidden"
+  style={{ height: '100dvh' }}
+>
               <div
                 className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
                 style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
@@ -242,7 +243,7 @@ export default function Header() {
 
               {/* ✅ Removed flex-1 so inner area doesn't stretch — drawer
                     height now matches its content exactly */}
-              <div className="overflow-y-auto px-4 py-4 space-y-1">
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
 
                 {navigation.map((item) => (
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
