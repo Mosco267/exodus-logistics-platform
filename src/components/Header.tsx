@@ -198,7 +198,7 @@ export default function Header() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ duration: 0.28, ease: 'easeInOut' }}
-              className="fixed top-0 right-0 h-full w-full bg-white z-50 shadow-2xl flex flex-col md:hidden"
+              className="fixed top-0 right-0 max-h-[90vh] w-full bg-white z-50 shadow-2xl flex flex-col md:hidden rounded-bl-3xl overflow-hidden"
             >
               <div
                 className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
@@ -211,7 +211,7 @@ export default function Header() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+              <div className="overflow-y-auto px-4 py-4 space-y-1">
 
                 {navigation.map((item) => (
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
