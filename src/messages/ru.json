@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "Язык",
   "LanguageModal.subtitle": "Выберите предпочитаемый язык",
-  "LanguageModal.comingSoon": "Скоро будут доступны другие языки"
+  "LanguageModal.comingSoon": "Скоро будут доступны другие языки",
+
+  "SearchBar.placeholder": "Поиск по номеру отправления или отслеживания...",
+  "SearchBar.searching": "Поиск…",
+  "SearchBar.noMatches": "Совпадений не найдено"
 }

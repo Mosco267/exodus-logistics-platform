@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useIntl } from "react-intl";
 
 type Suggestion = {
   shipmentId: string;
@@ -14,13 +15,33 @@ type Suggestion = {
 };
 
 export default function SearchBar({
-  placeholder = "Search by Shipment or Tracking Number...",
+  placeholder,
   locale = "en",
 }: {
   placeholder?: string;
   locale?: string;
 }) {
   const router = useRouter();
+  const intl = useIntl();
+
+  // Translation helper with safe fallbacks
+  const placeholderText =
+    placeholder ||
+    intl.formatMessage({
+      id: "SearchBar.placeholder",
+      defaultMessage: "Search by Shipment or Tracking Number...",
+    });
+
+  const searchingText = intl.formatMessage({
+    id: "SearchBar.searching",
+    defaultMessage: "Searching…",
+  });
+
+  const noMatchesText = intl.formatMessage({
+    id: "SearchBar.noMatches",
+    defaultMessage: "No matches found",
+  });
+
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,10 +51,8 @@ export default function SearchBar({
   const wrapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<number | null>(null);
 
-  // ✅ Always show uppercase in the input
   const displayValue = useMemo(() => value.toUpperCase(), [value]);
 
-  // Close dropdown if clicking outside
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!wrapRef.current) return;
@@ -43,7 +62,6 @@ export default function SearchBar({
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
-  // Fetch suggestions (debounced)
   useEffect(() => {
     const q = displayValue.trim();
     if (!q) {
@@ -74,11 +92,11 @@ export default function SearchBar({
     };
   }, [displayValue]);
 
- const goToResult = (s: Suggestion) => {
-  router.push(`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`);
-  setValue('');
-  setOpen(false);
-};
+  const goToResult = (s: Suggestion) => {
+    router.push(`/${locale}/dashboard/status/${encodeURIComponent(s.shipmentId)}`);
+    setValue("");
+    setOpen(false);
+  };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) setOpen(true);
@@ -92,14 +110,11 @@ export default function SearchBar({
       setActiveIndex((i) => Math.max(i - 1, 0));
     }
     if (e.key === "Enter") {
-      // If user highlighted an item, select it
       if (activeIndex >= 0 && items[activeIndex]) {
         e.preventDefault();
         goToResult(items[activeIndex]);
         return;
       }
-
-      // Otherwise, just go to Track with the typed query
       const q = displayValue.trim();
       if (q) router.push(`/${locale}/dashboard/track?q=${encodeURIComponent(q)}`);
       setOpen(false);
@@ -112,20 +127,22 @@ export default function SearchBar({
       <div className="flex items-center bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl shadow-inner border border-transparent dark:border-gray-800">
         <Search className="w-4 h-4 text-gray-500 dark:text-gray-300 mr-2" />
         <input
-  value={displayValue}
-  onChange={(e) => setValue(e.target.value)}
-  onFocus={() => displayValue.trim() && setOpen(true)}
-  onKeyDown={onKeyDown}
-  placeholder={placeholder}
-  style={{ fontSize: '16px' }}
-  autoCapitalize="characters"
-  autoCorrect="off"
-  autoComplete="off"
-  spellCheck={false}
- className="bg-transparent outline-none w-full text-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 placeholder:normal-case uppercase"
-/>
+          value={displayValue}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => displayValue.trim() && setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholderText}
+          style={{ fontSize: "16px" }}
+          autoCapitalize="characters"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          className="bg-transparent outline-none w-full text-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 placeholder:normal-case uppercase"
+        />
         {loading && (
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">Searching…</span>
+          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+            {searchingText}
+          </span>
         )}
       </div>
 
@@ -133,7 +150,7 @@ export default function SearchBar({
         <div className="absolute z-50 mt-2 w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl overflow-hidden">
           {items.length === 0 && !loading ? (
             <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-              No matches found
+              {noMatchesText}
             </div>
           ) : (
             <ul className="max-h-80 overflow-auto">

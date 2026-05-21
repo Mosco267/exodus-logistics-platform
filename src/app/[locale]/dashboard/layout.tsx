@@ -447,7 +447,7 @@ style={{
 
             {/* Search — desktop */}
             <div className="hidden md:flex flex-1 mx-6" data-tour="search">
-              <SearchBar locale={locale} />
+              <SearchBar locale={locale} placeholder={t('SearchBar.placeholder')} />
             </div>
 
             {/* Spacer on mobile */}
@@ -595,7 +595,7 @@ style={{ background: activeTheme.sidebar }}>
 
           {/* Mobile search */}
           <div className="md:hidden px-3 pb-3" data-tour="mobile-search">
-            <SearchBar locale={locale} />
+            <SearchBar locale={locale} placeholder={t('SearchBar.placeholder')} />
           </div>
         </header>
 

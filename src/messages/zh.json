@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "语言",
   "LanguageModal.subtitle": "选择您的首选语言",
-  "LanguageModal.comingSoon": "更多语言即将推出"
+  "LanguageModal.comingSoon": "更多语言即将推出",
+
+  "SearchBar.placeholder": "按货件或跟踪号搜索...",
+  "SearchBar.searching": "搜索中…",
+  "SearchBar.noMatches": "未找到匹配项"
 }

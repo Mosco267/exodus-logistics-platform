@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "言語",
   "LanguageModal.subtitle": "ご希望の言語を選択してください",
-  "LanguageModal.comingSoon": "他の言語も近日公開"
+  "LanguageModal.comingSoon": "他の言語も近日公開",
+
+  "SearchBar.placeholder": "発送番号または追跡番号で検索...",
+  "SearchBar.searching": "検索中…",
+  "SearchBar.noMatches": "一致するものがありません"
 }

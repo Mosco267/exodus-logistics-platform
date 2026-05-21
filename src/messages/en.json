@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "Language",
   "LanguageModal.subtitle": "Select your preferred language",
-  "LanguageModal.comingSoon": "More languages coming soon"
+  "LanguageModal.comingSoon": "More languages coming soon",
+
+  "SearchBar.placeholder": "Search by Shipment or Tracking Number...",
+  "SearchBar.searching": "Searching…",
+  "SearchBar.noMatches": "No matches found"
 }

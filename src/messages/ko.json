@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "언어",
   "LanguageModal.subtitle": "사용하실 언어를 선택하세요",
-  "LanguageModal.comingSoon": "더 많은 언어 출시 예정"
+  "LanguageModal.comingSoon": "더 많은 언어 출시 예정",
+
+  "SearchBar.placeholder": "배송 또는 추적 번호로 검색...",
+  "SearchBar.searching": "검색 중…",
+  "SearchBar.noMatches": "검색 결과 없음"
 }

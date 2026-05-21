@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "Langue",
   "LanguageModal.subtitle": "Sélectionnez votre langue préférée",
-  "LanguageModal.comingSoon": "D'autres langues bientôt disponibles"
+  "LanguageModal.comingSoon": "D'autres langues bientôt disponibles",
+
+  "SearchBar.placeholder": "Rechercher par numéro d'envoi ou de suivi...",
+  "SearchBar.searching": "Recherche…",
+  "SearchBar.noMatches": "Aucun résultat"
 }

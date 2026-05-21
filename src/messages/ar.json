@@ -79,5 +79,9 @@
 
   "LanguageModal.title": "اللغة",
   "LanguageModal.subtitle": "اختر لغتك المفضلة",
-  "LanguageModal.comingSoon": "المزيد من اللغات قريباً"
+  "LanguageModal.comingSoon": "المزيد من اللغات قريباً",
+
+  "SearchBar.placeholder": "البحث برقم الشحنة أو التتبع...",
+  "SearchBar.searching": "جارٍ البحث…",
+  "SearchBar.noMatches": "لا توجد نتائج"
 }
