@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Globe, Home, Info, Briefcase, Mail, MapPin, FileText, Calculator, Rocket } from 'lucide-react';
 import { LocaleContext, type Locale } from '@/context/LocaleContext';
@@ -15,6 +15,12 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
+
+  // ✅ Preload the logo on mount so the drawer never waits to fetch it
+  useEffect(() => {
+    const img = new window.Image();
+    img.src = '/logo-gradient.svg';
+  }, []);
 
   // ✅ Display name shown in the language pill / dropdown — uses native names
   //    so non-Latin languages render correctly (中文, العربية, etc.)
@@ -68,6 +74,16 @@ export default function Header() {
 
   return (
     <>
+      {/* ✅ Hidden img tag — preloads the logo as part of the initial page render
+            so when the drawer opens it's already decoded in memory */}
+      <img
+        src="/logo-gradient.svg"
+        alt=""
+        aria-hidden="true"
+        className="absolute opacity-0 pointer-events-none"
+        style={{ width: 1, height: 1, top: -9999, left: -9999 }}
+      />
+
       <motion.header
         initial={{ y: -90, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -80,7 +96,13 @@ export default function Header() {
 
             {/* Logo */}
             <Link href={`/${locale}`} className="flex items-center shrink-0">
-              <img src="/logo-gradient.svg" alt="Exodus Logistics" className="h-16 sm:h-20 w-auto" />
+              <img
+                src="/logo-gradient.svg"
+                alt="Exodus Logistics"
+                className="h-16 sm:h-20 w-auto"
+                fetchPriority="high"
+                decoding="sync"
+              />
             </Link>
 
             {/* Desktop Right Section */}
@@ -195,15 +217,22 @@ export default function Header() {
               className="fixed inset-0 bg-black/40 z-40 md:hidden"
               onClick={() => setIsMenuOpen(false)}
             />
+            {/* ✅ Removed h-full so drawer fits its content height */}
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ duration: 0.28, ease: 'easeInOut' }}
-              className="fixed top-0 right-0 h-full w-full bg-white z-50 shadow-2xl flex flex-col md:hidden"
+              className="fixed top-0 right-0 w-full bg-white z-50 shadow-2xl flex flex-col md:hidden max-h-screen"
             >
               <div
                 className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
                 style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
-                <img src="/logo-gradient.svg" alt="Exodus Logistics" className="h-16 w-auto" />
+                <img
+                  src="/logo-gradient.svg"
+                  alt="Exodus Logistics"
+                  className="h-16 w-auto"
+                  fetchPriority="high"
+                  decoding="sync"
+                />
                 <button
                   onClick={() => setIsMenuOpen(false)}
                   className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
@@ -211,7 +240,9 @@ export default function Header() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+              {/* ✅ Removed flex-1 so inner area doesn't stretch — drawer
+                    height now matches its content exactly */}
+              <div className="overflow-y-auto px-4 py-4 space-y-1">
 
                 {navigation.map((item) => (
                   <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
@@ -241,7 +272,7 @@ export default function Header() {
                   </Link>
                 </div>
 
-                {/* Language selector — now scrolls horizontally so 12 buttons fit */}
+                {/* Language selector */}
                 <div className="border-t border-gray-100 pt-4 mt-3 px-4">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-3">Language</p>
                   <div className="flex flex-wrap gap-2">
