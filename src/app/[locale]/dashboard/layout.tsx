@@ -308,7 +308,7 @@ style={{
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo-gradient.svg" alt="Exodus" className="h-10 w-auto" />
+                  <img src="/logo-gradient.svg" alt="Exodus" className="h-20 w-auto" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
@@ -402,7 +402,7 @@ style={{
     background: headerBg,
     borderColor: headerBorder,
   }}>
-          <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
+          <div className="h-20 sm:h-28 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
 
             {/* Mobile menu button */}
             <button
@@ -427,7 +427,7 @@ style={{
               <img
                 src={(darkMode || currentTheme === 'midnight') ? "/logo-black.svg" : "/logo-white.svg"}
                 alt="Exodus"
-                className="h-12 w-auto"
+                className="h-24 w-auto"
               />
             </Link>
 
