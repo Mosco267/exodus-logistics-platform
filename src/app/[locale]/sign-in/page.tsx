@@ -305,7 +305,7 @@ return (
           </div>
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10">
             <Link href={`/${locale}`}>
-              <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
+              <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={240} height={96} className="h-20 w-auto" priority />
             </Link>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative z-10 space-y-8">
@@ -376,7 +376,7 @@ return (
                   style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                   <div className="flex items-center justify-between px-6 py-6 border-b border-white/20">
                     <Link href={`/${locale}`} onClick={() => setNavOpen(false)}>
-                      <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={140} height={42} className="h-9 w-auto" />
+                      <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={180} height={64} className="h-14 w-auto" />
                     </Link>
                     <button onClick={() => setNavOpen(false)} className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

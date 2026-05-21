@@ -145,7 +145,7 @@ function ResetPasswordContent() {
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="relative z-10">
             <Link href="/en">
-              <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
+              <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={240} height={96} className="h-20 w-auto" priority />
             </Link>
           </motion.div>
 
