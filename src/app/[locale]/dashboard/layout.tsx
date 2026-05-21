@@ -308,7 +308,7 @@ style={{
             {sidebarOpen ? (
               <>
                 <Link href={`/${locale}/dashboard`} className="flex items-center min-w-0">
-                  <img src="/logo-mark.svg" alt="Exodus" className="h-10 w-10" />
+                  <img src="/logo-gradient.svg" alt="Exodus" className="h-10 w-auto" />
                 </Link>
                 <button
                   className="p-1.5 rounded-lg hover:bg-white/15 transition cursor-pointer shrink-0"
@@ -416,28 +416,18 @@ style={{
             {/* Logo — mobile only */}
             <Link href={`/${locale}/dashboard`} className="md:hidden shrink-0">
               <img
-                src="/logo-mark.svg"
+                src={(darkMode || currentTheme === 'midnight') ? "/logo-black.svg" : "/logo-white.svg"}
                 alt="Exodus"
-                width={180}
-                height={48}
-                className="h-12 w-auto"
-                style={{
-                  filter: (darkMode || currentTheme === 'midnight') ? 'none' : 'invert(1) hue-rotate(180deg)',
-                }}
+                className="h-10 w-auto"
               />
             </Link>
 
             {/* Logo — desktop only */}
              <Link href={`/${locale}/dashboard`} className="hidden md:block shrink-0">
               <img
-                src="/logo-mark.svg"
+                src={(darkMode || currentTheme === 'midnight') ? "/logo-black.svg" : "/logo-white.svg"}
                 alt="Exodus"
-                width={240}
-                height={64}
-                className="h-16 w-auto"
-                style={{
-                  filter: (darkMode || currentTheme === 'midnight') ? 'none' : 'invert(1) hue-rotate(180deg)',
-                }}
+                className="h-12 w-auto"
               />
             </Link>
 

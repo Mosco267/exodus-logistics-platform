@@ -80,7 +80,7 @@ export default function Header() {
 
             {/* Logo */}
             <Link href={`/${locale}`} className="flex items-center shrink-0">
-              <img src="/logo-full.svg" alt="Exodus Logistics" className="h-11 sm:h-16 w-auto" />
+              <img src="/logo-gradient.svg" alt="Exodus Logistics" className="h-10 sm:h-14 w-auto" />
             </Link>
 
             {/* Desktop Right Section */}
@@ -203,7 +203,7 @@ export default function Header() {
               <div
                 className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
                 style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
-                <img src="/logo-full.svg" alt="Exodus Logistics" className="h-10 w-auto" />
+                <img src="/logo-gradient.svg" alt="Exodus Logistics" className="h-9 w-auto" />
                 <button
                   onClick={() => setIsMenuOpen(false)}
                   className="text-white hover:text-orange-400 transition-colors duration-300 p-1">

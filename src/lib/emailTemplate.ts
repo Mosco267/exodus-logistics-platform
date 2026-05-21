@@ -95,7 +95,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
           <tr>
             <td class="header-td" style="background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%);border-radius:20px 20px 0 0;padding:28px 40px;">
               <img
-                src="${logoUrl}"
+                src="https://www.goexoduslogistics.com/logo-email.png"
                 alt="Exodus Logistics"
                 class="logo-img"
                 width="240"
