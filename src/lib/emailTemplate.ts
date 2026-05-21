@@ -67,7 +67,7 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
     @media only screen and (max-width: 600px) {
       .email-wrapper { padding: 20px 8px !important; }
       .email-container { width: 100% !important; }
-      .logo-img { width: 180px !important; max-width: 180px !important; margin: 0 auto 0 30px !important; }
+      .logo-img { width: 280px !important; max-width: 280px !important; }
       .header-td { padding: 20px 24px !important; }
       .body-td { padding: 24px 20px !important; }
       .footer-td { padding: 18px 20px !important; }
@@ -98,8 +98,8 @@ export function renderEmailTemplate(params: EmailTemplateParams) {
                 src="https://www.goexoduslogistics.com/logo-email.png"
                 alt="Exodus Logistics"
                 class="logo-img"
-                width="240"
-                style="width:240px;max-width:240px;height:auto;display:block;margin:0 auto 0 48px;border:0;"
+                width="360"
+                style="width:360px;max-width:360px;height:auto;display:block;margin:0 auto;border:0;"
               />
             </td>
           </tr>
