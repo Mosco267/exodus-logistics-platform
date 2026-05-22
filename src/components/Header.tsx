@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Globe, Home, Info, Briefcase, Mail, MapPin, FileText, Calculator, Rocket } from 'lucide-react';
 import { LocaleContext, type Locale } from '@/context/LocaleContext';
 import { useIntl } from 'react-intl';
+import { createPortal } from 'react-dom';
 
 export default function Header() {
   const intl = useIntl();
@@ -207,94 +208,93 @@ export default function Header() {
         </div>
       </motion.header>
 
-      {/* MOBILE DRAWER */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 z-40 md:hidden"
-              onClick={() => setIsMenuOpen(false)}
-            />
-            {/* ✅ Removed h-full so drawer fits its content height */}
-            <motion.div
-  initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-  transition={{ duration: 0.28, ease: 'easeInOut' }}
-  className="fixed inset-0 bg-white z-50 shadow-2xl flex flex-col md:hidden"
-  style={{ height: '100dvh' }}
->
-              <div
-                className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
-                style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
-                <img
-                  src="/logo-gradient.svg"
-                  alt="Exodus Logistics"
-                  className="h-16 w-auto"
-                  fetchPriority="high"
-                  decoding="sync"
-                />
-                <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
+      {/* MOBILE DRAWER — portaled to document.body to escape any transformed ancestor */}
+      {typeof window !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/40 z-[100] md:hidden"
+                onClick={() => setIsMenuOpen(false)}
+              />
+              <motion.div
+                initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                transition={{ duration: 0.28, ease: 'easeInOut' }}
+                className="fixed inset-0 bg-white z-[101] shadow-2xl flex flex-col md:hidden"
+                style={{ height: '100dvh' }}
+              >
+                <div
+                  className="flex items-center justify-between px-5 py-5 border-b border-gray-100"
+                  style={{ background: 'linear-gradient(to right, #1d4ed8, #0891b2)' }}>
+                  <img
+                    src="/logo-gradient.svg"
+                    alt="Exodus Logistics"
+                    className="h-16 w-auto"
+                    fetchPriority="high"
+                    decoding="sync"
+                  />
+                  <button
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-white hover:text-orange-400 transition-colors duration-300 p-1">
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
 
-              {/* ✅ Removed flex-1 so inner area doesn't stretch — drawer
-                    height now matches its content exactly */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
 
-                {navigation.map((item) => (
-                  <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
-                      (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
-                        ? 'text-orange-500 bg-orange-50'
-                        : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
-                    }`}>
-                    <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-                    <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
-                  </Link>
-                ))}
-
-                <div className="border-t border-gray-100 pt-3 mt-3 space-y-1">
-                  {actions.map((item) => (
+                  {navigation.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
+                        (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
+                          ? 'text-orange-500 bg-orange-50'
+                          : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
+                      }`}>
                       <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-                      <span>{translate(item.name)}</span>
+                      <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
                     </Link>
                   ))}
 
-                  <Link href={`/${locale}/quote`} onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(`/${locale}/quote`) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
-                    <Calculator className="w-5 h-5" />
-                    <span>{translate('Quote')}</span>
-                  </Link>
-                </div>
+                  <div className="border-t border-gray-100 pt-3 mt-3 space-y-1">
+                    {actions.map((item) => (
+                      <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(item.href) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+                        <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
+                        <span>{translate(item.name)}</span>
+                      </Link>
+                    ))}
 
-                {/* Language selector */}
-                <div className="border-t border-gray-100 pt-4 mt-3 px-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-3">Language</p>
-                  <div className="flex flex-wrap gap-2">
-                    {languages.map((lang) => {
-                      const code = langToCode[lang];
-                      return (
-                        <button key={lang}
-                          onClick={() => { if (code) setLocale(code); setIsMenuOpen(false); }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${locale === code ? 'bg-orange-50 text-orange-500 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-orange-50 hover:text-orange-500'}`}>
-                          {lang}
-                        </button>
-                      );
-                    })}
+                    <Link href={`/${locale}/quote`} onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive(`/${locale}/quote`) ? 'text-orange-500 bg-orange-50' : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'}`}>
+                      <Calculator className="w-5 h-5" />
+                      <span>{translate('Quote')}</span>
+                    </Link>
                   </div>
-                </div>
 
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  <div className="border-t border-gray-100 pt-4 mt-3 px-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-3">Language</p>
+                    <div className="flex flex-wrap gap-2">
+                      {languages.map((lang) => {
+                        const code = langToCode[lang];
+                        return (
+                          <button key={lang}
+                            onClick={() => { if (code) setLocale(code); setIsMenuOpen(false); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${locale === code ? 'bg-orange-50 text-orange-500 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-orange-50 hover:text-orange-500'}`}>
+                            {lang}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
