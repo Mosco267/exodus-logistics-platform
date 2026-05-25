@@ -10,6 +10,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, X,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl } from "react-intl";
 
 type ShipmentRow = {
   shipmentId: string;
@@ -48,11 +49,11 @@ const PAGE_SIZE = 10;
 const MAX_SUGGESTIONS = 6;
 
 // ─── Helpers ──────────────────────────────────────────────────
-function fmtDate(iso?: string | null): string {
+function fmtDate(iso?: string | null, locale = "en-US"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function fmtMoney(amount: any, currency = "USD"): string {
@@ -65,24 +66,6 @@ function joinLoc(...parts: any[]) {
   return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
 }
 
-function getStatusBadge(status?: string) {
-  const s = String(status || "").toLowerCase();
-  if (s === "delivered") return { label: "Delivered", bg: "bg-green-100 dark:bg-green-500/10", text: "text-green-700 dark:text-green-400", icon: CheckCircle2 };
-  if (s === "in transit") return { label: "In Transit", bg: "bg-blue-100 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", icon: Truck };
-  if (s === "custom clearance") return { label: "Custom Clearance", bg: "bg-amber-100 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", icon: AlertCircle };
-  if (s === "unclaimed") return { label: "Unclaimed", bg: "bg-orange-100 dark:bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", icon: Clock3 };
-  if (s === "cancelled" || s === "canceled") return { label: "Cancelled", bg: "bg-red-100 dark:bg-red-500/10", text: "text-red-700 dark:text-red-400", icon: AlertCircle };
-  return { label: status || "Created", bg: "bg-gray-100 dark:bg-white/10", text: "text-gray-700 dark:text-gray-300", icon: Package };
-}
-
-function getInvoiceBadge(status?: string) {
-  const s = String(status || "").toLowerCase();
-  if (s === "paid") return { label: "PAID", bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
-  if (s === "overdue") return { label: "OVERDUE", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
-  if (s === "cancelled") return { label: "CANCELLED", bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
-  return { label: "UNPAID", bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
-}
-
 // ✅ Sanitize search input — only A-Z, 0-9, and dash; uppercase
 function sanitizeShipmentSearch(raw: string): string {
   return String(raw || "").toUpperCase().replace(/[^A-Z0-9-]/g, "");
@@ -92,6 +75,37 @@ export default function DashboardHistoryPage() {
   const params = useParams();
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  // ✅ Map BCP-47 locale for date formatting
+  const bcpLocale = useMemo(() => {
+    const m: Record<string, string> = {
+      en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE",
+      zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT",
+      ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+    };
+    return m[locale] || "en-US";
+  }, [locale]);
+
+  // Status badges — now use translated labels
+  const getStatusBadge = (status?: string) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "delivered") return { label: t("History.statusDelivered"), bg: "bg-green-100 dark:bg-green-500/10", text: "text-green-700 dark:text-green-400", icon: CheckCircle2 };
+    if (s === "in transit") return { label: t("History.statusInTransit"), bg: "bg-blue-100 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", icon: Truck };
+    if (s === "custom clearance") return { label: t("History.statusCustomClearance"), bg: "bg-amber-100 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", icon: AlertCircle };
+    if (s === "unclaimed") return { label: t("History.statusUnclaimed"), bg: "bg-orange-100 dark:bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", icon: Clock3 };
+    if (s === "cancelled" || s === "canceled") return { label: t("History.statusCancelled"), bg: "bg-red-100 dark:bg-red-500/10", text: "text-red-700 dark:text-red-400", icon: AlertCircle };
+    return { label: status || t("History.statusCreated"), bg: "bg-gray-100 dark:bg-white/10", text: "text-gray-700 dark:text-gray-300", icon: Package };
+  };
+
+  const getInvoiceBadge = (status?: string) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "paid") return { label: t("History.invoicePaid"), bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
+    if (s === "overdue") return { label: t("History.invoiceOverdue"), bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
+    if (s === "cancelled") return { label: t("History.invoiceCancelled"), bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
+    return { label: t("History.invoiceUnpaid"), bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
+  };
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -141,10 +155,10 @@ export default function DashboardHistoryPage() {
     try {
       const res = await fetch("/api/user/shipments", { cache: "no-store" });
       const json = await res.json().catch(() => null);
-      if (!res.ok) { setErr(json?.error || "Failed to load history."); return; }
+      if (!res.ok) { setErr(json?.error || t("History.loadError")); return; }
       setShipments(Array.isArray(json?.shipments) ? json.shipments : []);
     } catch (e: any) {
-      setErr(e?.message || "Failed to load history.");
+      setErr(e?.message || t("History.loadError"));
     } finally {
       setLoading(false);
     }
@@ -194,11 +208,9 @@ export default function DashboardHistoryPage() {
     });
   }, [afterSearch]);
 
-  // ─── Suggestions — based on what user has typed ──────────
+  // ─── Suggestions ──────────────────────────────────────────
   const suggestions = useMemo(() => {
     const v = search.trim();
-    // Match against shipments AFTER applying the filter, so suggestions
-    // also respect the active filter pill.
     const pool = afterFilter;
     if (!v) return pool.slice(0, MAX_SUGGESTIONS);
     return pool
@@ -230,11 +242,26 @@ export default function DashboardHistoryPage() {
   };
 
   const filterPills: { id: FilterId; label: string; count: number }[] = [
-    { id: "all", label: "All", count: counts.all },
-    { id: "completed", label: "Completed", count: counts.completed },
-    { id: "pendingInvoice", label: "Pending Invoice", count: counts.pendingInvoice },
-    { id: "cancelled", label: "Cancelled", count: counts.cancelled },
+    { id: "all", label: t("History.filterAll"), count: counts.all },
+    { id: "completed", label: t("History.filterCompleted"), count: counts.completed },
+    { id: "pendingInvoice", label: t("History.filterPendingInvoice"), count: counts.pendingInvoice },
+    { id: "cancelled", label: t("History.filterCancelled"), count: counts.cancelled },
   ];
+
+  // Active filter section title
+  const sectionTitle = filter === "all" ? t("History.sectionAll")
+    : filter === "completed" ? t("History.sectionCompleted")
+    : filter === "pendingInvoice" ? t("History.sectionPendingInvoice")
+    : t("History.sectionCancelled");
+
+  // Empty state messages
+  const emptyTitle = search.trim() ? t("History.emptySearch")
+    : filter === "completed" ? t("History.emptyCompleted")
+    : filter === "pendingInvoice" ? t("History.emptyPendingInvoice")
+    : filter === "cancelled" ? t("History.emptyCancelled")
+    : t("History.emptyNone");
+
+  const emptyDesc = search.trim() ? t("History.emptySearchDesc") : t("History.emptyNoneDesc");
 
   return (
     <div className="max-w-5xl mx-auto pb-12 space-y-5">
@@ -243,17 +270,17 @@ export default function DashboardHistoryPage() {
       <div>
         <div className="flex items-center gap-2.5">
           <HistoryIcon className="w-6 h-6" style={{ color: accentSolid }} />
-          <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>History</h1>
+          <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>{t("History.title")}</h1>
         </div>
         <p className={`mt-1 text-sm ${headerSubCls}`}>
-          All shipments you've ever sent or received. Search by shipment ID.
+          {t("History.subtitle")}
         </p>
       </div>
 
       {/* Search box with suggestions */}
       <div ref={searchRef} className="relative rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-sm">
         <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-2 uppercase tracking-wide">
-          Search by Shipment ID
+          {t("History.searchLabel")}
         </label>
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -272,7 +299,7 @@ export default function DashboardHistoryPage() {
               type="button"
               onClick={() => { setSearch(""); setSuggestOpen(true); }}
               className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition"
-              aria-label="Clear">
+              aria-label={t("History.clear")}>
               <X size={14} />
             </button>
           )}
@@ -281,7 +308,7 @@ export default function DashboardHistoryPage() {
         {suggestOpen && suggestions.length > 0 && (
           <div className="absolute left-4 right-4 mt-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden z-30">
             <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-white/10">
-              {search ? "Matching shipments" : "Your shipments"}
+              {search ? t("History.suggestMatching") : t("History.suggestYours")}
             </div>
             <div className="max-h-64 overflow-y-auto">
               {suggestions.map(s => {
@@ -346,18 +373,15 @@ export default function DashboardHistoryPage() {
           <div className="flex items-center gap-2.5 min-w-0">
             <Package className="w-4 h-4 shrink-0" style={{ color: accentSolid }} />
             <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-              {filter === "all" ? "All Shipments"
-                : filter === "completed" ? "Completed Shipments"
-                : filter === "pendingInvoice" ? "Pending Invoice"
-                : "Cancelled Shipments"}
+              {sectionTitle}
             </h2>
             <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
-              {(search.trim() || filter !== "all") ? `${sorted.length} of ${shipments.length}` : shipments.length}
+              {(search.trim() || filter !== "all") ? t("History.countOfTotal", { shown: sorted.length, total: shipments.length }) : shipments.length}
             </span>
           </div>
           <button onClick={load}
             className="cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition"
-            title="Refresh">
+            title={t("History.refresh")}>
             <RefreshCw className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
@@ -365,7 +389,7 @@ export default function DashboardHistoryPage() {
         {loading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: accentSolid }} />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Loading history…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("History.loading")}</p>
           </div>
         ) : err ? (
           <div className="p-8">
@@ -381,16 +405,10 @@ export default function DashboardHistoryPage() {
               <HistoryIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {search.trim() ? "No shipments match your search"
-                : filter === "completed" ? "No completed shipments"
-                : filter === "pendingInvoice" ? "No shipments with pending invoice"
-                : filter === "cancelled" ? "No cancelled shipments"
-                : "No shipments yet"}
+              {emptyTitle}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {search.trim()
-                ? "Try a different shipment ID."
-                : "Your shipment history will appear here."}
+              {emptyDesc}
             </p>
           </div>
         ) : (
@@ -417,7 +435,6 @@ export default function DashboardHistoryPage() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          {/* ✅ Show Shipment ID, not tracking number */}
                           <p className="text-sm font-mono font-bold text-gray-900 dark:text-white truncate">
                             {s.shipmentId || "—"}
                           </p>
@@ -440,7 +457,7 @@ export default function DashboardHistoryPage() {
                         <div className="mt-1.5 flex items-center gap-3 text-[11px] text-gray-400 dark:text-gray-500 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Calendar size={10} />
-                            {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt)}
+                            {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt, bcpLocale)}
                           </span>
                           {s.shipmentMeans && <span>{s.shipmentMeans}</span>}
                         </div>
@@ -464,20 +481,20 @@ export default function DashboardHistoryPage() {
             {totalPages > 1 && (
               <div className="px-5 py-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Page {page} of {totalPages} · {sorted.length} {sorted.length === 1 ? "shipment" : "shipments"}
+                  {t("History.pageInfo", { page, totalPages, count: sorted.length })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ChevronLeft size={12} /> Prev
+                    <ChevronLeft size={12} /> {t("History.prev")}
                   </button>
                   <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    Next <ChevronRightIcon size={12} />
+                    {t("History.next")} <ChevronRightIcon size={12} />
                   </button>
                 </div>
               </div>
