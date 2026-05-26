@@ -210,5 +210,12 @@
 "Notifications.catTicket": "Ticket",
 "Notifications.catPayment": "Pago",
 "Notifications.catShipment": "Envío",
-"Notifications.catUpdate": "Actualización"
+"Notifications.catUpdate": "Actualización",
+"NotificationsBell.ariaLabel": "Notificaciones",
+"NotificationsBell.ariaLabelWithCount": "Notificaciones ({count} sin leer)",
+"NotificationsBell.markAllReadTitle": "Marcar todas como leídas",
+"NotificationsBell.markAllReadLong": "Marcar todas",
+"NotificationsBell.markAllReadShort": "Todas leídas",
+"NotificationsBell.loading": "Cargando…",
+"NotificationsBell.viewAll": "Ver todas las notificaciones"
 }

@@ -210,5 +210,12 @@
 "Notifications.catTicket": "टिकट",
 "Notifications.catPayment": "भुगतान",
 "Notifications.catShipment": "शिपमेंट",
-"Notifications.catUpdate": "अपडेट"
+"Notifications.catUpdate": "अपडेट",
+"NotificationsBell.ariaLabel": "सूचनाएं",
+"NotificationsBell.ariaLabelWithCount": "सूचनाएं ({count} अपठित)",
+"NotificationsBell.markAllReadTitle": "सभी को पढ़ा गया चिह्नित करें",
+"NotificationsBell.markAllReadLong": "सभी पढ़ें",
+"NotificationsBell.markAllReadShort": "सभी पढ़े",
+"NotificationsBell.loading": "लोड हो रहा है…",
+"NotificationsBell.viewAll": "सभी सूचनाएं देखें"
 }

@@ -210,5 +210,12 @@
 "Notifications.catTicket": "チケット",
 "Notifications.catPayment": "支払い",
 "Notifications.catShipment": "発送",
-"Notifications.catUpdate": "更新"
+"Notifications.catUpdate": "更新",
+"NotificationsBell.ariaLabel": "通知",
+"NotificationsBell.ariaLabelWithCount": "通知({count} 件未読)",
+"NotificationsBell.markAllReadTitle": "すべて既読にする",
+"NotificationsBell.markAllReadLong": "すべて既読",
+"NotificationsBell.markAllReadShort": "既読",
+"NotificationsBell.loading": "読み込み中…",
+"NotificationsBell.viewAll": "すべての通知を見る"
 }

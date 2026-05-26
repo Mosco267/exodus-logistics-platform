@@ -1,13 +1,14 @@
 // src/components/NotificationsBell.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Bell, MessageCircle, Ticket, CreditCard, Package, Truck,
   CheckCheck, Inbox, Loader2, Mail,
 } from "lucide-react";
+import { useIntl, type IntlShape } from "react-intl";
 
 type Notif = {
   _id: string;
@@ -22,23 +23,25 @@ type Notif = {
   createdAt?: string;
 };
 
-function timeAgo(dateStr?: string) {
+// Translated time-ago — accepts intl and bcpLocale
+function timeAgo(dateStr: string | undefined, intl: IntlShape, bcpLocale: string): string {
   if (!dateStr) return "";
   const d = new Date(dateStr).getTime();
   if (Number.isNaN(d)) return "";
   const diff = Date.now() - d;
   const sec = Math.floor(diff / 1000);
-  if (sec < 5) return "just now";
-  if (sec < 60) return `${sec}s ago`;
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  if (sec < 5) return t("Notifications.justNow");
+  if (sec < 60) return t("Notifications.secondsAgo", { count: sec });
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t("Notifications.minutesAgo", { count: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t("Notifications.hoursAgo", { count: hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
+  if (day < 7) return t("Notifications.daysAgo", { count: day });
   const wk = Math.floor(day / 7);
-  if (wk < 4) return `${wk}w ago`;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (wk < 4) return t("Notifications.weeksAgo", { count: wk });
+  return new Date(dateStr).toLocaleDateString(bcpLocale, { month: "short", day: "numeric" });
 }
 
 function classifyNotif(n: Notif): {
@@ -72,6 +75,17 @@ export default function NotificationsBell() {
   const params = useParams();
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  const bcpLocale = useMemo(() => {
+    const m: Record<string, string> = {
+      en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE",
+      zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT",
+      ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+    };
+    return m[locale] || "en-US";
+  }, [locale]);
 
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
@@ -156,9 +170,7 @@ export default function NotificationsBell() {
     }
   };
 
-  // ✅ Routes to use existing tracking page
   const resolveLink = (n: Notif): string => {
-    // Admin custom notifications: always go to the full notifications page
     if (n.isCustomAdminMessage) {
       return `/${locale}/dashboard/notifications?open=${encodeURIComponent(String(n._id))}`;
     }
@@ -180,9 +192,11 @@ export default function NotificationsBell() {
 
   const hasUnread = unreadCount > 0;
 
-  // ✅ Desktop dropdown — clamp to viewport so it doesn't overflow when
-  // the bell is at the right edge of the screen.
-  // The trick is to anchor it from the RIGHT and use min(380px, calc(100vw - 2rem)).
+  // Aria label for bell button
+  const bellAriaLabel = hasUnread
+    ? t("NotificationsBell.ariaLabelWithCount", { count: unreadCount })
+    : t("NotificationsBell.ariaLabel");
+
   const panelClass = [
     "z-50 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden transition-all duration-200",
     "md:absolute md:right-0 md:mt-2 md:rounded-2xl md:border md:border-gray-200 md:dark:border-white/10",
@@ -196,7 +210,7 @@ export default function NotificationsBell() {
         type="button"
         onClick={handleOpen}
         className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-        aria-label={`Notifications${hasUnread ? ` (${unreadCount} unread)` : ""}`}>
+        aria-label={bellAriaLabel}>
         <Bell className={`w-5 h-5 transition ${hasUnread ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-200"}`} />
         {hasUnread && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 ring-2 ring-white dark:ring-gray-950 text-white text-[10px] font-bold flex items-center justify-center leading-none">
@@ -213,13 +227,12 @@ export default function NotificationsBell() {
           <div
             className={panelClass}
             style={{
-              // Desktop: 380px wide, but never wider than viewport minus margins
               width: "min(380px, calc(100vw - 1.5rem))",
             }}>
 
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 dark:border-white/10 bg-gradient-to-b from-gray-50 to-white dark:from-white/[0.03] dark:to-transparent">
               <div className="flex items-center gap-2 min-w-0">
-                <p className="font-extrabold text-gray-900 dark:text-white text-base">Notifications</p>
+                <p className="font-extrabold text-gray-900 dark:text-white text-base">{t("Notifications.title")}</p>
                 {hasUnread && (
                   <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-600 rounded-full">
                     {unreadCount}
@@ -232,10 +245,10 @@ export default function NotificationsBell() {
                     onClick={markAllRead}
                     disabled={marking}
                     className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 disabled:opacity-60 transition px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                    title="Mark all as read">
+                    title={t("NotificationsBell.markAllReadTitle")}>
                     {marking ? <Loader2 size={11} className="animate-spin" /> : <CheckCheck size={11} />}
-                    <span className="hidden sm:inline">Mark all read</span>
-                    <span className="sm:hidden">All read</span>
+                    <span className="hidden sm:inline">{t("NotificationsBell.markAllReadLong")}</span>
+                    <span className="sm:hidden">{t("NotificationsBell.markAllReadShort")}</span>
                   </button>
                 )}
               </div>
@@ -245,16 +258,16 @@ export default function NotificationsBell() {
               {loading && items.length === 0 ? (
                 <div className="p-10 flex flex-col items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Loading…</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t("NotificationsBell.loading")}</p>
                 </div>
               ) : items.length === 0 ? (
                 <div className="p-10 text-center">
                   <div className="w-12 h-12 rounded-2xl mx-auto mb-3 bg-gray-100 dark:bg-white/5 flex items-center justify-center">
                     <Inbox className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No notifications yet</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t("Notifications.emptyNone")}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    You'll see updates here when something happens.
+                    {t("Notifications.emptyNoneDesc")}
                   </p>
                 </div>
               ) : (
@@ -279,17 +292,17 @@ export default function NotificationsBell() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className={`text-sm leading-tight truncate ${isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"}`}>
-                                  {n.title || "Notification"}
+                                  {n.title || t("Notifications.fallbackTitle")}
                                 </p>
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                  {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1" aria-label="Unread" />}
+                                  {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1" aria-label={t("Notifications.unreadLabel")} />}
                                 </div>
                               </div>
                               <p className={`mt-0.5 text-xs leading-snug line-clamp-2 ${isUnread ? "text-gray-700 dark:text-gray-200" : "text-gray-500 dark:text-gray-400"}`}>
                                 {n.message || ""}
                               </p>
                               <p className="mt-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500">
-                                {timeAgo(n.createdAt)}
+                                {timeAgo(n.createdAt, intl, bcpLocale)}
                               </p>
                             </div>
                           </div>
@@ -306,7 +319,7 @@ export default function NotificationsBell() {
                 href={`/${locale}/dashboard/notifications`}
                 onClick={() => setOpen(false)}
                 className="block text-center text-sm font-bold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer py-1">
-                View all notifications
+                {t("NotificationsBell.viewAll")}
               </Link>
             </div>
           </div>

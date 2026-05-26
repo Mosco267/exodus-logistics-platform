@@ -210,5 +210,12 @@
 "Notifications.catTicket": "工单",
 "Notifications.catPayment": "付款",
 "Notifications.catShipment": "货件",
-"Notifications.catUpdate": "更新"
+"Notifications.catUpdate": "更新",
+"NotificationsBell.ariaLabel": "通知",
+"NotificationsBell.ariaLabelWithCount": "通知({count} 条未读)",
+"NotificationsBell.markAllReadTitle": "全部标记为已读",
+"NotificationsBell.markAllReadLong": "全部已读",
+"NotificationsBell.markAllReadShort": "已读",
+"NotificationsBell.loading": "加载中…",
+"NotificationsBell.viewAll": "查看所有通知"
 }

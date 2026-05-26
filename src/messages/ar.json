@@ -210,5 +210,12 @@
 "Notifications.catTicket": "تذكرة",
 "Notifications.catPayment": "دفع",
 "Notifications.catShipment": "شحنة",
-"Notifications.catUpdate": "تحديث"
+"Notifications.catUpdate": "تحديث",
+"NotificationsBell.ariaLabel": "الإشعارات",
+"NotificationsBell.ariaLabelWithCount": "الإشعارات ({count} غير مقروءة)",
+"NotificationsBell.markAllReadTitle": "تعليم الكل كمقروء",
+"NotificationsBell.markAllReadLong": "تعليم الكل",
+"NotificationsBell.markAllReadShort": "الكل مقروء",
+"NotificationsBell.loading": "جارٍ التحميل…",
+"NotificationsBell.viewAll": "عرض جميع الإشعارات"
 }

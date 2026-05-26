@@ -210,5 +210,12 @@
 "Notifications.catTicket": "티켓",
 "Notifications.catPayment": "결제",
 "Notifications.catShipment": "배송",
-"Notifications.catUpdate": "업데이트"
+"Notifications.catUpdate": "업데이트",
+"NotificationsBell.ariaLabel": "알림",
+"NotificationsBell.ariaLabelWithCount": "알림 (읽지 않음 {count})",
+"NotificationsBell.markAllReadTitle": "모두 읽음으로 표시",
+"NotificationsBell.markAllReadLong": "모두 읽음",
+"NotificationsBell.markAllReadShort": "모두 읽음",
+"NotificationsBell.loading": "불러오는 중…",
+"NotificationsBell.viewAll": "모든 알림 보기"
 }

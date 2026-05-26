@@ -210,5 +210,12 @@
 "Notifications.catTicket": "Тикет",
 "Notifications.catPayment": "Оплата",
 "Notifications.catShipment": "Отправление",
-"Notifications.catUpdate": "Обновление"
+"Notifications.catUpdate": "Обновление",
+"NotificationsBell.ariaLabel": "Уведомления",
+"NotificationsBell.ariaLabelWithCount": "Уведомления ({count} непрочитанных)",
+"NotificationsBell.markAllReadTitle": "Отметить все как прочитанные",
+"NotificationsBell.markAllReadLong": "Отметить все",
+"NotificationsBell.markAllReadShort": "Все прочитаны",
+"NotificationsBell.loading": "Загрузка…",
+"NotificationsBell.viewAll": "Все уведомления"
 }
