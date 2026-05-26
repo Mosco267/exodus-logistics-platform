@@ -8,6 +8,7 @@ import {
   MessageCircle, Ticket, CreditCard, Truck, Package, Inbox,
   Loader2, AlertCircle, FileText, Mail,
 } from "lucide-react";
+import { useIntl, type IntlShape } from "react-intl";
 
 type Notif = {
   _id: string;
@@ -74,51 +75,55 @@ function parseMessageTokens(text: string): ParsedToken[] {
   return tokens;
 }
 
-function timeAgo(dateStr?: string) {
+// Translated time-ago helper — accepts intl
+function timeAgo(dateStr: string | undefined, intl: IntlShape, bcpLocale: string): string {
   if (!dateStr) return "";
   const d = new Date(dateStr).getTime();
   if (Number.isNaN(d)) return "";
   const diff = Date.now() - d;
   const sec = Math.floor(diff / 1000);
-  if (sec < 5) return "just now";
-  if (sec < 60) return `${sec}s ago`;
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  if (sec < 5) return t("Notifications.justNow");
+  if (sec < 60) return t("Notifications.secondsAgo", { count: sec });
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t("Notifications.minutesAgo", { count: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t("Notifications.hoursAgo", { count: hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
+  if (day < 7) return t("Notifications.daysAgo", { count: day });
   const wk = Math.floor(day / 7);
-  if (wk < 4) return `${wk}w ago`;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (wk < 4) return t("Notifications.weeksAgo", { count: wk });
+  return new Date(dateStr).toLocaleDateString(bcpLocale, { month: "short", day: "numeric" });
 }
 
-function classifyNotif(n: Notif): {
+// Translated category classifier
+function classifyNotif(n: Notif, intl: IntlShape): {
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   bg: string;
   fg: string;
   label: string;
 } {
+  const t = (id: string) => intl.formatMessage({ id });
   if (n.isCustomAdminMessage) {
-    return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400", label: "Message" };
+    return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400", label: t("Notifications.catMessage") };
   }
-  const t = (n.title || "").toLowerCase();
-  const m = (n.message || "").toLowerCase();
-  const blob = `${t} ${m}`;
+  const title = (n.title || "").toLowerCase();
+  const msg = (n.message || "").toLowerCase();
+  const blob = `${title} ${msg}`;
 
   if (n.link?.includes("/support/chat") || blob.includes("message from support")) {
-    return { Icon: MessageCircle, bg: "bg-blue-100 dark:bg-blue-500/15", fg: "text-blue-600 dark:text-blue-400", label: "Chat" };
+    return { Icon: MessageCircle, bg: "bg-blue-100 dark:bg-blue-500/15", fg: "text-blue-600 dark:text-blue-400", label: t("Notifications.catChat") };
   }
   if (n.ticketId || n.ticketNumber || blob.includes("ticket")) {
-    return { Icon: Ticket, bg: "bg-amber-100 dark:bg-amber-500/15", fg: "text-amber-600 dark:text-amber-400", label: "Ticket" };
+    return { Icon: Ticket, bg: "bg-amber-100 dark:bg-amber-500/15", fg: "text-amber-600 dark:text-amber-400", label: t("Notifications.catTicket") };
   }
   if (blob.includes("payment") || blob.includes("receipt") || blob.includes("invoice") || blob.includes("paid")) {
-    return { Icon: CreditCard, bg: "bg-emerald-100 dark:bg-emerald-500/15", fg: "text-emerald-600 dark:text-emerald-400", label: "Payment" };
+    return { Icon: CreditCard, bg: "bg-emerald-100 dark:bg-emerald-500/15", fg: "text-emerald-600 dark:text-emerald-400", label: t("Notifications.catPayment") };
   }
   if (blob.includes("shipment") || blob.includes("tracking") || blob.includes("delivered") || blob.includes("dispatched")) {
-    return { Icon: Truck, bg: "bg-violet-100 dark:bg-violet-500/15", fg: "text-violet-600 dark:text-violet-400", label: "Shipment" };
+    return { Icon: Truck, bg: "bg-violet-100 dark:bg-violet-500/15", fg: "text-violet-600 dark:text-violet-400", label: t("Notifications.catShipment") };
   }
-  return { Icon: Package, bg: "bg-gray-100 dark:bg-white/10", fg: "text-gray-600 dark:text-gray-300", label: "Update" };
+  return { Icon: Package, bg: "bg-gray-100 dark:bg-white/10", fg: "text-gray-600 dark:text-gray-300", label: t("Notifications.catUpdate") };
 }
 
 type FilterId = "all" | "unread" | "read";
@@ -128,6 +133,17 @@ export default function NotificationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  const bcpLocale = useMemo(() => {
+    const m: Record<string, string> = {
+      en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE",
+      zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT",
+      ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+    };
+    return m[locale] || "en-US";
+  }, [locale]);
 
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,8 +160,6 @@ export default function NotificationsPage() {
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [openDetails, setOpenDetails] = useState<Notif | null>(null);
 
-  // ✅ Track WHICH notification the user clicked locally — don't react to URL changes
-  // that match what we're already showing.
   const clickedIdRef = useRef<string | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -171,11 +185,9 @@ export default function NotificationsPage() {
 
   useEffect(() => { void load(); }, []);
 
-  // ✅ Auto-open ONLY when arriving from outside (e.g. from bell click).
-  // If we already set openDetails locally, skip URL-driven re-opens.
   useEffect(() => {
     if (!openId) return;
-    if (clickedIdRef.current === openId) return; // local click, already handled
+    if (clickedIdRef.current === openId) return;
     if (openDetails && openDetails._id === openId) return;
     const found = items.find(x => String(x._id) === openId);
     if (found) setOpenDetails(found);
@@ -217,23 +229,16 @@ export default function NotificationsPage() {
     return "";
   };
 
-  // ✅ FIXED — Use the actual routes from your codebase:
-  //   - track/[q]: accepts trackingNumber OR shipmentId
-  //   - invoices/[q]: accepts trackingNumber OR shipmentId (NOT invoice number directly)
   const navigateToIdentifier = (type: "shipment" | "tracking" | "invoice", value: string) => {
     if (type === "shipment") {
-      // Shipment IDs go to the status page
       router.push(`/${locale}/dashboard/status/${encodeURIComponent(value)}`);
     } else if (type === "tracking") {
-      // Tracking numbers go to the tracking page
       router.push(`/${locale}/dashboard/track/${encodeURIComponent(value)}`);
     } else if (type === "invoice") {
       router.push(`/${locale}/dashboard/invoices/${encodeURIComponent(value)}`);
     }
   };
 
-  // ✅ FIXED — clear openDetails first, then set the new one on the next tick.
-  // This guarantees the modal unmounts the old content before mounting the new.
   const openNotif = async (n: Notif) => {
     if (selected.size > 0) { toggleSelect(n._id); return; }
 
@@ -252,10 +257,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    // Open the details modal — force a clean remount by clearing first
     clickedIdRef.current = n._id;
     setOpenDetails(null);
-    // Use rAF (not setTimeout) for the cleanest paint cycle
     requestAnimationFrame(() => {
       setOpenDetails(n);
       router.replace(`/${locale}/dashboard/notifications?open=${encodeURIComponent(n._id)}`, { scroll: false });
@@ -313,11 +316,11 @@ export default function NotificationsPage() {
       if (res.ok) {
         setItems(prev => prev.map(n => ids.includes(n._id) ? { ...n, read: true } : n));
         clearSelection();
-        showToast(`Marked ${ids.length} as read.`);
+        showToast(t("Notifications.toastMarkedRead", { count: ids.length }));
       } else {
-        showToast("Failed to mark as read.", "error");
+        showToast(t("Notifications.toastFailMarkRead"), "error");
       }
-    } catch { showToast("Network error.", "error"); } finally { setMarkingRead(false); }
+    } catch { showToast(t("Notifications.toastNetworkError"), "error"); } finally { setMarkingRead(false); }
   };
 
   const bulkDelete = async () => {
@@ -336,13 +339,13 @@ export default function NotificationsPage() {
 
       if (!res.ok) {
         setItems(snapshot);
-        showToast("Failed to delete.", "error");
+        showToast(t("Notifications.toastFailDelete"), "error");
       } else {
         clearSelection();
-        showToast(ids.length === 1 ? "Notification deleted." : `${ids.length} notifications deleted.`);
+        showToast(ids.length === 1 ? t("Notifications.toastDeletedOne") : t("Notifications.toastDeletedMany", { count: ids.length }));
         if (openDetails && ids.includes(openDetails._id)) closeDetails();
       }
-    } catch { showToast("Network error.", "error"); } finally { setDeleting(false); setConfirmDelete(null); }
+    } catch { showToast(t("Notifications.toastNetworkError"), "error"); } finally { setDeleting(false); setConfirmDelete(null); }
   };
 
   const askDeleteSelected = () => {
@@ -357,6 +360,19 @@ export default function NotificationsPage() {
   const inSelectionMode = selected.size > 0;
   const allVisibleSelected = visible.length > 0 && visible.every(n => selected.has(n._id));
 
+  // Header subtitle
+  const headerSubtitle = counts.unread > 0
+    ? t("Notifications.headerWithUnread", { unread: counts.unread, total: counts.all })
+    : t("Notifications.headerTotal", { total: counts.all });
+
+  // Empty state
+  const emptyTitle = search.trim() ? t("Notifications.emptySearch")
+    : filter === "unread" ? t("Notifications.emptyUnread")
+    : filter === "read" ? t("Notifications.emptyRead")
+    : t("Notifications.emptyNone");
+
+  const emptyDesc = search.trim() ? t("Notifications.emptySearchDesc") : t("Notifications.emptyNoneDesc");
+
   return (
     <div className="max-w-3xl mx-auto pb-12">
 
@@ -365,20 +381,20 @@ export default function NotificationsPage() {
         <div className="flex items-start gap-3 min-w-0">
           <button onClick={() => router.push(`/${locale}/dashboard`)}
             className="cursor-pointer mt-1 p-1.5 -ml-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition md:hidden"
-            aria-label="Back">
+            aria-label={t("Notifications.back")}>
             <ArrowLeft size={18} className="text-gray-700 dark:text-gray-200" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Notifications</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t("Notifications.title")}</h1>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              {counts.unread > 0 ? `${counts.unread} unread · ` : ""}{counts.all} total
+              {headerSubtitle}
             </p>
           </div>
         </div>
         <button onClick={() => load(true)} disabled={refreshing}
           className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition disabled:opacity-50">
           <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
-          <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
+          <span className="hidden sm:inline">{refreshing ? t("Notifications.refreshing") : t("Notifications.refresh")}</span>
         </button>
       </div>
 
@@ -386,9 +402,9 @@ export default function NotificationsPage() {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex gap-1 rounded-xl bg-gray-100 dark:bg-white/5 p-1">
           {([
-            { id: "all" as FilterId, label: "All", count: counts.all },
-            { id: "unread" as FilterId, label: "Unread", count: counts.unread },
-            { id: "read" as FilterId, label: "Read", count: counts.read },
+            { id: "all" as FilterId, label: t("Notifications.filterAll"), count: counts.all },
+            { id: "unread" as FilterId, label: t("Notifications.filterUnread"), count: counts.unread },
+            { id: "read" as FilterId, label: t("Notifications.filterRead"), count: counts.read },
           ]).map(f => {
             const active = filter === f.id;
             return (
@@ -410,14 +426,14 @@ export default function NotificationsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search…"
+            placeholder={t("Notifications.searchPlaceholder")}
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
             style={{ fontSize: "16px" }}
           />
         </div>
       </div>
 
-      {/* ✅ Selection bar — same style on mobile and desktop, sticky just above the list */}
+      {/* Selection bar */}
       {inSelectionMode && (
         <div className="sticky top-2 z-30 mb-3 rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/95 dark:bg-blue-500/15 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
@@ -426,12 +442,12 @@ export default function NotificationsPage() {
               <X size={14} />
             </button>
             <p className="text-sm font-bold text-blue-700 dark:text-blue-300 truncate">
-              {selected.size} selected
+              {t("Notifications.selected", { count: selected.size })}
             </p>
             {!allVisibleSelected && visible.length > 0 && (
               <button onClick={selectAllVisible}
                 className="cursor-pointer ml-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline">
-                Select all visible
+                {t("Notifications.selectAllVisible")}
               </button>
             )}
           </div>
@@ -439,12 +455,12 @@ export default function NotificationsPage() {
             <button onClick={bulkMarkRead} disabled={markingRead}
               className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-500/30 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/20 transition disabled:opacity-60">
               {markingRead ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-              <span>Read</span>
+              <span>{t("Notifications.read")}</span>
             </button>
             <button onClick={askDeleteSelected}
               className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition">
               <Trash2 size={12} />
-              <span>Delete</span>
+              <span>{t("Notifications.delete")}</span>
             </button>
           </div>
         </div>
@@ -456,7 +472,7 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="p-12 flex items-center justify-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Loading notifications…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("Notifications.loading")}</p>
           </div>
         ) : visible.length === 0 ? (
           <div className="p-12 text-center">
@@ -464,20 +480,17 @@ export default function NotificationsPage() {
               <Inbox className="w-7 h-7 text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
-              {search.trim() ? "No results match your search"
-                : filter === "unread" ? "No unread notifications"
-                : filter === "read" ? "No read notifications"
-                : "No notifications yet"}
+              {emptyTitle}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {search.trim() ? "Try a different search term." : "You'll see updates here when something happens."}
+              {emptyDesc}
             </p>
           </div>
         ) : (
           <>
             <ul className="divide-y divide-gray-100 dark:divide-white/10">
               {visible.map(n => {
-                const { Icon, bg, fg, label } = classifyNotif(n);
+                const { Icon, bg, fg, label } = classifyNotif(n, intl);
                 const isUnread = !n.read;
                 const isSelected = selected.has(n._id);
 
@@ -531,10 +544,10 @@ export default function NotificationsPage() {
                             <p className={`text-sm leading-tight ${
                               isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"
                             }`}>
-                              {n.title || "Notification"}
+                              {n.title || t("Notifications.fallbackTitle")}
                             </p>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1.5" aria-label="Unread" />}
+                              {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1.5" aria-label={t("Notifications.unreadLabel")} />}
                             </div>
                           </div>
                           <p className={`mt-1 text-xs leading-relaxed line-clamp-2 ${
@@ -545,14 +558,14 @@ export default function NotificationsPage() {
                           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                             <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${fg}`}>{label}</span>
                             <span className="text-gray-300 dark:text-gray-600 text-[10px]">•</span>
-                            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">{timeAgo(n.createdAt)}</span>
+                            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">{timeAgo(n.createdAt, intl, bcpLocale)}</span>
                           </div>
                         </div>
 
                         <button
                           onClick={(e) => { e.stopPropagation(); askDeleteSingle(n._id); }}
                           className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer"
-                          title="Delete">
+                          title={t("Notifications.delete")}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -566,7 +579,7 @@ export default function NotificationsPage() {
               <div className="px-4 py-4 border-t border-gray-100 dark:border-white/10 text-center">
                 <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
                   className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition">
-                  Load more ({filtered.length - visible.length} remaining)
+                  {t("Notifications.loadMore", { count: filtered.length - visible.length })}
                 </button>
               </div>
             )}
@@ -580,7 +593,9 @@ export default function NotificationsPage() {
           notif={openDetails}
           onClose={closeDetails}
           onDelete={() => askDeleteSingle(openDetails._id)}
-          onNavigateToken={navigateToIdentifier} />
+          onNavigateToken={navigateToIdentifier}
+          intl={intl}
+          bcpLocale={bcpLocale} />
       )}
 
       {confirmDelete && (
@@ -589,7 +604,8 @@ export default function NotificationsPage() {
           isBulk={confirmDelete.isBulk}
           deleting={deleting}
           onCancel={() => !deleting && setConfirmDelete(null)}
-          onConfirm={bulkDelete} />
+          onConfirm={bulkDelete}
+          intl={intl} />
       )}
 
       {toast && (
@@ -609,14 +625,17 @@ export default function NotificationsPage() {
 }
 
 function DetailsModal({
-  notif, onClose, onDelete, onNavigateToken,
+  notif, onClose, onDelete, onNavigateToken, intl, bcpLocale,
 }: {
   notif: Notif;
   onClose: () => void;
   onDelete: () => void;
   onNavigateToken: (type: "shipment" | "tracking" | "invoice", value: string) => void;
+  intl: IntlShape;
+  bcpLocale: string;
 }) {
-  const { Icon, bg, fg } = classifyNotif(notif);
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const { Icon, bg, fg } = classifyNotif(notif, intl);
   const tokens = useMemo(() => parseMessageTokens(notif.message || ""), [notif.message]);
 
   const TokenPill = ({ type, value }: { type: "shipment" | "tracking" | "invoice"; value: string }) => {
@@ -646,8 +665,8 @@ function DetailsModal({
               <Icon size={18} className={fg} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">{notif.title || "Notification"}</h3>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}</p>
+              <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">{notif.title || t("Notifications.fallbackTitle")}</h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{notif.createdAt ? new Date(notif.createdAt).toLocaleString(bcpLocale) : ""}</p>
             </div>
           </div>
           <button onClick={onClose}
@@ -669,7 +688,7 @@ function DetailsModal({
               onClick={() => onNavigateToken("shipment", notif.shipmentId!)}
               className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition shadow-sm">
               <Truck size={15} />
-              View Shipment {notif.shipmentId}
+              {t("Notifications.viewShipment", { id: notif.shipmentId })}
             </button>
           </div>
         )}
@@ -677,11 +696,11 @@ function DetailsModal({
         <div className="px-5 py-3 border-t border-gray-100 dark:border-white/10 flex justify-end gap-2">
           <button onClick={onClose}
             className="cursor-pointer px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition">
-            Close
+            {t("Notifications.close")}
           </button>
           <button onClick={onDelete}
             className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition">
-            <Trash2 size={14} /> Delete
+            <Trash2 size={14} /> {t("Notifications.delete")}
           </button>
         </div>
       </div>
@@ -690,14 +709,16 @@ function DetailsModal({
 }
 
 function ConfirmDeleteModal({
-  count, isBulk, deleting, onCancel, onConfirm,
+  count, isBulk, deleting, onCancel, onConfirm, intl,
 }: {
   count: number;
   isBulk: boolean;
   deleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  intl: IntlShape;
 }) {
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
@@ -706,20 +727,20 @@ function ConfirmDeleteModal({
           <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
         </div>
         <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
-          {isBulk ? `Delete ${count} notifications?` : "Delete notification?"}
+          {isBulk ? t("Notifications.confirmTitleBulk", { count }) : t("Notifications.confirmTitleOne")}
         </h3>
         <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-          This action cannot be undone. {isBulk ? "These notifications" : "This notification"} will be permanently removed.
+          {isBulk ? t("Notifications.confirmDescBulk") : t("Notifications.confirmDescOne")}
         </p>
         <div className="mt-5 flex gap-2">
           <button onClick={onCancel} disabled={deleting}
             className="cursor-pointer flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition disabled:opacity-60">
-            Cancel
+            {t("Notifications.cancel")}
           </button>
           <button onClick={onConfirm} disabled={deleting}
             className="cursor-pointer flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition disabled:opacity-60 flex items-center justify-center gap-1.5">
             {deleting && <Loader2 size={13} className="animate-spin" />}
-            {deleting ? "Deleting…" : "Yes, delete"}
+            {deleting ? t("Notifications.deleting") : t("Notifications.yesDelete")}
           </button>
         </div>
       </div>

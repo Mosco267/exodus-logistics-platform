@@ -1,3 +1,4 @@
+// src/app/[locale]/dashboard/invoices/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -8,6 +9,7 @@ import {
   RefreshCw, Calendar, MapPin, CreditCard, ChevronLeft, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl } from "react-intl";
 
 type InvoiceRow = {
   shipmentId: string;
@@ -32,11 +34,11 @@ type InvoiceRow = {
   } | null;
 };
 
-function fmtDate(iso?: string | null): string {
+function fmtDate(iso?: string | null, bcpLocale = "en-US"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(bcpLocale, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function fmtMoney(amount: any, currency = "USD"): string {
@@ -49,89 +51,26 @@ function joinLoc(...parts: any[]) {
   return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
 }
 
-function getInvoiceBadge(status?: string) {
-  const s = String(status || "").toLowerCase();
-  if (s === "paid") return { label: "PAID", bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
-  if (s === "overdue") return { label: "OVERDUE", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
-  if (s === "cancelled") return { label: "CANCELLED", bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
-  return { label: "UNPAID", bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
-}
-
-const FILTERS: Array<{ id: "all" | "unpaid" | "paid" | "overdue" | "cancelled"; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "unpaid", label: "Unpaid" },
-  { id: "overdue", label: "Overdue" },
-  { id: "paid", label: "Paid" },
-  { id: "cancelled", label: "Cancelled" },
-];
-
 const PAGE_SIZE = 10;
 
 // ─── Invoice number auto-format ────────────────────────────────
-// Pattern: EXS-INV-YYYY-MM-NNNNNNN
-//   - "EXS" and "INV" are letters
-//   - "YYYY", "MM", "NNNNNNN" are digits only
-//   - Dashes inserted automatically at the correct positions
-//
-// We accept the user typing anything, strip everything that doesn't fit
-// the position rules, and re-insert dashes.
 function formatInvoiceInput(raw: string): string {
-  // Normalize to uppercase, strip dashes for re-insertion
   const v = raw.toUpperCase();
-
-  // Walk position by position. Allowed pattern:
-  //   pos 0-2: letters ("EXS")
-  //   pos 3:   dash
-  //   pos 4-6: letters ("INV")
-  //   pos 7:   dash
-  //   pos 8-11: digits (year)
-  //   pos 12:  dash
-  //   pos 13-14: digits (month)
-  //   pos 15:  dash
-  //   pos 16+: digits (number)
-  //
-  // We extract a "core" sequence from the input — letters where letters are
-  // expected, digits where digits are expected, ignoring everything else.
-  // Then we re-render it with dashes auto-inserted.
-
   const letters = (v.match(/[A-Z]/g) || []).join("");
   const digits = (v.match(/[0-9]/g) || []).join("");
+  const letterPart = letters.slice(0, 6);
+  const digitPart = digits.slice(0, 13);
 
-  // The user can type either "EXSINV..." or with dashes — either way we just
-  // care about extracting the letters (up to 6: 3 EXS + 3 INV) and digits.
-  const letterPart = letters.slice(0, 6); // EXSINV
-  const digitPart = digits.slice(0, 13);  // YYYYMMNNNNNNN
-
-  // Now build with dashes
   let out = "";
-
-  // Letters part 1: EXS
   if (letterPart.length > 0) out += letterPart.slice(0, 3);
-
-  // First dash
   if (letterPart.length > 3 || (letterPart.length === 3 && raw.length > 3)) out += "-";
-
-  // Letters part 2: INV
   if (letterPart.length > 3) out += letterPart.slice(3, 6);
-
-  // Second dash
   if (letterPart.length === 6 && (digitPart.length > 0 || raw.length > 7)) out += "-";
-
-  // Digits part 1: year
   if (digitPart.length > 0) out += digitPart.slice(0, 4);
-
-  // Third dash
   if (digitPart.length >= 4 && (digitPart.length > 4 || raw.length > 12)) out += "-";
-
-  // Digits part 2: month
   if (digitPart.length > 4) out += digitPart.slice(4, 6);
-
-  // Fourth dash
   if (digitPart.length >= 6 && (digitPart.length > 6 || raw.length > 15)) out += "-";
-
-  // Digits part 3: number
   if (digitPart.length > 6) out += digitPart.slice(6, 13);
-
   return out;
 }
 
@@ -139,6 +78,35 @@ export default function DashboardInvoicesPage() {
   const params = useParams();
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  // BCP-47 locale map for date formatting
+  const bcpLocale = useMemo(() => {
+    const m: Record<string, string> = {
+      en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE",
+      zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT",
+      ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+    };
+    return m[locale] || "en-US";
+  }, [locale]);
+
+  // Translated invoice badge labels (reused from History.* keys)
+  const getInvoiceBadge = (status?: string) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "paid") return { label: t("History.invoicePaid"), bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
+    if (s === "overdue") return { label: t("History.invoiceOverdue"), bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
+    if (s === "cancelled") return { label: t("History.invoiceCancelled"), bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
+    return { label: t("History.invoiceUnpaid"), bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
+  };
+
+  const FILTERS: Array<{ id: "all" | "unpaid" | "paid" | "overdue" | "cancelled"; label: string }> = [
+    { id: "all", label: t("Invoices.filterAll") },
+    { id: "unpaid", label: t("Invoices.filterUnpaid") },
+    { id: "overdue", label: t("Invoices.filterOverdue") },
+    { id: "paid", label: t("Invoices.filterPaid") },
+    { id: "cancelled", label: t("Invoices.filterCancelled") },
+  ];
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -185,11 +153,11 @@ export default function DashboardInvoicesPage() {
       url.searchParams.set("type", "invoices");
       const res = await fetch(url.toString(), { cache: "no-store" });
       const json = await res.json().catch(() => null);
-      if (!res.ok) { setErr(json?.error || "Failed to load invoices."); return; }
+      if (!res.ok) { setErr(json?.error || t("Invoices.loadError")); return; }
       setInvoices(Array.isArray(json?.shipments) ? json.shipments : []);
       setCounts(json?.counts || { all: 0, paid: 0, unpaid: 0, overdue: 0, cancelled: 0 });
     } catch (e: any) {
-      setErr(e?.message || "Failed to load invoices.");
+      setErr(e?.message || t("Invoices.loadError"));
     } finally {
       setLoading(false);
     }
@@ -197,7 +165,6 @@ export default function DashboardInvoicesPage() {
 
   useEffect(() => { void load(); }, []);
 
-  // Apply local filter + search
   const filtered = useMemo(() => {
     let r = invoices;
     if (filter !== "all") r = r.filter(d => d?.invoice?.status === filter);
@@ -208,7 +175,6 @@ export default function DashboardInvoicesPage() {
     return r;
   }, [invoices, filter, search]);
 
-  // Suggestions = user's invoice numbers matching the typed text
   const suggestions = useMemo(() => {
     const v = search.trim().toUpperCase();
     if (!v) return invoices.slice(0, 6);
@@ -217,7 +183,6 @@ export default function DashboardInvoicesPage() {
       .slice(0, 6);
   }, [search, invoices]);
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   useEffect(() => { setPage(1); }, [filter, search]);
   const paged = useMemo(() => {
@@ -242,20 +207,31 @@ export default function DashboardInvoicesPage() {
   const headerTitleCls = isMidnight ? "text-white" : "text-gray-900 dark:text-white";
   const headerSubCls = isMidnight ? "text-white/70" : "text-gray-500 dark:text-gray-400";
 
+  // Empty state messages
+  const emptyTitle = filter === "all" ? t("Invoices.emptyNone")
+    : filter === "unpaid" ? t("Invoices.emptyUnpaid")
+    : filter === "overdue" ? t("Invoices.emptyOverdue")
+    : filter === "paid" ? t("Invoices.emptyPaid")
+    : t("Invoices.emptyCancelled");
+
+  const emptyDesc = search.trim() ? t("Invoices.emptySearchDesc")
+    : filter === "all" ? t("Invoices.emptyNoneDesc")
+    : t("Invoices.emptyFilterDesc");
+
   return (
     <div className="max-w-5xl mx-auto pb-12 space-y-5">
 
       <div>
-        <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>My Invoices</h1>
+        <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>{t("Invoices.title")}</h1>
         <p className={`mt-1 text-sm ${headerSubCls}`}>
-          View and manage all invoices for your shipments.
+          {t("Invoices.subtitle")}
         </p>
       </div>
 
       {/* Summary cards */}
       {Object.keys(totals).length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {Object.entries(totals).slice(0, 2).map(([cur, t]) => (
+          {Object.entries(totals).slice(0, 2).map(([cur, tt]) => (
             <div key={cur} className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="w-4 h-4" style={{ color: accentSolid }} />
@@ -263,12 +239,12 @@ export default function DashboardInvoicesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Outstanding</p>
-                  <p className="text-base font-extrabold text-amber-700 dark:text-amber-400 mt-0.5">{fmtMoney(t.unpaid, cur)}</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{t("Invoices.outstanding")}</p>
+                  <p className="text-base font-extrabold text-amber-700 dark:text-amber-400 mt-0.5">{fmtMoney(tt.unpaid, cur)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Paid</p>
-                  <p className="text-base font-extrabold text-green-700 dark:text-green-400 mt-0.5">{fmtMoney(t.paid, cur)}</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{t("Invoices.paidAmount")}</p>
+                  <p className="text-base font-extrabold text-green-700 dark:text-green-400 mt-0.5">{fmtMoney(tt.paid, cur)}</p>
                 </div>
               </div>
             </div>
@@ -296,10 +272,10 @@ export default function DashboardInvoicesPage() {
         })}
       </div>
 
-      {/* Search box with suggestions — taller, auto-format */}
+      {/* Search box with suggestions */}
       <div ref={searchRef} className="relative rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-sm">
         <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-2 uppercase tracking-wide">
-          Search invoice
+          {t("Invoices.searchLabel")}
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -315,7 +291,7 @@ export default function DashboardInvoicesPage() {
           </div>
           <button onClick={load}
             className="cursor-pointer p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 transition shrink-0"
-            title="Refresh">
+            title={t("Invoices.refresh")}>
             <RefreshCw className={`w-4 h-4 text-gray-500 dark:text-gray-400 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
@@ -323,7 +299,7 @@ export default function DashboardInvoicesPage() {
         {suggestOpen && suggestions.length > 0 && (
           <div className="absolute left-4 right-4 mt-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden z-30">
             <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-white/10">
-              Your invoices
+              {t("Invoices.yourInvoices")}
             </div>
             <div className="max-h-64 overflow-y-auto">
               {suggestions.map(d => {
@@ -363,7 +339,7 @@ export default function DashboardInvoicesPage() {
         {loading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: accentSolid }} />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Loading invoices…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("Invoices.loading")}</p>
           </div>
         ) : err ? (
           <div className="p-8">
@@ -379,10 +355,10 @@ export default function DashboardInvoicesPage() {
               <FileText className="w-6 h-6 text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {filter === "all" ? "No invoices yet" : `No ${filter} invoices`}
+              {emptyTitle}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {search.trim() ? "No results match your search." : filter === "all" ? "Invoices will appear here once you create a shipment." : "Try a different filter."}
+              {emptyDesc}
             </p>
           </div>
         ) : (
@@ -426,7 +402,7 @@ export default function DashboardInvoicesPage() {
                           </span>
                           {inv.dueDate && (
                             <span className="flex items-center gap-1 shrink-0">
-                              <Calendar size={10} /> Due {fmtDate(inv.dueDate)}
+                              <Calendar size={10} /> {t("Invoices.due", { date: fmtDate(inv.dueDate, bcpLocale) })}
                             </span>
                           )}
                         </div>
@@ -437,7 +413,7 @@ export default function DashboardInvoicesPage() {
                           {fmtMoney(inv.amount, inv.currency || "USD")}
                         </p>
                         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                          {fmtDate(d.createdAt)}
+                          {fmtDate(d.createdAt, bcpLocale)}
                         </p>
                       </div>
 
@@ -451,20 +427,20 @@ export default function DashboardInvoicesPage() {
             {totalPages > 1 && (
               <div className="px-5 py-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Page {page} of {totalPages} · {filtered.length} invoices
+                  {t("Invoices.pageInfo", { page, totalPages, count: filtered.length })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ChevronLeft size={12} /> Prev
+                    <ChevronLeft size={12} /> {t("History.prev")}
                   </button>
                   <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    Next <ChevronRightIcon size={12} />
+                    {t("History.next")} <ChevronRightIcon size={12} />
                   </button>
                 </div>
               </div>
