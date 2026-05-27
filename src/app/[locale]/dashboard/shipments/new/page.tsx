@@ -19,6 +19,8 @@ import TwoFaShipmentModal from '@/components/TwoFaShipmentModal';
 import { getCountryDistance, getStateDistance } from '@/lib/distances';
 import { addBusinessDays } from '@/lib/holidays';
 
+import { useIntl, type IntlShape } from 'react-intl';
+
 function formatMoney(value: number): string {
     if (isNaN(value)) return '0.00';
     return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -183,7 +185,7 @@ const ALL_CURRENCIES = [
 ].sort((a, b) => a.code.localeCompare(b.code));
 
 // ─── Currency dropdown ────────────────────────────────────────
-function CurrencySelect({ value, onChange, accentSolid = '#0b3aa4' }: { value: string; onChange: (v: string) => void; accentSolid?: string }) {
+function CurrencySelect({ value, onChange, accentSolid = '#0b3aa4', intl }: { value: string; onChange: (v: string) => void; accentSolid?: string; intl: IntlShape }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -214,7 +216,7 @@ function CurrencySelect({ value, onChange, accentSolid = '#0b3aa4' }: { value: s
         <div className="absolute z-50 bottom-full mb-1 w-72 right-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search currency…" style={{ fontSize: '16px' }}
+              placeholder={intl.formatMessage({ id: "NewShipment.searchCurrency" })} style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -239,7 +241,7 @@ style={value === c.code ? { background: `${accentSolid}15` } : {}}>
                 </div>
               );
             })}
-            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">No results</p>}
+            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">{intl.formatMessage({ id: "NewShipment.noResults" })}</p>}
           </div>
         </div>
       )}
@@ -256,10 +258,10 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Custom Select Dropdown ───────────────────────────────────
-function CustomSelect({ value, onChange, options, placeholder, disabled, accentSolid = '#0b3aa4' }: {
+function CustomSelect({ value, onChange, options, placeholder, disabled, accentSolid = '#0b3aa4', intl }: {
   value: string; onChange: (v: string) => void;
   options: { value: string; label: string }[];
-  placeholder?: string; disabled?: boolean; accentSolid?: string;
+  placeholder?: string; disabled?: boolean; accentSolid?: string; intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -278,7 +280,7 @@ function CustomSelect({ value, onChange, options, placeholder, disabled, accentS
         onClick={() => { if (!disabled) setOpen(v => !v); }}
         className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-left transition cursor-pointer ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-gray-300 dark:hover:border-white/20'}`}>
         <span className={selected ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-400'}>
-          {selected?.label || placeholder || 'Select…'}
+          {selected?.label || placeholder || intl.formatMessage({ id: "NewShipment.selectPlaceholder" })}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -299,9 +301,9 @@ style={value === o.value ? { background: `${accentSolid}15`, color: accentSolid 
 }
 
 // ─── Country dropdown ─────────────────────────────────────────
-function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode, accentSolid = '#0b3aa4' }: {
+function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode, accentSolid = '#0b3aa4', intl }: {
   value: string; onChange: (name: string) => void; onEntry?: (e: CountryEntry) => void;
-  label: string; disabled?: boolean; excludeCode?: string; accentSolid?: string;
+  label: string; disabled?: boolean; excludeCode?: string; accentSolid?: string; intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -330,7 +332,7 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode,
         <span className="flex items-center gap-2">
           {selected
             ? <><img src={`https://flagcdn.com/w20/${selected.code.toLowerCase()}.png`} width="20" height="15" alt={selected.name} className="rounded-sm shrink-0" /><span>{selected.name}</span></>
-            : <span className="text-gray-400">Select country…</span>}
+            : <span className="text-gray-400">{intl.formatMessage({ id: "NewShipment.selectCountry" })}</span>}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -338,7 +340,7 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode,
         <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search country…" style={{ fontSize: '16px' }}
+              placeholder={intl.formatMessage({ id: "NewShipment.searchCountry" })} style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
           <div className="max-h-60 overflow-y-auto">
@@ -351,7 +353,7 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode,
                 <span>{c.name}</span>
               </button>
             ))}
-            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">No results</p>}
+            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">{intl.formatMessage({ id: "NewShipment.noResults" })}</p>}
           </div>
         </div>
       )}
@@ -360,8 +362,8 @@ function CountrySelect({ value, onChange, onEntry, label, disabled, excludeCode,
 }
 
 // ─── State dropdown ───────────────────────────────────────────
-function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4' }: {
-  country: string; value: string; onChange: (v: string) => void; label: string; accentSolid?: string;
+function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4', intl }: {
+  country: string; value: string; onChange: (v: string) => void; label: string; accentSolid?: string; intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -381,7 +383,7 @@ function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4' 
     return (
       <div>
         <Label>{label}</Label>
-        <input value={value} onChange={e => onChange(e.target.value)} placeholder="State / Province"
+        <input value={value} onChange={e => onChange(e.target.value)} placeholder={intl.formatMessage({ id: "NewShipment.stateProvincePlaceholder" })}
           className={inputCls} style={{ fontSize: '16px' }} />
       </div>
     );
@@ -392,14 +394,14 @@ function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4' 
       <Label>{label}</Label>
       <button type="button" onClick={() => { setOpen(v => !v); setSearch(''); }}
         className={`${inputCls} flex items-center justify-between cursor-pointer text-left`}>
-        <span className={value ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>{value || 'Select state…'}</span>
+        <span className={value ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>{value || intl.formatMessage({ id: "NewShipment.selectState" })}</span>
         <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search state…" style={{ fontSize: '16px' }}
+              placeholder={intl.formatMessage({ id: "NewShipment.searchState" })} style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
           <div className="max-h-60 overflow-y-auto">
@@ -411,7 +413,7 @@ function StateSelect({ country, value, onChange, label, accentSolid = '#0b3aa4' 
                 {s}
               </button>
             ))}
-            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">No results</p>}
+            {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">{intl.formatMessage({ id: "NewShipment.noResults" })}</p>}
           </div>
         </div>
       )}
@@ -629,8 +631,8 @@ function applyPhonePattern(digits: string, pattern: string): string {
   return result;
 }
 
-function DialDropdown({ dial, flag, onChange }: {
-  dial: string; flag: string; onChange: (dial: string, flag: string) => void;
+function DialDropdown({ dial, flag, onChange, intl }: {
+  dial: string; flag: string; onChange: (dial: string, flag: string) => void; intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -663,7 +665,7 @@ function DialDropdown({ dial, flag, onChange }: {
         <div className="absolute z-50 top-full left-0 mt-1 w-64 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search country or code…" style={{ fontSize: '16px' }}
+              placeholder={intl.formatMessage({ id: "NewShipment.searchCountryOrCode" })} style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
           <div className="max-h-56 overflow-y-auto">
@@ -683,9 +685,9 @@ function DialDropdown({ dial, flag, onChange }: {
   );
 }
 
-function PhoneInput({ countryCode, value, onChange, label, initialDial, initialFlag }: {
+function PhoneInput({ countryCode, value, onChange, label, initialDial, initialFlag, intl }: {
   countryCode: string; value: string; onChange: (v: string) => void; label: string;
-  initialDial?: string; initialFlag?: string;
+  initialDial?: string; initialFlag?: string; intl: IntlShape;
 }) {
   const [dial, setDial] = useState('');
   const [flagCode, setFlagCode] = useState('');
@@ -768,6 +770,7 @@ return (
       <Label>{label}</Label>
       <div className="flex gap-2">
         <DialDropdown
+          intl={intl}
           dial={dial}
           flag={flagCode}
           onChange={(newDial, newFlag) => {
@@ -810,7 +813,7 @@ return (
 </div>
       </div>
       {dialMatchesCountry && (
-  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+  <p className="text-[11px] text-gray-400 mt-1">{intl.formatMessage({ id: "NewShipment.phoneHint" })}</p>
 )}
     </div>
   );
@@ -829,31 +832,7 @@ function Section({ title, children, accent }: { title: string; children: React.R
   );
 }
 
-// ─── Means config ─────────────────────────────────────────────
-const MEANS_CONFIG: Record<ShipmentMeans, { label: string; emoji: string; color: string }> = {
-  air: { label: 'Air Freight', emoji: '✈️', color: '#0891b2' },
-  sea: { label: 'Sea Freight', emoji: '🚢', color: '#1d4ed8' },
-  land: { label: 'Land Freight', emoji: '🚛', color: '#059669' },
-};
 
-// ─── Package types ────────────────────────────────────────────
-const PACKAGE_TYPES = [
-  { value: 'Documents', label: 'Documents' },
-  { value: 'Parcel', label: 'Parcel' },
-  { value: 'Electronics', label: 'Electronics' },
-  { value: 'Clothing', label: 'Clothing' },
-  { value: 'Food & Perishables', label: 'Food & Perishables' },
-  { value: 'Furniture', label: 'Furniture' },
-  { value: 'Machinery', label: 'Machinery' },
-  { value: 'Bulk / Pallet', label: 'Bulk / Pallet' },
-  { value: 'Container', label: 'Container' },
-  { value: 'Other', label: 'Other' },
-];
-
-const SERVICE_LEVELS = [
-  { value: 'Express', label: 'Express — Fastest available' },
-  { value: 'Standard', label: 'Standard — Economy speed' },
-];
 
 // ─── Main page ────────────────────────────────────────────────
 export default function NewShipmentPage() {
@@ -864,8 +843,34 @@ export default function NewShipmentPage() {
 
 
   
+ const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
 
+  // Translated option arrays
+  const MEANS_CONFIG = useMemo<Record<ShipmentMeans, { label: string; emoji: string; color: string }>>(() => ({
+    air: { label: t("NewShipment.airFreight"), emoji: '✈️', color: '#0891b2' },
+    sea: { label: t("NewShipment.seaFreight"), emoji: '🚢', color: '#1d4ed8' },
+    land: { label: t("NewShipment.landFreight"), emoji: '🚛', color: '#059669' },
+  }), [intl.locale]);
+
+  const PACKAGE_TYPES = useMemo(() => ([
+    { value: 'Documents', label: t("NewShipment.pkgDocuments") },
+    { value: 'Parcel', label: t("NewShipment.pkgParcel") },
+    { value: 'Electronics', label: t("NewShipment.pkgElectronics") },
+    { value: 'Clothing', label: t("NewShipment.pkgClothing") },
+    { value: 'Food & Perishables', label: t("NewShipment.pkgFood") },
+    { value: 'Furniture', label: t("NewShipment.pkgFurniture") },
+    { value: 'Machinery', label: t("NewShipment.pkgMachinery") },
+    { value: 'Bulk / Pallet', label: t("NewShipment.pkgBulk") },
+    { value: 'Container', label: t("NewShipment.pkgContainer") },
+    { value: 'Other', label: t("NewShipment.pkgOther") },
+  ]), [intl.locale]);
+
+  const SERVICE_LEVELS = useMemo(() => ([
+    { value: 'Express', label: t("NewShipment.svcExpress") },
+    { value: 'Standard', label: t("NewShipment.svcStandard") },
+  ]), [intl.locale]);
   
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
@@ -1243,28 +1248,28 @@ const deliveryDateISO = useMemo(() => {
   l: string;
   ref: React.MutableRefObject<HTMLDivElement | null>;
 }[] = [
-  { v: senderName, l: 'Sender full name', ref: refSenderName },
-  { v: senderEmail, l: 'Sender email', ref: refSenderEmail },
-  { v: senderCountry, l: 'Sender country', ref: refSenderCountry },
-  { v: senderStreet, l: 'Sender street address', ref: refSenderStreet },
-  { v: senderCity, l: 'Sender city', ref: refSenderCity },
-  { v: senderPostal, l: 'Sender postal code', ref: refSenderPostal },
-  { v: senderState, l: 'Sender state / province', ref: refSenderState },
-  { v: senderPhone, l: 'Sender phone number', ref: refSenderPhone },
-  { v: receiverName, l: 'Receiver full name', ref: refReceiverName },
-  { v: receiverEmail, l: 'Receiver email', ref: refReceiverEmail },
-  { v: receiverCountry, l: 'Receiver country', ref: refReceiverCountry },
-  { v: receiverStreet, l: 'Receiver street address', ref: refReceiverStreet },
-  { v: receiverCity, l: 'Receiver city', ref: refReceiverCity },
-  { v: receiverPostal, l: 'Receiver postal code', ref: refReceiverPostal },
-  { v: receiverState, l: 'Receiver state / province', ref: refReceiverState },
-  { v: receiverPhone, l: 'Receiver phone number', ref: refReceiverPhone },
-  { v: weightKg, l: 'Weight', ref: refWeightKg },
-  { v: lengthCm, l: 'Length', ref: refLengthCm },
-  { v: widthCm, l: 'Width', ref: refWidthCm },
-  { v: heightCm, l: 'Height', ref: refHeightCm },
-  { v: packageDescription, l: 'Package description', ref: refPackageDescription },
-  { v: declaredValue, l: 'Declared value', ref: refDeclaredValue },
+  { v: senderName, l: t("NewShipment.fieldSenderName"), ref: refSenderName },
+  { v: senderEmail, l: t("NewShipment.fieldSenderEmail"), ref: refSenderEmail },
+  { v: senderCountry, l: t("NewShipment.fieldSenderCountry"), ref: refSenderCountry },
+  { v: senderStreet, l: t("NewShipment.fieldSenderStreet"), ref: refSenderStreet },
+  { v: senderCity, l: t("NewShipment.fieldSenderCity"), ref: refSenderCity },
+  { v: senderPostal, l: t("NewShipment.fieldSenderPostal"), ref: refSenderPostal },
+  { v: senderState, l: t("NewShipment.fieldSenderState"), ref: refSenderState },
+  { v: senderPhone, l: t("NewShipment.fieldSenderPhone"), ref: refSenderPhone },
+  { v: receiverName, l: t("NewShipment.fieldReceiverName"), ref: refReceiverName },
+  { v: receiverEmail, l: t("NewShipment.fieldReceiverEmail"), ref: refReceiverEmail },
+  { v: receiverCountry, l: t("NewShipment.fieldReceiverCountry"), ref: refReceiverCountry },
+  { v: receiverStreet, l: t("NewShipment.fieldReceiverStreet"), ref: refReceiverStreet },
+  { v: receiverCity, l: t("NewShipment.fieldReceiverCity"), ref: refReceiverCity },
+  { v: receiverPostal, l: t("NewShipment.fieldReceiverPostal"), ref: refReceiverPostal },
+  { v: receiverState, l: t("NewShipment.fieldReceiverState"), ref: refReceiverState },
+  { v: receiverPhone, l: t("NewShipment.fieldReceiverPhone"), ref: refReceiverPhone },
+  { v: weightKg, l: t("NewShipment.fieldWeight"), ref: refWeightKg },
+  { v: lengthCm, l: t("NewShipment.fieldLength"), ref: refLengthCm },
+  { v: widthCm, l: t("NewShipment.fieldWidth"), ref: refWidthCm },
+  { v: heightCm, l: t("NewShipment.fieldHeight"), ref: refHeightCm },
+  { v: packageDescription, l: t("NewShipment.fieldDescription"), ref: refPackageDescription },
+  { v: declaredValue, l: t("NewShipment.fieldDeclared"), ref: refDeclaredValue },
 ];
 const firstMissing = requiredFields.find(f => !f.v?.trim());
 const isValid = !firstMissing;
@@ -1301,7 +1306,7 @@ const isValid = !firstMissing;
       return;
     }
   } catch {
-    setError('Could not verify your security settings. Please try again.');
+    setError(t("NewShipment.errorVerify2Fa"));
     return;
   }
 };
@@ -1348,10 +1353,10 @@ const isValid = !firstMissing;
       }),
     });
     const json = await res.json();
-    if (!res.ok) { setError(json?.error || 'Failed to create shipment.'); return; }
+    if (!res.ok) { setError(json?.error || t("NewShipment.errorCreate")); return; }
     setCreatedId(json?.shipment?.shipmentId || '');
     setShowSuccess(true);
-  } catch (e: any) { setError(e?.message || 'Something went wrong.'); }
+  } catch (e: any) { setError(e?.message || t("NewShipment.errorGeneric")); }
   finally { setLoading(false); }
 };
 
@@ -1361,23 +1366,23 @@ const handleSubmit = async () => {
 
   const missing = requiredFields.find(f => !f.v?.trim());
   if (missing) {
-    setError(`${missing.l} is required.`);
+    setError(t("NewShipment.errorFieldRequired", { field: missing.l }));
     missing.ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
   if (weightWarning || lengthWarning || widthWarning || heightWarning) {
-    setError('One or more fields exceed the allowed limit. Please contact support for special approval.');
+    setError(t("NewShipment.errorOverLimit"));
     return;
   }
 
   if (scope === 'local' && senderCountryCode && !localAvailable.includes(senderCountryCode)) {
-    setError(`Sorry — our company doesn't operate locally in ${senderCountry}. Please use international shipping or contact support.`);
+    setError(t("NewShipment.errorNoLocalOps", { country: senderCountry }));
     return;
   }
 
   const dv = parseFloat(declaredValue);
-  if (!dv || dv <= 0) { setError('Declared value must be greater than 0.'); return; }
+  if (!dv || dv <= 0) { setError(t("NewShipment.errorDeclaredZero")); return; }
 
   // All validation passed — show confirm-details modal first
   setShowConfirmDetailsModal(true);
@@ -1388,17 +1393,17 @@ const handleSubmit = async () => {
 
       {/* Header */}
       <div className="text-center">
-  <h1 className="text-xl font-extrabold" style={{ color: isDarkTheme ? '#ffffff' : undefined }}>New Shipment</h1>
-  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Fill in the details below to create your shipment</p>
+  <h1 className="text-xl font-extrabold" style={{ color: isDarkTheme ? '#ffffff' : undefined }}>{t("NewShipment.title")}</h1>
+  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t("NewShipment.subtitle")}</p>
 </div>
 
       {/* Fix 1: Scope toggle using theme color */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-4">
-        <Label>Shipment Type</Label>
+        <Label>{t("NewShipment.shipmentTypeLabel")}</Label>
         <div className="grid grid-cols-2 gap-3 mt-1">
           {([
-            { v: 'international' as ShipmentScope, label: '🌍 International', sub: 'Cross-border' },
-            { v: 'local' as ShipmentScope, label: '🚛 Local', sub: 'Within your country' },
+            { v: 'international' as ShipmentScope, label: `🌍 ${t("NewShipment.scopeIntl")}`, sub: t("NewShipment.scopeIntlSub") },
+            { v: 'local' as ShipmentScope, label: `🚛 ${t("NewShipment.scopeLocal")}`, sub: t("NewShipment.scopeLocalSub") },
           ]).map(s => (
             <button key={s.v} type="button"
               onClick={() => { setScope(s.v); setReceiverState(''); setReceiverCity(''); setReceiverStreet(''); }}
@@ -1416,75 +1421,78 @@ const handleSubmit = async () => {
       </div>
 
       {/* Sender */}
-      <Section title="Sender Information" accent={accent}>
+      <Section title={t("NewShipment.senderSection")} accent={accent}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div ref={refSenderName}>
-  <Label>Full Name</Label>
+  <Label>{t("NewShipment.fullName")}</Label>
   <input value={senderName} onChange={e => setSenderName(e.target.value)}
-    placeholder="Full name"
+    placeholder={t("NewShipment.fullNamePlaceholder")}
     className={`${inputCls} ${attempted && !senderName.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !senderName.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !senderName.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
-          <div ref={refSenderEmail}>
-  <Label>Email</Label>
+         <div ref={refSenderEmail}>
+  <Label>{t("NewShipment.email")}</Label>
   <input value={senderEmail} onChange={e => setSenderEmail(e.target.value)}
-    type="email" placeholder="Email address"
+    type="email" placeholder={t("NewShipment.emailPlaceholder")}
     className={`${inputCls} ${attempted && !senderEmail.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !senderEmail.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !senderEmail.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
         </div>
         <div ref={refSenderCountry}>
-  <CountrySelect label="Country" value={senderCountry} accentSolid={accentSolid}
+  <CountrySelect label={t("NewShipment.country")} value={senderCountry} accentSolid={accentSolid} intl={intl}
     onChange={name => { const e = getCountryByName(name); if (e) handleSenderCountryChange(e.name, e.code); }}
     onEntry={e => handleSenderCountryChange(e.name, e.code)} />
-  {attempted && !senderCountry && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !senderCountry && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
   {isLocalUnsupported && (
     <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30 px-3.5 py-2.5">
       <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 leading-relaxed flex items-start gap-1.5">
         <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-        <span>Sorry we don't operate locally in <strong>{senderCountry}</strong>. Local shipment is not available. Please switch to International shipping.</span>
+        <span>{t("NewShipment.localUnsupported", {
+          country: senderCountry,
+          strong: (chunks: any) => <strong>{chunks}</strong>,
+        })}</span>
       </p>
     </div>
   )}
 </div>
         <div ref={refSenderStreet}>
-  <Label>Street Address</Label>
+  <Label>{t("NewShipment.streetAddress")}</Label>
   <input value={senderStreet} onChange={e => handleSenderAddressChange('street', e.target.value)}
-    placeholder="Street address"
+    placeholder={t("NewShipment.streetPlaceholder")}
     className={`${inputCls} ${attempted && !senderStreet.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !senderStreet.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !senderStreet.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
         <div className="grid grid-cols-2 gap-3">
   <div ref={refSenderCity}>
-    <Label>City</Label>
+    <Label>{t("NewShipment.city")}</Label>
     <input value={senderCity} onChange={e => handleSenderAddressChange('city', e.target.value)}
-      placeholder="City"
+      placeholder={t("NewShipment.cityPlaceholder")}
       className={`${inputCls} ${attempted && !senderCity.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
       style={{ fontSize: '16px' }} />
-    {attempted && !senderCity.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    {attempted && !senderCity.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
   </div>
   <div ref={refSenderPostal}>
-    <Label>Postal Code</Label>
+    <Label>{t("NewShipment.postalCode")}</Label>
     <input value={senderPostal} onChange={e => handleSenderAddressChange('postal', e.target.value.replace(/\D/g, ''))}
-      placeholder="Postal code" inputMode="numeric"
+      placeholder={t("NewShipment.postalPlaceholder")} inputMode="numeric"
       className={`${inputCls} ${attempted && !senderPostal.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
       style={{ fontSize: '16px' }} />
-    {attempted && !senderPostal.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    {attempted && !senderPostal.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
   </div>
 </div>
         <div ref={refSenderState}>
-  <StateSelect country={senderCountry} value={senderState} accentSolid={accentSolid}
-    onChange={v => handleSenderAddressChange('state', v)} label="State / Province" />
-  {attempted && !senderState.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  <StateSelect country={senderCountry} value={senderState} accentSolid={accentSolid} intl={intl}
+    onChange={v => handleSenderAddressChange('state', v)} label={t("NewShipment.stateProvince")} />
+  {attempted && !senderState.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
 
 <div ref={refSenderPhone}>
-  <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label="Phone"
-    initialDial={profileDialCode || undefined} initialFlag={profileDialFlag || undefined} />
-  {attempted && !senderPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  <PhoneInput countryCode={senderCountryCode} value={senderPhone} onChange={setSenderPhone} label={t("NewShipment.phone")}
+    initialDial={profileDialCode || undefined} initialFlag={profileDialFlag || undefined} intl={intl} />
+  {attempted && !senderPhone.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
 
         <div className="space-y-2">
@@ -1505,82 +1513,82 @@ const handleSubmit = async () => {
           }
         }}
         className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
-      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Use my home address</span>
+      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{t("NewShipment.useHomeAddress")}</span>
     </label>
   )}
   {!useDefaultAddress && (
     <label className="flex items-center gap-2.5 cursor-pointer select-none">
       <input type="checkbox" checked={saveAsHome} onChange={e => setSaveAsHome(e.target.checked)}
         className="w-4 h-4 rounded" style={{ accentColor: accentSolid }} />
-      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Save as my home address</span>
+      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{t("NewShipment.saveAsHomeAddress")}</span>
     </label>
   )}
 </div>
       </Section>
 
       {/* Receiver */}
-      <Section title="Receiver Information" accent={accent}>
+      <Section title={t("NewShipment.receiverSection")} accent={accent}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div ref={refReceiverName}>
-  <Label>Full Name</Label>
+  <Label>{t("NewShipment.fullName")}</Label>
   <input value={receiverName} onChange={e => setReceiverName(e.target.value)}
-    placeholder="Full name"
+    placeholder={t("NewShipment.fullNamePlaceholder")}
     className={`${inputCls} ${attempted && !receiverName.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !receiverName.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !receiverName.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
           <div ref={refReceiverEmail}>
-  <Label>Email</Label>
+  <Label>{t("NewShipment.email")}</Label>
   <input value={receiverEmail} onChange={e => setReceiverEmail(e.target.value)}
-    type="email" placeholder="Email address"
+    type="email" placeholder={t("NewShipment.emailPlaceholder")}
     className={`${inputCls} ${attempted && !receiverEmail.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !receiverEmail.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !receiverEmail.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
         </div>
         <div ref={refReceiverCountry}>
-  <CountrySelect label="Country" value={receiverCountry} accentSolid={accentSolid}
+  <CountrySelect label={t("NewShipment.country")} value={receiverCountry} accentSolid={accentSolid} intl={intl}
     disabled={scope === 'local'}
     excludeCode={scope === 'international' ? senderCountryCode : undefined}
     onChange={name => { const e = getCountryByName(name); if (e) { setReceiverCountry(e.name); setReceiverCountryCode(e.code); setReceiverState(''); } }}
     onEntry={e => { setReceiverCountry(e.name); setReceiverCountryCode(e.code); }} />
-  {attempted && !receiverCountry && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !receiverCountry && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
         {scope === 'local' && (
   <p className="text-xs flex items-center gap-1.5 -mt-2" style={{ color: accentSolid }}>
-    <Info size={12} /> Receiver country is locked to sender country for local shipments
+    <Info size={12} /> {t("NewShipment.receiverLocked")}
   </p>
 )}
         <div ref={refReceiverStreet}>
-  <Label>Street Address</Label>
+  <Label>{t("NewShipment.streetAddress")}</Label>
   <input value={receiverStreet} onChange={e => setReceiverStreet(e.target.value)}
-    placeholder="Street address"
+    placeholder={t("NewShipment.streetPlaceholder")}
     className={`${inputCls} ${attempted && !receiverStreet.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !receiverStreet.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !receiverStreet.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
         <div className="grid grid-cols-2 gap-3">
   <div ref={refReceiverCity}>
-    <Label>City</Label>
+    <Label>{t("NewShipment.city")}</Label>
     <input value={receiverCity} onChange={e => setReceiverCity(e.target.value)}
-      placeholder="City"
+      placeholder={t("NewShipment.cityPlaceholder")}
       className={`${inputCls} ${attempted && !receiverCity.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
       style={{ fontSize: '16px' }} />
-    {attempted && !receiverCity.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    {attempted && !receiverCity.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
   </div>
   <div ref={refReceiverPostal}>
-    <Label>Postal Code</Label>
+    <Label>{t("NewShipment.postalCode")}</Label>
     <input value={receiverPostal} onChange={e => setReceiverPostal(e.target.value.replace(/\D/g, ''))}
-      placeholder="Postal code" inputMode="numeric"
+      placeholder={t("NewShipment.postalPlaceholder")} inputMode="numeric"
       className={`${inputCls} ${attempted && !receiverPostal.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
       style={{ fontSize: '16px' }} />
-    {attempted && !receiverPostal.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    {attempted && !receiverPostal.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
   </div>
 </div>
         <div ref={refReceiverState}>
-  <StateSelect country={receiverCountry} value={receiverState} accentSolid={accentSolid}
-    onChange={setReceiverState} label="State / Province" />
-  {attempted && !receiverState.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  <StateSelect country={receiverCountry} value={receiverState} accentSolid={accentSolid} intl={intl}
+    onChange={setReceiverState} label={t("NewShipment.stateProvince")} />
+  {attempted && !receiverState.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
        <div ref={refReceiverPhone}>
   <PhoneInput
@@ -1588,69 +1596,71 @@ const handleSubmit = async () => {
     countryCode={receiverCountryCode}
     value=""
     onChange={setReceiverPhone}
-    label="Phone"
-  />
-  {attempted && !receiverPhone.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+    label={t("NewShipment.phone")}
+    intl={intl}
+    />
+  {attempted && !receiverPhone.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
       </Section>
 
       {/* Package */}
-      <Section title="Package Details" accent={accent}>
+      <Section title={t("NewShipment.packageSection")} accent={accent}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-  <Label>Package Type</Label>
-  <CustomSelect value={packageType} onChange={setPackageType} options={PACKAGE_TYPES} accentSolid={accentSolid} />
+  <Label>{t("NewShipment.packageType")}</Label>
+  <CustomSelect value={packageType} onChange={setPackageType} options={PACKAGE_TYPES} accentSolid={accentSolid} intl={intl} />
   {isBulkOrContainer && (
     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-      <Info size={11} /> This package type uses Sea Freight automatically
+      <Info size={11} /> {t("NewShipment.hintBulkSea")}
     </p>
   )}
 </div>
           {packageType === 'Other' && (
             <div>
-              <Label>Specify Package Type</Label>
+              <Label>{t("NewShipment.specifyPackageType")}</Label>
               <input value={customPackageType} onChange={e => setCustomPackageType(e.target.value)}
-                placeholder="Describe your package..." className={inputCls} style={{ fontSize: '16px' }} />
+                placeholder={t("NewShipment.specifyPackagePlaceholder")} className={inputCls} style={{ fontSize: '16px' }} />
             </div>
           )}
           <div>
-  <Label>Service Level</Label>
+  <Label>{t("NewShipment.serviceLevel")}</Label>
   <CustomSelect
     value={effectiveServiceLevel}
     onChange={v => setServiceLevel(v as ServiceLevel)}
     options={SERVICE_LEVELS}
     disabled={means === 'sea' || weight >= 500 || isBulkOrContainer}
     accentSolid={accentSolid}
+    intl={intl}
   />
   {means === 'sea' && (
     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-      <Info size={11} /> Sea freight is always Standard
+      <Info size={11} /> {t("NewShipment.hintSeaStandard")}
     </p>
   )}
   {means === 'air' && weight >= 500 && weight <= 10000 && (
     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-      <Info size={11} /> 500+ kg uses Air Standard cargo (Express unavailable)
+      <Info size={11} /> {t("NewShipment.hintAirStandard")}
     </p>
   )}
   {isBulkOrContainer && (
     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-      <Info size={11} /> Bulk / Container shipments are always Standard
+      <Info size={11} /> {t("NewShipment.hintBulkStandard")}
     </p>
   )}
 </div>
-          <div ref={refWeightKg}>
-  <Label>Weight (kg)</Label>
+         <div ref={refWeightKg}>
+  <Label>{t("NewShipment.weightKg")}</Label>
   <input value={formatWithCommas(weightKg)} onChange={e => {
     const cleaned = cleanNumeric(e.target.value);
     setWeightKg(cleaned);
     const num = parseFloat(cleaned);
     if (!isNaN(num) && num > WEIGHT_MAX) {
-      setWeightWarning(`Shipment weight is above ${WEIGHT_MAX.toLocaleString()} kg. Please contact support for special approval.`);
+      setWeightWarning(t("NewShipment.weightOverMax", { max: WEIGHT_MAX.toLocaleString() }));
     } else {
       setWeightWarning('');
     }
   }}
-  inputMode="decimal" placeholder="e.g. 2.5"
+  inputMode="decimal" placeholder={t("NewShipment.weightPlaceholder")}
   className={`${inputCls} ${attempted && !weightKg.trim() ? 'border-red-400 dark:border-red-500' : ''} ${weightWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
   style={{ fontSize: '16px' }} />
 {weightWarning && (
@@ -1659,25 +1669,25 @@ const handleSubmit = async () => {
     <span>{weightWarning}</span>
   </p>
 )}
-{attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+{attempted && !weightKg.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
   {!weightWarning && weight > 10000 && !isBulkOrContainer && scope === 'international' && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-    <Info size={11} /> Over 10,000 kg uses Sea Freight (Standard) automatically.
+    <Info size={11} /> {t("NewShipment.hintOver10000Sea")}
   </p>
 )}
 {!weightWarning && weight >= 500 && weight <= 10000 && !isBulkOrContainer && scope === 'international' && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-    <Info size={11} /> 500+ kg uses Air Standard cargo automatically.
+    <Info size={11} /> {t("NewShipment.hint500Air")}
   </p>
 )}
 {!weightWarning && weight >= 500 && !isBulkOrContainer && scope === 'local' && (
   <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-    <Info size={11} /> 500+ kg uses Land Standard automatically.
+    <Info size={11} /> {t("NewShipment.hint500Land")}
   </p>
 )}
 </div>
           <div className="sm:col-span-2">
-  <Label>Dimensions (cm) — L × W × H</Label>
+  <Label>{t("NewShipment.dimensionsLabel")}</Label>
   <div className="grid grid-cols-3 gap-2">
     <div ref={refLengthCm}>
       <input value={formatWithCommas(lengthCm)} onChange={e => {
@@ -1685,12 +1695,12 @@ const handleSubmit = async () => {
           setLengthCm(cleaned);
           const num = parseFloat(cleaned);
           if (!isNaN(num) && num > LENGTH_MAX) {
-            setLengthWarning(`Length is above ${LENGTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+            setLengthWarning(t("NewShipment.lengthOverMax", { max: LENGTH_MAX.toLocaleString() }));
           } else {
             setLengthWarning('');
           }
         }}
-        inputMode="decimal" placeholder="Length"
+        inputMode="decimal" placeholder={t("NewShipment.length")}
         className={`${inputCls} ${attempted && !lengthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${lengthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
         style={{ fontSize: '16px' }} />
     </div>
@@ -1700,12 +1710,12 @@ const handleSubmit = async () => {
           setWidthCm(cleaned);
           const num = parseFloat(cleaned);
           if (!isNaN(num) && num > WIDTH_MAX) {
-            setWidthWarning(`Width is above ${WIDTH_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+            setWidthWarning(t("NewShipment.widthOverMax", { max: WIDTH_MAX.toLocaleString() }));
           } else {
             setWidthWarning('');
           }
         }}
-        inputMode="decimal" placeholder="Width"
+        inputMode="decimal" placeholder={t("NewShipment.width")}
         className={`${inputCls} ${attempted && !widthCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${widthWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
         style={{ fontSize: '16px' }} />
     </div>
@@ -1715,12 +1725,12 @@ const handleSubmit = async () => {
           setHeightCm(cleaned);
           const num = parseFloat(cleaned);
           if (!isNaN(num) && num > HEIGHT_MAX) {
-            setHeightWarning(`Height is above ${HEIGHT_MAX.toLocaleString()} cm. Please contact support for special approval.`);
+            setHeightWarning(t("NewShipment.heightOverMax", { max: HEIGHT_MAX.toLocaleString() }));
           } else {
             setHeightWarning('');
           }
         }}
-        inputMode="decimal" placeholder="Height"
+        inputMode="decimal" placeholder={t("NewShipment.height")}
         className={`${inputCls} ${attempted && !heightCm.trim() ? 'border-red-400 dark:border-red-500' : ''} ${heightWarning ? 'border-amber-400 dark:border-amber-500' : ''}`}
         style={{ fontSize: '16px' }} />
     </div>
@@ -1753,19 +1763,19 @@ const handleSubmit = async () => {
   {/* Required errors */}
   {attempted && (!lengthCm.trim() || !widthCm.trim() || !heightCm.trim()) && (
     <div className="mt-1 space-y-0.5">
-      {attempted && !lengthCm.trim() && <p className="text-xs text-red-500">Length is required</p>}
-      {attempted && !widthCm.trim() && <p className="text-xs text-red-500">Width is required</p>}
-      {attempted && !heightCm.trim() && <p className="text-xs text-red-500">Height is required</p>}
+      {attempted && !lengthCm.trim() && <p className="text-xs text-red-500">{t("NewShipment.lengthRequired")}</p>}
+      {attempted && !widthCm.trim() && <p className="text-xs text-red-500">{t("NewShipment.widthRequired")}</p>}
+      {attempted && !heightCm.trim() && <p className="text-xs text-red-500">{t("NewShipment.heightRequired")}</p>}
     </div>
   )}
 </div>
           <div ref={refPackageDescription} className="sm:col-span-2">
-  <Label>Package Description</Label>
+  <Label>{t("NewShipment.packageDescription")}</Label>
   <input value={packageDescription} onChange={e => setPackageDescription(e.target.value)}
-    placeholder="e.g. Electronics, Clothing, Documents..."
+    placeholder={t("NewShipment.packageDescriptionPlaceholder")}
     className={`${inputCls} ${attempted && !packageDescription.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
     style={{ fontSize: '16px' }} />
-  {attempted && !packageDescription.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !packageDescription.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
         </div>
 
@@ -1798,20 +1808,20 @@ const handleSubmit = async () => {
       </Section>
 
       {/* Declared value — Fix 8: country currency + custom dropdown */}
-      <Section title="Declared Value" accent={accent}>
-        <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Used to calculate insurance and freight charges.</p>
+      <Section title={t("NewShipment.declaredSection")} accent={accent}>
+        <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">{t("NewShipment.declaredSubtitle")}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
          <div ref={refDeclaredValue}>
-  <Label>Declared Value</Label>
+  <Label>{t("NewShipment.declaredValue")}</Label>
   <input value={formatWithCommas(declaredValue)} onChange={e => setDeclaredValue(stripCommas(e.target.value.replace(/[^0-9.,]/g, '')))}
-  inputMode="decimal" placeholder="e.g. 500"
+  inputMode="decimal" placeholder={t("NewShipment.declaredPlaceholder")}
   className={`${inputCls} ${attempted && !declaredValue.trim() ? 'border-red-400 dark:border-red-500' : ''}`}
   style={{ fontSize: '16px' }} />
-  {attempted && !declaredValue.trim() && <p className="text-xs text-red-500 mt-1">Required</p>}
+  {attempted && !declaredValue.trim() && <p className="text-xs text-red-500 mt-1">{t("NewShipment.required")}</p>}
 </div>
           <div>
-            <Label>Currency</Label>
-            <CurrencySelect value={currency} onChange={setCurrency} accentSolid={accentSolid} />
+            <Label>{t("NewShipment.currency")}</Label>
+            <CurrencySelect value={currency} onChange={setCurrency} accentSolid={accentSolid} intl={intl} />
           </div>
         </div>
       </Section>
@@ -1820,12 +1830,12 @@ const handleSubmit = async () => {
       
       {pricing && !breakdown && weight > 0 && senderCountryCode && (receiverCountryCode || scope === 'local') && !hasLimitWarning && !isLocalUnsupported && (
   <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm text-gray-500">
-    <Loader2 size={14} className="animate-spin shrink-0" /> Calculating invoice…
+    <Loader2 size={14} className="animate-spin shrink-0" /> {t("NewShipment.calculating")}
   </div>
 )}
 {breakdown && !hasLimitWarning && !isLocalUnsupported && (
-  <Section title="Invoice Breakdown" accent={accent}>
-          <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Estimated invoice — final amount confirmed on payment page.</p>
+  <Section title={t("NewShipment.invoiceSection")} accent={accent}>
+          <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">{t("NewShipment.invoiceSubtitle")}</p>
           <div className="space-y-2 text-sm">
             {(() => {
               // Rates live on the scope profile (international or local), NOT on means.
@@ -1837,12 +1847,12 @@ const handleSubmit = async () => {
               const insuranceRate = Number(scopeProfile?.insuranceRate ?? 0);
  
               return [
-                { label: `Base Freight (${MEANS_CONFIG[means].label})`, value: breakdown.baseFreight },
-                { label: `Fuel Surcharge (${fmtPercent(fuelRate)})`, value: breakdown.fuel },
-                { label: `Insurance (${fmtPercent(insuranceRate)})`, value: breakdown.insurance },
-                { label: 'Handling Fee', value: breakdown.handling },
-                ...(breakdown.customs > 0 ? [{ label: 'Customs Clearance', value: breakdown.customs }] : []),
-                ...(breakdown.tax > 0 ? [{ label: 'Tax', value: breakdown.tax }] : []),
+                { label: t("NewShipment.baseFreight", { means: MEANS_CONFIG[means].label }), value: breakdown.baseFreight },
+                { label: t("NewShipment.fuelSurcharge", { rate: fmtPercent(fuelRate) }), value: breakdown.fuel },
+                { label: t("NewShipment.insurance", { rate: fmtPercent(insuranceRate) }), value: breakdown.insurance },
+                { label: t("NewShipment.handlingFee"), value: breakdown.handling },
+                ...(breakdown.customs > 0 ? [{ label: t("NewShipment.customsClearance"), value: breakdown.customs }] : []),
+                ...(breakdown.tax > 0 ? [{ label: t("NewShipment.tax"), value: breakdown.tax }] : []),
               ];
             })().map(({ label, value }) => (
               <div key={label} className="flex justify-between text-gray-600 dark:text-gray-400">
@@ -1852,12 +1862,12 @@ const handleSubmit = async () => {
             ))}
             {breakdown.discount > 0 && (
   <div className="flex justify-between text-green-600 dark:text-green-400">
-    <span>Discount</span>
+    <span>{t("NewShipment.discount")}</span>
     <span className="font-semibold">− {currency} {formatMoney(breakdown.discount)}</span>
   </div>
 )}
             <div className="flex justify-between font-extrabold text-gray-900 dark:text-white border-t border-gray-100 dark:border-white/10 pt-3 mt-1 text-base">
-              <span>Total</span>
+              <span>{t("NewShipment.total")}</span>
               <span style={{ color: accentSolid }}>{currency} {formatMoney(breakdown.total)}</span>
             </div>
           </div>
@@ -1872,14 +1882,14 @@ const handleSubmit = async () => {
   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
   style={{ background: isLocalUnsupported ? '#9ca3af' : hasLimitWarning ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : accent }}>
   {loading
-    ? <><Loader2 size={16} className="animate-spin" /> Creating shipment…</>
+    ? <><Loader2 size={16} className="animate-spin" /> {t("NewShipment.creatingShipment")}</>
     : !pricing && !pricingError
-    ? <><Loader2 size={16} className="animate-spin" /> Loading pricing…</>
+    ? <><Loader2 size={16} className="animate-spin" /> {t("NewShipment.loadingPricing")}</>
     : isLocalUnsupported
-    ? <><AlertCircle size={16} /> Local shipping unavailable</>
+    ? <><AlertCircle size={16} /> {t("NewShipment.localUnavailable")}</>
     : hasLimitWarning
-    ? <><AlertCircle size={16} /> Contact Support</>
-    : <><Send size={16} /> Create Order</>}
+    ? <><AlertCircle size={16} /> {t("NewShipment.contactSupport")}</>
+    : <><Send size={16} /> {t("NewShipment.createOrder")}</>}
 </button>
 
 {showConfirmDetailsModal && typeof document !== 'undefined' && createPortal(
@@ -1893,8 +1903,8 @@ const handleSubmit = async () => {
     <Info className="w-5 h-5 text-white" />
   </div>
   <div className="flex-1">
-    <h3 className="text-base font-bold text-gray-900 dark:text-white">Please confirm your shipment details</h3>
-    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Make sure the values below are accurate.</p>
+    <h3 className="text-base font-bold text-gray-900 dark:text-white">{t("NewShipment.confirmTitle")}</h3>
+    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t("NewShipment.confirmSubtitle")}</p>
   </div>
   <button onClick={() => setShowConfirmDetailsModal(false)}
     className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer text-gray-400 shrink-0">
@@ -1904,33 +1914,33 @@ const handleSubmit = async () => {
 
         <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4 mb-4 space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-gray-400">Weight</span>
+            <span className="text-gray-500 dark:text-gray-400">{t("NewShipment.weightLabel")}</span>
             <span className="font-bold text-gray-900 dark:text-white">{formatWithCommas(weightKg)} kg</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-gray-400">Dimensions (L × W × H)</span>
+            <span className="text-gray-500 dark:text-gray-400">{t("NewShipment.dimensionsShort")}</span>
             <span className="font-bold text-gray-900 dark:text-white">
               {formatWithCommas(lengthCm)} × {formatWithCommas(widthCm)} × {formatWithCommas(heightCm)} cm
             </span>
           </div>
           {volumetricWeight > actualWeight && actualWeight > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Volumetric weight</span>
+              <span className="text-gray-500 dark:text-gray-400">{t("NewShipment.volumetricWeight")}</span>
               <span className="font-bold text-amber-600 dark:text-amber-400">{formatMoney(volumetricWeight)} kg</span>
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-gray-400">Declared value</span>
+            <span className="text-gray-500 dark:text-gray-400">{t("NewShipment.declaredValueShort")}</span>
             <span className="font-bold text-gray-900 dark:text-white">{currency} {formatWithCommas(declaredValue)}</span>
           </div>
         </div>
 
         <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-          Once your shipment arrives at our facility, we'll re-measure it. If the actual weight or dimensions differ from what you've entered, your invoice will be adjusted. You may be charged extra or refunded the difference.
+          {t("NewShipment.confirmRemeasureNotice")}
         </p>
 
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-5">
-          If you're unsure of the exact weight or dimensions, contact support for guidance, or request a pickup so we can measure it for you and send the final invoice by email.
+          {t("NewShipment.confirmUnsureNotice")}
         </p>
 
         <div className="flex flex-col gap-2.5">
@@ -1938,11 +1948,11 @@ const handleSubmit = async () => {
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"
             style={{ background: accent }}>
             <CheckCircle2 size={15} />
-            Yes, my details are correct
+            {t("NewShipment.confirmYes")}
           </button>
           <button onClick={() => { setShowConfirmDetailsModal(false); router.push(`/${locale}/dashboard/support`); }}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-            Contact Support
+            {t("NewShipment.contactSupport")}
           </button>
         </div>
       </div>
@@ -1968,19 +1978,19 @@ const handleSubmit = async () => {
       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
         <AlertCircle className="w-7 h-7 text-white" />
       </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Two-factor authentication required</h3>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t("NewShipment.twoFaTitle")}</h3>
       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-        For your security, you must enable two-factor authentication before creating a shipment. You can choose between email verification or an authenticator app.
+        {t("NewShipment.twoFaDesc")}
       </p>
       <div className="mt-6 flex gap-3">
         <button onClick={() => setShowNoTwoFaModal(false)}
           className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-          Cancel
+          {t("NewShipment.cancel")}
         </button>
         <button onClick={() => router.push(`/${locale}/dashboard/settings/two-factor`)}
           className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 transition"
           style={{ background: accent }}>
-          Enable 2FA
+          {t("NewShipment.enable2Fa")}
         </button>
       </div>
     </div>
@@ -1995,19 +2005,22 @@ const handleSubmit = async () => {
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: accent }}>
               <CheckCircle2 className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Shipment Created!</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t("NewShipment.successTitle")}</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Your shipment <strong className="text-gray-700 dark:text-gray-200">{createdId}</strong> has been created. Proceed to payment to confirm.
+              {t("NewShipment.successDesc", {
+                id: createdId,
+                strong: (chunks: any) => <strong className="text-gray-700 dark:text-gray-200">{chunks}</strong>,
+              })}
             </p>
             <div className="mt-6 flex gap-3">
               <button onClick={() => router.push(`/${locale}/dashboard`)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                Dashboard
+                {t("NewShipment.dashboard")}
               </button>
               <button onClick={() => router.push(`/${locale}/dashboard/shipments/${encodeURIComponent(createdId)}/payment`)}
                 className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 transition"
                 style={{ background: accent }}>
-                Pay Now
+                {t("NewShipment.payNow")}
               </button>
             </div>
           </div>

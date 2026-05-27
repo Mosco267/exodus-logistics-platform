@@ -9,6 +9,7 @@ import {
   Clock3, FileText, ChevronLeft, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl } from "react-intl";
 
 type ShipmentRow = {
   shipmentId: string;
@@ -42,11 +43,11 @@ type ShipmentRow = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────
-function fmtDate(iso?: string | null): string {
+function fmtDate(iso?: string | null, bcpLocale = "en-US"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(bcpLocale, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function fmtNumber(value: any, decimals = 0): string {
@@ -65,7 +66,7 @@ function joinLoc(...parts: any[]) {
   return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
 }
 
-function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, scope?: string | null): string {
+function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, scope?: string | null, bcpLocale = "en-GB"): string {
   if (!maxISO) return "—";
   const maxD = new Date(maxISO);
   if (Number.isNaN(maxD.getTime())) return "—";
@@ -80,33 +81,17 @@ function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, sc
     minD.setDate(minD.getDate() - extra);
   }
 
-  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-  const fmtFull = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const fmt = (d: Date) => d.toLocaleDateString(bcpLocale, { day: "2-digit", month: "short" });
+  const fmtFull = (d: Date) => d.toLocaleDateString(bcpLocale, { day: "2-digit", month: "short", year: "numeric" });
 
   if (minD.getTime() === maxD.getTime()) return fmtFull(maxD);
   if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
-    return `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
+    return `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString(bcpLocale, { month: "short", year: "numeric" })}`;
   }
   return `${fmt(minD)} – ${fmtFull(maxD)}`;
 }
 
-function getStatusBadge(status?: string): { label: string; bg: string; text: string; icon: any } {
-  const s = String(status || "").toLowerCase();
-  if (s === "delivered") return { label: "Delivered", bg: "bg-green-100 dark:bg-green-500/10", text: "text-green-700 dark:text-green-400", icon: CheckCircle2 };
-  if (s === "in transit") return { label: "In Transit", bg: "bg-blue-100 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", icon: Truck };
-  if (s === "custom clearance") return { label: "Custom Clearance", bg: "bg-amber-100 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", icon: AlertCircle };
-  if (s === "unclaimed") return { label: "Unclaimed", bg: "bg-orange-100 dark:bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", icon: Clock3 };
-  if (s === "cancelled" || s === "canceled") return { label: "Cancelled", bg: "bg-red-100 dark:bg-red-500/10", text: "text-red-700 dark:text-red-400", icon: AlertCircle };
-  return { label: status || "Created", bg: "bg-gray-100 dark:bg-white/10", text: "text-gray-700 dark:text-gray-300", icon: Package };
-}
 
-function getInvoiceBadge(status?: string) {
-  const s = String(status || "").toLowerCase();
-  if (s === "paid") return { label: "PAID", bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
-  if (s === "overdue") return { label: "OVERDUE", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
-  if (s === "cancelled") return { label: "CANCELLED", bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
-  return { label: "UNPAID", bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
-}
 
 const PAGE_SIZE = 10;
 
@@ -114,6 +99,38 @@ export default function DashboardTrackPage() {
   const params = useParams();
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
+   
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  const bcpLocale = useMemo(() => {
+    const m: Record<string, string> = {
+      en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE",
+      zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT",
+      ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+    };
+    return m[locale] || "en-US";
+  }, [locale]);
+
+  // Translated badge helpers (reuse History.* keys from Round 1)
+  const getStatusBadge = (status?: string): { label: string; bg: string; text: string; icon: any } => {
+    const s = String(status || "").toLowerCase();
+    if (s === "delivered") return { label: t("History.statusDelivered"), bg: "bg-green-100 dark:bg-green-500/10", text: "text-green-700 dark:text-green-400", icon: CheckCircle2 };
+    if (s === "in transit") return { label: t("History.statusInTransit"), bg: "bg-blue-100 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", icon: Truck };
+    if (s === "custom clearance") return { label: t("History.statusCustomClearance"), bg: "bg-amber-100 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", icon: AlertCircle };
+    if (s === "unclaimed") return { label: t("History.statusUnclaimed"), bg: "bg-orange-100 dark:bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", icon: Clock3 };
+    if (s === "cancelled" || s === "canceled") return { label: t("History.statusCancelled"), bg: "bg-red-100 dark:bg-red-500/10", text: "text-red-700 dark:text-red-400", icon: AlertCircle };
+    return { label: status || t("History.statusCreated"), bg: "bg-gray-100 dark:bg-white/10", text: "text-gray-700 dark:text-gray-300", icon: Package };
+  };
+
+  const getInvoiceBadge = (status?: string) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "paid") return { label: t("History.invoicePaid"), bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
+    if (s === "overdue") return { label: t("History.invoiceOverdue"), bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
+    if (s === "cancelled") return { label: t("History.invoiceCancelled"), bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
+    return { label: t("History.invoiceUnpaid"), bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
+  };
+
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -159,10 +176,10 @@ export default function DashboardTrackPage() {
     try {
       const res = await fetch("/api/user/shipments", { cache: "no-store" });
       const json = await res.json().catch(() => null);
-      if (!res.ok) { setErr(json?.error || "Failed to load shipments."); return; }
+      if (!res.ok) { setErr(json?.error || t("Track.loadError")); return; }
       setShipments(Array.isArray(json?.shipments) ? json.shipments : []);
     } catch (e: any) {
-      setErr(e?.message || "Failed to load shipments.");
+      setErr(e?.message || t("Track.loadError"));
     } finally {
       setLoading(false);
     }
@@ -204,23 +221,23 @@ export default function DashboardTrackPage() {
 
       {/* ── Header ────────────────────────────────────────── */}
       <div>
-        <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>Track Shipments</h1>
+        <h1 className={`text-2xl font-extrabold ${headerTitleCls}`}>{t("Track.title")}</h1>
         <p className={`mt-1 text-sm ${headerSubCls}`}>
-          View live tracking for all your shipments, or enter a tracking number to look it up.
+          {t("Track.subtitle")}
         </p>
       </div>
 
       {/* ── Quick-track box with suggestions ──────────────── */}
       <div ref={quickRef} className="relative rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-sm">
         <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-2 uppercase tracking-wide">
-          Track any shipment
+          {t("Track.quickTrackLabel")}
         </label>
         <form onSubmit={handleQuickTrack} className="flex gap-2">
           <input
             value={quickTrack}
             onChange={e => { setQuickTrack(e.target.value.toUpperCase()); setSuggestOpen(true); }}
             onFocus={() => setSuggestOpen(true)}
-            placeholder="Enter tracking number…"
+            placeholder={t("Track.placeholder")}
             autoComplete="off"
             className="flex-1 px-4 py-3.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 placeholder:font-sans focus:outline-none focus:border-gray-400 dark:focus:border-white/30 transition uppercase"
             style={{ fontSize: '16px' }} />
@@ -228,7 +245,7 @@ export default function DashboardTrackPage() {
             className="cursor-pointer flex items-center gap-1.5 px-5 py-3.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ background: accentGradient }}>
             <Search size={15} />
-            Track
+            {t("Track.trackButton")}
           </button>
         </form>
 
@@ -236,7 +253,7 @@ export default function DashboardTrackPage() {
         {suggestOpen && suggestions.length > 0 && (
           <div className="absolute left-4 right-4 mt-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden z-30">
             <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-white/10">
-              Your shipments
+              {t("Track.yourShipments")}
             </div>
             <div className="max-h-64 overflow-y-auto">
               {suggestions.map(s => {
@@ -271,12 +288,12 @@ export default function DashboardTrackPage() {
         <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <Package className="w-4 h-4 shrink-0" style={{ color: accentSolid }} />
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white">My Shipments</h2>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t("Track.myShipments")}</h2>
             <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{shipments.length}</span>
           </div>
           <button onClick={load}
             className="cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition"
-            title="Refresh">
+            title={t("Track.refresh")}>
             <RefreshCw className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
@@ -284,7 +301,7 @@ export default function DashboardTrackPage() {
         {loading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: accentSolid }} />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Loading shipments…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("Track.loading")}</p>
           </div>
         ) : err ? (
           <div className="p-8">
@@ -299,14 +316,14 @@ export default function DashboardTrackPage() {
             <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-gray-100 dark:bg-white/5">
               <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
             </div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No shipments yet</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t("Track.emptyTitle")}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Create a shipment to see it here.
+              {t("Track.emptyDesc")}
             </p>
             <Link href={`/${locale}/dashboard/shipments/new`}
               className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 transition"
               style={{ background: accentGradient }}>
-              Create Shipment
+              {t("Track.createShipment")}
             </Link>
           </div>
         ) : (
@@ -318,7 +335,7 @@ export default function DashboardTrackPage() {
                 const invoiceBadge = getInvoiceBadge(s?.invoice?.status);
                 const fromText = joinLoc(s.senderCity, s.senderState, s.senderCountry) || "—";
                 const toText = joinLoc(s.receiverCity, s.receiverState, s.receiverCountry) || "—";
-                const deliveryStr = fmtEstimatedDelivery(s.estimatedDeliveryDate, s.estimatedDeliveryDateMin, s.shipmentScope);
+                const deliveryStr = fmtEstimatedDelivery(s.estimatedDeliveryDate, s.estimatedDeliveryDateMin, s.shipmentScope, bcpLocale);
 
                 return (
                   <Link
@@ -361,7 +378,7 @@ export default function DashboardTrackPage() {
                             </span>
                           )}
                           {s.weightKg != null && String(s.weightKg).trim() !== "" && (
-                            <span>{fmtNumber(s.weightKg)} kg</span>
+                            <span>{t("Track.weightKg", { weight: fmtNumber(s.weightKg) })}</span>
                           )}
                           {s.shipmentMeans && <span>{s.shipmentMeans}</span>}
                         </div>
@@ -374,7 +391,7 @@ export default function DashboardTrackPage() {
                           </p>
                         )}
                         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                          {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt)}
+                          {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt, bcpLocale)}
                         </p>
                       </div>
 
@@ -389,20 +406,20 @@ export default function DashboardTrackPage() {
             {totalPages > 1 && (
               <div className="px-5 py-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Page {page} of {totalPages} · {shipments.length} shipments
+                  {t("Track.pageInfo", { page, totalPages, count: shipments.length })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ChevronLeft size={12} /> Prev
+                    <ChevronLeft size={12} /> {t("History.prev")}
                   </button>
                   <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    Next <ChevronRightIcon size={12} />
+                    {t("History.next")} <ChevronRightIcon size={12} />
                   </button>
                 </div>
               </div>
