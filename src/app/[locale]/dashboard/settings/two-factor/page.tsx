@@ -9,21 +9,23 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import PasswordInput from '@/components/PasswordInput';
+import { useIntl, type IntlShape } from 'react-intl';
 
 type TwoFaStatus = { emailEnabled: boolean; appEnabled: boolean };
 
 const RESEND_SECONDS = 60;
 
-function PasswordModal({ accent, onConfirm, onClose, title, desc }: {
+function PasswordModal({ accent, onConfirm, onClose, title, desc, intl }: {
   accent: string; onConfirm: () => void; onClose: () => void;
-  title?: string; desc?: string;
+  title?: string; desc?: string; intl: IntlShape;
 }) {
+  const tt = (id: string) => intl.formatMessage({ id });
   const [pw, setPw] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!pw) { setError('Password is required'); return; }
+    if (!pw) { setError(tt('TwoFactor.errPasswordRequired')); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/user/verify-password', {
@@ -31,9 +33,9 @@ function PasswordModal({ accent, onConfirm, onClose, title, desc }: {
         body: JSON.stringify({ password: pw }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Incorrect password'); setLoading(false); return; }
+      if (!res.ok) { setError(data.error || tt('TwoFactor.errIncorrectPassword')); setLoading(false); return; }
       onConfirm();
-    } catch { setError('Something went wrong'); setLoading(false); }
+    } catch { setError(tt('TwoFactor.errGeneric')); setLoading(false); }
   };
 
   return typeof document !== 'undefined' ? createPortal(
@@ -44,17 +46,17 @@ function PasswordModal({ accent, onConfirm, onClose, title, desc }: {
         <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 space-y-4">
           <div>
             <h3 className="text-base font-bold text-gray-900 dark:text-white">
-              {title || 'Confirm Your Password'}
+              {title || tt('TwoFactor.confirmPasswordTitle')}
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {desc || 'Enter your password to continue'}
+              {desc || tt('TwoFactor.confirmPasswordDesc')}
             </p>
           </div>
           <PasswordInput
             value={pw}
             onChange={v => { setPw(v); setError(''); }}
             onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
-            placeholder="Your current password"
+            placeholder={tt('TwoFactor.passwordPlaceholder')}
             autoComplete="current-password"
             autoFocus
           />
@@ -62,13 +64,13 @@ function PasswordModal({ accent, onConfirm, onClose, title, desc }: {
           <div className="flex gap-2.5">
             <button onClick={onClose}
               className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-              Cancel
+              {tt('TwoFactor.cancel')}
             </button>
             <button onClick={handleSubmit} disabled={loading || !pw}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
               style={{ background: accent }}>
               {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-              {loading ? 'Verifying...' : 'Confirm'}
+              {loading ? tt('TwoFactor.verifying') : tt('TwoFactor.confirm')}
             </button>
           </div>
         </div>
@@ -113,6 +115,8 @@ export default function TwoFactorPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -222,10 +226,10 @@ export default function TwoFactorPage() {
     try {
       const res = await fetch('/api/user/2fa/email/setup', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Failed'); return; }
+      if (!res.ok) { setEmailError(data.error || t('TwoFactor.errFailed')); return; }
       setEmailStep('verify-enable'); setEmailCode('');
       startEmailCountdown();
-    } catch { setEmailError('Something went wrong'); }
+    } catch { setEmailError(t('TwoFactor.errGeneric')); }
     finally { setEmailLoading(false); }
   };
 
@@ -235,10 +239,10 @@ export default function TwoFactorPage() {
     try {
       const res = await fetch('/api/user/2fa/email/send-disable-code', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Failed'); return; }
+      if (!res.ok) { setEmailError(data.error || t('TwoFactor.errFailed')); return; }
       setEmailStep('verify-disable'); setEmailCode('');
       startEmailCountdown();
-    } catch { setEmailError('Something went wrong'); }
+    } catch { setEmailError(t('TwoFactor.errGeneric')); }
     finally { setEmailLoading(false); }
   };
 
@@ -254,21 +258,21 @@ export default function TwoFactorPage() {
       const res = await fetch(endpoint, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json();
-        setEmailError(data.error || 'Failed to resend');
+        setEmailError(data.error || t('TwoFactor.errResendFailed'));
         return;
       }
-      setEmailResentMessage('A new code has been sent to your email.');
+      setEmailResentMessage(t('TwoFactor.codeResent'));
       setTimeout(() => setEmailResentMessage(''), 4000);
       startEmailCountdown();
     } catch {
-      setEmailError('Failed to resend code.');
+      setEmailError(t('TwoFactor.errResendFailed'));
     } finally {
       setEmailResending(false);
     }
   };
 
   const verifyEmailEnable = async () => {
-    if (emailCode.length < 6) { setEmailError('Enter the 6-digit code'); return; }
+    if (emailCode.length < 6) { setEmailError(t('TwoFactor.errEnter6Digit')); return; }
     setEmailLoading(true); setEmailError('');
     try {
       const res = await fetch('/api/user/2fa/email/verify', {
@@ -276,18 +280,18 @@ export default function TwoFactorPage() {
         body: JSON.stringify({ code: emailCode }),
       });
       const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
+      if (!res.ok) { setEmailError(data.error || t('TwoFactor.errInvalidCode')); return; }
       setStatus(s => ({ ...s, emailEnabled: true }));
       setEmailStep('idle'); setEmailCode('');
       if (emailIntervalRef.current) clearInterval(emailIntervalRef.current);
       setEmailSecondsLeft(0);
-      setEmailSuccess('Email 2FA enabled — confirmation email sent'); setTimeout(() => setEmailSuccess(''), 3500);
-    } catch { setEmailError('Something went wrong'); }
+      setEmailSuccess(t('TwoFactor.successEmailEnabled')); setTimeout(() => setEmailSuccess(''), 3500);
+    } catch { setEmailError(t('TwoFactor.errGeneric')); }
     finally { setEmailLoading(false); }
   };
 
   const verifyEmailDisable = async () => {
-    if (emailCode.length < 6) { setEmailError('Enter the 6-digit code'); return; }
+    if (emailCode.length < 6) { setEmailError(t('TwoFactor.errEnter6Digit')); return; }
     setEmailLoading(true); setEmailError('');
     try {
       const res = await fetch('/api/user/2fa/email/disable', {
@@ -295,13 +299,13 @@ export default function TwoFactorPage() {
         body: JSON.stringify({ code: emailCode }),
       });
       const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
+      if (!res.ok) { setEmailError(data.error || t('TwoFactor.errInvalidCode')); return; }
       setStatus(s => ({ ...s, emailEnabled: false }));
       setEmailStep('idle'); setEmailCode('');
       if (emailIntervalRef.current) clearInterval(emailIntervalRef.current);
       setEmailSecondsLeft(0);
-      setEmailSuccess('Email 2FA disabled — confirmation email sent'); setTimeout(() => setEmailSuccess(''), 3500);
-    } catch { setEmailError('Something went wrong'); }
+      setEmailSuccess(t('TwoFactor.successEmailDisabled')); setTimeout(() => setEmailSuccess(''), 3500);
+    } catch { setEmailError(t('TwoFactor.errGeneric')); }
     finally { setEmailLoading(false); }
   };
 
@@ -311,15 +315,15 @@ export default function TwoFactorPage() {
     try {
       const res = await fetch('/api/user/2fa/setup', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) { setAppError(data.error || 'Failed'); return; }
+      if (!res.ok) { setAppError(data.error || t('TwoFactor.errFailed')); return; }
       setAppQr(data.qrCodeDataUrl); setAppSecret(data.manualEntryKey);
       setAppStep('qr');
-    } catch { setAppError('Something went wrong'); }
+    } catch { setAppError(t('TwoFactor.errGeneric')); }
     finally { setAppLoading(false); }
   };
 
   const verifyAppCode = async () => {
-    if (appCode.length < 6) { setAppError('Enter the 6-digit code'); return; }
+    if (appCode.length < 6) { setAppError(t('TwoFactor.errEnter6Digit')); return; }
     setAppLoading(true); setAppError('');
     try {
       const res = await fetch('/api/user/2fa/verify', {
@@ -327,16 +331,16 @@ export default function TwoFactorPage() {
         body: JSON.stringify({ code: appCode, purpose: 'setup' }),
       });
       const data = await res.json();
-      if (!res.ok) { setAppError(data.error || 'Invalid code'); return; }
+      if (!res.ok) { setAppError(data.error || t('TwoFactor.errInvalidCode')); return; }
       setStatus(s => ({ ...s, appEnabled: true }));
       setAppStep('idle'); setAppCode('');
-      setAppSuccess('Authenticator app enabled — confirmation email sent'); setTimeout(() => setAppSuccess(''), 3500);
-    } catch { setAppError('Something went wrong'); }
+      setAppSuccess(t('TwoFactor.successAppEnabled')); setTimeout(() => setAppSuccess(''), 3500);
+    } catch { setAppError(t('TwoFactor.errGeneric')); }
     finally { setAppLoading(false); }
   };
 
   const disableApp = async () => {
-    if (appCode.length < 6) { setAppError('Enter code to confirm'); return; }
+    if (appCode.length < 6) { setAppError(t('TwoFactor.errEnterToConfirm')); return; }
     setAppLoading(true); setAppError('');
     try {
       const res = await fetch('/api/user/2fa/disable', {
@@ -344,11 +348,11 @@ export default function TwoFactorPage() {
         body: JSON.stringify({ code: appCode }),
       });
       const data = await res.json();
-      if (!res.ok) { setAppError(data.error || 'Invalid code'); return; }
+      if (!res.ok) { setAppError(data.error || t('TwoFactor.errInvalidCode')); return; }
       setStatus(s => ({ ...s, appEnabled: false }));
       setAppStep('idle'); setAppCode('');
-      setAppSuccess('Authenticator app disabled — confirmation email sent'); setTimeout(() => setAppSuccess(''), 3500);
-    } catch { setAppError('Something went wrong'); }
+      setAppSuccess(t('TwoFactor.successAppDisabled')); setTimeout(() => setAppSuccess(''), 3500);
+    } catch { setAppError(t('TwoFactor.errGeneric')); }
     finally { setAppLoading(false); }
   };
 
@@ -371,7 +375,7 @@ export default function TwoFactorPage() {
       ) : (
       <div className="max-w-2xl mx-auto space-y-5 pb-10">
         {showPasswordModal && (
-          <PasswordModal accent={accent} onConfirm={onPasswordConfirmed} onClose={() => { setShowPasswordModal(false); setPendingAction(null); }} />
+          <PasswordModal accent={accent} intl={intl} onConfirm={onPasswordConfirmed} onClose={() => { setShowPasswordModal(false); setPendingAction(null); }} />
         )}
 
         <div className="flex items-center gap-3">
@@ -381,8 +385,8 @@ export default function TwoFactorPage() {
           </button>
           <div>
             <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-              style={isMidnight ? { color: '#ffffff' } : {}}>Two-Factor Authentication</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Add extra security to your account</p>
+              style={isMidnight ? { color: '#ffffff' } : {}}>{t('TwoFactor.title')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('TwoFactor.subtitle')}</p>
           </div>
         </div>
 
@@ -392,12 +396,12 @@ export default function TwoFactorPage() {
             <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
             <div className="flex-1">
               <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Mail size={15} /> Email Authentication
+                <Mail size={15} /> {t('TwoFactor.emailAuth')}
                 {status.emailEnabled && (
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Active</span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{t('TwoFactor.active')}</span>
                 )}
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Receive a verification code to your email when creating shipments</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('TwoFactor.emailAuthDesc')}</p>
             </div>
           </div>
           <div className="p-5 space-y-4">
@@ -412,14 +416,14 @@ export default function TwoFactorPage() {
                 <button onClick={() => requestAction('disable-email')} disabled={emailLoading}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white cursor-pointer hover:bg-red-700 transition disabled:opacity-60">
                   {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                  Disable Email 2FA
+                  {t('TwoFactor.disableEmail2Fa')}
                 </button>
               ) : (
                 <button onClick={() => requestAction('enable-email')} disabled={emailLoading}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer hover:opacity-90 transition disabled:opacity-60"
                   style={{ background: accent }}>
                   {emailLoading ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                  {emailLoading ? 'Setting up...' : 'Enable Email 2FA'}
+                  {emailLoading ? t('TwoFactor.settingUp') : t('TwoFactor.enableEmail2Fa')}
                 </button>
               )
             )}
@@ -428,8 +432,8 @@ export default function TwoFactorPage() {
               <div className="space-y-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {emailStep === 'verify-enable'
-                    ? 'A 6-digit code has been sent to your email. Enter it below to activate.'
-                    : 'A 6-digit code has been sent to your email. Enter it below to confirm disabling email 2FA.'}
+                    ? t('TwoFactor.codeSentEnable')
+                    : t('TwoFactor.codeSentDisable')}
                 </p>
                 <CodeBoxes id="email2fa" value={emailCode} onChange={setEmailCode} />
                 {emailError && <p className="text-xs text-red-500 text-center font-medium">{emailError}</p>}
@@ -438,13 +442,18 @@ export default function TwoFactorPage() {
                 <div className="text-center">
                   {emailSecondsLeft > 0 ? (
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                      Resend code in <span className="font-bold text-gray-900 dark:text-white">{emailSecondsLeft}s</span>
+                      {t('TwoFactor.resendCodeIn', {
+                        seconds: emailSecondsLeft,
+                        b: (chunks: any) => <span className="font-bold text-gray-900 dark:text-white">{chunks}</span>,
+                      })}
                     </p>
                   ) : (
                     <button onClick={handleResendEmailCode} disabled={emailResending}
                       className="text-xs font-semibold transition cursor-pointer disabled:opacity-50 hover:opacity-80"
   style={{ background: accent, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-  {emailResending ? 'Sending...' : <>Didn't receive a code? <span className="underline underline-offset-2">Resend</span></>}
+  {emailResending ? t('TwoFactor.sending') : t('TwoFactor.didntReceive', {
+    u: (chunks: any) => <span className="underline underline-offset-2">{chunks}</span>,
+  })}
                     </button>
                   )}
                 </div>
@@ -452,14 +461,14 @@ export default function TwoFactorPage() {
                 <div className="flex gap-2.5">
                   <button onClick={cancelEmailVerify}
                     className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                    Cancel
+                    {t('TwoFactor.cancel')}
                   </button>
                   <button onClick={emailStep === 'verify-enable' ? verifyEmailEnable : verifyEmailDisable}
                     disabled={emailLoading || emailCode.length < 6}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50 ${emailStep === 'verify-disable' ? 'bg-red-600 hover:bg-red-700' : ''}`}
                     style={emailStep === 'verify-enable' ? { background: accent } : {}}>
                     {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                    {emailLoading ? (emailStep === 'verify-enable' ? 'Activating...' : 'Disabling...') : (emailStep === 'verify-enable' ? 'Activate' : 'Disable')}
+                    {emailLoading ? (emailStep === 'verify-enable' ? t('TwoFactor.activating') : t('TwoFactor.disabling')) : (emailStep === 'verify-enable' ? t('TwoFactor.activate') : t('TwoFactor.disable'))}
                   </button>
                 </div>
               </div>
@@ -473,12 +482,12 @@ export default function TwoFactorPage() {
             <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
             <div className="flex-1">
               <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Smartphone size={15} /> Authenticator App
+                <Smartphone size={15} /> {t('TwoFactor.appAuth')}
                 {status.appEnabled && (
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Active</span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{t('TwoFactor.active')}</span>
                 )}
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Use Google Authenticator, Microsoft Authenticator, or Authy</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('TwoFactor.appAuthDesc')}</p>
             </div>
           </div>
           <div className="p-5 space-y-4">
@@ -492,14 +501,14 @@ export default function TwoFactorPage() {
               status.appEnabled ? (
                 <button onClick={() => requestAction('disable-app')}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white cursor-pointer hover:bg-red-700 transition">
-                  Disable Authenticator App
+                  {t('TwoFactor.disableApp')}
                 </button>
               ) : (
                 <button onClick={() => requestAction('enable-app')} disabled={appLoading}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer hover:opacity-90 transition disabled:opacity-60"
                   style={{ background: accent }}>
                   {appLoading ? <Loader2 size={14} className="animate-spin" /> : <Smartphone size={14} />}
-                  {appLoading ? 'Setting up...' : 'Set Up Authenticator App'}
+                  {appLoading ? t('TwoFactor.settingUp') : t('TwoFactor.setUpApp')}
                 </button>
               )
             )}
@@ -507,23 +516,29 @@ export default function TwoFactorPage() {
             {appStep === 'qr' && (
               <div className="space-y-5">
                 <div className="space-y-1.5">
-                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 1 — Download an Authenticator App</p>
+                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('TwoFactor.step1Title')}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    Download <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong> from the App Store or Google Play.
+                    {t('TwoFactor.step1Desc', {
+                      strong: (chunks: any) => <strong>{chunks}</strong>,
+                    })}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 2 — Scan the QR Code</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Open your authenticator app, tap the <strong>+</strong> button, then choose <strong>Scan QR code</strong>.</p>
+                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('TwoFactor.step2Title')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('TwoFactor.step2Desc', {
+                    strong: (chunks: any) => <strong>{chunks}</strong>,
+                  })}</p>
                   <div className="flex justify-center py-2">
                     <div className="p-3 bg-white rounded-2xl border border-gray-200 shadow-sm inline-block">
-                      <img src={appQr} alt="QR Code" className="w-48 h-48" style={{ imageRendering: 'pixelated' }} />
+                      <img src={appQr} alt={t('TwoFactor.qrAlt')} className="w-48 h-48" style={{ imageRendering: 'pixelated' }} />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 3 — Or Enter the Key Manually</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Tap <strong>Enter key manually</strong> in the app and type this key:</p>
+                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('TwoFactor.step3Title')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('TwoFactor.step3Desc', {
+                    strong: (chunks: any) => <strong>{chunks}</strong>,
+                  })}</p>
                   <div className="flex items-center rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-gray-50 dark:bg-white/5">
                     <div className="flex-1 overflow-x-auto px-4 py-3" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                       <span className="text-xs font-mono text-gray-700 dark:text-gray-300 tracking-[0.12em] whitespace-nowrap">
@@ -534,17 +549,17 @@ export default function TwoFactorPage() {
                       onClick={() => { navigator.clipboard.writeText(appSecret); setAppCopied(true); setTimeout(() => setAppCopied(false), 2000); }}
                       className="shrink-0 px-4 py-3 text-xs font-bold cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-white/10 transition whitespace-nowrap"
                       style={{ color: accentSolid }}>
-                      {appCopied ? 'Copied!' : 'Copy'}
+                      {appCopied ? t('TwoFactor.copied') : t('TwoFactor.copy')}
                     </button>
                   </div>
                   <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-1.5">
-                    ⚠️ Use the Copy button. Do not type this manually to avoid mistakes.
+                    {t('TwoFactor.copyWarning')}
                   </p>
                 </div>
                 <button onClick={() => setAppStep('verify')}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"
                   style={{ background: accent }}>
-                  Next — Enter Verification Code
+                  {t('TwoFactor.nextEnterCode')}
                   <ChevronRight size={15} />
                 </button>
               </div>
@@ -552,20 +567,20 @@ export default function TwoFactorPage() {
 
             {appStep === 'verify' && (
               <div className="space-y-4">
-                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Step 4 — Enter the 6-Digit Code</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Open the authenticator app and enter the 6-digit code shown for Exodus Logistics.</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('TwoFactor.step4Title')}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('TwoFactor.step4Desc')}</p>
                 <CodeBoxes id="app2fa" value={appCode} onChange={setAppCode} />
                 {appError && <p className="text-xs text-red-500 text-center font-medium">{appError}</p>}
                 <div className="flex gap-2.5">
                   <button onClick={() => { setAppStep('qr'); setAppCode(''); setAppError(''); }}
                     className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                    Back
+                    {t('TwoFactor.back')}
                   </button>
                   <button onClick={verifyAppCode} disabled={appLoading || appCode.length < 6}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
                     style={{ background: accent }}>
                     {appLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                    {appLoading ? 'Activating...' : 'Activate 2FA'}
+                    {appLoading ? t('TwoFactor.activating') : t('TwoFactor.activate2Fa')}
                   </button>
                 </div>
               </div>
@@ -573,18 +588,18 @@ export default function TwoFactorPage() {
 
             {appStep === 'disable' && (
               <div className="space-y-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Enter the 6-digit code from your authenticator app to disable it.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('TwoFactor.disableAppDesc')}</p>
                 <CodeBoxes id="disable2fa" value={appCode} onChange={setAppCode} />
                 {appError && <p className="text-xs text-red-500 text-center font-medium">{appError}</p>}
                 <div className="flex gap-2.5">
                   <button onClick={() => { setAppStep('idle'); setAppCode(''); setAppError(''); }}
                     className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                    Cancel
+                    {t('TwoFactor.cancel')}
                   </button>
                   <button onClick={disableApp} disabled={appLoading || appCode.length < 6}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold transition hover:bg-red-700 cursor-pointer disabled:opacity-50">
                     {appLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                    {appLoading ? 'Disabling...' : 'Disable'}
+                    {appLoading ? t('TwoFactor.disabling') : t('TwoFactor.disable')}
                   </button>
                 </div>
               </div>

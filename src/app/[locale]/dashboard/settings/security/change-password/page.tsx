@@ -5,17 +5,19 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import PasswordInput from '@/components/PasswordInput';
+import { useIntl, type IntlShape } from 'react-intl';
 
-function PasswordStrength({ password }: { password: string }) {
+function PasswordStrength({ password, intl }: { password: string; intl: IntlShape }) {
+  const tt = (id: string) => intl.formatMessage({ id });
   const checks = [
-    { label: 'At least 8 characters', pass: password.length >= 8 },
-    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
-    { label: 'Number', pass: /[0-9]/.test(password) },
-    { label: 'Special character', pass: /[^A-Za-z0-9]/.test(password) },
+    { label: tt('ChangePassword.check8Chars'), pass: password.length >= 8 },
+    { label: tt('ChangePassword.checkUppercase'), pass: /[A-Z]/.test(password) },
+    { label: tt('ChangePassword.checkNumber'), pass: /[0-9]/.test(password) },
+    { label: tt('ChangePassword.checkSpecial'), pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter(c => c.pass).length;
   const barColor = score <= 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : score === 3 ? 'bg-blue-400' : 'bg-emerald-500';
-  const label = ['', 'Weak', 'Fair', 'Good', 'Strong'][score];
+  const label = ['', tt('ChangePassword.strengthWeak'), tt('ChangePassword.strengthFair'), tt('ChangePassword.strengthGood'), tt('ChangePassword.strengthStrong')][score];
   const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-blue-600', 'text-emerald-600'][score];
   if (!password) return null;
   return (
@@ -41,6 +43,8 @@ export default function ChangePasswordPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -82,10 +86,10 @@ export default function ChangePasswordPage() {
 
   const handleSave = async () => {
     setError(''); setSuccess('');
-    if (!currentPw || !newPw || !confirmPw) { setError('All fields are required'); return; }
-    if (!allChecksPassed) { setError('Password does not meet all requirements'); return; }
-    if (newPw !== confirmPw) { setError('Passwords do not match'); return; }
-    if (currentPw === newPw) { setError('New password must differ from current'); return; }
+    if (!currentPw || !newPw || !confirmPw) { setError(t('ChangePassword.errAllRequired')); return; }
+    if (!allChecksPassed) { setError(t('ChangePassword.errRequirements')); return; }
+    if (newPw !== confirmPw) { setError(t('ChangePassword.errNoMatch')); return; }
+    if (currentPw === newPw) { setError(t('ChangePassword.errSameAsCurrent')); return; }
     setSaving(true);
     try {
       const res = await fetch('/api/user/change-password', {
@@ -93,10 +97,10 @@ export default function ChangePasswordPage() {
         body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to change password'); return; }
+      if (!res.ok) { setError(data.error || t('ChangePassword.errChangeFailed')); return; }
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
-      setSuccess('Password updated successfully');
-    } catch { setError('Something went wrong'); }
+      setSuccess(t('ChangePassword.successUpdated'));
+    } catch { setError(t('ChangePassword.errGeneric')); }
     finally { setSaving(false); }
   };
 
@@ -116,32 +120,32 @@ export default function ChangePasswordPage() {
         </button>
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-            style={isMidnight ? { color: '#ffffff' } : {}}>Change Password</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Update your account password</p>
+            style={isMidnight ? { color: '#ffffff' } : {}}>{t('ChangePassword.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('ChangePassword.subtitle')}</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Password</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('ChangePassword.passwordSection')}</h2>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Current Password</label>
-            <PasswordInput value={currentPw} onChange={setCurrentPw} placeholder="Enter current password" autoComplete="current-password" />
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">{t('ChangePassword.currentLabel')}</label>
+            <PasswordInput value={currentPw} onChange={setCurrentPw} placeholder={t('ChangePassword.currentPlaceholder')} autoComplete="current-password" />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">New Password</label>
-            <PasswordInput value={newPw} onChange={setNewPw} placeholder="Create a strong password" autoComplete="new-password" />
-            <PasswordStrength password={newPw} />
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">{t('ChangePassword.newLabel')}</label>
+            <PasswordInput value={newPw} onChange={setNewPw} placeholder={t('ChangePassword.newPlaceholder')} autoComplete="new-password" />
+            <PasswordStrength password={newPw} intl={intl} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Confirm New Password</label>
-            <PasswordInput value={confirmPw} onChange={setConfirmPw} placeholder="Re-enter new password" autoComplete="new-password" />
-            {confirmPw.length > 0 && newPw !== confirmPw && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">{t('ChangePassword.confirmLabel')}</label>
+            <PasswordInput value={confirmPw} onChange={setConfirmPw} placeholder={t('ChangePassword.confirmPlaceholder')} autoComplete="new-password" />
+            {confirmPw.length > 0 && newPw !== confirmPw && <p className="text-xs text-red-500 mt-1">{t('ChangePassword.errNoMatch')}</p>}
             {confirmPw.length > 0 && newPw === confirmPw && (
-              <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1"><CheckCircle2 size={11} />Passwords match</p>
+              <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1"><CheckCircle2 size={11} />{t('ChangePassword.passwordsMatch')}</p>
             )}
           </div>
           {error && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
@@ -150,7 +154,7 @@ export default function ChangePasswordPage() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-40"
             style={{ background: accent }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-            {saving ? 'Updating...' : 'Update Password'}
+            {saving ? t('ChangePassword.updating') : t('ChangePassword.updatePassword')}
           </button>
         </div>
       </div>

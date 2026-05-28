@@ -7,17 +7,19 @@ import { ArrowLeft, Fingerprint, Loader2, CheckCircle2, AlertTriangle } from 'lu
 import { startRegistration } from '@simplewebauthn/browser';
 import { createPortal } from 'react-dom';
 import PasswordInput from '@/components/PasswordInput';
+import { useIntl, type IntlShape } from 'react-intl';
 
-function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }: {
+function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc, intl }: {
   accent: string; accentSolid: string; onConfirm: () => void; onClose: () => void;
-  title?: string; desc?: string;
+  title?: string; desc?: string; intl: IntlShape;
 }) {
+  const tt = (id: string) => intl.formatMessage({ id });
   const [pw, setPw] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!pw) { setError('Password is required'); return; }
+    if (!pw) { setError(tt('Passkey.errPasswordRequired')); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/user/verify-password', {
@@ -25,9 +27,9 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
         body: JSON.stringify({ password: pw }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Incorrect password'); setLoading(false); return; }
+      if (!res.ok) { setError(data.error || tt('Passkey.errIncorrectPassword')); setLoading(false); return; }
       onConfirm();
-    } catch { setError('Something went wrong'); setLoading(false); }
+    } catch { setError(tt('Passkey.errGeneric')); setLoading(false); }
   };
 
   return typeof document !== 'undefined' ? createPortal(
@@ -38,17 +40,17 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
       <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-6 space-y-4">
           <div>
             <h3 className="text-base font-bold text-gray-900 dark:text-white">
-              {title || 'Confirm Your Password'}
+              {title || tt('Passkey.confirmPasswordTitle')}
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {desc || 'Enter your password to continue'}
+              {desc || tt('Passkey.confirmPasswordDesc')}
             </p>
           </div>
           <PasswordInput
             value={pw}
             onChange={v => { setPw(v); setError(''); }}
             onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
-            placeholder="Your current password"
+            placeholder={tt('Passkey.passwordPlaceholder')}
             autoComplete="current-password"
             autoFocus
           />
@@ -56,13 +58,13 @@ function PasswordModal({ accent, accentSolid, onConfirm, onClose, title, desc }:
           <div className="flex gap-2.5">
             <button onClick={onClose}
               className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-              Cancel
+              {tt('Passkey.cancel')}
             </button>
             <button onClick={handleSubmit} disabled={loading || !pw}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
               style={{ background: accent }}>
               {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-              {loading ? 'Verifying...' : 'Confirm'}
+              {loading ? tt('Passkey.verifying') : tt('Passkey.confirm')}
             </button>
           </div>
         </div>
@@ -76,6 +78,8 @@ export default function PasskeyPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -135,27 +139,27 @@ export default function PasskeyPage() {
       try {
         const optRes = await fetch('/api/user/passkeys/register/options', { method: 'POST' });
         const opts = await optRes.json();
-        if (!optRes.ok) { setError(opts.error || 'Failed to start registration'); return; }
+        if (!optRes.ok) { setError(opts.error || t('Passkey.errStartFailed')); return; }
         const credential = await startRegistration(opts);
         const verRes = await fetch('/api/user/passkeys/register/verify', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ credential }),
         });
         const verData = await verRes.json();
-        if (!verRes.ok) { setError(verData.error || 'Registration failed'); return; }
+        if (!verRes.ok) { setError(verData.error || t('Passkey.errRegFailed')); return; }
         setEnabled(true);
-        setSuccess('Passkey enabled successfully. You can now use biometrics to sign in.');
+        setSuccess(t('Passkey.successEnabled'));
       } catch (e: any) {
-        if (e?.name === 'NotAllowedError') setError('Passkey registration was cancelled.');
-        else setError('Registration failed. Please try again.');
+        if (e?.name === 'NotAllowedError') setError(t('Passkey.errCancelled'));
+        else setError(t('Passkey.errRegRetry'));
       }
     } else {
       try {
         const res = await fetch('/api/user/passkeys/disable-all', { method: 'POST' });
-        if (!res.ok) { setError('Failed to disable passkey'); return; }
+        if (!res.ok) { setError(t('Passkey.errDisableFailed')); return; }
         setEnabled(false);
-        setSuccess('Passkey disabled. You will now sign in with your password.');
-      } catch { setError('Something went wrong'); }
+        setSuccess(t('Passkey.successDisabled'));
+      } catch { setError(t('Passkey.errGeneric')); }
     }
     setLoading(false);
   };
@@ -168,8 +172,9 @@ export default function PasskeyPage() {
         <PasswordModal
           accent={accent}
           accentSolid={accentSolid}
-          title={pendingEnable ? 'Enable Passkey' : 'Disable Passkey'}
-          desc={pendingEnable ? 'Enter your password to enable passkey' : 'Enter your password to disable passkey'}
+          intl={intl}
+          title={pendingEnable ? t('Passkey.enableTitle') : t('Passkey.disableTitle')}
+          desc={pendingEnable ? t('Passkey.enableDesc') : t('Passkey.disableDesc')}
           onConfirm={onPasswordConfirmed}
           onClose={() => setShowModal(false)}
         />
@@ -182,25 +187,25 @@ export default function PasskeyPage() {
         </button>
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-            style={isMidnight ? { color: '#ffffff' } : {}}>Passkey</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Sign in with biometrics or hardware key</p>
+            style={isMidnight ? { color: '#ffffff' } : {}}>{t('Passkey.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('Passkey.subtitle')}</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Passkey Authentication</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('Passkey.authentication')}</h2>
         </div>
         <div className="p-5 space-y-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            A passkey lets you sign in using your device's biometrics (Face ID, Touch ID, Windows Hello) or a hardware security key — no password needed. Passkeys are tied to this device.
+            {t('Passkey.explainer')}
           </p>
 
           {!webAuthnSupported && (
             <div className="flex items-center gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
               <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-400">Your device or browser does not support passkeys. Please use a modern browser like Chrome, Safari, or Edge.</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">{t('Passkey.notSupported')}</p>
             </div>
           )}
 
@@ -212,10 +217,10 @@ export default function PasskeyPage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-gray-900 dark:text-white">
-                  {enabled ? 'Passkey Enabled' : 'Passkey Disabled'}
+                  {enabled ? t('Passkey.statusEnabled') : t('Passkey.statusDisabled')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {enabled ? 'You can sign in with biometrics' : 'Enable to sign in with biometrics'}
+                  {enabled ? t('Passkey.statusEnabledDesc') : t('Passkey.statusDisabledDesc')}
                 </p>
               </div>
             </div>
@@ -233,7 +238,7 @@ export default function PasskeyPage() {
           {loading && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Loader2 size={14} className="animate-spin" style={{ color: accentSolid }} />
-              {pendingEnable ? 'Registering passkey...' : 'Disabling passkey...'}
+              {pendingEnable ? t('Passkey.registering') : t('Passkey.disabling')}
             </div>
           )}
 

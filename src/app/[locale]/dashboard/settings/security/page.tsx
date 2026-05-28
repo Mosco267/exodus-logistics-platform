@@ -5,12 +5,15 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Lock, Fingerprint, ChevronRight, Loader2 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 
 export default function SecurityPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
   const { data: session } = useSession();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -59,8 +62,8 @@ export default function SecurityPage() {
         </button>
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-            style={isMidnight ? { color: '#ffffff' } : {}}>Security</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your password and passkeys</p>
+            style={isMidnight ? { color: '#ffffff' } : {}}>{t('Security.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('Security.subtitle')}</p>
         </div>
       </div>
 
@@ -73,8 +76,8 @@ export default function SecurityPage() {
               <Lock size={18} className="text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white">Change Password</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update your current account password</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Security.changePassword')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('Security.changePasswordDesc')}</p>
             </div>
             <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </button>
@@ -87,8 +90,8 @@ export default function SecurityPage() {
             <Fingerprint size={18} className="text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-900 dark:text-white">Passkey</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sign in with biometrics or hardware key</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Security.passkey')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('Security.passkeyDesc')}</p>
           </div>
           <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
         </button>
@@ -101,8 +104,8 @@ export default function SecurityPage() {
               <Lock size={18} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white">Forgot Password</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Reset your password via email verification</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Security.forgotPassword')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('Security.forgotPasswordDesc')}</p>
             </div>
             <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </button>

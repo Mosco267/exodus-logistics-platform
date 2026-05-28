@@ -5,12 +5,15 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Mail, Loader2, CheckCircle2 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 
 export default function SettingsForgotPasswordPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
   const { data: session } = useSession();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -60,8 +63,8 @@ export default function SettingsForgotPasswordPage() {
   };
 
   const handleSendLink = async () => {
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) { setError('Enter a valid email address'); return; }
-    if (!emailMatchesAccount) { setError('This email is not associated with your account'); return; }
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) { setError(t('ForgotPassword.errValidEmail')); return; }
+    if (!emailMatchesAccount) { setError(t('ForgotPassword.errNotAssociated')); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/auth/forgot-password', {
@@ -69,10 +72,10 @@ export default function SettingsForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to send reset link'); return; }
+      if (!res.ok) { setError(data.error || t('ForgotPassword.errSendFailed')); return; }
       setSent(true);
       startCountdown();
-    } catch { setError('Something went wrong'); }
+    } catch { setError(t('ForgotPassword.errGeneric')); }
     finally { setLoading(false); }
   };
 
@@ -93,8 +96,8 @@ export default function SettingsForgotPasswordPage() {
             </button>
             <div>
               <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-                style={isMidnight ? { color: '#ffffff' } : {}}>Forgot Password</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Reset your account password</p>
+                style={isMidnight ? { color: '#ffffff' } : {}}>{t('ForgotPassword.title')}</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('ForgotPassword.subtitle')}</p>
             </div>
           </div>
 
@@ -107,8 +110,8 @@ export default function SettingsForgotPasswordPage() {
                     <Mail className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Confirm your email</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">We'll send a reset link to your email</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{t('ForgotPassword.confirmEmail')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('ForgotPassword.confirmEmailSub')}</p>
                   </div>
                 </div>
 
@@ -117,12 +120,12 @@ export default function SettingsForgotPasswordPage() {
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); }}
                     type="email"
-                    placeholder="Your email address"
+                    placeholder={t('ForgotPassword.emailPlaceholder')}
                     className={inputClass}
                     style={{ fontSize: '16px' }}
                   />
                   {email && sessionEmail && !emailMatchesAccount && (
-                    <p className="text-xs text-red-500 mt-1.5 font-medium">This email is not associated with your account</p>
+                    <p className="text-xs text-red-500 mt-1.5 font-medium">{t('ForgotPassword.errNotAssociated')}</p>
                   )}
                 </div>
 
@@ -134,11 +137,11 @@ export default function SettingsForgotPasswordPage() {
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
                   style={{ background: accent }}>
                   {loading ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                  {loading ? t('ForgotPassword.sending') : t('ForgotPassword.sendResetLink')}
                 </button>
 
                 <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center leading-relaxed pt-1">
-                  We'll send a secure link to your email. Click it to set a new password.
+                  {t('ForgotPassword.formNote')}
                 </p>
               </div>
             ) : (
@@ -146,36 +149,40 @@ export default function SettingsForgotPasswordPage() {
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: accent }}>
                   <CheckCircle2 className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Check your email</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('ForgotPassword.checkEmail')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                  We've sent a password reset link to{' '}
-                  <strong className="text-gray-900 dark:text-white">{email}</strong>.
-                  Click the link in the email to choose a new password.
+                  {t('ForgotPassword.sentDesc', {
+                    email: email,
+                    strong: (chunks: any) => <strong className="text-gray-900 dark:text-white">{chunks}</strong>,
+                  })}
                 </p>
                 <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-left">
-                  <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Security</p>
+                  <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">{t('ForgotPassword.securityLabel')}</p>
                   <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                    The link expires in 1 hour. Don't see it? Check your spam folder.
+                    {t('ForgotPassword.securityNote')}
                   </p>
                 </div>
 
                 <div className="pt-2">
                   {countdown > 0 ? (
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      You can resend in <strong>{countdown}s</strong>
+                      {t('ForgotPassword.resendIn', {
+                        seconds: countdown,
+                        strong: (chunks: any) => <strong>{chunks}</strong>,
+                      })}
                     </p>
                   ) : (
                     <button onClick={handleSendLink} disabled={loading}
                       className="text-xs font-semibold hover:underline cursor-pointer disabled:opacity-50"
                       style={{ color: accentSolid }}>
-                      Resend link
+                      {t('ForgotPassword.resendLink')}
                     </button>
                   )}
                 </div>
 
                 <button onClick={() => router.push(`/${locale}/dashboard/settings/security`)}
                   className="w-full py-3 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer mt-2">
-                  Back to Security
+                  {t('ForgotPassword.backToSecurity')}
                 </button>
               </div>
             )}

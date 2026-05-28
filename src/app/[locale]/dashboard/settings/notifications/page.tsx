@@ -4,13 +4,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Bell, Loader2, CheckCircle2 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 
 type NotifSettings = { shipmentUpdates: boolean; invoiceAlerts: boolean; deliveryAlerts: boolean; promotions: boolean };
 
 export default function NotificationsPage() {
-  const params = useParams();
+ const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -67,10 +70,10 @@ export default function NotificationsPage() {
   };
 
   const items = [
-    { key: 'shipmentUpdates' as keyof NotifSettings, label: 'Shipment Updates', desc: 'Get notified when your shipment status changes' },
-    { key: 'invoiceAlerts' as keyof NotifSettings, label: 'Invoice Alerts', desc: 'Receive alerts for new or unpaid invoices' },
-    { key: 'deliveryAlerts' as keyof NotifSettings, label: 'Delivery Alerts', desc: 'Get notified when a shipment is delivered' },
-    { key: 'promotions' as keyof NotifSettings, label: 'Promotions', desc: 'Receive news, tips and promotional offers' },
+    { key: 'shipmentUpdates' as keyof NotifSettings, label: t('NotifSettings.shipmentUpdates'), desc: t('NotifSettings.shipmentUpdatesDesc') },
+    { key: 'invoiceAlerts' as keyof NotifSettings, label: t('NotifSettings.invoiceAlerts'), desc: t('NotifSettings.invoiceAlertsDesc') },
+    { key: 'deliveryAlerts' as keyof NotifSettings, label: t('NotifSettings.deliveryAlerts'), desc: t('NotifSettings.deliveryAlertsDesc') },
+    { key: 'promotions' as keyof NotifSettings, label: t('NotifSettings.promotions'), desc: t('NotifSettings.promotionsDesc') },
   ];
 
   return (
@@ -89,15 +92,15 @@ export default function NotificationsPage() {
         </button>
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-            style={isMidnight ? { color: '#ffffff' } : {}}>Notifications</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Control what emails and alerts you receive</p>
+            style={isMidnight ? { color: '#ffffff' } : {}}>{t('NotifSettings.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('NotifSettings.subtitle')}</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <div className="w-2 h-5 rounded-full" style={{ background: accent }} />
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Email Notifications</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('NotifSettings.emailNotifications')}</h2>
         </div>
         <div className="p-5 space-y-4">
           {items.map(({ key, label, desc }) => (
@@ -118,7 +121,7 @@ export default function NotificationsPage() {
 
           {success && (
             <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-              <CheckCircle2 size={13} />Preferences saved
+              <CheckCircle2 size={13} />{t('NotifSettings.preferencesSaved')}
             </p>
           )}
 
@@ -127,7 +130,7 @@ export default function NotificationsPage() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
               style={{ background: accent }}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Bell size={14} />}
-              {saving ? 'Saving...' : 'Save Preferences'}
+              {saving ? t('NotifSettings.saving') : t('NotifSettings.savePreferences')}
             </button>
           </div>
         </div>
