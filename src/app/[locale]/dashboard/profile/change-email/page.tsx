@@ -5,12 +5,15 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Mail, Loader2, CheckCircle2, Eye, EyeOff, Lock } from 'lucide-react';
+import { useIntl } from 'react-intl';
 
 export default function ChangeEmailPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
   const { data: session, update: updateSession } = useSession();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
@@ -60,7 +63,7 @@ export default function ChangeEmailPage() {
   };
 
   const handlePasswordAuth = async () => {
-    if (!password) { setAuthError('Password is required'); return; }
+    if (!password) { setAuthError(t('ChangeEmail.errPasswordRequired')); return; }
     setAuthLoading(true); setAuthError('');
     try {
       const res = await fetch('/api/user/verify-password', {
@@ -68,14 +71,14 @@ export default function ChangeEmailPage() {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (!res.ok) { setAuthError(data.error || 'Incorrect password'); return; }
+      if (!res.ok) { setAuthError(data.error || t('ChangeEmail.errIncorrectPassword')); return; }
       setStep('email');
-    } catch { setAuthError('Something went wrong'); }
+    } catch { setAuthError(t('ChangeEmail.errGeneric')); }
     finally { setAuthLoading(false); }
   };
 
   const handleSendCode = async () => {
-    if (!newEmail || !/^\S+@\S+\.\S+$/.test(newEmail)) { setEmailError('Enter a valid email address'); return; }
+    if (!newEmail || !/^\S+@\S+\.\S+$/.test(newEmail)) { setEmailError(t('ChangeEmail.errValidEmail')); return; }
     setEmailLoading(true); setEmailError('');
     try {
       const res = await fetch('/api/user/change-email/send-code', {
@@ -83,14 +86,14 @@ export default function ChangeEmailPage() {
         body: JSON.stringify({ newEmail }),
       });
       const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Failed to send code'); return; }
+      if (!res.ok) { setEmailError(data.error || t('ChangeEmail.errSendFailed')); return; }
       setStep('code'); setCode(''); startCountdown();
-    } catch { setEmailError('Something went wrong'); }
+    } catch { setEmailError(t('ChangeEmail.errGeneric')); }
     finally { setEmailLoading(false); }
   };
 
   const handleVerifyCode = async () => {
-    if (code.replace(/\D/g, '').length < 6) { setEmailError('Enter the 6-digit code'); return; }
+    if (code.replace(/\D/g, '').length < 6) { setEmailError(t('ChangeEmail.errEnter6Digit')); return; }
     setEmailLoading(true); setEmailError('');
     try {
       const res = await fetch('/api/user/change-email/verify', {
@@ -98,11 +101,11 @@ export default function ChangeEmailPage() {
         body: JSON.stringify({ newEmail, code: code.replace(/\D/g, '') }),
       });
       const data = await res.json();
-      if (!res.ok) { setEmailError(data.error || 'Invalid code'); return; }
+      if (!res.ok) { setEmailError(data.error || t('ChangeEmail.errInvalidCode')); return; }
       await updateSession();
       window.dispatchEvent(new CustomEvent('emailUpdated', { detail: { email: newEmail } }));
       setStep('done');
-    } catch { setEmailError('Something went wrong'); }
+    } catch { setEmailError(t('ChangeEmail.errGeneric')); }
     finally { setEmailLoading(false); }
   };
 
@@ -122,8 +125,8 @@ export default function ChangeEmailPage() {
         </button>
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 dark:text-white"
-            style={isMidnight ? { color: '#ffffff' } : {}}>Change Email</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Update your account email address</p>
+            style={isMidnight ? { color: '#ffffff' } : {}}>{t('ChangeEmail.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('ChangeEmail.subtitle')}</p>
         </div>
       </div>
 
@@ -136,19 +139,19 @@ export default function ChangeEmailPage() {
                 <Lock className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">Confirm your identity</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">For security, verify before changing email</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{t('ChangeEmail.confirmIdentity')}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('ChangeEmail.confirmIdentitySub')}</p>
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Current Password</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">{t('ChangeEmail.currentPassword')}</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => { setPassword(e.target.value); setAuthError(''); }}
                   onKeyDown={e => { if (e.key === 'Enter') handlePasswordAuth(); }}
-                  placeholder="Enter your password"
+                  placeholder={t('ChangeEmail.passwordPlaceholder')}
                   autoComplete="current-password"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -167,7 +170,7 @@ export default function ChangeEmailPage() {
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
               style={{ background: accent }}>
               {authLoading ? <Loader2 size={15} className="animate-spin" /> : null}
-              {authLoading ? 'Verifying...' : 'Continue'}
+              {authLoading ? t('ChangeEmail.verifying') : t('ChangeEmail.continue')}
             </button>
           </div>
         )}
@@ -179,25 +182,25 @@ export default function ChangeEmailPage() {
                 <Mail className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">Enter new email</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">We'll send a verification code to confirm</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{t('ChangeEmail.enterNewEmail')}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('ChangeEmail.enterNewEmailSub')}</p>
               </div>
             </div>
             <input value={newEmail} onChange={e => { setNewEmail(e.target.value); setEmailError(''); }}
-              type="email" placeholder="New email address"
+              type="email" placeholder={t('ChangeEmail.newEmailPlaceholder')}
               autoCapitalize="none" autoCorrect="off"
               className={inputClass} style={{ fontSize: '16px' }} />
             {emailError && <p className="text-xs text-red-500 font-medium">{emailError}</p>}
             <div className="flex gap-2.5">
               <button onClick={() => setStep('auth')}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                Back
+                {t('ChangeEmail.back')}
               </button>
               <button onClick={handleSendCode} disabled={emailLoading || !newEmail}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
                 style={{ background: accent }}>
                 {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                {emailLoading ? 'Sending...' : 'Send Code'}
+                {emailLoading ? t('ChangeEmail.sending') : t('ChangeEmail.sendCode')}
               </button>
             </div>
           </div>
@@ -206,7 +209,10 @@ export default function ChangeEmailPage() {
         {step === 'code' && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Enter the 6-digit code sent to <strong className="text-gray-900 dark:text-white">{newEmail}</strong>
+              {t('ChangeEmail.codeSentTo', {
+                email: newEmail,
+                strong: (chunks: any) => <strong className="text-gray-900 dark:text-white">{chunks}</strong>,
+              })}
             </p>
             <div className="flex items-center justify-center gap-2">
               {[0,1,2,3,4,5].map(i => (
@@ -238,21 +244,24 @@ export default function ChangeEmailPage() {
             {emailError && <p className="text-xs text-red-500 text-center font-medium">{emailError}</p>}
             <div className="text-center">
               {countdown > 0
-                ? <p className="text-xs text-gray-400">Resend in <strong>{countdown}s</strong></p>
+                ? <p className="text-xs text-gray-400">{t('ChangeEmail.resendIn', {
+                    seconds: countdown,
+                    strong: (chunks: any) => <strong>{chunks}</strong>,
+                  })}</p>
                 : <button onClick={handleSendCode} disabled={emailLoading}
                     className="text-xs font-semibold hover:underline cursor-pointer disabled:opacity-50"
-                    style={{ color: accentSolid }}>Resend code</button>}
+                    style={{ color: accentSolid }}>{t('ChangeEmail.resendCode')}</button>}
             </div>
             <div className="flex gap-2.5">
               <button onClick={() => setStep('email')}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                Back
+                {t('ChangeEmail.back')}
               </button>
               <button onClick={handleVerifyCode} disabled={emailLoading || code.replace(/\D/g, '').length < 6}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
                 style={{ background: accent }}>
                 {emailLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-                {emailLoading ? 'Updating...' : 'Update Email'}
+                {emailLoading ? t('ChangeEmail.updating') : t('ChangeEmail.updateEmail')}
               </button>
             </div>
           </div>
@@ -263,14 +272,17 @@ export default function ChangeEmailPage() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: accent }}>
               <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Email Updated!</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('ChangeEmail.doneTitle')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Your email has been changed to <strong className="text-gray-700 dark:text-gray-200">{newEmail}</strong>
+              {t('ChangeEmail.doneDesc', {
+                email: newEmail,
+                strong: (chunks: any) => <strong className="text-gray-700 dark:text-gray-200">{chunks}</strong>,
+              })}
             </p>
             <button onClick={() => router.push(`/${locale}/dashboard/profile`)}
               className="w-full py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer"
               style={{ background: accent }}>
-              Back to Profile
+              {t('ChangeEmail.backToProfile')}
             </button>
           </div>
         )}

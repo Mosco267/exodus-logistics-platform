@@ -10,6 +10,7 @@ import {
 import { p } from 'framer-motion/client';
 import { createPortal } from 'react-dom';
 import { COUNTRIES_WITH_STATES } from '@/lib/countriesData';
+import { useIntl, type IntlShape } from 'react-intl';
 
 
 // ─── Countries ───────────────────────────────────────────────
@@ -450,12 +451,13 @@ type ProfileData = {
 
 // ─── Country Dropdown Component ───────────────────────────────
 function CountryDropdown({
-  value, onChange, disabled, accentColor = '#0b3aa4'
+  value, onChange, disabled, accentColor = '#0b3aa4', intl
 }: {
   value: string;
   onChange: (c: typeof COUNTRIES[0]) => void;
   disabled?: boolean;
   accentColor?: string;
+  intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -494,7 +496,7 @@ function CountryDropdown({
     <span className="flex-1 truncate">{selected.name}</span>
   </>
 ) : (
-  <span className="text-gray-400 flex-1">Select country</span>
+  <span className="text-gray-400 flex-1">{intl.formatMessage({ id: 'Profile.selectCountry' })}</span>
 )}
         <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -507,7 +509,7 @@ function CountryDropdown({
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search country..."
+              placeholder={intl.formatMessage({ id: 'Profile.searchCountry' })}
               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
               style={{ fontSize: '16px' }}
             />
@@ -515,7 +517,7 @@ function CountryDropdown({
           {/* List */}
           <ul className="max-h-52 overflow-y-auto">
             {filtered.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-gray-400 text-center">No countries found</li>
+              <li className="px-4 py-3 text-sm text-gray-400 text-center">{intl.formatMessage({ id: 'Profile.noCountriesFound' })}</li>
             ) : filtered.map(c => (
               <li key={c.code}>
                 <button
@@ -545,9 +547,11 @@ style={selected?.code === c.code ? { background: `${accentColor}20`, color: acce
 function DialCodePicker({
   selected,
   onChange,
+  intl,
 }: {
   selected: typeof COUNTRIES[0] | null;
   onChange: (c: typeof COUNTRIES[0]) => void;
+  intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -594,7 +598,7 @@ function DialCodePicker({
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search country..."
+              placeholder={intl.formatMessage({ id: 'Profile.searchCountry' })}
               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
               style={{ fontSize: '16px' }}
             />
@@ -626,11 +630,12 @@ function DialCodePicker({
 
 
 
-function StateDropdown({ value, onChange, states, accentColor = '#0b3aa4' }: {
+function StateDropdown({ value, onChange, states, accentColor = '#0b3aa4', intl }: {
   value: string;
   onChange: (s: string) => void;
   states: string[];
   accentColor?: string;
+  intl: IntlShape;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -653,7 +658,7 @@ function StateDropdown({ value, onChange, states, accentColor = '#0b3aa4' }: {
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="State / Province"
+        placeholder={intl.formatMessage({ id: 'Profile.stateProvince' })}
         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
         style={{ fontSize: '16px' }}
       />
@@ -668,7 +673,7 @@ function StateDropdown({ value, onChange, states, accentColor = '#0b3aa4' }: {
         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white transition hover:border-gray-300 dark:hover:border-white/20 cursor-pointer text-left">
 
         <span className="flex-1 truncate">
-          {value || <span className="text-gray-400">Select state…</span>}
+          {value || <span className="text-gray-400">{intl.formatMessage({ id: 'Profile.selectState' })}</span>}
         </span>
         <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -680,14 +685,14 @@ function StateDropdown({ value, onChange, states, accentColor = '#0b3aa4' }: {
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search state..."
+              placeholder={intl.formatMessage({ id: 'Profile.searchState' })}
               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
               style={{ fontSize: '16px' }}
             />
           </div>
           <ul className="max-h-52 overflow-y-auto">
             {filtered.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-gray-400 text-center">No results</li>
+              <li className="px-4 py-3 text-sm text-gray-400 text-center">{intl.formatMessage({ id: 'Profile.noResults' })}</li>
             ) : filtered.map(s => (
               <li key={s}>
                 <button
@@ -775,6 +780,8 @@ export default function ProfilePage() {
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accent, setAccent] = useState('linear-gradient(135deg, #0b3aa4, #0e7490)');
 
@@ -915,7 +922,7 @@ setPhoneNum(strippedPhone);
 setSavedDialCode(dialFound?.dial || '');
 setSavedPhoneNum(strippedPhone);
       })
-      .catch(() => setError('Failed to load profile'))
+      .catch(() => setError(t('Profile.errLoadProfile')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -929,7 +936,7 @@ setSavedPhoneNum(strippedPhone);
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { setError('Image must be under 10MB'); return; }
+  if (file.size > 10 * 1024 * 1024) { setError(t('Profile.errImageSize')); return; }
 
   setUploading(true);
   setError('');
@@ -982,10 +989,10 @@ setSavedPhoneNum(strippedPhone);
       localStorage.setItem('exodus_avatar_url', data.url);
       window.dispatchEvent(new Event('storage'));
     } else {
-      setError(data.error || 'Upload failed');
+      setError(data.error || t('Profile.errUploadFailed'));
     }
   } catch {
-    setError('Upload failed');
+    setError(t('Profile.errUploadFailed'));
   } finally {
     setUploading(false);
   }
@@ -1000,7 +1007,7 @@ const handleRemoveAvatar = async () => {
   try {
     const res = await fetch('/api/user/avatar', { method: 'DELETE' });
     if (!res.ok) {
-      setError('Failed to remove photo');
+      setError(t('Profile.errRemoveFailed'));
       return;
     }
     setAvatarPreview('');
@@ -1009,7 +1016,7 @@ const handleRemoveAvatar = async () => {
     window.dispatchEvent(new Event('storage'));
     setShowRemoveConfirm(false);
   } catch {
-    setError('Failed to remove photo');
+    setError(t('Profile.errRemoveFailed'));
   } finally {
     setRemovingAvatar(false);
   }
@@ -1043,7 +1050,7 @@ const dialCode = dialCountry?.code || selectedCountry?.code || '';
 }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Save failed'); return; }
+      if (!res.ok) { setError(data.error || t('Profile.errSaveFailed')); return; }
 
       setSavedProfile({
   name: profile.name, phone: profile.phone, country: profile.country,
@@ -1054,7 +1061,7 @@ setSavedDialCode(dialCountry?.dial || '');
 setSavedPhoneNum(phoneNum);
 
       setShowSuccess(true);
-    } catch { setError('Failed to save changes'); }
+    } catch { setError(t('Profile.errSaveChanges')); }
     finally { setSaving(false); }
   };
 
@@ -1145,7 +1152,7 @@ setProfile(p => ({ ...p, email: newEmail }));
             <div className="w-20 h-20 rounded-2xl border-4 border-white dark:border-gray-900 overflow-hidden flex items-center justify-center shadow-lg"
               style={{ background: accent }}>
               {avatarPreview
-                ? <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                ? <img src={avatarPreview} alt={t('Profile.avatarAlt')} className="w-full h-full object-cover" />
                 : <span className="text-white font-extrabold text-xl">{initials}</span>}
             </div>
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
@@ -1156,24 +1163,24 @@ setProfile(p => ({ ...p, email: newEmail }));
 {avatarPreview && !uploading && (
   <button onClick={() => setShowRemoveConfirm(true)}
     className="absolute -top-1 -right-1 w-7 h-7 rounded-xl bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg cursor-pointer transition"
-    title="Remove photo">
+    title={t('Profile.removePhoto')}>
     <X size={13} />
   </button>
 )}
 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
-          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{profile.name || 'Your Name'}</h2>
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{profile.name || t('Profile.yourName')}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">{profile.email}</p>
 
           <div className="flex items-center gap-4 mt-3 flex-wrap">
             {memberSince && (
               <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                <Calendar size={12} /> Member since {memberSince}
+                <Calendar size={12} /> {t('Profile.memberSince', { date: memberSince })}
               </div>
             )}
             {profile.provider === 'google' && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">Google Account</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">{t('Profile.googleAccount')}</span>
             )}
           </div>
         </div>
@@ -1181,23 +1188,23 @@ setProfile(p => ({ ...p, email: newEmail }));
 
       {/* Edit form */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-6">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Personal Information</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t('Profile.personalInfo')}</h3>
 
         <div className="space-y-4">
 
           {/* Name */}
           <div>
-            <label className={labelClass}>Full Name</label>
+            <label className={labelClass}>{t('Profile.fullName')}</label>
             <div className="relative flex items-center">
   <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
               <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                placeholder="Enter your full name" className={inputClass + " pl-10"} style={{ fontSize: '16px' }} />
+                placeholder={t('Profile.fullNamePlaceholder')} className={inputClass + " pl-10"} style={{ fontSize: '16px' }} />
             </div>
           </div>
 
           {/* Email */}
 <div>
-  <label className={labelClass}>Email Address</label>
+  <label className={labelClass}>{t('Profile.emailAddress')}</label>
   <div className="flex items-center gap-2">
     <div className="relative flex-1">
       <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -1208,28 +1215,30 @@ setProfile(p => ({ ...p, email: newEmail }));
     <button
       onClick={() => router.push(`/${locale}/dashboard/profile/change-email`)}
       className="h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer shrink-0 flex items-center gap-1.5">
-      <Pencil size={12} /> Change
+      <Pencil size={12} /> {t('Profile.change')}
     </button>
   </div>
 </div>
 
           {/* Country dropdown */}
           <div>
-            <label className={labelClass}>Country</label>
+            <label className={labelClass}>{t('Profile.country')}</label>
            <CountryDropdown
   value={profile.country}
   onChange={handleCountryChange}
   accentColor={accentSolid}
+  intl={intl}
 />
           </div>
 
           {/* Phone */}
 <div>
-  <label className={labelClass}>Phone Number</label>
+  <label className={labelClass}>{t('Profile.phoneNumber')}</label>
   <div className="flex items-center gap-2">
     <DialCodePicker
       selected={dialCountry}
       onChange={c => { setDialCountry(c); setPhoneNum(''); }}
+      intl={intl}
     />
     <ProfilePhoneInput
       countryCode={dialCountry?.code || ''}
@@ -1239,19 +1248,19 @@ setProfile(p => ({ ...p, email: newEmail }));
     />
   </div>
   {dialCountry?.code === selectedCountry?.code && (
-  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+  <p className="text-[11px] text-gray-400 mt-1">{t('Profile.phoneHint')}</p>
 )}
 </div>
 
           {/* Address — structured */}
 <div className="space-y-3">
-  <label className={labelClass}>Home Address <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
+  <label className={labelClass}>{t('Profile.homeAddress')} <span className="text-gray-400 font-normal normal-case">{t('Profile.optional')}</span></label>
 
   {/* Street */}
   <input
     value={profile.addressStreet}
     onChange={e => setProfile(p => ({ ...p, addressStreet: e.target.value }))}
-    placeholder="Street address (e.g. 123 Main Street)"
+    placeholder={t('Profile.streetPlaceholder')}
     className={inputClass}
     style={{ fontSize: '16px' }}
   />
@@ -1261,14 +1270,14 @@ setProfile(p => ({ ...p, email: newEmail }));
     <input
       value={profile.addressCity}
       onChange={e => setProfile(p => ({ ...p, addressCity: e.target.value }))}
-      placeholder="City"
+      placeholder={t('Profile.city')}
       className={inputClass}
       style={{ fontSize: '16px' }}
     />
     <input
       value={profile.addressPostalCode}
       onChange={e => setProfile(p => ({ ...p, addressPostalCode: e.target.value.replace(/\D/g, '') }))}
-      placeholder="Postal code"
+      placeholder={t('Profile.postalCode')}
       inputMode="numeric"
       className={inputClass}
       style={{ fontSize: '16px' }}
@@ -1281,6 +1290,7 @@ setProfile(p => ({ ...p, email: newEmail }));
   onChange={s => setProfile(p => ({ ...p, addressState: s }))}
   states={statesForCountry}
   accentColor={accentSolid}
+  intl={intl}
 />
 </div>
         </div>
@@ -1292,7 +1302,7 @@ setProfile(p => ({ ...p, email: newEmail }));
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-60"
             style={{ background: accent }}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? t('Profile.saving') : t('Profile.saveChanges')}
           </button>
         </div>
       </div>
@@ -1324,10 +1334,10 @@ setProfile(p => ({ ...p, email: newEmail }));
             </div>
             <div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                {emailStep === 'input' ? 'Change Email' : 'Verify Code'}
+                {emailStep === 'input' ? t('Profile.modalChangeEmail') : t('Profile.modalVerifyCode')}
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {emailStep === 'input' ? 'Enter your new email address' : `Code sent to ${newEmail}`}
+                {emailStep === 'input' ? t('Profile.modalEnterNewEmail') : t('Profile.modalCodeSentTo', { email: newEmail })}
               </p>
             </div>
           </div>
@@ -1347,11 +1357,11 @@ setProfile(p => ({ ...p, email: newEmail }));
         {emailStep === 'input' ? (
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">New Email Address</label>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">{t('Profile.modalNewEmailLabel')}</label>
               <input
                 value={newEmail}
                 onChange={e => { setNewEmail(e.target.value); setEmailError(''); }}
-                placeholder="Enter new email address"
+                placeholder={t('Profile.modalNewEmailPlaceholder')}
                 autoCapitalize="none"
                 autoCorrect="off"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#0b3aa4] dark:focus:border-blue-400 transition"
@@ -1360,13 +1370,13 @@ setProfile(p => ({ ...p, email: newEmail }));
               {emailError && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">{emailError}</p>}
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
-              A 6-digit verification code will be sent to your new email address.
+              {t('Profile.modalCodeNotice')}
             </p>
             <div className="flex gap-2.5 pt-1">
               <button
                onClick={() => router.push(`/${locale}/dashboard/profile/change-email`)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                Cancel
+                {t('Profile.cancel')}
               </button>
               <button
                 onClick={handleSendEmailCode}
@@ -1374,14 +1384,17 @@ setProfile(p => ({ ...p, email: newEmail }));
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
                 style={{ background: accent }}>
                 {emailSending ? <Loader2 size={14} className="animate-spin" /> : null}
-                {emailSending ? 'Sending...' : 'Send Code'}
+                {emailSending ? t('Profile.sending') : t('Profile.sendCode')}
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              Enter the 6-digit code sent to <strong className="text-gray-700 dark:text-gray-200">{newEmail}</strong>
+              {t('Profile.modalEnter6Digit', {
+                email: newEmail,
+                strong: (chunks: any) => <strong className="text-gray-700 dark:text-gray-200">{chunks}</strong>,
+              })}
             </p>
 
             {/* 6 individual code boxes */}
@@ -1438,7 +1451,10 @@ setProfile(p => ({ ...p, email: newEmail }));
             <div className="text-center">
               {countdown > 0 ? (
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Resend code in <strong className="text-gray-600 dark:text-gray-300">{countdown}s</strong>
+                  {t('Profile.modalResendIn', {
+                    seconds: countdown,
+                    strong: (chunks: any) => <strong className="text-gray-600 dark:text-gray-300">{chunks}</strong>,
+                  })}
                 </p>
               ) : (
                 <button
@@ -1446,7 +1462,7 @@ setProfile(p => ({ ...p, email: newEmail }));
                   disabled={emailSending}
                   className="text-xs font-semibold cursor-pointer hover:underline disabled:opacity-50"
                   style={{ color: accent.includes('gradient') ? '#0b3aa4' : accent }}>
-                  Resend code
+                  {t('Profile.resendCode')}
                 </button>
               )}
             </div>
@@ -1455,7 +1471,7 @@ setProfile(p => ({ ...p, email: newEmail }));
               <button
                 onClick={() => { setEmailStep('input'); setEmailCode(''); setEmailError(''); setCountdown(0); }}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                Back
+                {t('Profile.back')}
               </button>
               <button
                 onClick={handleVerifyEmailCode}
@@ -1463,7 +1479,7 @@ setProfile(p => ({ ...p, email: newEmail }));
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
                 style={{ background: accent }}>
                 {emailSending ? <Loader2 size={14} className="animate-spin" /> : null}
-                {emailSending ? 'Verifying...' : 'Update Email'}
+                {emailSending ? t('Profile.verifying') : t('Profile.updateEmail')}
               </button>
             </div>
           </div>
@@ -1478,7 +1494,7 @@ setProfile(p => ({ ...p, email: newEmail }));
   <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-gray-950">
     <div className="flex flex-col items-center gap-3">
       <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Updating email...</p>
+      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('Profile.updatingEmail')}</p>
     </div>
   </div>,
   document.body
@@ -1493,14 +1509,14 @@ setProfile(p => ({ ...p, email: newEmail }));
         style={{ background: accent }}>
         <CheckCircle2 className="w-6 h-6 text-white" />
       </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Profile Updated</h3>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your profile has been saved successfully.</p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">{t('Profile.successTitle')}</h3>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">{t('Profile.successDesc')}</p>
       <div className="mt-6">
         <button
           onClick={() => setShowSuccess(false)}
           className="w-full py-2.5 rounded-xl text-white font-semibold text-sm cursor-pointer hover:opacity-90 transition"
           style={{ background: accent }}>
-          Done
+          {t('Profile.done')}
         </button>
       </div>
     </div>
@@ -1515,17 +1531,17 @@ setProfile(p => ({ ...p, email: newEmail }));
       <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-50 dark:bg-red-500/10">
         <X className="w-6 h-6 text-red-600" />
       </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">Remove profile photo?</h3>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">Your initials will be shown instead.</p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">{t('Profile.removeConfirmTitle')}</h3>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">{t('Profile.removeConfirmDesc')}</p>
       <div className="mt-6 flex gap-3">
         <button onClick={() => setShowRemoveConfirm(false)} disabled={removingAvatar}
           className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition font-semibold cursor-pointer text-sm disabled:opacity-50">
-          Cancel
+          {t('Profile.cancel')}
         </button>
         <button onClick={handleRemoveAvatar} disabled={removingAvatar}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition font-semibold cursor-pointer text-sm disabled:opacity-50">
           {removingAvatar ? <Loader2 size={14} className="animate-spin" /> : null}
-          {removingAvatar ? 'Removing...' : 'Remove'}
+          {removingAvatar ? t('Profile.removing') : t('Profile.remove')}
         </button>
       </div>
     </div>

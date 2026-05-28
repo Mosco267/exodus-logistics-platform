@@ -10,6 +10,7 @@ import {
   FileText, Truck, CreditCard, ShieldCheck,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl } from "react-intl";
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
@@ -121,6 +122,8 @@ export default function DashboardInvoiceDetailPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -148,7 +151,7 @@ export default function DashboardInvoiceDetailPage() {
     const load = async () => {
       setLoading(true); setErr(""); setData(null);
       if (!q) {
-        setErr("Invoice details are missing.");
+        setErr(t("InvoiceDetail.errMissing"));
         setLoading(false);
         return;
       }
@@ -157,10 +160,10 @@ export default function DashboardInvoiceDetailPage() {
         url.searchParams.set("q", q.toUpperCase());
         const res = await fetch(url.toString(), { method: "GET" });
         const json = (await res.json().catch(() => null)) as ApiResponse | null;
-        if (!res.ok) { setErr((json as any)?.error || "Invoice not found."); return; }
+        if (!res.ok) { setErr((json as any)?.error || t("InvoiceDetail.errNotFound")); return; }
         setData(json);
       } catch (e: any) {
-        setErr(e?.message || "Invoice unavailable.");
+        setErr(e?.message || t("InvoiceDetail.errUnavailable"));
       } finally {
         setLoading(false);
       }
@@ -220,7 +223,7 @@ export default function DashboardInvoiceDetailPage() {
     [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope]
   );
 
-  const statusBadge = status === "paid" ? "PAID" : status === "overdue" ? "OVERDUE" : status === "cancelled" ? "CANCELLED" : "UNPAID";
+  const statusBadge = status === "paid" ? t("InvoiceDetail.badgePaid") : status === "overdue" ? t("InvoiceDetail.badgeOverdue") : status === "cancelled" ? t("InvoiceDetail.badgeCancelled") : t("InvoiceDetail.badgeUnpaid");
   const statusColor = status === "paid" ? "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30 text-green-800 dark:text-green-400"
     : status === "overdue" ? "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-800 dark:text-red-400"
     : status === "cancelled" ? "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20 text-gray-700 dark:text-gray-300"
@@ -228,27 +231,29 @@ export default function DashboardInvoiceDetailPage() {
   const statusDot = status === "paid" ? "bg-green-500" : status === "overdue" ? "bg-red-500" : status === "cancelled" ? "bg-gray-400" : "bg-amber-500";
 
   const paymentMethodLine = paymentMethodRaw && status === "paid"
-    ? `Completed via ${paymentMethodRaw}`
-    : status === "paid" ? "Payment method not recorded"
-    : status === "cancelled" ? "Not applicable"
-    : status === "overdue" ? "Awaiting payment — please remit immediately"
-    : "Awaiting payment — please complete via the payment page";
+    ? t("InvoiceDetail.methodCompletedVia", { method: paymentMethodRaw })
+    : status === "paid" ? t("InvoiceDetail.methodNotRecorded")
+    : status === "cancelled" ? t("InvoiceDetail.methodNotApplicable")
+    : status === "overdue" ? t("InvoiceDetail.methodAwaitingRemit")
+    : t("InvoiceDetail.methodAwaitingComplete");
 
   const paymentMessage = status === "paid"
-    ? "Payment has been received and confirmed in our system."
+    ? t("InvoiceDetail.msgPaid")
     : status === "overdue"
-    ? "This invoice is past its due date. Immediate payment is required to avoid shipment delays."
+    ? t("InvoiceDetail.msgOverdue")
     : status === "cancelled"
-    ? "This invoice has been cancelled and is no longer payable."
-    : "This invoice is currently outstanding. Please complete payment promptly.";
+    ? t("InvoiceDetail.msgCancelled")
+    : t("InvoiceDetail.msgUnpaid");
 
+  const bcpLocale = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
+  const dueDateStr = dueDate ? new Date(dueDate).toLocaleDateString(bcpLocale, { month: "short", day: "numeric", year: "numeric" }) : "";
   const dueDateLine = dueDate
     ? (status === "overdue"
-      ? `Overdue since ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+      ? t("InvoiceDetail.overdueSince", { date: dueDateStr })
       : status === "paid"
-      ? `Was due ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-      : `Due by ${new Date(dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`)
-    : status === "paid" ? "Paid in full" : "No due date set";
+      ? t("InvoiceDetail.wasDue", { date: dueDateStr })
+      : t("InvoiceDetail.dueBy", { date: dueDateStr }))
+    : status === "paid" ? t("InvoiceDetail.paidInFull") : t("InvoiceDetail.noDueDate");
 
   const card = "rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4";
   const card5 = "rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5";
@@ -260,19 +265,19 @@ export default function DashboardInvoiceDetailPage() {
       <div className="flex flex-col sm:flex-row gap-2">
         <button onClick={() => router.push(`/${locale}/dashboard/invoices`)}
           className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back to Invoices
+          <ArrowLeft className="w-4 h-4" /> {t("InvoiceDetail.backToInvoices")}
         </button>
         {(trackingNumber || shipmentId) && (
           <Link href={`/${locale}/dashboard/track/${encodeURIComponent(trackingNumber || shipmentId)}`}
             className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-            <Truck className="w-4 h-4" /> Track Shipment
+            <Truck className="w-4 h-4" /> {t("InvoiceDetail.trackShipment")}
           </Link>
         )}
         {status === "unpaid" || status === "overdue" ? (
           <Link href={`/${locale}/dashboard/shipments/${encodeURIComponent(shipmentId)}/payment`}
             className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold transition shadow-sm hover:opacity-90"
             style={{ background: accentGradient }}>
-            <CreditCard className="w-4 h-4" /> Pay Now
+            <CreditCard className="w-4 h-4" /> {t("InvoiceDetail.payNow")}
           </Link>
         ) : null}
       </div>
@@ -280,7 +285,7 @@ export default function DashboardInvoiceDetailPage() {
       {loading && (
         <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-8 shadow-sm flex items-center gap-3">
           <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
-          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Loading invoice…</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{t("InvoiceDetail.loading")}</p>
         </div>
       )}
 
@@ -300,7 +305,7 @@ export default function DashboardInvoiceDetailPage() {
           <div style={{ background: accentGradient }} className="p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Invoice</p>
+                <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{t("InvoiceDetail.invoice")}</p>
                 <p className="text-white font-extrabold text-xl sm:text-2xl tracking-wide mt-0.5">{invoiceNumber || "—"}</p>
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold bg-white/10 border-white/30 text-white self-start sm:self-auto">
@@ -318,13 +323,13 @@ export default function DashboardInvoiceDetailPage() {
               <div className={card}>
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4" style={{ color: accentSolid }} />
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Dates</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.dates")}</p>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Created</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t("InvoiceDetail.created")}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-white">{fmtDate(data?.dates?.createdAt || null)}</p>
                 {data?.estimatedDelivery && (
                   <>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Est. delivery</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t("InvoiceDetail.estDelivery")}</p>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{estDeliveryStr}</p>
                   </>
                 )}
@@ -333,18 +338,18 @@ export default function DashboardInvoiceDetailPage() {
               <div className={card}>
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="w-4 h-4" style={{ color: accentSolid }} />
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">IDs</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.ids")}</p>
                 </div>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">Shipment</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">{t("InvoiceDetail.shipment")}</p>
                 <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{shipmentId || "—"}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase mt-1.5">Tracking</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase mt-1.5">{t("InvoiceDetail.tracking")}</p>
                 <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{trackingNumber || "—"}</p>
               </div>
 
               <div className={card}>
                 <div className="flex items-center gap-2 mb-2">
                   <CreditCard className="w-4 h-4" style={{ color: accentSolid }} />
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Amount</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.amount")}</p>
                 </div>
                 <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{fmtMoney(calc.total, currency)}</p>
                 <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${statusColor}`}>
@@ -359,15 +364,15 @@ export default function DashboardInvoiceDetailPage() {
               <div className={card}>
                 <div className="flex items-center gap-2 mb-3">
                   <MapPin className="w-4 h-4" style={{ color: accentSolid }} />
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Route</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.route")}</p>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">From</p>
+                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.from")}</p>
                     <p className="font-semibold text-gray-900 dark:text-white">{originFull}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">To</p>
+                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.to")}</p>
                     <p className="font-semibold text-gray-900 dark:text-white">{destinationFull}</p>
                   </div>
                 </div>
@@ -376,14 +381,14 @@ export default function DashboardInvoiceDetailPage() {
               <div className={card}>
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4" style={{ color: accentSolid }} />
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Declaration</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.declaration")}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Declared Value</p><p className="font-semibold text-gray-900 dark:text-white">{fmtMoney(declaredValue, currency)}</p></div>
-                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Type</p><p className="font-semibold text-gray-900 dark:text-white">{shipmentType}</p></div>
-                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Service</p><p className="font-semibold text-gray-900 dark:text-white">{serviceLevel}</p></div>
-                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Weight</p><p className="font-semibold text-gray-900 dark:text-white">{weightLine}</p></div>
-                  <div className="col-span-2"><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Dimensions</p><p className="font-semibold text-gray-900 dark:text-white">{dimLine}</p></div>
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.declaredValue")}</p><p className="font-semibold text-gray-900 dark:text-white">{fmtMoney(declaredValue, currency)}</p></div>
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.type")}</p><p className="font-semibold text-gray-900 dark:text-white">{shipmentType}</p></div>
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.service")}</p><p className="font-semibold text-gray-900 dark:text-white">{serviceLevel}</p></div>
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.weight")}</p><p className="font-semibold text-gray-900 dark:text-white">{weightLine}</p></div>
+                  <div className="col-span-2"><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.dimensions")}</p><p className="font-semibold text-gray-900 dark:text-white">{dimLine}</p></div>
                 </div>
               </div>
             </div>
@@ -392,16 +397,16 @@ export default function DashboardInvoiceDetailPage() {
             <div className={card5}>
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="w-4 h-4" style={{ color: accentSolid }} />
-                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Parties</h2>
+                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">{t("InvoiceDetail.parties")}</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
-                  <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-1">Sender</p>
+                  <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-1">{t("InvoiceDetail.sender")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">{safeStr(data?.parties?.senderName) || "—"}</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm break-all">{safeStr(data?.parties?.senderEmail) || "—"}</p>
                 </div>
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
-                  <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-1">Receiver</p>
+                  <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-1">{t("InvoiceDetail.receiver")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">{safeStr(data?.parties?.receiverName) || "—"}</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm break-all">{safeStr(data?.parties?.receiverEmail) || "—"}</p>
                 </div>
@@ -413,9 +418,9 @@ export default function DashboardInvoiceDetailPage() {
               <div className={card5}>
                 <div className="flex items-center gap-2 mb-3">
                   <CreditCard className="w-4 h-4" style={{ color: accentSolid }} />
-                  <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Payment</h2>
+                  <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">{t("InvoiceDetail.payment")}</h2>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Accepted methods:</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t("InvoiceDetail.acceptedMethods")}</p>
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {ACCEPTED_METHODS.map((m) => (
                     <span key={m} className="inline-flex items-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-gray-700 dark:text-gray-300">{m}</span>
@@ -423,16 +428,16 @@ export default function DashboardInvoiceDetailPage() {
                 </div>
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3 space-y-2">
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Status</p>
+                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.status")}</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-white mt-0.5">
-                      {status === "paid" ? "Confirmed and Received"
-                        : status === "overdue" ? "Overdue — Action Required"
-                        : status === "cancelled" ? "Invoice Cancelled"
-                        : "Outstanding — Awaiting Payment"}
+                      {status === "paid" ? t("InvoiceDetail.statusConfirmed")
+                        : status === "overdue" ? t("InvoiceDetail.statusOverdueAction")
+                        : status === "cancelled" ? t("InvoiceDetail.statusCancelledLabel")
+                        : t("InvoiceDetail.statusOutstanding")}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">Method</p>
+                    <p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.method")}</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-white mt-0.5">{paymentMethodLine}</p>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 pt-1.5 border-t border-gray-100 dark:border-white/10 leading-relaxed">{paymentMessage}</p>
@@ -442,58 +447,58 @@ export default function DashboardInvoiceDetailPage() {
               <div className={card5}>
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4" style={{ color: accentSolid }} />
-                  <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Charges</h2>
+                  <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">{t("InvoiceDetail.charges")}</h2>
                 </div>
 
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
-                    <p className="text-xs font-extrabold uppercase text-gray-500 dark:text-gray-400">Declared Value</p>
+                    <p className="text-xs font-extrabold uppercase text-gray-500 dark:text-gray-400">{t("InvoiceDetail.declaredValue")}</p>
                     <p className="text-sm text-gray-900 dark:text-white font-semibold">{fmtNumberWithCommas(declaredValue, 2)} {currency}</p>
                   </div>
 
                   <div className="p-4 space-y-2.5 text-sm">
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                      <span>Base Freight ({shipmentMeans !== "—" ? shipmentMeans : "Shipping"})</span>
+                      <span>{t("InvoiceDetail.baseFreight", { means: shipmentMeans !== "—" ? shipmentMeans : t("InvoiceDetail.shipping") })}</span>
                       <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.baseFreight, 2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                      <span>Fuel Surcharge ({fmtPercent(fuelRate)})</span>
+                      <span>{t("InvoiceDetail.fuelSurcharge", { rate: fmtPercent(fuelRate) })}</span>
                       <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.fuel, 2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                      <span>Insurance ({fmtPercent(insuranceRate)})</span>
+                      <span>{t("InvoiceDetail.insurance", { rate: fmtPercent(insuranceRate) })}</span>
                       <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.insurance, 2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                      <span>Handling</span>
+                      <span>{t("InvoiceDetail.handling")}</span>
                       <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.handling, 2)}</span>
                     </div>
                     {calc.customs > 0 && (
                       <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                        <span>Customs</span>
+                        <span>{t("InvoiceDetail.customs")}</span>
                         <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.customs, 2)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between pt-2.5 border-t border-gray-100 dark:border-white/10">
-                      <span className="font-bold text-gray-900 dark:text-white">Subtotal</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{t("InvoiceDetail.subtotal")}</span>
                       <span className="font-bold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.subtotal, 2)}</span>
                     </div>
                     {calc.tax > 0 && (
                       <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                        <span>Tax</span>
+                        <span>{t("InvoiceDetail.tax")}</span>
                         <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.tax, 2)}</span>
                       </div>
                     )}
                     {calc.discount > 0 && (
                       <div className="flex justify-between text-green-600 dark:text-green-400">
-                        <span>Discount</span>
+                        <span>{t("InvoiceDetail.discount")}</span>
                         <span className="font-semibold">−{fmtNumberWithCommas(calc.discount, 2)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between pt-3 border-t border-gray-100 dark:border-white/10 text-base">
-                      <span className="font-extrabold text-gray-900 dark:text-white">Total</span>
+                      <span className="font-extrabold text-gray-900 dark:text-white">{t("InvoiceDetail.total")}</span>
                       <span className="font-extrabold" style={{ color: accentSolid }}>
                         {fmtNumberWithCommas(calc.total, 2)} {currency}
                       </span>
@@ -507,11 +512,12 @@ export default function DashboardInvoiceDetailPage() {
             <div className="px-2 py-6 flex flex-col items-center text-center gap-2">
               <ShieldCheck className="w-6 h-6" style={{ color: accentSolid }} />
               <p className="text-xs font-extrabold text-gray-800 dark:text-gray-200 tracking-wide uppercase">
-                Officially Issued by Exodus Logistics Ltd.
+                {t("InvoiceDetail.officiallyIssued")}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
-                This document is a system-generated invoice. For questions, contact{" "}
-                <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>support@goexoduslogistics.com</a>.
+                {t("InvoiceDetail.footerNote", {
+                  email: (chunks: any) => <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>support@goexoduslogistics.com</a>,
+                })}
               </p>
             </div>
           </div>
