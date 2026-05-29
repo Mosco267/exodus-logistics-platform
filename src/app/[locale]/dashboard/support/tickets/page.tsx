@@ -10,6 +10,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, X, Send, ArrowLeft,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl, type IntlShape } from "react-intl";
 import {
   SUPPORT_CATEGORIES, categoryEmoji,
   statusLabel, statusColor, fmtRelativeShort, type TicketStatus,
@@ -32,19 +33,21 @@ type TicketRow = {
 
 const PAGE_SIZE = 10;
 
-const STATUS_FILTERS: Array<{ id: "all" | TicketStatus; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "open", label: "Open" },
-  { id: "awaiting_customer", label: "Awaiting You" },
-  { id: "in_progress", label: "In Progress" },
-  { id: "resolved", label: "Resolved" },
-  { id: "closed", label: "Closed" },
+const STATUS_FILTERS: Array<{ id: "all" | TicketStatus }> = [
+  { id: "all" },
+  { id: "open" },
+  { id: "awaiting_customer" },
+  { id: "in_progress" },
+  { id: "resolved" },
+  { id: "closed" },
 ];
 
 export default function UserTicketsPage() {
   const params = useParams();
   const router = useRouter();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -82,11 +85,11 @@ export default function UserTicketsPage() {
     try {
       const res = await fetch("/api/support/tickets", { cache: "no-store" });
       const json = await res.json();
-      if (!res.ok) { setErr(json?.error || "Failed to load tickets."); return; }
+      if (!res.ok) { setErr(json?.error || t('Tickets.errLoadFailed')); return; }
       setTickets(Array.isArray(json?.tickets) ? json.tickets : []);
       setCounts(json?.counts || counts);
     } catch (e: any) {
-      setErr(e?.message || "Failed to load tickets.");
+      setErr(e?.message || t('Tickets.errLoadFailed'));
     } finally { setLoading(false); }
   };
 
@@ -117,9 +120,9 @@ export default function UserTicketsPage() {
       <div className="flex items-center gap-3">
         <button onClick={() => router.push(`/${locale}/dashboard/support`)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /> {t('Tickets.back')}
         </button>
-        <h1 className={`text-xl font-extrabold ${headerTitleCls}`}>My Tickets</h1>
+        <h1 className={`text-xl font-extrabold ${headerTitleCls}`}>{t('Tickets.title')}</h1>
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -127,14 +130,14 @@ export default function UserTicketsPage() {
           onClick={() => setShowNewTicket(true)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 shadow-sm"
           style={{ background: accentGradient }}>
-          <Plus size={15} /> New Ticket
+          <Plus size={15} /> {t('Tickets.newTicket')}
         </button>
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search tickets…"
+            placeholder={t('Tickets.searchPlaceholder')}
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none"
             style={{ fontSize: "16px" }} />
         </div>
@@ -150,7 +153,7 @@ export default function UserTicketsPage() {
                 isActive ? "text-white" : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
               }`}
               style={isActive ? { background: accentSolid } : {}}>
-              {f.label}
+              {t('Tickets.filter_' + f.id)}
               <span className="ml-1.5 opacity-70">({count})</span>
             </button>
           );
@@ -162,7 +165,7 @@ export default function UserTicketsPage() {
         {loading ? (
           <div className="p-12 flex items-center justify-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin" style={{ color: accentSolid }} />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Loading tickets…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('Tickets.loading')}</p>
           </div>
         ) : err ? (
           <div className="p-6">
@@ -176,47 +179,47 @@ export default function UserTicketsPage() {
               <FileText className="w-6 h-6 text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {filter === "all" ? "No tickets yet" : `No ${statusLabel(filter as string).toLowerCase()} tickets`}
+              {filter === "all" ? t('Tickets.emptyNoneYet') : t('Tickets.emptyNoneForFilter', { status: t('Tickets.filter_' + filter).toLowerCase() })}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {search.trim() ? "No results match your search." : filter === "all" ? "Open a ticket and we'll track it for you." : "Try a different filter."}
+              {search.trim() ? t('Tickets.emptyNoResults') : filter === "all" ? t('Tickets.emptyOpenAndTrack') : t('Tickets.emptyTryDifferent')}
             </p>
             {filter === "all" && !search.trim() && (
               <button onClick={() => setShowNewTicket(true)}
                 className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 transition"
                 style={{ background: accentGradient }}>
-                <Plus size={14} /> New Ticket
+                <Plus size={14} /> {t('Tickets.newTicket')}
               </button>
             )}
           </div>
         ) : (
           <>
             <div className="divide-y divide-gray-100 dark:divide-white/10">
-              {paged.map(t => {
-                const c = statusColor(t.status);
+              {paged.map(tk => {
+                const c = statusColor(tk.status);
                 return (
                   <Link
-                    key={t._id}
-                    href={`/${locale}/dashboard/support/tickets/${t._id}`}
+                    key={tk._id}
+                    href={`/${locale}/dashboard/support/tickets/${tk._id}`}
                     className="group block px-5 py-4 hover:bg-gray-50 dark:hover:bg-white/5 transition cursor-pointer">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg" style={{ background: `${accentSolid}15` }}>
-                        {categoryEmoji(t.category)}
+                        {categoryEmoji(tk.category)}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{t.subject}</p>
-                          {t.unreadByUser > 0 && (
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{tk.subject}</p>
+                          {tk.unreadByUser > 0 && (
                             <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white rounded-full" style={{ background: accentSolid }}>
-                              {t.unreadByUser}
+                              {tk.unreadByUser}
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate font-mono">{t.ticketNumber}</p>
-                        {t.lastMessagePreview && (
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate font-mono">{tk.ticketNumber}</p>
+                        {tk.lastMessagePreview && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {t.lastMessageBy === "user" ? "You: " : "Support: "}{t.lastMessagePreview}
+                            {tk.lastMessageBy === "user" ? t('Tickets.youPrefix') : t('Tickets.supportPrefix')}{tk.lastMessagePreview}
                           </p>
                         )}
                       </div>
@@ -224,9 +227,9 @@ export default function UserTicketsPage() {
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.bg} ${c.text} ${c.border}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                          {statusLabel(t.status)}
+                          {statusLabel(tk.status)}
                         </span>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtRelativeShort(t.lastMessageAt || t.updatedAt)}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtRelativeShort(tk.lastMessageAt || tk.updatedAt)}</p>
                       </div>
 
                       <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 transition shrink-0 mt-1" />
@@ -239,16 +242,16 @@ export default function UserTicketsPage() {
             {totalPages > 1 && (
               <div className="px-5 py-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Page {page} of {totalPages} · {filtered.length} tickets
+                  {t('Tickets.pageOfTotal', { page, totalPages, count: filtered.length })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ChevronLeft size={12} /> Prev
+                    <ChevronLeft size={12} /> {t('Tickets.prev')}
                   </button>
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    Next <ChevronRightIcon size={12} />
+                    {t('Tickets.next')} <ChevronRightIcon size={12} />
                   </button>
                 </div>
               </div>
@@ -261,10 +264,11 @@ export default function UserTicketsPage() {
         <NewTicketModal
           accentSolid={accentSolid}
           accentGradient={accentGradient}
+          intl={intl}
           onClose={() => setShowNewTicket(false)}
-          onCreated={(t) => {
+          onCreated={(tk) => {
             setShowNewTicket(false);
-            router.push(`/${locale}/dashboard/support/tickets/${t._id}`);
+            router.push(`/${locale}/dashboard/support/tickets/${tk._id}`);
           }}
         />
       )}
@@ -273,13 +277,15 @@ export default function UserTicketsPage() {
 }
 
 function NewTicketModal({
-  accentSolid, accentGradient, onClose, onCreated,
+  accentSolid, accentGradient, onClose, onCreated, intl,
 }: {
   accentSolid: string;
   accentGradient: string;
   onClose: () => void;
   onCreated: (t: any) => void;
+  intl: IntlShape;
 }) {
+  const tt = (id: string, values?: any) => intl.formatMessage({ id }, values);
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("other");
   const [body, setBody] = useState("");
@@ -303,10 +309,10 @@ function NewTicketModal({
         }),
       });
       const json = await res.json();
-      if (!res.ok) { setErr(json?.error || "Failed to create ticket."); return; }
+      if (!res.ok) { setErr(json?.error || tt('Tickets.errCreateFailed')); return; }
       onCreated(json.ticket);
     } catch (e: any) {
-      setErr(e?.message || "Failed to create ticket.");
+      setErr(e?.message || tt('Tickets.errCreateFailed'));
     } finally { setSubmitting(false); }
   };
 
@@ -318,7 +324,7 @@ function NewTicketModal({
       <div className="relative w-[92%] max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 max-h-[90vh] overflow-y-auto">
 
         <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10">
-          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">New Support Ticket</h2>
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{tt('Tickets.modalTitle')}</h2>
           <button onClick={onClose}
             className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition">
             <X size={16} />
@@ -327,7 +333,7 @@ function NewTicketModal({
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Category</label>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">{tt('Tickets.category')}</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {SUPPORT_CATEGORIES.map(c => {
                 const isActive = category === c.id;
@@ -346,25 +352,25 @@ function NewTicketModal({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Subject *</label>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">{tt('Tickets.subject')}</label>
             <input value={subject} onChange={e => setSubject(e.target.value)}
-              placeholder="Brief description" required minLength={3} maxLength={120}
+              placeholder={tt('Tickets.subjectPlaceholder')} required minLength={3} maxLength={120}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-white/30 transition"
               style={{ fontSize: "16px" }} />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Shipment / Tracking number (optional)</label>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">{tt('Tickets.shipmentRef')}</label>
             <input value={shipmentRef} onChange={e => setShipmentRef(e.target.value.toUpperCase())}
-              placeholder="EXS-… or EX…"
+              placeholder={tt('Tickets.shipmentRefPlaceholder')}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 placeholder:font-sans focus:outline-none focus:border-gray-400 dark:focus:border-white/30 transition uppercase"
               style={{ fontSize: "16px" }} />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Message *</label>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">{tt('Tickets.message')}</label>
             <textarea value={body} onChange={e => setBody(e.target.value)}
-              placeholder="Describe your issue in detail…" required minLength={3} maxLength={5000} rows={6}
+              placeholder={tt('Tickets.messagePlaceholder')} required minLength={3} maxLength={5000} rows={6}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-white/30 transition resize-none"
               style={{ fontSize: "16px" }} />
             <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">{body.length} / 5000</p>
@@ -377,15 +383,15 @@ function NewTicketModal({
           )}
 
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose}
+           <button type="button" onClick={onClose}
               className="cursor-pointer flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition">
-              Cancel
+              {tt('Tickets.cancel')}
             </button>
             <button type="submit" disabled={submitting}
               className="cursor-pointer flex-1 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ background: accentGradient }}>
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {submitting ? "Creating…" : "Create Ticket"}
+              {submitting ? tt('Tickets.creating') : tt('Tickets.createTicket')}
             </button>
           </div>
         </form>

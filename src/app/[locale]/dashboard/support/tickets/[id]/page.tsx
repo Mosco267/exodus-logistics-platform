@@ -9,6 +9,7 @@ import {
   FileText, Image as ImageIcon, Calendar, Tag, Truck, Lock,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl } from "react-intl";
 import { getPusherClient, userChatChannel } from "@/lib/pusher-client";
 import {
   categoryLabel, categoryEmoji, statusLabel, statusColor,
@@ -55,6 +56,8 @@ export default function UserTicketDetailPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const id = String(params?.id || "");
+  const intl = useIntl();
+  const t = (msgId: string, values?: any) => intl.formatMessage({ id: msgId }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -95,11 +98,11 @@ export default function UserTicketDetailPage() {
     try {
       const res = await fetch(`/api/support/tickets/${id}`, { cache: "no-store" });
       const json = await res.json();
-      if (!res.ok) { setErr(json?.error || "Failed to load ticket."); return; }
+      if (!res.ok) { setErr(json?.error || t('TicketDetail.errLoadFailed')); return; }
       setTicket(json.ticket);
       setMessages(Array.isArray(json.messages) ? json.messages : []);
     } catch (e: any) {
-      setErr(e?.message || "Failed to load ticket.");
+      setErr(e?.message || t('TicketDetail.errLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -149,7 +152,7 @@ export default function UserTicketDetailPage() {
     setComposerErr("");
     const available = MAX_FILES_PER_MESSAGE - attachments.length;
     if (available <= 0) {
-      setComposerErr(`Maximum ${MAX_FILES_PER_MESSAGE} attachments per message.`);
+      setComposerErr(t('TicketDetail.errMaxAttachments', { max: MAX_FILES_PER_MESSAGE }));
       return;
     }
     const toUpload = Array.from(files).slice(0, available);
@@ -157,14 +160,14 @@ export default function UserTicketDetailPage() {
     try {
       for (const f of toUpload) {
         if (f.size > MAX_FILE_SIZE_BYTES) {
-          setComposerErr(`"${f.name}" is too large (max 10 MB).`);
+          setComposerErr(t('TicketDetail.errFileTooLarge', { name: f.name }));
           continue;
         }
         const form = new FormData();
         form.append("file", f);
         const res = await fetch("/api/uploads", { method: "POST", body: form });
         const json = await res.json();
-        if (!res.ok || !json?.url) { setComposerErr(json?.error || "Upload failed."); continue; }
+        if (!res.ok || !json?.url) { setComposerErr(json?.error || t('TicketDetail.errUploadFailed')); continue; }
         setAttachments(prev => [...prev, { url: json.url, filename: f.name, size: f.size, type: f.type }]);
       }
     } finally {
@@ -191,13 +194,13 @@ export default function UserTicketDetailPage() {
         body: JSON.stringify({ body, attachments }),
       });
       const json = await res.json();
-      if (!res.ok) { setComposerErr(json?.error || "Failed to send."); return; }
+      if (!res.ok) { setComposerErr(json?.error || t('TicketDetail.errSendFailed')); return; }
 
       setDraft("");
       setAttachments([]);
       await load();
     } catch (e: any) {
-      setComposerErr(e?.message || "Failed to send.");
+      setComposerErr(e?.message || t('TicketDetail.errSendFailed'));
     } finally {
       setSending(false);
     }
@@ -209,7 +212,7 @@ export default function UserTicketDetailPage() {
       <div className="max-w-4xl mx-auto pb-12">
         <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-8 flex items-center gap-3">
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: accentSolid }} />
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading ticket…</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('TicketDetail.loading')}</p>
         </div>
       </div>
     );
@@ -220,10 +223,10 @@ export default function UserTicketDetailPage() {
       <div className="max-w-4xl mx-auto pb-12 space-y-4">
         <button onClick={() => router.push(`/${locale}/dashboard/support/tickets`)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back to Tickets
+          <ArrowLeft className="w-4 h-4" /> {t('TicketDetail.backToTickets')}
         </button>
         <div className="rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5 flex items-center gap-3 text-red-700 dark:text-red-400 font-semibold">
-          <AlertCircle className="w-5 h-5 shrink-0" /> {err || "Ticket not found."}
+          <AlertCircle className="w-5 h-5 shrink-0" /> {err || t('TicketDetail.errNotFound')}
         </div>
       </div>
     );
@@ -239,12 +242,12 @@ export default function UserTicketDetailPage() {
       <div className="flex flex-col sm:flex-row gap-2">
         <button onClick={() => router.push(`/${locale}/dashboard/support/tickets`)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back to Tickets
+          <ArrowLeft className="w-4 h-4" /> {t('TicketDetail.backToTickets')}
         </button>
         {ticket.shipmentRef && (
           <Link href={`/${locale}/dashboard/track/${encodeURIComponent(ticket.shipmentRef)}`}
             className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-            <Truck className="w-4 h-4" /> Track Shipment
+            <Truck className="w-4 h-4" /> {t('TicketDetail.trackShipment')}
           </Link>
         )}
       </div>
@@ -276,7 +279,7 @@ export default function UserTicketDetailPage() {
 
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400">
             <span className="flex items-center gap-1">
-              <Calendar size={11} /> Opened {fmtChatTime(ticket.createdAt)}
+              <Calendar size={11} /> {t('TicketDetail.openedAt', { date: fmtChatTime(ticket.createdAt) })}
             </span>
             {ticket.shipmentRef && (
               <span className="flex items-center gap-1">
@@ -287,13 +290,13 @@ export default function UserTicketDetailPage() {
 
           {ticket.status === "resolved" && (
             <div className="mt-4 rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-3 text-xs text-green-700 dark:text-green-400">
-              This ticket is marked as resolved. If your issue isn't fully resolved, just reply below and it will be reopened automatically.
+              {t('TicketDetail.resolvedBanner')}
             </div>
           )}
 
           {isClosed && (
             <div className="mt-4 rounded-xl border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 p-3 text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <Lock size={12} /> This ticket is closed. To continue this conversation, please open a new ticket.
+              <Lock size={12} /> {t('TicketDetail.closedBanner')}
             </div>
           )}
         </div>
@@ -303,7 +306,7 @@ export default function UserTicketDetailPage() {
       <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm overflow-hidden flex flex-col">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-4 max-h-[60vh] bg-gray-50/50 dark:bg-white/[0.02]">
           {messages.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No messages yet.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t('TicketDetail.noMessages')}</p>
           ) : (
             messages.map(m => {
               const mine = m.authorType === "user";
@@ -316,7 +319,7 @@ export default function UserTicketDetailPage() {
                   <div className={`max-w-[85%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                     <div className="flex items-center gap-2 mb-1 px-1">
                       <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                        {mine ? "You" : m.authorName}
+                        {mine ? t('TicketDetail.you') : m.authorName}
                       </p>
                       <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtChatTime(m.createdAt)}</p>
                     </div>
@@ -363,7 +366,7 @@ export default function UserTicketDetailPage() {
         {/* Composer */}
         {isClosed ? (
           <div className="px-5 py-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] text-center text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
-            <Lock size={12} /> This ticket is closed. Open a new ticket to continue.
+            <Lock size={12} /> {t('TicketDetail.closedComposer')}
           </div>
         ) : (
           <div className="border-t border-gray-100 dark:border-white/10 p-4">
@@ -373,7 +376,7 @@ export default function UserTicketDetailPage() {
                   <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-xs">
                     {a.type?.startsWith("image/") ? <ImageIcon size={12} /> : <FileText size={12} />}
                     <span className="font-semibold truncate max-w-[120px] text-gray-700 dark:text-gray-200">{a.filename}</span>
-                    <button onClick={() => removeAttachment(i)} className="cursor-pointer hover:text-red-500" title="Remove">
+                    <button onClick={() => removeAttachment(i)} className="cursor-pointer hover:text-red-500" title={t('TicketDetail.remove')}>
                       <X size={12} />
                     </button>
                   </div>
@@ -401,7 +404,7 @@ export default function UserTicketDetailPage() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading || attachments.length >= MAX_FILES_PER_MESSAGE}
                 className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
-                title="Attach">
+                title={t('TicketDetail.attach')}>
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
               </button>
 
@@ -414,7 +417,7 @@ export default function UserTicketDetailPage() {
                     void handleSend();
                   }
                 }}
-                placeholder={ticket.status === "resolved" ? "Reply to reopen this ticket…" : "Type your reply…"}
+                placeholder={ticket.status === "resolved" ? t('TicketDetail.placeholderReopen') : t('TicketDetail.placeholderReply')}
                 rows={1}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-white/30 transition resize-none max-h-32"
                 style={{ fontSize: "16px" }}
@@ -427,7 +430,7 @@ export default function UserTicketDetailPage() {
                 className="cursor-pointer h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
                 style={{ background: accentGradient }}>
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                <span className="hidden sm:inline">Send</span>
+                <span className="hidden sm:inline">{t('TicketDetail.send')}</span>
               </button>
             </div>
           </div>

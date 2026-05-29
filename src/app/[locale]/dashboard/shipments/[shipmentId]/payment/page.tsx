@@ -12,6 +12,7 @@ import {
   detectCardBrand, getCardBrandLabel, getCardCvvLength, getCardMaxLength, CardBrand,
 } from '@/lib/payment-settings';
 import { COUNTRIES_WITH_STATES, getCountryByName } from '@/lib/countriesData';
+import { useIntl, type IntlShape } from 'react-intl';
 
 // Supported card brands (Verve and others NOT supported)
 const SUPPORTED_BRANDS: CardBrand[] = ['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners'];
@@ -23,7 +24,7 @@ const PAYPAL_SUPPORTED_CURRENCIES = [
   'CZK', 'HUF', 'ILS', 'MYR', 'BRL',
 ];
 
-function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+function ImageLightbox({ src, onClose, intl }: { src: string; onClose: () => void; intl?: IntlShape }) {
   const [accentSolid, setAccentSolid] = useState('#0b3aa4');
  
   useEffect(() => {
@@ -74,7 +75,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
         <X size={20} />
       </button>
       <div className="min-h-full flex items-center justify-center p-4">
-        <img src={src} alt="Preview"
+        <img src={src} alt={intl ? intl.formatMessage({ id: 'Payment.previewAlt' }) : 'Preview'}
           onClick={e => e.stopPropagation()}
           className="max-w-full h-auto rounded-lg shadow-2xl" />
       </div>
@@ -178,13 +179,14 @@ function uuidFromSeed(seed: string): string {
   ].join('-');
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, intl }: { text: string; intl?: IntlShape }) {
   const [copied, setCopied] = useState(false);
+  const copyLabel = intl ? intl.formatMessage({ id: copied ? 'Payment.copied' : 'Payment.copy' }) : (copied ? 'Copied' : 'Copy');
   return (
     <button type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-400/30 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition cursor-pointer shrink-0">
-      <Copy size={11} /> {copied ? 'Copied' : 'Copy'}
+      <Copy size={11} /> {copyLabel}
     </button>
   );
 }
@@ -208,21 +210,29 @@ function InfoRow({ label, value, copyable = true, truncate = false }: {
   );
 }
 
-function ConfirmationBanner({ time }: { time: string }) {
+function ConfirmationBanner({ time, intl }: { time: string; intl: IntlShape }) {
+  const tt = (id: string, values?: any) => intl.formatMessage({ id }, values);
   return (
     <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 rounded-xl px-4 py-3">
       <Clock size={14} className="text-amber-600 shrink-0" />
-      <p className="text-xs text-amber-700 dark:text-amber-300">Confirmation time: <strong>{time}</strong></p>
+      <p className="text-xs text-amber-700 dark:text-amber-300">
+        {tt('Payment.confirmationTime', {
+          time,
+          strong: (chunks: any) => <strong>{chunks}</strong>,
+        })}
+      </p>
     </div>
   );
 }
 
-function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
+function ReceiptUpload({ onUploaded, accent, onSubmit, submitting, intl }: {
   onUploaded: (url: string) => void;
   accent: string;
   onSubmit: () => void;
   submitting: boolean;
+  intl: IntlShape;
 }) {
+  const tt = (id: string) => intl.formatMessage({ id });
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -258,14 +268,14 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
   return (
     <div className="space-y-4 border-t border-gray-100 dark:border-white/10 pt-5">
       <div className="text-center">
-        <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1">Upload Payment Receipt</p>
-        <p className="text-xs text-gray-500 max-w-sm mx-auto">Upload a screenshot or photo of your payment receipt. We'll verify and confirm your payment.</p>
+        <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1">{tt('Payment.uploadReceiptTitle')}</p>
+        <p className="text-xs text-gray-500 max-w-sm mx-auto">{tt('Payment.uploadReceiptDesc')}</p>
       </div>
 
       {previewUrl && (
   <div className="flex justify-center">
     <div className="relative inline-block">
-      <img src={previewUrl} alt="Receipt preview"
+      <img src={previewUrl} alt={tt('Payment.receiptPreviewAlt')}
         onClick={() => setLightboxOpen(true)}
         className="w-40 h-40 object-cover rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm cursor-zoom-in hover:opacity-90 transition" />
       <button type="button" onClick={handleRemove}
@@ -277,14 +287,14 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
 )}
  
 {lightboxOpen && previewUrl && (
-  <ImageLightbox src={previewUrl} onClose={() => setLightboxOpen(false)} />
+  <ImageLightbox src={previewUrl} onClose={() => setLightboxOpen(false)} intl={intl} />
 )}
 
       <div className="flex justify-center">
         <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-dashed border-gray-300 dark:border-white/20 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-blue-400 hover:text-blue-600 cursor-pointer transition disabled:opacity-60">
           {uploading ? <Loader2 size={14} className="animate-spin" /> : uploaded ? <CheckCircle2 size={14} className="text-green-500" /> : <Upload size={14} />}
-          {uploading ? 'Uploading' : uploaded ? 'Replace Receipt' : 'Upload Receipt'}
+          {uploading ? tt('Payment.uploading') : uploaded ? tt('Payment.replaceReceipt') : tt('Payment.uploadReceipt')}
         </button>
       </div>
 
@@ -295,7 +305,7 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg cursor-pointer disabled:opacity-60"
           style={{ background: accent }}>
           {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-          {submitting ? 'Submitting' : 'I Have Paid Submit Receipt'}
+          {submitting ? tt('Payment.submitting') : tt('Payment.submitReceipt')}
         </button>
       )}
     </div>
@@ -303,9 +313,10 @@ function ReceiptUpload({ onUploaded, accent, onSubmit, submitting }: {
 }
 
 // Country-specific ZIP/postal validation
-function validateZipForCountry(zip: string, countryCode: string): string {
+function validateZipForCountry(zip: string, countryCode: string, intl?: IntlShape): string {
+  const tt = (id: string, values?: any) => intl ? intl.formatMessage({ id }, values) : id;
   const z = zip.trim();
-  if (!z) return 'Postal code is required';
+  if (!z) return tt('Payment.errZipRequired');
 
   const patterns: Record<string, { regex: RegExp; example: string }> = {
     US: { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
@@ -353,8 +364,8 @@ function validateZipForCountry(zip: string, countryCode: string): string {
   };
 
   const p = patterns[countryCode];
-  if (p && !p.regex.test(z)) return `Invalid postal code (e.g. ${p.example})`;
-  if (z.length < 3 || z.length > 12) return 'Postal code must be 3-12 characters';
+  if (p && !p.regex.test(z)) return tt('Payment.errZipInvalid', { example: p.example });
+  if (z.length < 3 || z.length > 12) return tt('Payment.errZipLength');
   return '';
 }
 
@@ -364,13 +375,15 @@ function formatAmountWithCommas(n: number): string {
 }
 
 // Demo card form with real validation but fake processing
-function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod }: {
+function CardFormDemo({ amount, currency, accent, themePrimary, onSwitchMethod, intl }: {
   amount: number;
   currency: string;
   accent: string;
   themePrimary: string;
   onSwitchMethod: () => void;
+  intl: IntlShape;
 }) {
+  const tt = (id: string, values?: any) => intl.formatMessage({ id }, values);
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -445,42 +458,42 @@ useEffect(() => {
   );
 
   const nameError =
-    touched.name && !cardName.trim() ? 'Cardholder name is required'
-    : touched.name && !/^[a-zA-Z\s'-]+$/.test(cardName.trim()) ? 'Name can only contain letters'
+    touched.name && !cardName.trim() ? tt('Payment.errCardNameRequired')
+    : touched.name && !/^[a-zA-Z\s'-]+$/.test(cardName.trim()) ? tt('Payment.errCardNameLetters')
     : '';
 
   const numberError =
-    touched.number && !cardDigits ? 'Card number is required'
-    : touched.number && cardDigits.length < maxLength ? `Card number must be ${maxLength} digits`
-    : touched.number && brand === 'unknown' ? 'This card type is not recognized'
-    : touched.number && !SUPPORTED_BRANDS.includes(brand) ? `${brandLabel || 'This card type'} is not supported. We accept Visa, Mastercard, American Express, Discover, JCB, and Diners Club.`
-    : touched.number && !luhnCheck(cardDigits) ? 'Card number is invalid'
+    touched.number && !cardDigits ? tt('Payment.errCardNumberRequired')
+    : touched.number && cardDigits.length < maxLength ? tt('Payment.errCardNumberLength', { count: maxLength })
+    : touched.number && brand === 'unknown' ? tt('Payment.errCardUnknown')
+    : touched.number && !SUPPORTED_BRANDS.includes(brand) ? tt('Payment.errCardUnsupported', { brand: brandLabel || tt('Payment.thisCardType') })
+    : touched.number && !luhnCheck(cardDigits) ? tt('Payment.errCardInvalid')
     : '';
 
   const expiryError = (() => {
     if (!touched.expiry) return '';
     const digits = expiry.replace(/\D/g, '');
-    if (digits.length < 4) return 'Enter expiry as MM/YY';
+    if (digits.length < 4) return tt('Payment.errExpiryFormat');
     const mm = parseInt(digits.slice(0, 2), 10);
     const yy = parseInt(digits.slice(2, 4), 10);
-    if (mm < 1 || mm > 12) return 'Invalid month';
+    if (mm < 1 || mm > 12) return tt('Payment.errExpiryMonth');
     const now = new Date();
     const currentYY = now.getFullYear() % 100;
     const currentMM = now.getMonth() + 1;
-    if (yy < currentYY || (yy === currentYY && mm < currentMM)) return 'Card has expired';
-    if (yy > currentYY + 20) return 'Invalid year';
+    if (yy < currentYY || (yy === currentYY && mm < currentMM)) return tt('Payment.errCardExpired');
+    if (yy > currentYY + 20) return tt('Payment.errExpiryYear');
     return '';
   })();
 
   const cvvError =
-    touched.cvv && !cvv ? 'CVV is required'
-    : touched.cvv && cvv.length !== cvvLength ? `CVV must be ${cvvLength} digits`
+    touched.cvv && !cvv ? tt('Payment.errCvvRequired')
+    : touched.cvv && cvv.length !== cvvLength ? tt('Payment.errCvvLength', { count: cvvLength })
     : '';
 
- const zipError = touched.zip ? validateZipForCountry(zipCode, countryCode) : '';
-const stateError = touched.state && hasStates && !stateValue.trim() ? 'State / Province is required' : '';
-const cityError = touched.city && !city.trim() ? 'City is required' : '';
-const addressError = touched.address && !billingAddress.trim() ? 'Billing address is required' : '';
+ const zipError = touched.zip ? validateZipForCountry(zipCode, countryCode, intl) : '';
+const stateError = touched.state && hasStates && !stateValue.trim() ? tt('Payment.errStateRequired') : '';
+const cityError = touched.city && !city.trim() ? tt('Payment.errCityRequired') : '';
+const addressError = touched.address && !billingAddress.trim() ? tt('Payment.errAddressRequired') : '';
 
 const isValid =
   !!cardName.trim() &&
@@ -494,7 +507,7 @@ const isValid =
   !!city.trim() &&
   !!billingAddress.trim() &&
   !!zipCode.trim() &&
-  !validateZipForCountry(zipCode, countryCode) &&
+  !validateZipForCountry(zipCode, countryCode, intl) &&
   (!hasStates || !!stateValue.trim());
 
   const handleSubmit = async () => {
@@ -507,7 +520,7 @@ const isValid =
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     setProcessing(false);
-    setPaymentError('Payment processor unreachable. Please try another payment method.');
+    setPaymentError(tt('Payment.errProcessorUnreachable'));
   };
 
   const handleRetry = () => {
@@ -576,7 +589,7 @@ const isValid =
     <div className="space-y-4">
       {/* Supported cards row */}
       <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
-        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Accepted Cards</p>
+        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{tt('Payment.acceptedCards')}</p>
         <div className="flex flex-wrap gap-1.5 items-center">
           {(['visa', 'mastercard', 'amex', 'discover', 'jcb', 'diners'] as CardBrand[]).map(b => (
   <div key={b}>{renderBrandLogo(b)}</div>
@@ -591,14 +604,14 @@ const isValid =
           {/* Cardholder Name */}
           <div>
             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-              Cardholder Name
+              {tt('Payment.cardholderName')}
             </label>
             <input
               type="text"
               value={cardName}
               onChange={e => setCardName(e.target.value)}
               onBlur={() => setTouched(t => ({ ...t, name: true }))}
-              placeholder="Name as it appears on card"
+              placeholder={tt('Payment.cardholderNamePlaceholder')}
               disabled={processing}
               className={getInputCls(nameError)}
               style={{ fontSize: '16px' }}
@@ -609,7 +622,7 @@ const isValid =
           {/* Card Number with brand logo */}
           <div>
             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-              Card Number
+              {tt('Payment.cardNumber')}
             </label>
             <div className="relative">
               <input
@@ -643,7 +656,7 @@ const isValid =
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-                Expiry (MM/YY)
+                {tt('Payment.expiry')}
               </label>
               <input
                 type="text"
@@ -661,7 +674,7 @@ const isValid =
             </div>
             <div>
               <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-                CVV {brand === 'amex' ? '(4 digits)' : '(3 digits)'}
+                {tt('Payment.cvv', { count: brand === 'amex' ? 4 : 3 })}
               </label>
               <input
                 type="text"
@@ -682,13 +695,13 @@ const isValid =
           {/* Billing — Country, State (if applicable), City, Address, ZIP */}
 <div className="border-t border-gray-100 dark:border-white/10 pt-4 space-y-3">
   <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-    Billing Information
+    {tt('Payment.billingInfo')}
   </p>
 
   {/* Country dropdown */}
   <div ref={countryRef} className="relative">
     <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-      Country
+      {tt('Payment.country')}
     </label>
     <button
       type="button"
@@ -710,7 +723,7 @@ const isValid =
       <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
         <div className="p-2 border-b border-gray-100 dark:border-white/10">
           <input value={countrySearch} onChange={e => setCountrySearch(e.target.value)}
-            placeholder="Search country" autoFocus
+            placeholder={tt('Payment.searchCountry')} autoFocus
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
         </div>
@@ -731,7 +744,7 @@ const isValid =
             </button>
           ))}
           {filteredCountries.length === 0 && (
-            <p className="px-4 py-3 text-sm text-gray-400">No results</p>
+            <p className="px-4 py-3 text-sm text-gray-400">{tt('Payment.noResults')}</p>
           )}
         </div>
       </div>
@@ -742,7 +755,7 @@ const isValid =
   {hasStates && (
     <div ref={stateRef} className="relative">
       <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-        State / Province
+        {tt('Payment.stateProvince')}
       </label>
       <button
         type="button"
@@ -751,7 +764,7 @@ const isValid =
         className={`${getInputCls(stateError)} flex items-center justify-between cursor-pointer text-left ${processing ? 'opacity-60' : ''}`}
         style={{ fontSize: '16px' }}>
         <span className={stateValue ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>
-          {stateValue || 'Select state'}
+          {stateValue || tt('Payment.selectState')}
         </span>
         <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${stateOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -761,7 +774,7 @@ const isValid =
         <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-gray-100 dark:border-white/10">
             <input value={stateSearch} onChange={e => setStateSearch(e.target.value)}
-              placeholder="Search state" autoFocus
+              placeholder={tt('Payment.searchState')} autoFocus
               style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none" />
           </div>
@@ -779,7 +792,7 @@ const isValid =
               </button>
             ))}
             {filteredStates.length === 0 && (
-              <p className="px-4 py-3 text-sm text-gray-400">No results</p>
+              <p className="px-4 py-3 text-sm text-gray-400">{tt('Payment.noResults')}</p>
             )}
           </div>
         </div>
@@ -791,14 +804,14 @@ const isValid =
   {/* Billing Address */}
   <div>
     <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-      Billing Address
+      {tt('Payment.billingAddress')}
     </label>
     <input
       type="text"
       value={billingAddress}
       onChange={e => setBillingAddress(e.target.value)}
       onBlur={() => setTouched(t => ({ ...t, address: true }))}
-      placeholder="Street address"
+      placeholder={tt('Payment.billingAddressPlaceholder')}
       disabled={processing}
       className={getInputCls(addressError)}
       style={{ fontSize: '16px' }}
@@ -810,14 +823,14 @@ const isValid =
   <div className="grid grid-cols-2 gap-3">
     <div>
       <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-        City
+        {tt('Payment.city')}
       </label>
       <input
         type="text"
         value={city}
         onChange={e => setCity(e.target.value)}
         onBlur={() => setTouched(t => ({ ...t, city: true }))}
-        placeholder="City"
+        placeholder={tt('Payment.city')}
         disabled={processing}
         className={getInputCls(cityError)}
         style={{ fontSize: '16px' }}
@@ -826,14 +839,14 @@ const isValid =
     </div>
     <div>
       <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
-        Postal / ZIP
+        {tt('Payment.postalZip')}
       </label>
       <input
         type="text"
         value={zipCode}
         onChange={e => setZipCode(e.target.value.toUpperCase())}
         onBlur={() => setTouched(t => ({ ...t, zip: true }))}
-        placeholder={countryCode === 'US' ? '12345' : countryCode === 'GB' ? 'SW1A 1AA' : countryCode === 'CA' ? 'A1A 1A1' : 'Postal code'}
+        placeholder={countryCode === 'US' ? '12345' : countryCode === 'GB' ? 'SW1A 1AA' : countryCode === 'CA' ? 'A1A 1A1' : tt('Payment.postalCodePlaceholder')}
         disabled={processing}
         maxLength={12}
         className={getInputCls(zipError)}
@@ -854,29 +867,29 @@ const isValid =
             {processing ? (
               <>
                 <Loader2 size={15} className="animate-spin" />
-                Processing payment
+                {tt('Payment.processingPayment')}
               </>
             ) : (
               <>
                 <CreditCard size={15} />
-                Pay {currency} {formatAmountWithCommas(amount)}
+                {tt('Payment.payAmount', { currency, amount: formatAmountWithCommas(amount) })}
               </>
             )}
           </button>
 
           {processing && (
             <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-              Please wait while we securely process your payment
+              {tt('Payment.processingNote')}
             </p>
           )}
 
           <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 leading-relaxed">
-            🔒 Your payment information is encrypted and secure. We do not store your card details.
+            {tt('Payment.securityNote')}
           </p>
           {paymentError && (
   <div className="text-center pt-2 border-t border-gray-100 dark:border-white/10">
     <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">
-      Payment Failed
+      {tt('Payment.paymentFailed')}
     </p>
     <p className="text-xs text-red-500 dark:text-red-300 leading-relaxed mb-3">
       {paymentError}
@@ -885,14 +898,14 @@ const isValid =
       <button
         onClick={handleRetry}
         className="text-red-600 dark:text-red-400 font-bold underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 cursor-pointer">
-        Retry payment
+        {tt('Payment.retryPayment')}
       </button>
-      <span className="mx-2 text-gray-400">or</span>
+      <span className="mx-2 text-gray-400">{tt('Payment.or')}</span>
       <button
         onClick={onSwitchMethod}
         className="font-bold underline underline-offset-2 hover:opacity-80 cursor-pointer"
         style={{ color: themePrimary }}>
-        try another method
+        {tt('Payment.tryAnotherMethod')}
       </button>
     </p>
   </div>
@@ -908,6 +921,8 @@ export default function PaymentPage() {
   const locale = (params?.locale as string) || 'en';
   const shipmentId = params?.shipmentId as string;
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   // Theme
   // Theme
@@ -953,7 +968,7 @@ export default function PaymentPage() {
   // Success
   const [showDone, setShowDone] = useState(false);
   const [qrLightbox, setQrLightbox] = useState('');
-  const [doneTitle, setDoneTitle] = useState('Payment Successful!');
+  const [doneTitle, setDoneTitle] = useState(() => intl.formatMessage({ id: 'Payment.successTitle' }));
   const [doneMessage, setDoneMessage] = useState('');
 
   // Payment reference
@@ -1002,8 +1017,8 @@ export default function PaymentPage() {
       });
       if (res.ok) {
         setReceiptSubmitted(true);
-        setDoneTitle('Receipt Submitted!');
-        setDoneMessage('Your payment receipt has been submitted. We\'ll verify and confirm your payment shortly.');
+        setDoneTitle(t('Payment.receiptSubmittedTitle'));
+        setDoneMessage(t('Payment.receiptSubmittedMsg'));
         setShowDone(true);
       }
     } finally { setSubmittingReceipt(false); }
@@ -1018,7 +1033,7 @@ export default function PaymentPage() {
           <div className="absolute inset-0 rounded-full border-[3px] border-transparent animate-spin"
             style={{ borderTopColor: themeColors.primary, borderRightColor: themeColors.secondary }} />
         </div>
-        <p className="text-sm font-semibold text-gray-600">Loading payment details</p>
+        <p className="text-sm font-semibold text-gray-600">{t('Payment.loadingDetails')}</p>
       </div>
     </div>
   );
@@ -1029,17 +1044,17 @@ export default function PaymentPage() {
   // Build methods
   const methods: Array<{ key: string; label: string; emoji: string; logoUrl?: string; desc: string; method: SelectedMethod }> = [];
   if (paySettings.card.enabled) {
-    methods.push({ key: 'card', label: 'Credit / Debit Card', emoji: '💳', desc: paySettings.card.confirmationTime, method: { type: 'card' } });
+    methods.push({ key: 'card', label: t('Payment.methodCard'), emoji: '💳', desc: paySettings.card.confirmationTime, method: { type: 'card' } });
   }
   const cryptoEnabled = paySettings.bitcoin.enabled || paySettings.usdt.enabled || paySettings.ethereum.enabled;
   if (cryptoEnabled) {
-    methods.push({ key: 'crypto', label: 'Cryptocurrency', emoji: '🪙', desc: 'Bitcoin, USDT, Ethereum', method: { type: 'crypto' } });
+    methods.push({ key: 'crypto', label: t('Payment.methodCrypto'), emoji: '🪙', desc: t('Payment.cryptoCoinsList'), method: { type: 'crypto' } });
   }
   if (paySettings.bankTransfer.enabled) {
-    methods.push({ key: 'bankTransfer', label: 'Bank Transfer', emoji: '🏦', desc: paySettings.bankTransfer.confirmationTime, method: { type: 'bankTransfer' } });
+    methods.push({ key: 'bankTransfer', label: t('Payment.methodBankTransfer'), emoji: '🏦', desc: paySettings.bankTransfer.confirmationTime, method: { type: 'bankTransfer' } });
   }
   if (paySettings.paypal.enabled) {
-    methods.push({ key: 'paypal', label: 'PayPal', emoji: '🅿️', desc: paySettings.paypal.confirmationTime, method: { type: 'paypal' } });
+    methods.push({ key: 'paypal', label: t('Payment.methodPaypal'), emoji: '🅿️', desc: paySettings.paypal.confirmationTime, method: { type: 'paypal' } });
   }
   for (const cm of paySettings.customMethods) {
     methods.push({
@@ -1088,19 +1103,19 @@ export default function PaymentPage() {
         </button>
         <div>
           <h1 className={`text-2xl font-extrabold ${isMidnightTheme ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-    Complete Payment
+    {t('Payment.completePayment')}
   </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Shipment {shipmentId}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('Payment.shipmentLine', { id: shipmentId })}</p>
         </div>
       </div>
 
       {/* Invoice summary */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
         <div className="px-5 py-5 border-b border-gray-100 dark:border-white/10" style={{ background: accent }}>
-          <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Total Amount Due</p>
+          <p className="text-xs font-bold text-white/70 uppercase tracking-wide">{t('Payment.totalDue')}</p>
           <p className="text-3xl font-extrabold text-white mt-1">{invoice.currency} {formatAmount(invoice.amount)}</p>
           <p className="text-xs text-white/70 mt-1">
-            <span className="font-bold uppercase tracking-wide mr-1.5">Country:</span>
+            <span className="font-bold uppercase tracking-wide mr-1.5">{t('Payment.country')}:</span>
             {shipment.shipmentScope === 'local'
               ? (shipment.senderCountry || '')
               : `${shipment.senderCountry || ''} → ${shipment.receiverCountry || ''}`}
@@ -1108,30 +1123,30 @@ export default function PaymentPage() {
         </div>
         <div className="px-5 py-4 space-y-2.5 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Shipment No</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('Payment.shipmentNo')}</span>
             <span className="font-bold text-gray-900 dark:text-white font-mono text-xs">{shipment.shipmentId}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Tracking No</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('Payment.trackingNo')}</span>
             <span className="font-bold text-gray-900 dark:text-white font-mono text-xs">{shipment.trackingNumber}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Invoice No</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('Payment.invoiceNo')}</span>
             <span className="font-bold text-gray-900 dark:text-white font-mono text-xs">{invoice.invoiceNumber}</span>
           </div>
 
           <div className="border-t border-gray-100 dark:border-white/10 my-2" />
 
           <div className="flex justify-between items-start gap-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">From</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">{t('Payment.from')}</span>
             <span className="font-bold text-gray-900 dark:text-white text-right">{shipment.senderName}</span>
           </div>
           <div className="flex justify-between items-start gap-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">To</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">{t('Payment.to')}</span>
             <span className="font-bold text-gray-900 dark:text-white text-right">{shipment.receiverName}</span>
           </div>
           <div className="flex justify-between items-start gap-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">Route</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">{t('Payment.route')}</span>
             <span className="font-bold text-gray-900 dark:text-white text-right text-xs">
               {shipment.shipmentScope === 'local'
                 ? `${shipment.senderState || shipment.senderCity || ''} → ${shipment.receiverState || shipment.receiverCity || ''}`
@@ -1142,12 +1157,12 @@ export default function PaymentPage() {
           <div className="border-t border-gray-100 dark:border-white/10 my-2" />
 
           <div className="flex justify-between items-center pt-1">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Invoice Status</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('Payment.invoiceStatus')}</span>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${invoice.paid
                 ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300'
                 : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300'
             }`}>
-              {invoice.paid ? 'Paid' : 'Unpaid'}
+              {invoice.paid ? t('Payment.paid') : t('Payment.unpaid')}
             </span>
           </div>
         </div>
@@ -1158,8 +1173,8 @@ export default function PaymentPage() {
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-base font-bold text-green-700 dark:text-green-400">Payment Confirmed</p>
-              <p className="text-sm text-green-600 dark:text-green-300 mt-1">This invoice has been paid. No further action needed.</p>
+              <p className="text-base font-bold text-green-700 dark:text-green-400">{t('Payment.paymentConfirmed')}</p>
+              <p className="text-sm text-green-600 dark:text-green-300 mt-1">{t('Payment.paymentConfirmedDesc')}</p>
             </div>
           </div>
         </div>
@@ -1168,8 +1183,8 @@ export default function PaymentPage() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-base font-bold text-amber-700 dark:text-amber-400">Payment unavailable</p>
-              <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">No payment methods are currently configured. Please contact support.</p>
+              <p className="text-base font-bold text-amber-700 dark:text-amber-400">{t('Payment.paymentUnavailable')}</p>
+              <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">{t('Payment.paymentUnavailableDesc')}</p>
             </div>
           </div>
         </div>
@@ -1177,7 +1192,7 @@ export default function PaymentPage() {
         <>
           {/* Method selection */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
-            <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Choose Payment Method</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">{t('Payment.chooseMethod')}</p>
             <div className="space-y-2">
               {methods.map(m => {
                 const isSelected = selectedKey === m.key;
@@ -1225,13 +1240,14 @@ export default function PaymentPage() {
               {/* Card with demo form */}
               {selected.type === 'card' && (
                 <div className="space-y-4">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">Pay with Card</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.payWithCard')}</p>
                   <CardFormDemo
                     amount={invoice.amount}
                     currency={invoice.currency}
                     accent={accent}
                     themePrimary={themeColors.primary}
                     onSwitchMethod={() => setSelected(null)}
+                    intl={intl}
                   />
                 </div>
               )}
@@ -1239,8 +1255,8 @@ export default function PaymentPage() {
               {/* Crypto coin picker */}
               {selected.type === 'crypto' && (
                 <div className="space-y-4">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">Choose Cryptocurrency</p>
-                  <p className="text-xs text-gray-500">Select which coin you'd like to pay with.</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.chooseCrypto')}</p>
+                  <p className="text-xs text-gray-500">{t('Payment.chooseCryptoDesc')}</p>
                   <div className="space-y-2">
                     {paySettings.bitcoin.enabled && (
                       <button onClick={() => setSelected({ type: 'bitcoin' })}
@@ -1249,7 +1265,7 @@ export default function PaymentPage() {
                           <img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png" alt="BTC" className="w-7 h-7 object-contain" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">Bitcoin (BTC)</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.bitcoinName')}</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.bitcoin.confirmationTime}</p>
                         </div>
                       </button>
@@ -1261,7 +1277,7 @@ export default function PaymentPage() {
                           <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" className="w-7 h-7 object-contain" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">USDT (Tether)</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.usdtName')}</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.usdt.confirmationTime} · {paySettings.usdt.network}</p>
                         </div>
                       </button>
@@ -1273,7 +1289,7 @@ export default function PaymentPage() {
                           <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="ETH" className="w-7 h-7 object-contain" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">Ethereum (ETH)</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.ethereumName')}</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {paySettings.ethereum.confirmationTime}</p>
                         </div>
                       </button>
@@ -1290,42 +1306,47 @@ export default function PaymentPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-bold text-gray-900 dark:text-white">
-                        Send {invoice.currency} {formatAmount(invoice.amount)} worth of {sym}
+                        {t('Payment.sendWorth', { currency: invoice.currency, amount: formatAmount(invoice.amount), sym })}
                       </p>
                     </div>
                     <button onClick={() => setSelected({ type: 'crypto' })}
                       className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
-                      <ArrowLeft size={11} /> Choose different coin
+                      <ArrowLeft size={11} /> {t('Payment.chooseDifferentCoin')}
                     </button>
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3 flex items-start gap-2">
                       <AlertCircle size={14} className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                       <p className="text-xs text-blue-700 dark:text-blue-300">
-                        Send only <strong>{sym}</strong> on the <strong>{c.network}</strong> network. Sending other tokens or wrong network may result in permanent loss.
+                        {t('Payment.cryptoNetworkWarning', {
+                          sym,
+                          network: c.network,
+                          strong: (chunks: any) => <strong>{chunks}</strong>,
+                        })}
                       </p>
                     </div>
                     {c.qrImageUrl && (
   <div className="flex justify-center">
-    <img src={c.qrImageUrl} alt="QR Code"
+    <img src={c.qrImageUrl} alt={t('Payment.qrCodeAlt')}
       onClick={() => setQrLightbox(c.qrImageUrl || '')}
       className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover cursor-zoom-in hover:opacity-90 transition" />
   </div>
 )}
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-gray-500">Wallet Address</p>
+                      <p className="text-xs font-semibold text-gray-500">{t('Payment.walletAddress')}</p>
                       <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 px-3 py-2.5">
                         <span className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 break-all">{c.walletAddress}</span>
-                        <CopyButton text={c.walletAddress} />
+                        <CopyButton text={c.walletAddress} intl={intl} />
                       </div>
                     </div>
                     <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
-                      <InfoRow label="Reference" value={paymentReference} truncate />
+                      <InfoRow label={t('Payment.reference')} value={paymentReference} truncate />
                     </div>
-                    <ConfirmationBanner time={c.confirmationTime} />
+                    <ConfirmationBanner time={c.confirmationTime} intl={intl} />
                     <ReceiptUpload
                       onUploaded={url => setReceiptUrl(url)}
                       accent={accent}
                       onSubmit={() => submitReceipt(selected.type)}
-                      submitting={submittingReceipt} />
+                      submitting={submittingReceipt}
+                      intl={intl} />
                   </div>
                 );
               })()}
@@ -1333,50 +1354,54 @@ export default function PaymentPage() {
               {/* Bank Transfer */}
               {selected.type === 'bankTransfer' && !receiptSubmitted && (
                 <div className="space-y-4">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">Bank Transfer Details</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.bankTransferDetails')}</p>
                   <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
-                    <InfoRow label="Bank Name" value={paySettings.bankTransfer.bankName} />
-                    <InfoRow label="Account Holder" value={paySettings.bankTransfer.accountName} />
-                    <InfoRow label="Account Number" value={paySettings.bankTransfer.accountNumber} />
-                    <InfoRow label="Routing Number" value={paySettings.bankTransfer.routingNumber} />
-                    <InfoRow label="SWIFT / BIC" value={paySettings.bankTransfer.swiftCode} />
-                    <InfoRow label="IBAN" value={paySettings.bankTransfer.iban} />
-                    <InfoRow label="Branch Address" value={paySettings.bankTransfer.branchAddress} copyable={false} />
-                    <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={paymentReference} truncate />
+                    <InfoRow label={t('Payment.bankName')} value={paySettings.bankTransfer.bankName} />
+                    <InfoRow label={t('Payment.accountHolder')} value={paySettings.bankTransfer.accountName} />
+                    <InfoRow label={t('Payment.accountNumber')} value={paySettings.bankTransfer.accountNumber} />
+                    <InfoRow label={t('Payment.routingNumber')} value={paySettings.bankTransfer.routingNumber} />
+                    <InfoRow label={t('Payment.swiftBic')} value={paySettings.bankTransfer.swiftCode} />
+                    <InfoRow label={t('Payment.iban')} value={paySettings.bankTransfer.iban} />
+                    <InfoRow label={t('Payment.branchAddress')} value={paySettings.bankTransfer.branchAddress} copyable={false} />
+                    <InfoRow label={t('Payment.amount')} value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
+                    <InfoRow label={t('Payment.reference')} value={paymentReference} truncate />
                   </div>
                   {paySettings.bankTransfer.instructions && (
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3">
-                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Instructions</p>
+                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">{t('Payment.instructions')}</p>
                       <p className="text-xs text-blue-700 dark:text-blue-300 whitespace-pre-line">{paySettings.bankTransfer.instructions}</p>
                     </div>
                   )}
-                  <ConfirmationBanner time={paySettings.bankTransfer.confirmationTime} />
+                  <ConfirmationBanner time={paySettings.bankTransfer.confirmationTime} intl={intl} />
                   <ReceiptUpload
                     onUploaded={url => setReceiptUrl(url)}
                     accent={accent}
                     onSubmit={() => submitReceipt('bankTransfer')}
-                    submitting={submittingReceipt} />
+                    submitting={submittingReceipt}
+                    intl={intl} />
                 </div>
               )}
 
               {/* PayPal */}
               {selected.type === 'paypal' && !receiptSubmitted && (
                 <div className="space-y-4">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">Pay via PayPal</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.payViaPaypal')}</p>
                   <div className="rounded-xl border border-gray-100 dark:border-white/10 px-3 divide-y divide-gray-100 dark:divide-white/5">
                     {paySettings.paypal.useLink
-                      ? <InfoRow label="PayPal.me Link" value={paySettings.paypal.link} />
-                      : <InfoRow label="PayPal Email" value={paySettings.paypal.email} />}
-                    <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={paymentReference} truncate />
+                      ? <InfoRow label={t('Payment.paypalLink')} value={paySettings.paypal.link} />
+                      : <InfoRow label={t('Payment.paypalEmail')} value={paySettings.paypal.email} />}
+                    <InfoRow label={t('Payment.amount')} value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
+                    <InfoRow label={t('Payment.reference')} value={paymentReference} truncate />
                   </div>
 
                   {!isPaypalCurrencySupported && (
                     <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
                       <AlertCircle size={14} className="text-amber-600 shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-700 dark:text-amber-300">
-                        PayPal does not support <strong>{invoice.currency}</strong>. Please use another payment method, or contact support for assistance with currency conversion.
+                        {t('Payment.paypalCurrencyUnsupported', {
+                          currency: invoice.currency,
+                          strong: (chunks: any) => <strong>{chunks}</strong>,
+                        })}
                       </p>
                     </div>
                   )}
@@ -1385,15 +1410,16 @@ export default function PaymentPage() {
                     <a href={buildPaypalUrl()} target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition hover:opacity-90 hover:shadow-lg"
                       style={{ background: '#0070ba' }}>
-                      Open PayPal <ExternalLink size={14} />
+                      {t('Payment.openPaypal')} <ExternalLink size={14} />
                     </a>
                   )}
-                  <ConfirmationBanner time={paySettings.paypal.confirmationTime} />
+                  <ConfirmationBanner time={paySettings.paypal.confirmationTime} intl={intl} />
                   <ReceiptUpload
                     onUploaded={url => setReceiptUrl(url)}
                     accent={accent}
                     onSubmit={() => submitReceipt('paypal')}
-                    submitting={submittingReceipt} />
+                    submitting={submittingReceipt}
+                    intl={intl} />
                 </div>
               )}
 
@@ -1410,14 +1436,14 @@ export default function PaymentPage() {
                         {selectedCustom.emoji}
                       </div>
                     )}
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Pay via {selectedCustom.name}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{t('Payment.payVia', { name: selectedCustom.name })}</p>
                   </div>
                   {selectedCustom.description && (
                     <p className="text-xs text-gray-600 dark:text-gray-300">{selectedCustom.description}</p>
                   )}
                   {selectedCustom.qrImageUrl && (
   <div className="flex justify-center">
-    <img src={selectedCustom.qrImageUrl} alt="QR"
+    <img src={selectedCustom.qrImageUrl} alt={t('Payment.qrCodeAlt')}
       onClick={() => setQrLightbox(selectedCustom.qrImageUrl || '')}
       className="w-44 h-44 rounded-2xl border border-gray-200 dark:border-white/10 object-cover cursor-zoom-in hover:opacity-90 transition" />
   </div>
@@ -1426,21 +1452,22 @@ export default function PaymentPage() {
                     {selectedCustom.fields.map((f, idx) => (
                       <InfoRow key={idx} label={f.label} value={f.value} />
                     ))}
-                    <InfoRow label="Amount" value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
-                    <InfoRow label="Reference" value={paymentReference} truncate />
+                    <InfoRow label={t('Payment.amount')} value={`${invoice.currency} ${formatAmount(invoice.amount)}`} copyable={false} />
+                    <InfoRow label={t('Payment.reference')} value={paymentReference} truncate />
                   </div>
                   {selectedCustom.instructions && (
                     <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-3">
-                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Instructions</p>
+                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">{t('Payment.instructions')}</p>
                       <p className="text-xs text-blue-700 dark:text-blue-300 whitespace-pre-line">{selectedCustom.instructions}</p>
                     </div>
                   )}
-                  <ConfirmationBanner time={selectedCustom.confirmationTime} />
+                  <ConfirmationBanner time={selectedCustom.confirmationTime} intl={intl} />
                   <ReceiptUpload
                     onUploaded={url => setReceiptUrl(url)}
                     accent={accent}
                     onSubmit={() => submitReceipt(`custom_${selectedCustom.id}`)}
-                    submitting={submittingReceipt} />
+                    submitting={submittingReceipt}
+                    intl={intl} />
                 </div>
               )}
 
@@ -1448,8 +1475,8 @@ export default function PaymentPage() {
                 <div className="flex items-start gap-3 bg-green-50 dark:bg-green-500/10 rounded-xl p-4">
                   <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-green-700 dark:text-green-400">Receipt submitted</p>
-                    <p className="text-xs text-green-600 dark:text-green-300 mt-1">We'll verify and confirm your payment shortly. You'll receive an email once it's confirmed.</p>
+                    <p className="text-sm font-bold text-green-700 dark:text-green-400">{t('Payment.receiptSubmittedShort')}</p>
+                    <p className="text-xs text-green-600 dark:text-green-300 mt-1">{t('Payment.receiptSubmittedShortDesc')}</p>
                   </div>
                 </div>
               )}
@@ -1458,7 +1485,7 @@ export default function PaymentPage() {
         </>
       )}
 
-      {qrLightbox && <ImageLightbox src={qrLightbox} onClose={() => setQrLightbox('')} />}
+      {qrLightbox && <ImageLightbox src={qrLightbox} onClose={() => setQrLightbox('')} intl={intl} />}
 
       {/* Success modal */}
       {showDone && typeof document !== 'undefined' && createPortal(
@@ -1473,12 +1500,12 @@ export default function PaymentPage() {
             <div className="mt-6 flex gap-3">
               <button onClick={() => router.push(`/${locale}/dashboard`)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-                Dashboard
+                {t('Payment.dashboard')}
               </button>
               <button onClick={() => router.push(`/${locale}/dashboard/track?q=${encodeURIComponent(shipmentId)}`)}
                 className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer hover:opacity-90 transition"
                 style={{ background: accent }}>
-                Track Shipment
+                {t('Payment.trackShipment')}
               </button>
             </div>
           </div>

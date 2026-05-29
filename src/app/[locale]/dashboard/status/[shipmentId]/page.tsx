@@ -11,6 +11,7 @@ import {
   ShieldCheck, CornerDownRight, FileText, CreditCard,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
+import { useIntl, type IntlShape } from "react-intl";
 
 // ─── Color map for status badges ─────────────────────────────
 const colorMap: Record<string, string> = {
@@ -95,14 +96,15 @@ async function copyToClipboard(text: string) {
   document.body.removeChild(ta);
 }
 
-function CopyButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
+function CopyButton({ value, copied, onCopy, intl }: { value: string; copied: boolean; onCopy: () => void; intl?: IntlShape }) {
   if (!value) return null;
+  const label = intl ? intl.formatMessage({ id: copied ? 'StatusDetail.copied' : 'StatusDetail.copy' }) : (copied ? 'Copied' : 'Copy');
   return (
     <button
       type="button"
       onClick={onCopy}
-      aria-label={copied ? "Copied" : "Copy"}
-      title={copied ? "Copied" : "Copy"}
+      aria-label={label}
+      title={label}
       className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition shrink-0">
       {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
@@ -113,6 +115,8 @@ export default function ShipmentStatusPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const shipmentId = decodeURIComponent((params?.shipmentId as string) || "");
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -184,28 +188,28 @@ export default function ShipmentStatusPage() {
 
   const shipmentUpdateFallback =
     normalized === "created"
-      ? "Shipment created successfully and is being prepared for dispatch."
+      ? t('StatusDetail.fallbackCreated')
       : normalized === "intransit"
-      ? "Shipment is in transit and moving toward the destination."
+      ? t('StatusDetail.fallbackInTransit')
       : normalized === "customclearance"
-      ? "Shipment is undergoing customs clearance. Additional verification may be required."
+      ? t('StatusDetail.fallbackCustoms')
       : normalized === "delivered"
-      ? "Shipment has been delivered successfully to the destination."
+      ? t('StatusDetail.fallbackDelivered')
       : normalized === "unclaimed"
-      ? "Shipment is available for pickup but has not yet been claimed."
-      : `Shipment status updated: ${data?.status || "—"}.`;
+      ? t('StatusDetail.fallbackUnclaimed')
+      : t('StatusDetail.fallbackDefault', { status: data?.status || "—" });
 
   const nextStepFallback =
     normalized === "created"
-      ? "Dispatch will be scheduled once processing is complete."
+      ? t('StatusDetail.nextCreated')
       : normalized === "intransit"
-      ? "Continue tracking for real-time movement updates."
+      ? t('StatusDetail.nextInTransit')
       : normalized === "customclearance"
-      ? "We will update you once customs clearance is completed."
+      ? t('StatusDetail.nextCustoms')
       : normalized === "delivered"
-      ? "If there are delivery concerns, please contact support with your tracking number."
+      ? t('StatusDetail.nextDelivered')
       : normalized === "unclaimed"
-      ? "Please arrange pickup or contact support for assistance."
+      ? t('StatusDetail.nextUnclaimed')
       : "";
 
   const shipmentUpdateText =
@@ -239,7 +243,7 @@ export default function ShipmentStatusPage() {
       <div className="max-w-4xl mx-auto pb-12">
         <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-8 shadow-sm flex items-center gap-3">
           <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
-          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Loading shipment status…</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{t('StatusDetail.loading')}</p>
         </div>
       </div>
     );
@@ -251,14 +255,14 @@ export default function ShipmentStatusPage() {
       <div className="max-w-4xl mx-auto pb-12 space-y-5">
         <Link href={`/${locale}/dashboard`}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+          <ArrowLeft className="w-4 h-4" /> {t('StatusDetail.backToDashboard')}
         </Link>
         <div className="rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-6">
           <div className="flex items-center gap-3 text-red-700 dark:text-red-400 font-semibold">
-            <AlertCircle className="w-5 h-5 shrink-0" /> Shipment not found
+            <AlertCircle className="w-5 h-5 shrink-0" /> {t('StatusDetail.notFound')}
           </div>
           <p className="mt-2 text-sm text-red-600 dark:text-red-400/80 pl-8">
-            Please confirm the shipment ID and try again.
+            {t('StatusDetail.notFoundDesc')}
           </p>
         </div>
       </div>
@@ -273,25 +277,25 @@ export default function ShipmentStatusPage() {
       <div className="flex flex-col sm:flex-row gap-2">
         <Link href={`/${locale}/dashboard/history`}
           className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back to History
+          <ArrowLeft className="w-4 h-4" /> {t('StatusDetail.backToHistory')}
         </Link>
         {data.trackingNumber && (
           <Link href={`/${locale}/dashboard/track/${encodeURIComponent(data.trackingNumber)}`}
             className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-            <Truck className="w-4 h-4" /> Track Shipment
+            <Truck className="w-4 h-4" /> {t('StatusDetail.trackShipment')}
           </Link>
         )}
         {invoiceNumber && (
           <Link href={`/${locale}/dashboard/invoices/${encodeURIComponent(invoiceNumber)}`}
             className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-            <FileText className="w-4 h-4" /> View Invoice
+            <FileText className="w-4 h-4" /> {t('StatusDetail.viewInvoice')}
           </Link>
         )}
         {!invoicePaid && invoiceNumber && (
           <Link href={`/${locale}/dashboard/shipments/${encodeURIComponent(data.shipmentId)}/payment`}
             className="cursor-pointer w-full sm:w-auto sm:ml-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold transition shadow-sm hover:opacity-90"
             style={{ background: accentGradient }}>
-            <CreditCard className="w-4 h-4" /> Pay Now
+            <CreditCard className="w-4 h-4" /> {t('StatusDetail.payNow')}
           </Link>
         )}
       </div>
@@ -304,12 +308,12 @@ export default function ShipmentStatusPage() {
         <div style={{ background: accentGradient }} className="p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Shipment Status</p>
+              <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{t('StatusDetail.title')}</p>
               <div className="flex items-center gap-2 mt-1">
                 <h1 className="text-white font-extrabold text-xl sm:text-2xl tracking-wide whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px] sm:max-w-none">
                   {data.shipmentId || "—"}
                 </h1>
-                <CopyButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} />
+                <CopyButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} intl={intl} />
               </div>
             </div>
 
@@ -321,7 +325,7 @@ export default function ShipmentStatusPage() {
               {data.statusUpdatedAt && (
                 <p className="text-[11px] text-white/80 flex items-center gap-1.5">
                   <Clock className="w-3 h-3" />
-                  Updated {new Date(data.statusUpdatedAt).toLocaleString()}
+                  {t('StatusDetail.updatedAt', { date: new Date(data.statusUpdatedAt).toLocaleString() })}
                 </p>
               )}
             </div>
@@ -338,32 +342,32 @@ export default function ShipmentStatusPage() {
             <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4" style={{ color: accentSolid }} />
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Route</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('StatusDetail.route')}</p>
               </div>
               <p className="text-base font-extrabold text-gray-900 dark:text-white tracking-wide">{routeText}</p>
-              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Origin → Destination</p>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{t('StatusDetail.originDestination')}</p>
             </div>
 
             {/* IDs */}
             <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Package className="w-4 h-4" style={{ color: accentSolid }} />
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">References</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('StatusDetail.references')}</p>
               </div>
               <div className="space-y-2">
                 <div>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">Tracking</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">{t('StatusDetail.tracking')}</p>
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{data.trackingNumber || "—"}</p>
-                    <CopyButton value={data.trackingNumber} copied={copiedKey === "track"} onCopy={() => handleCopy("track", data.trackingNumber)} />
+                    <CopyButton value={data.trackingNumber} copied={copiedKey === "track"} onCopy={() => handleCopy("track", data.trackingNumber)} intl={intl} />
                   </div>
                 </div>
                 {invoiceNumber && (
                   <div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">Invoice</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase">{t('StatusDetail.invoice')}</p>
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{invoiceNumber}</p>
-                      <CopyButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} />
+                      <CopyButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} intl={intl} />
                     </div>
                   </div>
                 )}
@@ -374,7 +378,7 @@ export default function ShipmentStatusPage() {
             <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="w-4 h-4" style={{ color: accentSolid }} />
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Invoice</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('StatusDetail.invoice')}</p>
               </div>
               <p className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">{moneyText}</p>
               <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${
@@ -383,11 +387,11 @@ export default function ShipmentStatusPage() {
                   : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${invoicePaid ? "bg-green-500" : "bg-amber-500"}`} />
-                {invoicePaid ? "PAID" : "PENDING"}
+                {invoicePaid ? t('StatusDetail.statusPaid') : t('StatusDetail.statusPending')}
               </div>
               {invoicePaid && data.invoice?.paidAt && (
                 <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-                  Paid {new Date(data.invoice.paidAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  {t('StatusDetail.paidAt', { date: new Date(data.invoice.paidAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) })}
                 </p>
               )}
             </div>
@@ -397,7 +401,7 @@ export default function ShipmentStatusPage() {
           <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5">
             <div className="flex items-center gap-2 mb-3">
               <Info className="w-4 h-4" style={{ color: accentSolid }} />
-              <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Status Update</h2>
+              <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">{t('StatusDetail.statusUpdate')}</h2>
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
               {shipmentUpdateText}
@@ -409,7 +413,7 @@ export default function ShipmentStatusPage() {
             <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <CornerDownRight className="w-4 h-4" style={{ color: accentSolid }} />
-                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">Next Step</h2>
+                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">{t('StatusDetail.nextStep')}</h2>
               </div>
               <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
                 {nextStepText}
@@ -422,11 +426,11 @@ export default function ShipmentStatusPage() {
             <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
-                  Payment required
+               <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                  {t('StatusDetail.paymentRequired')}
                 </p>
                 <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300/80 leading-relaxed">
-                  Complete payment to avoid processing delays. Use the Pay Now button at the top of this page.
+                  {t('StatusDetail.paymentRequiredDesc')}
                 </p>
               </div>
             </div>
@@ -438,10 +442,10 @@ export default function ShipmentStatusPage() {
               <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-green-900 dark:text-green-200">
-                  Shipment delivered
+                  {t('StatusDetail.shipmentDelivered')}
                 </p>
                 <p className="mt-0.5 text-xs text-green-800 dark:text-green-300/80 leading-relaxed">
-                  This shipment has been successfully delivered. If there are concerns, contact support with your tracking number.
+                  {t('StatusDetail.shipmentDeliveredDesc')}
                 </p>
               </div>
             </div>
@@ -451,13 +455,16 @@ export default function ShipmentStatusPage() {
           <div className="px-2 py-5 flex flex-col items-center text-center gap-2 border-t border-gray-100 dark:border-white/10 mt-2">
             <ShieldCheck className="w-5 h-5" style={{ color: accentSolid }} />
             <p className="text-xs font-extrabold text-gray-800 dark:text-gray-200 tracking-wide uppercase">
-              Officially Issued by Exodus Logistics Ltd.
+              {t('StatusDetail.officiallyIssued')}
             </p>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
-              For questions about this shipment, contact{" "}
-              <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>
-                support@goexoduslogistics.com
-              </a>.
+              {t('StatusDetail.contactSupport', {
+                email: (chunks: any) => (
+                  <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>
+                    {chunks}
+                  </a>
+                ),
+              })}
             </p>
           </div>
         </div>

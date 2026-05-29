@@ -7,12 +7,15 @@ import { useSession } from "next-auth/react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import LiveChatWidget from "@/components/support/LiveChatWidget";
+import { useIntl } from "react-intl";
 
 export default function UserChatPage() {
   const router = useRouter();
   const params = useParams();
   const { data: session } = useSession();
   const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -43,9 +46,9 @@ export default function UserChatPage() {
       <div className="flex items-center gap-3">
         <button onClick={() => router.push(`/${locale}/dashboard/support`)}
           className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /> {t('Chat.back')}
         </button>
-        <h1 className={`text-xl font-extrabold ${headerTitleCls}`}>Live Chat</h1>
+        <h1 className={`text-xl font-extrabold ${headerTitleCls}`}>{t('Chat.title')}</h1>
       </div>
 
       <div className="h-[calc(100vh-220px)] min-h-[480px]">
@@ -53,14 +56,14 @@ export default function UserChatPage() {
           <LiveChatWidget
             userId={userId}
             viewer="user"
-            otherPartyLabel="Exodus Support"
+            otherPartyLabel={t('Chat.otherPartyLabel')}
             accentSolid={accentSolid}
             accentGradient={accentGradient}
           />
         ) : (
           <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 p-8 flex items-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin" style={{ color: accentSolid }} />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Loading chat…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('Chat.loading')}</p>
           </div>
         )}
       </div>
