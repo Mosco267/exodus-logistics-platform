@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "रद्द",
 "TrackDetail.badgeDelivered": "वितरित",
 "TrackDetail.badgeCurrent": "वर्तमान चरण",
-"TrackDetail.badgeUpcoming": "आगामी"
+"TrackDetail.badgeUpcoming": "आगामी",
+
+"ShipmentStatus.created": "बनाया गया",
+"ShipmentStatus.intransit": "रास्ते में",
+"ShipmentStatus.customclearance": "सीमा शुल्क निकासी",
+"ShipmentStatus.delivered": "वितरित",
+"ShipmentStatus.unclaimed": "अप्राप्त",
+"ShipmentStatus.cancelled": "रद्द",
+ 
+"InvoiceStatus.paid": "भुगतान किया गया",
+"InvoiceStatus.unpaid": "अवैतनिक",
+"InvoiceStatus.overdue": "अतिदेय",
+"InvoiceStatus.cancelled": "रद्द",
+ 
+"ShipmentMeans.air": "हवाई परिवहन",
+"ShipmentMeans.sea": "समुद्री परिवहन",
+"ShipmentMeans.land": "भूमि परिवहन",
+ 
+"ShipmentType.documents": "दस्तावेज़",
+"ShipmentType.parcel": "पार्सल",
+"ShipmentType.electronics": "इलेक्ट्रॉनिक्स",
+"ShipmentType.clothing": "कपड़े",
+"ShipmentType.food": "भोजन और शीघ्र खराब होने वाले",
+"ShipmentType.furniture": "फर्नीचर",
+"ShipmentType.machinery": "मशीनरी",
+"ShipmentType.bulk": "थोक / पैलेट",
+"ShipmentType.container": "कंटेनर",
+"ShipmentType.other": "अन्य",
+ 
+"ServiceLevel.express": "एक्सप्रेस",
+"ServiceLevel.standard": "मानक",
+
+"ShipmentStatus.pickedup": "उठाया गया",
+"ShipmentStatus.inwarehouse": "गोदाम में",
+"ShipmentStatus.outfordelivery": "डिलीवरी के लिए रवाना",
+
+"StatusDetail.fallbackPickedUp": "शिपमेंट उठाया गया है और परिवहन के लिए तैयार किया जा रहा है।",
+"StatusDetail.fallbackInWarehouse": "शिपमेंट गोदाम में प्रेषण की प्रतीक्षा कर रहा है।",
+"StatusDetail.fallbackOutForDelivery": "शिपमेंट डिलीवरी पर है और आज गंतव्य पर पहुंच जाएगा।",
+"StatusDetail.fallbackCancelled": "यह शिपमेंट रद्द कर दिया गया है। यदि आपको सहायता चाहिए तो सहायता से संपर्क करें।",
+"StatusDetail.nextPickedUp": "शिपमेंट को छंटाई और प्रेषण के लिए गोदाम में स्थानांतरित किया जाएगा।",
+"StatusDetail.nextInWarehouse": "शिपमेंट जल्द ही परिवहन के लिए लोड किया जाएगा।",
+"StatusDetail.nextOutForDelivery": "कृपया सुनिश्चित करें कि प्राप्तकर्ता पैकेज प्राप्त करने के लिए उपलब्ध है।"
 }

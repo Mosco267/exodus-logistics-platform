@@ -1341,7 +1341,7 @@ const isValid = !firstMissing;
         receiverName, receiverEmail, receiverCountry, receiverState, receiverCity,
         receiverAddress: receiverStreet, receiverPostalCode: receiverPostal, receiverPhone,
         shipmentScope: scope, serviceLevel: effectiveServiceLevel,
-        shipmentType: finalPackageType, shipmentMeans: MEANS_CONFIG[means].label,
+        shipmentType: finalPackageType, shipmentMeans: means,
         packageDescription, estimatedDeliveryDate: deliveryDateISO,
         estimatedDeliveryDateMin: deliveryDateMinISO,
         weightKg: weight,

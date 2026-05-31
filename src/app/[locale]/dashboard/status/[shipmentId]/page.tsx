@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl, type IntlShape } from "react-intl";
+import {
+  getShipmentStatusLabel,
+  normalizeShipmentStatusKey,
+} from "@/lib/shipment-utils";
 
 // ─── Color map for status badges ─────────────────────────────
 const colorMap: Record<string, string> = {
@@ -71,12 +75,15 @@ function formatMoney(currency: string, amount: number) {
 }
 
 function getStatusBadgeClass(status: string) {
-  const s = normalizeStatus(status);
+  const s = normalizeShipmentStatusKey(status);
   if (s === "delivered") return colorMap.green;
   if (s === "intransit") return colorMap.blue;
   if (s === "customclearance") return colorMap.orange;
   if (s === "unclaimed") return colorMap.red;
-  if (s === "cancelled" || s === "canceled") return colorMap.red;
+  if (s === "cancelled") return colorMap.red;
+  if (s === "pickedup") return colorMap.blue;
+  if (s === "inwarehouse") return colorMap.purple;
+  if (s === "outfordelivery") return colorMap.cyan;
   return colorMap.slate;
 }
 
@@ -175,7 +182,7 @@ export default function ShipmentStatusPage() {
     run();
   }, [shipmentId]);
 
-  const normalized = useMemo(() => normalizeStatus(data?.status), [data?.status]);
+ const normalized = useMemo(() => normalizeShipmentStatusKey(data?.status), [data?.status]);
 
   const invoiceCurrency = (data?.invoice?.currency || "USD").toUpperCase();
   const invoicePaid = Boolean(data?.invoice?.paid);
@@ -197,6 +204,14 @@ export default function ShipmentStatusPage() {
       ? t('StatusDetail.fallbackDelivered')
       : normalized === "unclaimed"
       ? t('StatusDetail.fallbackUnclaimed')
+      : normalized === "pickedup"
+      ? t('StatusDetail.fallbackPickedUp')
+      : normalized === "inwarehouse"
+      ? t('StatusDetail.fallbackInWarehouse')
+      : normalized === "outfordelivery"
+      ? t('StatusDetail.fallbackOutForDelivery')
+      : normalized === "cancelled"
+      ? t('StatusDetail.fallbackCancelled')
       : t('StatusDetail.fallbackDefault', { status: data?.status || "—" });
 
   const nextStepFallback =
@@ -210,6 +225,12 @@ export default function ShipmentStatusPage() {
       ? t('StatusDetail.nextDelivered')
       : normalized === "unclaimed"
       ? t('StatusDetail.nextUnclaimed')
+      : normalized === "pickedup"
+      ? t('StatusDetail.nextPickedUp')
+      : normalized === "inwarehouse"
+      ? t('StatusDetail.nextInWarehouse')
+      : normalized === "outfordelivery"
+      ? t('StatusDetail.nextOutForDelivery')
       : "";
 
   const shipmentUpdateText =
@@ -320,7 +341,7 @@ export default function ShipmentStatusPage() {
             <div className="flex flex-col items-start sm:items-end gap-1.5">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-extrabold ${statusBadgeClass}`}>
                 <BadgeCheck className="w-3.5 h-3.5" />
-                {data.status || "—"}
+                {data.status ? getShipmentStatusLabel(data.status, intl) : "—"}
               </span>
               {data.statusUpdatedAt && (
                 <p className="text-[11px] text-white/80 flex items-center gap-1.5">

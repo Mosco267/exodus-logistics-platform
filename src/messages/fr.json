@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Annulé",
 "TrackDetail.badgeDelivered": "Livré",
 "TrackDetail.badgeCurrent": "Étape actuelle",
-"TrackDetail.badgeUpcoming": "À venir"
+"TrackDetail.badgeUpcoming": "À venir",
+
+"ShipmentStatus.created": "Créé",
+"ShipmentStatus.intransit": "En transit",
+"ShipmentStatus.customclearance": "Dédouanement",
+"ShipmentStatus.delivered": "Livré",
+"ShipmentStatus.unclaimed": "Non réclamé",
+"ShipmentStatus.cancelled": "Annulé",
+ 
+"InvoiceStatus.paid": "PAYÉE",
+"InvoiceStatus.unpaid": "IMPAYÉE",
+"InvoiceStatus.overdue": "EN RETARD",
+"InvoiceStatus.cancelled": "ANNULÉE",
+ 
+"ShipmentMeans.air": "Fret aérien",
+"ShipmentMeans.sea": "Fret maritime",
+"ShipmentMeans.land": "Fret terrestre",
+ 
+"ShipmentType.documents": "Documents",
+"ShipmentType.parcel": "Colis",
+"ShipmentType.electronics": "Électronique",
+"ShipmentType.clothing": "Vêtements",
+"ShipmentType.food": "Aliments et périssables",
+"ShipmentType.furniture": "Meubles",
+"ShipmentType.machinery": "Machines",
+"ShipmentType.bulk": "Vrac / Palette",
+"ShipmentType.container": "Conteneur",
+"ShipmentType.other": "Autre",
+ 
+"ServiceLevel.express": "Express",
+"ServiceLevel.standard": "Standard",
+
+"ShipmentStatus.pickedup": "Récupéré",
+"ShipmentStatus.inwarehouse": "En entrepôt",
+"ShipmentStatus.outfordelivery": "En livraison",
+
+"StatusDetail.fallbackPickedUp": "L'expédition a été récupérée et est en cours de préparation pour le transit.",
+"StatusDetail.fallbackInWarehouse": "L'expédition est à l'entrepôt en attente d'expédition.",
+"StatusDetail.fallbackOutForDelivery": "L'expédition est en livraison et arrivera à destination aujourd'hui.",
+"StatusDetail.fallbackCancelled": "Cette expédition a été annulée. Contactez le support si vous avez besoin d'aide.",
+"StatusDetail.nextPickedUp": "L'expédition sera transférée vers un entrepôt pour le tri et l'expédition.",
+"StatusDetail.nextInWarehouse": "L'expédition sera chargée pour le transit sous peu.",
+"StatusDetail.nextOutForDelivery": "Veuillez vous assurer que le destinataire est disponible pour recevoir le colis."
 }

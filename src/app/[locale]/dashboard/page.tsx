@@ -8,7 +8,11 @@ import {
   AlertCircle, CheckCircle2, Loader2, History, ChevronRight, Truck, Clock3,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
-  import { useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
+import {
+  getShipmentStatusBadge,
+  getInvoiceStatusBadge,
+} from '@/lib/shipment-utils';
 
 type ShipmentStatus = "Delivered" | "In Transit" | "Custom Clearance" | "Unclaimed" | "Created";
 
@@ -50,52 +54,17 @@ type StatusConfig = {
   color?: string;
 };
 
-const colorMap: Record<string, { bg: string; text: string; icon: any }> = {
-  blue: { bg: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300", text: "text-blue-700 dark:text-blue-300", icon: Truck },
-  green: { bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-300", icon: CheckCircle2 },
-  red: { bg: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300", text: "text-red-700 dark:text-red-300", icon: AlertCircle },
-  orange: { bg: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300", text: "text-orange-700 dark:text-orange-300", icon: AlertCircle },
-  yellow: { bg: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300", text: "text-yellow-700 dark:text-yellow-300", icon: Clock3 },
-  purple: { bg: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300", text: "text-purple-700 dark:text-purple-300", icon: Package },
-  emerald: { bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-300", icon: CheckCircle2 },
-  slate: { bg: "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300", text: "text-slate-700 dark:text-slate-300", icon: Package },
-  gray: { bg: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300", text: "text-gray-700 dark:text-gray-300", icon: Package },
-};
 
-function getStatusBadge(status?: string, statusMap?: Record<string, StatusConfig>, statusColor?: string) {
-  const key = String(status || "").toLowerCase().trim().replace(/[\s_-]+/g, "");
-  const adminColor = (statusMap?.[key]?.color || "").toLowerCase();
-  const fallbackColor = (statusColor || "").toLowerCase();
-
-  const s = String(status || "").toLowerCase();
-  if (adminColor && colorMap[adminColor]) return { ...colorMap[adminColor], label: status || "—" };
-  if (fallbackColor && colorMap[fallbackColor]) return { ...colorMap[fallbackColor], label: status || "—" };
-  if (s === "delivered") return { ...colorMap.green, label: "Delivered" };
-  if (s === "in transit") return { ...colorMap.blue, label: "In Transit" };
-  if (s === "custom clearance") return { ...colorMap.orange, label: "Custom Clearance" };
-  if (s === "unclaimed") return { ...colorMap.red, label: "Unclaimed" };
-  if (s === "cancelled" || s === "canceled") return { ...colorMap.red, label: "Cancelled" };
-  return { ...colorMap.slate, label: status || "Created" };
-}
-
-// ✅ Invoice badge (matches the history page)
-function getInvoiceBadge(status?: string) {
-  const s = String(status || "").toLowerCase();
-  if (s === "paid") return { label: "PAID", bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
-  if (s === "overdue") return { label: "OVERDUE", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
-  if (s === "cancelled") return { label: "CANCELLED", bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
-  return { label: "UNPAID", bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
-}
 
 function joinLoc(...parts: any[]) {
     return parts.map(p => String(p || "").trim()).filter(Boolean).join(", ");
   }
  
-  function fmtDate(iso?: string | null): string {
+  function fmtDate(iso?: string | null, locale = "en-US"): string {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    return d.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
   }
  
   function fmtMoney(amount: any, currency = "USD"): string {
@@ -109,6 +78,15 @@ export default function DashboardHome() {
   const locale = (params?.locale as string) || "en";
   const intl = useIntl();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  const bcpLocale = useMemo(() => {
+    const m: Record<string, string> = {
+      en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE",
+      zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT",
+      ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+    };
+    return m[locale] || "en-US";
+  }, [locale]);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -313,9 +291,9 @@ export default function DashboardHome() {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-white/10">
             {recentHistory.map(s => {
-              const badge = getStatusBadge(s.status, statusMap, s.statusColor);
+              const badge = getShipmentStatusBadge(s.status, intl, { statusMap, statusColor: s.statusColor });
               const StatusIcon = badge.icon;
-              const invoiceBadge = getInvoiceBadge(s?.invoice?.status);
+              const invoiceBadge = getInvoiceStatusBadge(s?.invoice?.status, intl);
               const fromText = joinLoc(s.senderCity, s.senderState, s.senderCountry) || "—";
               const toText = joinLoc(s.receiverCity, s.receiverState, s.receiverCountry) || "—";
 
@@ -355,7 +333,7 @@ export default function DashboardHome() {
                       </p>
                       <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
                         <Clock size={9} />
-                        {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt)}
+                        {fmtDate(s.statusUpdatedAt || s.updatedAt || s.createdAt, bcpLocale)}
                       </p>
                     </div>
  

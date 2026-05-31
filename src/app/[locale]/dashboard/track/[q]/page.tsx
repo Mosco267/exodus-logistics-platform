@@ -11,6 +11,13 @@ import {
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl, type IntlShape } from "react-intl";
+import {
+  getShipmentStatusLabel,
+  getInvoiceStatusLabel,
+  getShipmentMeansLabel,
+  getShipmentTypeLabel,
+  normalizeShipmentStatusKey,
+} from "@/lib/shipment-utils";
 
 type LocationLite = { country?: string; state?: string; city?: string; county?: string };
 
@@ -160,16 +167,20 @@ function getStageIcon(label?: string, iconKey?: string) {
   if (key === "alert") return AlertCircle;
   if (key === "file") return FileText;
 
+  // Normalize label to a canonical key first — works for any language
+  const normKey = normalizeShipmentStatusKey(label);
+  if (normKey === "created") return Package;
+  if (normKey === "pickedup") return Truck;
+  if (normKey === "inwarehouse") return Warehouse;
+  if (normKey === "customclearance") return ShieldCheck;
+  if (normKey === "outfordelivery") return Truck;
+  if (normKey === "delivered") return Home;
+  if (normKey === "intransit") return Truck;
+  if (normKey === "unclaimed") return Clock3;
+
+  // Fallback: English keyword scan for transit modes that aren't canonical statuses
   const v = String(label || "").trim().toLowerCase();
-  if (v.includes("created")) return Package;
-  if (v.includes("pickup") || v.includes("picked")) return Truck;
-  if (v.includes("warehouse")) return Warehouse;
   if (v.includes("air") || v.includes("flight") || v.includes("freight")) return Plane;
-  if (v.includes("custom")) return ShieldCheck;
-  if (v.includes("out for delivery")) return Truck;
-  if (v.includes("delivered")) return Home;
-  if (v.includes("transit")) return Truck;
-  if (v.includes("unclaimed")) return Clock3;
   return CircleDashed;
 }
 
@@ -313,11 +324,7 @@ export default function DashboardTrackDetailPage() {
     : invoiceStatus === "cancelled" ? "text-gray-700 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20"
     : "text-amber-700 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30";
 
- const invoiceStatusLabel =
-    invoiceStatus === "paid" ? t('TrackDetail.statusPaid')
-    : invoiceStatus === "overdue" ? t('TrackDetail.statusOverdue')
-    : invoiceStatus === "cancelled" ? t('TrackDetail.statusCancelled')
-    : t('TrackDetail.statusUnpaid');
+ const invoiceStatusLabel = getInvoiceStatusLabel(invoiceStatus, intl);
 
   const weightLine = data?.weightKg != null && String(data.weightKg).trim() !== "" ? `${fmtIntWithCommas(data.weightKg)} kg` : "—";
   const dimLine = data?.dimensionsCm ? `${fmtIntWithCommas(data.dimensionsCm.length)} × ${fmtIntWithCommas(data.dimensionsCm.width)} × ${fmtIntWithCommas(data.dimensionsCm.height)} cm` : "—";
@@ -389,7 +396,9 @@ export default function DashboardTrackDetailPage() {
                 <div className="sm:text-right shrink-0">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t('TrackDetail.currentStatus')}</p>
                   <p className="text-lg sm:text-xl font-extrabold leading-tight" style={{ color: accentSolid }}>
-                    {events[currentIndex]?.label || data.currentStatus || "—"}
+                    {events[currentIndex]?.label || data.currentStatus
+                      ? getShipmentStatusLabel(events[currentIndex]?.label || data.currentStatus, intl)
+                      : "—"}
                   </p>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {t('TrackDetail.lastUpdatedLine', {
@@ -470,7 +479,7 @@ export default function DashboardTrackDetailPage() {
                     <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('TrackDetail.delivery')}</p>
                   </div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{estimatedRangeText}</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400"><span className="font-semibold">{t('TrackDetail.meansLabel')}</span> {data.shipmentMeans || "—"}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400"><span className="font-semibold">{t('TrackDetail.meansLabel')}</span> {data.shipmentMeans ? getShipmentMeansLabel(data.shipmentMeans, intl) : "—"}</p>
                 </div>
 
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4">
@@ -481,7 +490,7 @@ export default function DashboardTrackDetailPage() {
                   <div className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
                     <p><span className="font-semibold">{t('TrackDetail.weightLabel')}</span> {weightLine}</p>
                     <p><span className="font-semibold">{t('TrackDetail.dimensionsLabel')}</span> {dimLine}</p>
-                    <p><span className="font-semibold">{t('TrackDetail.typeLabel')}</span> {data.shipmentType || "—"}</p>
+                    <p><span className="font-semibold">{t('TrackDetail.typeLabel')}</span> {data.shipmentType ? getShipmentTypeLabel(data.shipmentType, intl) : "—"}</p>
                   </div>
                 </div>
 
@@ -530,9 +539,9 @@ export default function DashboardTrackDetailPage() {
                     const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) || "";
                     const isCompleted = idx < currentIndex;
                     const isCurrent = idx === currentIndex;
-                    const labelLower = String(ev.label || "").toLowerCase();
-                    const isCancelled = labelLower === "cancelled" || labelLower === "canceled";
-                    const isDelivered = labelLower === "delivered";
+                    const stageKey = normalizeShipmentStatusKey(ev.label);
+                    const isCancelled = stageKey === "cancelled";
+                    const isDelivered = stageKey === "delivered";
                     const isLast = idx === events.length - 1;
 
                     const lastEntry = ev?.entries?.[ev.entries.length - 1];
@@ -601,7 +610,7 @@ export default function DashboardTrackDetailPage() {
 
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <p className="text-base font-extrabold text-gray-900 dark:text-white">{ev.label}</p>
+                                      <p className="text-base font-extrabold text-gray-900 dark:text-white">{getShipmentStatusLabel(ev.label, intl)}</p>
                                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                                         !customBadgeText
                                           ? isCompleted ? "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30"
@@ -612,7 +621,9 @@ export default function DashboardTrackDetailPage() {
                                           : ""
                                         }`}
                                         style={customBadgeText && customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}>
-                                        {customBadgeText || (isCompleted ? t('TrackDetail.badgeCompleted') : isCurrent && isCancelled ? t('TrackDetail.badgeCancelled') : isCurrent && isDelivered ? t('TrackDetail.badgeDelivered') : isCurrent ? t('TrackDetail.badgeCurrent') : t('TrackDetail.badgeUpcoming'))}
+                                        {customBadgeText
+                                          ? getShipmentStatusLabel(customBadgeText, intl)
+                                          : (isCompleted ? t('TrackDetail.badgeCompleted') : isCurrent && isCancelled ? t('TrackDetail.badgeCancelled') : isCurrent && isDelivered ? t('TrackDetail.badgeDelivered') : isCurrent ? t('TrackDetail.badgeCurrent') : t('TrackDetail.badgeUpcoming'))}
                                       </span>
                                     </div>
                                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>

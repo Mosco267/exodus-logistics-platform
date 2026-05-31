@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "ملغى",
 "TrackDetail.badgeDelivered": "تم التسليم",
 "TrackDetail.badgeCurrent": "المرحلة الحالية",
-"TrackDetail.badgeUpcoming": "قادم"
+"TrackDetail.badgeUpcoming": "قادم",
+
+"ShipmentStatus.created": "تم الإنشاء",
+"ShipmentStatus.intransit": "قيد النقل",
+"ShipmentStatus.customclearance": "التخليص الجمركي",
+"ShipmentStatus.delivered": "تم التسليم",
+"ShipmentStatus.unclaimed": "لم يُستلم",
+"ShipmentStatus.cancelled": "ملغاة",
+ 
+"InvoiceStatus.paid": "مدفوعة",
+"InvoiceStatus.unpaid": "غير مدفوعة",
+"InvoiceStatus.overdue": "متأخرة",
+"InvoiceStatus.cancelled": "ملغاة",
+ 
+"ShipmentMeans.air": "الشحن الجوي",
+"ShipmentMeans.sea": "الشحن البحري",
+"ShipmentMeans.land": "الشحن البري",
+ 
+"ShipmentType.documents": "مستندات",
+"ShipmentType.parcel": "طرد",
+"ShipmentType.electronics": "إلكترونيات",
+"ShipmentType.clothing": "ملابس",
+"ShipmentType.food": "أغذية ومواد قابلة للتلف",
+"ShipmentType.furniture": "أثاث",
+"ShipmentType.machinery": "آلات",
+"ShipmentType.bulk": "سائب / منصة نقالة",
+"ShipmentType.container": "حاوية",
+"ShipmentType.other": "أخرى",
+ 
+"ServiceLevel.express": "سريع",
+"ServiceLevel.standard": "قياسي",
+
+"ShipmentStatus.pickedup": "تم الاستلام",
+"ShipmentStatus.inwarehouse": "في المستودع",
+"ShipmentStatus.outfordelivery": "قيد التوصيل",
+
+"StatusDetail.fallbackPickedUp": "تم استلام الشحنة ويجري تحضيرها للنقل.",
+"StatusDetail.fallbackInWarehouse": "الشحنة في المستودع في انتظار الإرسال.",
+"StatusDetail.fallbackOutForDelivery": "الشحنة قيد التوصيل وستصل إلى الوجهة اليوم.",
+"StatusDetail.fallbackCancelled": "تم إلغاء هذه الشحنة. تواصل مع الدعم إذا كنت بحاجة إلى مساعدة.",
+"StatusDetail.nextPickedUp": "ستنتقل الشحنة إلى المستودع للفرز والإرسال.",
+"StatusDetail.nextInWarehouse": "ستُحمَّل الشحنة للنقل قريباً.",
+"StatusDetail.nextOutForDelivery": "يرجى التأكد من توفر المستلم لاستلام الطرد."
 }

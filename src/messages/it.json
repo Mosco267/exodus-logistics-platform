@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Annullato",
 "TrackDetail.badgeDelivered": "Consegnato",
 "TrackDetail.badgeCurrent": "Fase attuale",
-"TrackDetail.badgeUpcoming": "Prossimo"
+"TrackDetail.badgeUpcoming": "Prossimo",
+
+"ShipmentStatus.created": "Creato",
+"ShipmentStatus.intransit": "In transito",
+"ShipmentStatus.customclearance": "Sdoganamento",
+"ShipmentStatus.delivered": "Consegnato",
+"ShipmentStatus.unclaimed": "Non ritirato",
+"ShipmentStatus.cancelled": "Annullato",
+ 
+"InvoiceStatus.paid": "PAGATA",
+"InvoiceStatus.unpaid": "NON PAGATA",
+"InvoiceStatus.overdue": "SCADUTA",
+"InvoiceStatus.cancelled": "ANNULLATA",
+ 
+"ShipmentMeans.air": "Trasporto aereo",
+"ShipmentMeans.sea": "Trasporto marittimo",
+"ShipmentMeans.land": "Trasporto terrestre",
+ 
+"ShipmentType.documents": "Documenti",
+"ShipmentType.parcel": "Pacco",
+"ShipmentType.electronics": "Elettronica",
+"ShipmentType.clothing": "Abbigliamento",
+"ShipmentType.food": "Alimenti e deperibili",
+"ShipmentType.furniture": "Mobili",
+"ShipmentType.machinery": "Macchinari",
+"ShipmentType.bulk": "Sfuso / Pallet",
+"ShipmentType.container": "Container",
+"ShipmentType.other": "Altro",
+ 
+"ServiceLevel.express": "Espresso",
+"ServiceLevel.standard": "Standard",
+
+"ShipmentStatus.pickedup": "Ritirato",
+"ShipmentStatus.inwarehouse": "In magazzino",
+"ShipmentStatus.outfordelivery": "In consegna",
+
+"StatusDetail.fallbackPickedUp": "La spedizione è stata ritirata e si sta preparando per il transito.",
+"StatusDetail.fallbackInWarehouse": "La spedizione è in magazzino in attesa di essere spedita.",
+"StatusDetail.fallbackOutForDelivery": "La spedizione è in consegna e arriverà a destinazione oggi.",
+"StatusDetail.fallbackCancelled": "Questa spedizione è stata annullata. Contatta l'assistenza se hai bisogno di aiuto.",
+"StatusDetail.nextPickedUp": "La spedizione sarà trasferita in un magazzino per lo smistamento e la spedizione.",
+"StatusDetail.nextInWarehouse": "La spedizione sarà caricata per il transito a breve.",
+"StatusDetail.nextOutForDelivery": "Assicurati che il destinatario sia disponibile a ricevere il pacco."
 }

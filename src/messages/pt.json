@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Cancelado",
 "TrackDetail.badgeDelivered": "Entregue",
 "TrackDetail.badgeCurrent": "Fase atual",
-"TrackDetail.badgeUpcoming": "Próximo"
+"TrackDetail.badgeUpcoming": "Próximo",
+
+"ShipmentStatus.created": "Criado",
+"ShipmentStatus.intransit": "Em trânsito",
+"ShipmentStatus.customclearance": "Desalfandegamento",
+"ShipmentStatus.delivered": "Entregue",
+"ShipmentStatus.unclaimed": "Não reclamado",
+"ShipmentStatus.cancelled": "Cancelado",
+ 
+"InvoiceStatus.paid": "PAGA",
+"InvoiceStatus.unpaid": "POR PAGAR",
+"InvoiceStatus.overdue": "EM ATRASO",
+"InvoiceStatus.cancelled": "CANCELADA",
+ 
+"ShipmentMeans.air": "Transporte aéreo",
+"ShipmentMeans.sea": "Transporte marítimo",
+"ShipmentMeans.land": "Transporte terrestre",
+ 
+"ShipmentType.documents": "Documentos",
+"ShipmentType.parcel": "Encomenda",
+"ShipmentType.electronics": "Eletrónica",
+"ShipmentType.clothing": "Vestuário",
+"ShipmentType.food": "Alimentos e perecíveis",
+"ShipmentType.furniture": "Mobiliário",
+"ShipmentType.machinery": "Maquinaria",
+"ShipmentType.bulk": "Granel / Palete",
+"ShipmentType.container": "Contentor",
+"ShipmentType.other": "Outro",
+ 
+"ServiceLevel.express": "Expresso",
+"ServiceLevel.standard": "Padrão",
+
+"ShipmentStatus.pickedup": "Recolhido",
+"ShipmentStatus.inwarehouse": "Em armazém",
+"ShipmentStatus.outfordelivery": "Em entrega",
+
+"StatusDetail.fallbackPickedUp": "O envio foi recolhido e está a ser preparado para o trânsito.",
+"StatusDetail.fallbackInWarehouse": "O envio está no armazém à espera de ser despachado.",
+"StatusDetail.fallbackOutForDelivery": "O envio está em entrega e chegará ao destino hoje.",
+"StatusDetail.fallbackCancelled": "Este envio foi cancelado. Contacta o suporte se precisares de ajuda.",
+"StatusDetail.nextPickedUp": "O envio será transferido para um armazém para triagem e despacho.",
+"StatusDetail.nextInWarehouse": "O envio será carregado para trânsito em breve.",
+"StatusDetail.nextOutForDelivery": "Por favor, certifica-te de que o destinatário está disponível para receber a encomenda."
 }

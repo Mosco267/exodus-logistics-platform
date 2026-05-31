@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "已取消",
 "TrackDetail.badgeDelivered": "已送达",
 "TrackDetail.badgeCurrent": "当前阶段",
-"TrackDetail.badgeUpcoming": "即将进行"
+"TrackDetail.badgeUpcoming": "即将进行",
+
+"ShipmentStatus.created": "已创建",
+"ShipmentStatus.intransit": "运输中",
+"ShipmentStatus.customclearance": "海关清关",
+"ShipmentStatus.delivered": "已送达",
+"ShipmentStatus.unclaimed": "未领取",
+"ShipmentStatus.cancelled": "已取消",
+ 
+"InvoiceStatus.paid": "已付款",
+"InvoiceStatus.unpaid": "未付款",
+"InvoiceStatus.overdue": "已逾期",
+"InvoiceStatus.cancelled": "已取消",
+ 
+"ShipmentMeans.air": "空运",
+"ShipmentMeans.sea": "海运",
+"ShipmentMeans.land": "陆运",
+ 
+"ShipmentType.documents": "文件",
+"ShipmentType.parcel": "包裹",
+"ShipmentType.electronics": "电子产品",
+"ShipmentType.clothing": "服装",
+"ShipmentType.food": "食品和易腐物品",
+"ShipmentType.furniture": "家具",
+"ShipmentType.machinery": "机械",
+"ShipmentType.bulk": "散货 / 托盘",
+"ShipmentType.container": "集装箱",
+"ShipmentType.other": "其他",
+ 
+"ServiceLevel.express": "快递",
+"ServiceLevel.standard": "标准",
+
+"ShipmentStatus.pickedup": "已揽收",
+"ShipmentStatus.inwarehouse": "在仓库",
+"ShipmentStatus.outfordelivery": "派送中",
+
+"StatusDetail.fallbackPickedUp": "货件已揽收,正在准备运输。",
+"StatusDetail.fallbackInWarehouse": "货件已到达仓库,等待发运。",
+"StatusDetail.fallbackOutForDelivery": "货件正在派送中,今日将送达目的地。",
+"StatusDetail.fallbackCancelled": "此货件已被取消。如需协助,请联系支持。",
+"StatusDetail.nextPickedUp": "货件将转至仓库进行分拣和发运。",
+"StatusDetail.nextInWarehouse": "货件将很快装运。",
+"StatusDetail.nextOutForDelivery": "请确保收件人可以接收包裹。"
 }

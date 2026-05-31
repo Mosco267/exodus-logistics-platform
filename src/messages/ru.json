@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Отменено",
 "TrackDetail.badgeDelivered": "Доставлено",
 "TrackDetail.badgeCurrent": "Текущий этап",
-"TrackDetail.badgeUpcoming": "Предстоит"
+"TrackDetail.badgeUpcoming": "Предстоит",
+
+"ShipmentStatus.created": "Создан",
+"ShipmentStatus.intransit": "В пути",
+"ShipmentStatus.customclearance": "Таможенное оформление",
+"ShipmentStatus.delivered": "Доставлен",
+"ShipmentStatus.unclaimed": "Не востребован",
+"ShipmentStatus.cancelled": "Отменён",
+ 
+"InvoiceStatus.paid": "ОПЛАЧЕНО",
+"InvoiceStatus.unpaid": "НЕ ОПЛАЧЕНО",
+"InvoiceStatus.overdue": "ПРОСРОЧЕНО",
+"InvoiceStatus.cancelled": "ОТМЕНЕНО",
+ 
+"ShipmentMeans.air": "Авиаперевозка",
+"ShipmentMeans.sea": "Морская перевозка",
+"ShipmentMeans.land": "Наземная перевозка",
+ 
+"ShipmentType.documents": "Документы",
+"ShipmentType.parcel": "Посылка",
+"ShipmentType.electronics": "Электроника",
+"ShipmentType.clothing": "Одежда",
+"ShipmentType.food": "Продукты и скоропортящиеся товары",
+"ShipmentType.furniture": "Мебель",
+"ShipmentType.machinery": "Машины",
+"ShipmentType.bulk": "Насыпной груз / Паллета",
+"ShipmentType.container": "Контейнер",
+"ShipmentType.other": "Другое",
+ 
+"ServiceLevel.express": "Экспресс",
+"ServiceLevel.standard": "Стандарт",
+
+"ShipmentStatus.pickedup": "Забран",
+"ShipmentStatus.inwarehouse": "На складе",
+"ShipmentStatus.outfordelivery": "Доставляется",
+
+"StatusDetail.fallbackPickedUp": "Отправление забрано и готовится к транспортировке.",
+"StatusDetail.fallbackInWarehouse": "Отправление находится на складе в ожидании отправки.",
+"StatusDetail.fallbackOutForDelivery": "Отправление в доставке и сегодня прибудет в пункт назначения.",
+"StatusDetail.fallbackCancelled": "Это отправление было отменено. Свяжитесь со службой поддержки, если вам нужна помощь.",
+"StatusDetail.nextPickedUp": "Отправление будет передано на склад для сортировки и отправки.",
+"StatusDetail.nextInWarehouse": "Отправление будет загружено для транспортировки в ближайшее время.",
+"StatusDetail.nextOutForDelivery": "Пожалуйста, убедитесь, что получатель доступен для получения посылки."
 }

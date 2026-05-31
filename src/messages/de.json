@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Storniert",
 "TrackDetail.badgeDelivered": "Zugestellt",
 "TrackDetail.badgeCurrent": "Aktuelle Phase",
-"TrackDetail.badgeUpcoming": "Bevorstehend"
+"TrackDetail.badgeUpcoming": "Bevorstehend",
+
+"ShipmentStatus.created": "Erstellt",
+"ShipmentStatus.intransit": "Im Transit",
+"ShipmentStatus.customclearance": "Zollabfertigung",
+"ShipmentStatus.delivered": "Zugestellt",
+"ShipmentStatus.unclaimed": "Nicht abgeholt",
+"ShipmentStatus.cancelled": "Storniert",
+ 
+"InvoiceStatus.paid": "BEZAHLT",
+"InvoiceStatus.unpaid": "UNBEZAHLT",
+"InvoiceStatus.overdue": "ÜBERFÄLLIG",
+"InvoiceStatus.cancelled": "STORNIERT",
+ 
+"ShipmentMeans.air": "Luftfracht",
+"ShipmentMeans.sea": "Seefracht",
+"ShipmentMeans.land": "Landfracht",
+ 
+"ShipmentType.documents": "Dokumente",
+"ShipmentType.parcel": "Paket",
+"ShipmentType.electronics": "Elektronik",
+"ShipmentType.clothing": "Kleidung",
+"ShipmentType.food": "Lebensmittel & Verderbliches",
+"ShipmentType.furniture": "Möbel",
+"ShipmentType.machinery": "Maschinen",
+"ShipmentType.bulk": "Schüttgut / Palette",
+"ShipmentType.container": "Container",
+"ShipmentType.other": "Sonstiges",
+ 
+"ServiceLevel.express": "Express",
+"ServiceLevel.standard": "Standard",
+
+"ShipmentStatus.pickedup": "Abgeholt",
+"ShipmentStatus.inwarehouse": "Im Lager",
+"ShipmentStatus.outfordelivery": "In Zustellung",
+
+"StatusDetail.fallbackPickedUp": "Die Sendung wurde abgeholt und wird für den Transit vorbereitet.",
+"StatusDetail.fallbackInWarehouse": "Die Sendung befindet sich im Lager und wartet auf den Versand.",
+"StatusDetail.fallbackOutForDelivery": "Die Sendung ist in Zustellung und wird heute am Zielort eintreffen.",
+"StatusDetail.fallbackCancelled": "Diese Sendung wurde storniert. Wenden Sie sich an den Support, wenn Sie Hilfe benötigen.",
+"StatusDetail.nextPickedUp": "Die Sendung wird zur Sortierung und zum Versand in ein Lager gebracht.",
+"StatusDetail.nextInWarehouse": "Die Sendung wird in Kürze für den Transit verladen.",
+"StatusDetail.nextOutForDelivery": "Bitte stellen Sie sicher, dass der Empfänger zur Annahme des Pakets verfügbar ist."
 }

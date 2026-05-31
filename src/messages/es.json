@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Cancelado",
 "TrackDetail.badgeDelivered": "Entregado",
 "TrackDetail.badgeCurrent": "Etapa actual",
-"TrackDetail.badgeUpcoming": "Próximo"
+"TrackDetail.badgeUpcoming": "Próximo",
+
+"ShipmentStatus.created": "Creado",
+"ShipmentStatus.intransit": "En tránsito",
+"ShipmentStatus.customclearance": "Despacho aduanal",
+"ShipmentStatus.delivered": "Entregado",
+"ShipmentStatus.unclaimed": "No reclamado",
+"ShipmentStatus.cancelled": "Cancelado",
+ 
+"InvoiceStatus.paid": "PAGADO",
+"InvoiceStatus.unpaid": "SIN PAGAR",
+"InvoiceStatus.overdue": "VENCIDO",
+"InvoiceStatus.cancelled": "CANCELADO",
+ 
+"ShipmentMeans.air": "Flete aéreo",
+"ShipmentMeans.sea": "Flete marítimo",
+"ShipmentMeans.land": "Flete terrestre",
+ 
+"ShipmentType.documents": "Documentos",
+"ShipmentType.parcel": "Paquete",
+"ShipmentType.electronics": "Electrónicos",
+"ShipmentType.clothing": "Ropa",
+"ShipmentType.food": "Alimentos y perecederos",
+"ShipmentType.furniture": "Muebles",
+"ShipmentType.machinery": "Maquinaria",
+"ShipmentType.bulk": "Granel / Palé",
+"ShipmentType.container": "Contenedor",
+"ShipmentType.other": "Otro",
+ 
+"ServiceLevel.express": "Exprés",
+"ServiceLevel.standard": "Estándar",
+
+"ShipmentStatus.pickedup": "Recogido",
+"ShipmentStatus.inwarehouse": "En almacén",
+"ShipmentStatus.outfordelivery": "En reparto",
+
+"StatusDetail.fallbackPickedUp": "El envío ha sido recogido y se está preparando para el tránsito.",
+"StatusDetail.fallbackInWarehouse": "El envío está en el almacén esperando ser despachado.",
+"StatusDetail.fallbackOutForDelivery": "El envío está en reparto y llegará al destino hoy.",
+"StatusDetail.fallbackCancelled": "Este envío ha sido cancelado. Contacta con soporte si necesitas ayuda.",
+"StatusDetail.nextPickedUp": "El envío pasará a un almacén para clasificación y despacho.",
+"StatusDetail.nextInWarehouse": "El envío será cargado para el tránsito en breve.",
+"StatusDetail.nextOutForDelivery": "Por favor, asegúrate de que el destinatario esté disponible para recibir el paquete."
 }

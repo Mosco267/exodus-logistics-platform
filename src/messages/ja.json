@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "キャンセル",
 "TrackDetail.badgeDelivered": "配達済み",
 "TrackDetail.badgeCurrent": "現在のステージ",
-"TrackDetail.badgeUpcoming": "今後"
+"TrackDetail.badgeUpcoming": "今後",
+
+"ShipmentStatus.created": "作成済み",
+"ShipmentStatus.intransit": "輸送中",
+"ShipmentStatus.customclearance": "通関手続き中",
+"ShipmentStatus.delivered": "配達完了",
+"ShipmentStatus.unclaimed": "未受取",
+"ShipmentStatus.cancelled": "キャンセル済み",
+ 
+"InvoiceStatus.paid": "支払い済み",
+"InvoiceStatus.unpaid": "未払い",
+"InvoiceStatus.overdue": "期限超過",
+"InvoiceStatus.cancelled": "キャンセル済み",
+ 
+"ShipmentMeans.air": "航空便",
+"ShipmentMeans.sea": "海上便",
+"ShipmentMeans.land": "陸上便",
+ 
+"ShipmentType.documents": "書類",
+"ShipmentType.parcel": "小包",
+"ShipmentType.electronics": "電子機器",
+"ShipmentType.clothing": "衣類",
+"ShipmentType.food": "食品・生鮮品",
+"ShipmentType.furniture": "家具",
+"ShipmentType.machinery": "機械",
+"ShipmentType.bulk": "バルク / パレット",
+"ShipmentType.container": "コンテナ",
+"ShipmentType.other": "その他",
+ 
+"ServiceLevel.express": "エクスプレス",
+"ServiceLevel.standard": "スタンダード",
+
+"ShipmentStatus.pickedup": "集荷完了",
+"ShipmentStatus.inwarehouse": "倉庫内",
+"ShipmentStatus.outfordelivery": "配達中",
+
+"StatusDetail.fallbackPickedUp": "荷物は集荷され、配送の準備が進められています。",
+"StatusDetail.fallbackInWarehouse": "荷物は倉庫で発送を待っています。",
+"StatusDetail.fallbackOutForDelivery": "荷物は配達中で、本日中に目的地に到着します。",
+"StatusDetail.fallbackCancelled": "この配送はキャンセルされました。サポートが必要な場合はご連絡ください。",
+"StatusDetail.nextPickedUp": "荷物は仕分けと発送のために倉庫に移動されます。",
+"StatusDetail.nextInWarehouse": "荷物は間もなく配送のために積み込まれます。",
+"StatusDetail.nextOutForDelivery": "受取人が荷物を受け取れる状態であることをご確認ください。"
 }

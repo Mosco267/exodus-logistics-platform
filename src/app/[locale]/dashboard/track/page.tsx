@@ -10,6 +10,11 @@ import {
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl } from "react-intl";
+import {
+  getShipmentStatusBadge,
+  getInvoiceStatusBadge,
+  getShipmentMeansLabel,
+} from "@/lib/shipment-utils";
 
 type ShipmentRow = {
   shipmentId: string;
@@ -112,24 +117,7 @@ export default function DashboardTrackPage() {
     return m[locale] || "en-US";
   }, [locale]);
 
-  // Translated badge helpers (reuse History.* keys from Round 1)
-  const getStatusBadge = (status?: string): { label: string; bg: string; text: string; icon: any } => {
-    const s = String(status || "").toLowerCase();
-    if (s === "delivered") return { label: t("History.statusDelivered"), bg: "bg-green-100 dark:bg-green-500/10", text: "text-green-700 dark:text-green-400", icon: CheckCircle2 };
-    if (s === "in transit") return { label: t("History.statusInTransit"), bg: "bg-blue-100 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", icon: Truck };
-    if (s === "custom clearance") return { label: t("History.statusCustomClearance"), bg: "bg-amber-100 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", icon: AlertCircle };
-    if (s === "unclaimed") return { label: t("History.statusUnclaimed"), bg: "bg-orange-100 dark:bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", icon: Clock3 };
-    if (s === "cancelled" || s === "canceled") return { label: t("History.statusCancelled"), bg: "bg-red-100 dark:bg-red-500/10", text: "text-red-700 dark:text-red-400", icon: AlertCircle };
-    return { label: status || t("History.statusCreated"), bg: "bg-gray-100 dark:bg-white/10", text: "text-gray-700 dark:text-gray-300", icon: Package };
-  };
-
-  const getInvoiceBadge = (status?: string) => {
-    const s = String(status || "").toLowerCase();
-    if (s === "paid") return { label: t("History.invoicePaid"), bg: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30", text: "text-green-700 dark:text-green-400" };
-    if (s === "overdue") return { label: t("History.invoiceOverdue"), bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30", text: "text-red-700 dark:text-red-400" };
-    if (s === "cancelled") return { label: t("History.invoiceCancelled"), bg: "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20", text: "text-gray-700 dark:text-gray-300" };
-    return { label: t("History.invoiceUnpaid"), bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30", text: "text-amber-700 dark:text-amber-400" };
-  };
+  
 
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
@@ -330,9 +318,9 @@ export default function DashboardTrackPage() {
           <>
             <div className="divide-y divide-gray-100 dark:divide-white/10">
               {pagedShipments.map(s => {
-                const statusBadge = getStatusBadge(s.status);
+                const statusBadge = getShipmentStatusBadge(s.status, intl);
                 const StatusIcon = statusBadge.icon;
-                const invoiceBadge = getInvoiceBadge(s?.invoice?.status);
+                const invoiceBadge = getInvoiceStatusBadge(s?.invoice?.status, intl);
                 const fromText = joinLoc(s.senderCity, s.senderState, s.senderCountry) || "—";
                 const toText = joinLoc(s.receiverCity, s.receiverState, s.receiverCountry) || "—";
                 const deliveryStr = fmtEstimatedDelivery(s.estimatedDeliveryDate, s.estimatedDeliveryDateMin, s.shipmentScope, bcpLocale);
@@ -355,7 +343,7 @@ export default function DashboardTrackPage() {
                           <p className="text-sm font-mono font-bold text-gray-900 dark:text-white truncate">
                             {s.trackingNumber || s.shipmentId}
                           </p>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadge.bg} ${statusBadge.text}`}>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusBadge.bg}`}>
                             <StatusIcon size={9} />
                             {statusBadge.label}
                           </span>
@@ -380,7 +368,7 @@ export default function DashboardTrackPage() {
                           {s.weightKg != null && String(s.weightKg).trim() !== "" && (
                             <span>{t("Track.weightKg", { weight: fmtNumber(s.weightKg) })}</span>
                           )}
-                          {s.shipmentMeans && <span>{s.shipmentMeans}</span>}
+                          {s.shipmentMeans && <span>{getShipmentMeansLabel(s.shipmentMeans, intl)}</span>}
                         </div>
                       </div>
 

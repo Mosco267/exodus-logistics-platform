@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "취소됨",
 "TrackDetail.badgeDelivered": "배달됨",
 "TrackDetail.badgeCurrent": "현재 단계",
-"TrackDetail.badgeUpcoming": "예정"
+"TrackDetail.badgeUpcoming": "예정",
+
+"ShipmentStatus.created": "생성됨",
+"ShipmentStatus.intransit": "운송 중",
+"ShipmentStatus.customclearance": "통관 중",
+"ShipmentStatus.delivered": "배송 완료",
+"ShipmentStatus.unclaimed": "미수령",
+"ShipmentStatus.cancelled": "취소됨",
+ 
+"InvoiceStatus.paid": "결제됨",
+"InvoiceStatus.unpaid": "미결제",
+"InvoiceStatus.overdue": "연체",
+"InvoiceStatus.cancelled": "취소됨",
+ 
+"ShipmentMeans.air": "항공 운송",
+"ShipmentMeans.sea": "해상 운송",
+"ShipmentMeans.land": "육상 운송",
+ 
+"ShipmentType.documents": "문서",
+"ShipmentType.parcel": "소포",
+"ShipmentType.electronics": "전자제품",
+"ShipmentType.clothing": "의류",
+"ShipmentType.food": "식품 및 부패성 물품",
+"ShipmentType.furniture": "가구",
+"ShipmentType.machinery": "기계",
+"ShipmentType.bulk": "벌크 / 팔레트",
+"ShipmentType.container": "컨테이너",
+"ShipmentType.other": "기타",
+ 
+"ServiceLevel.express": "익스프레스",
+"ServiceLevel.standard": "스탠다드",
+
+"ShipmentStatus.pickedup": "픽업 완료",
+"ShipmentStatus.inwarehouse": "창고 보관",
+"ShipmentStatus.outfordelivery": "배송 출발",
+
+"StatusDetail.fallbackPickedUp": "화물이 픽업되어 운송 준비 중입니다.",
+"StatusDetail.fallbackInWarehouse": "화물이 창고에서 발송을 기다리고 있습니다.",
+"StatusDetail.fallbackOutForDelivery": "화물이 배송 중이며 오늘 목적지에 도착할 예정입니다.",
+"StatusDetail.fallbackCancelled": "이 배송은 취소되었습니다. 도움이 필요하면 지원팀에 문의하세요.",
+"StatusDetail.nextPickedUp": "화물이 분류 및 발송을 위해 창고로 이동됩니다.",
+"StatusDetail.nextInWarehouse": "화물이 곧 운송을 위해 적재됩니다.",
+"StatusDetail.nextOutForDelivery": "수령인이 패키지를 받을 수 있도록 준비해 주세요."
 }

@@ -1000,5 +1000,47 @@
 "TrackDetail.badgeCancelled": "Cancelled",
 "TrackDetail.badgeDelivered": "Delivered",
 "TrackDetail.badgeCurrent": "Current Stage",
-"TrackDetail.badgeUpcoming": "Upcoming"
+"TrackDetail.badgeUpcoming": "Upcoming",
+
+"ShipmentStatus.created": "Created",
+"ShipmentStatus.intransit": "In Transit",
+"ShipmentStatus.customclearance": "Custom Clearance",
+"ShipmentStatus.delivered": "Delivered",
+"ShipmentStatus.unclaimed": "Unclaimed",
+"ShipmentStatus.cancelled": "Cancelled",
+ 
+"InvoiceStatus.paid": "PAID",
+"InvoiceStatus.unpaid": "UNPAID",
+"InvoiceStatus.overdue": "OVERDUE",
+"InvoiceStatus.cancelled": "CANCELLED",
+ 
+"ShipmentMeans.air": "Air Freight",
+"ShipmentMeans.sea": "Sea Freight",
+"ShipmentMeans.land": "Land Freight",
+ 
+"ShipmentType.documents": "Documents",
+"ShipmentType.parcel": "Parcel",
+"ShipmentType.electronics": "Electronics",
+"ShipmentType.clothing": "Clothing",
+"ShipmentType.food": "Food & Perishables",
+"ShipmentType.furniture": "Furniture",
+"ShipmentType.machinery": "Machinery",
+"ShipmentType.bulk": "Bulk / Pallet",
+"ShipmentType.container": "Container",
+"ShipmentType.other": "Other",
+ 
+"ServiceLevel.express": "Express",
+"ServiceLevel.standard": "Standard",
+
+"ShipmentStatus.pickedup": "Picked Up",
+"ShipmentStatus.inwarehouse": "In Warehouse",
+"ShipmentStatus.outfordelivery": "Out for Delivery",
+
+"StatusDetail.fallbackPickedUp": "Shipment has been picked up and is being prepared for transit.",
+"StatusDetail.fallbackInWarehouse": "Shipment is at the warehouse awaiting dispatch.",
+"StatusDetail.fallbackOutForDelivery": "Shipment is out for delivery and will arrive at the destination today.",
+"StatusDetail.fallbackCancelled": "This shipment has been cancelled. Contact support if you need assistance.",
+"StatusDetail.nextPickedUp": "Shipment will move to a warehouse for sorting and dispatch.",
+"StatusDetail.nextInWarehouse": "Shipment will be loaded for transit shortly.",
+"StatusDetail.nextOutForDelivery": "Please ensure the recipient is available to receive the package."
 }
