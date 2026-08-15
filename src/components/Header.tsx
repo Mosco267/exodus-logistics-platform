@@ -56,6 +56,29 @@ export default function Header() {
   const changeLanguage = (code: Locale) => {
     setLocale(code);
     document.cookie = `exodus_locale=${code}; max-age=${60 * 60 * 24 * 365}; path=/`;
+
+    // Tawk keeps one conversation per visitor, so the previous
+    // language's greeting would stack on top of the new one.
+    // End the chat and clear its local state for a clean thread.
+    try {
+      (window as any).Tawk_API?.endChat?.();
+    } catch {}
+
+    try {
+      const isTawkKey = (k: string) => {
+        const key = k.toLowerCase();
+        return key.startsWith('twk') || key.startsWith('__tawk') || key.includes('tawk');
+      };
+      Object.keys(localStorage).filter(isTawkKey).forEach(k => localStorage.removeItem(k));
+      Object.keys(sessionStorage).filter(isTawkKey).forEach(k => sessionStorage.removeItem(k));
+      document.cookie.split(';').forEach(c => {
+        const name = c.split('=')[0].trim();
+        if (isTawkKey(name)) {
+          document.cookie = `${name}=; max-age=0; path=/`;
+        }
+      });
+    } catch {}
+
     const stripped = (pathname || '/').replace(/^\/[a-z]{2}(?=\/|$)/, '');
     const target = `/${code}${stripped}${window.location.search}${window.location.hash}`;
     window.location.assign(target);
