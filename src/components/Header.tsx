@@ -50,6 +50,17 @@ export default function Header() {
 
   const translate = (name: string) => intl.formatMessage({ id: `Header.${name}` });
 
+  // Switching language must change the URL and fully reload the page.
+  // Tawk runs one widget per page and evaluates its triggers server-side
+  // against the real URL, so a context-only change leaves the chat behind.
+  const changeLanguage = (code: Locale) => {
+    setLocale(code);
+    document.cookie = `exodus_locale=${code}; max-age=${60 * 60 * 24 * 365}; path=/`;
+    const stripped = (pathname || '/').replace(/^\/[a-z]{2}(?=\/|$)/, '');
+    const target = `/${code}${stripped}${window.location.search}${window.location.hash}`;
+    window.location.assign(target);
+  };
+
   const navigation = [
     { name: 'Home', href: `/${locale}`, icon: <Home className="w-4 h-4" /> },
     { name: 'About', href: `/${locale}/about`, icon: <Info className="w-4 h-4" /> },
@@ -134,8 +145,8 @@ export default function Header() {
                         {languages.map((lang) => {
                           const code = langToCode[lang];
                           return (
-                            <div key={lang}
-                              onClick={() => { if (code) setLocale(code); setLanguageDropdownOpen(false); }}
+                           <div key={lang}
+                              onClick={() => { if (code) changeLanguage(code); setLanguageDropdownOpen(false); }}
                               className={`px-5 py-3 text-sm cursor-pointer font-bold transition-all duration-200 ${locale === code ? 'text-orange-500 bg-orange-50' : 'text-blue-600 hover:text-orange-500 hover:bg-orange-50'}`}>
                               {lang}
                             </div>
@@ -279,7 +290,7 @@ export default function Header() {
                         const code = langToCode[lang];
                         return (
                           <button key={lang}
-                            onClick={() => { if (code) setLocale(code); setIsMenuOpen(false); }}
+                            onClick={() => { if (code) changeLanguage(code); setIsMenuOpen(false); }}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${locale === code ? 'bg-orange-50 text-orange-500 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-orange-50 hover:text-orange-500'}`}>
                             {lang}
                           </button>
