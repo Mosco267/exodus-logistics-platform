@@ -48,9 +48,9 @@ function withCommas(raw: string): string {
 const strip = (s: string) => s.replace(/,/g, '');
 
 /* ─── Country select ───────────────────────────────────────── */
-function CountrySelect({ label, value, onPick, disabled, excludeCode, placeholder, searchLabel, noResults }: {
+function CountrySelect({ label, value, onPick, disabled, excludeCode, onlyCodes, placeholder, searchLabel, noResults }: {
   label: string; value: string; onPick: (e: CountryEntry) => void;
-  disabled?: boolean; excludeCode?: string;
+  disabled?: boolean; excludeCode?: string; onlyCodes?: string[];
   placeholder: string; searchLabel: string; noResults: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -63,11 +63,12 @@ function CountrySelect({ label, value, onPick, disabled, excludeCode, placeholde
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const list = useMemo(() =>
+ const list = useMemo(() =>
     COUNTRIES_WITH_STATES.filter(c =>
       (!excludeCode || c.code !== excludeCode) &&
+      (!onlyCodes || onlyCodes.includes(c.code)) &&
       c.name.toLowerCase().includes(q.toLowerCase())
-    ), [q, excludeCode]);
+    ), [q, excludeCode, onlyCodes]);
 
   const sel = getCountryByName(value);
 
@@ -237,6 +238,18 @@ export default function QuotePage() {
   const [error, setError] = useState('');
   const [attempted, setAttempted] = useState(false);
   const [quote, setQuote] = useState<any>(null);
+
+  // Countries where local operations are enabled in admin
+  const [localAvailable, setLocalAvailable] = useState<string[]>([]);
+  useEffect(() => {
+    fetch('/api/local-availability')
+      .then(r => r.json())
+      .then(d => setLocalAvailable((d.countries || []).map((c: any) => c.countryCode)))
+      .catch(() => {});
+  }, []);
+
+  const localUnsupported =
+    scope === 'local' && !!senderCode && !localAvailable.includes(senderCode);
 
   const PACKAGE_TYPES = useMemo(() => ([
     { value: 'Documents', label: t('ShipmentType.documents') },
@@ -530,8 +543,17 @@ export default function QuotePage() {
           <div className="space-y-4">
             <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">{t('Quote.originTitle')}</h2>
             <CountrySelect label={t('Quote.country')} value={senderCountry} onPick={pickSender}
+              onlyCodes={scope === 'local' ? localAvailable : undefined}
               placeholder={t('Quote.selectCountry')} searchLabel={t('Quote.searchCountry')} noResults={t('Quote.noResults')} />
             {err(senderCountry) && <p className="text-xs text-red-500 -mt-2">{t('Quote.required')}</p>}
+            {localUnsupported && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 -mt-2">
+                <p className="text-xs font-semibold text-amber-700 flex items-start gap-1.5">
+                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                  {t('Quote.localUnavailable', { country: senderCountry })}
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <StateSelect label={t('Quote.stateProvince')} country={senderCountry} value={senderState} onChange={setSenderState}
@@ -647,7 +669,7 @@ export default function QuotePage() {
             </div>
           )}
 
-          <button onClick={submit} disabled={loading || overLimit}
+          <button onClick={submit} disabled={loading || overLimit || localUnsupported}
             className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-blue-700 text-white text-sm font-bold hover:bg-blue-800 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
             {loading
               ? <><Loader2 size={16} className="animate-spin" /> {t('Quote.calculating')}</>

@@ -919,6 +919,8 @@ useEffect(() => {
     .catch(() => setPricingError(true));
 }, []);
 
+
+
 useEffect(() => {
   fetch('/api/local-availability')
     .then(r => r.json())
@@ -984,6 +986,23 @@ const isLocalUnsupported = scope === 'local' && !!senderCountryCode && !localAva
   const [packageDescription, setPackageDescription] = useState('');
   const [declaredValue, setDeclaredValue] = useState('');
   const [currency, setCurrency] = useState('USD');
+
+  // Pricing settings are USD-denominated, so computeInvoice needs the
+  // rate to convert the declared value in and every line back out.
+  const [fxRate, setFxRate] = useState(1);
+  useEffect(() => {
+    if (!currency || currency === 'USD') { setFxRate(1); return; }
+    let cancelled = false;
+    fetch('/api/fx')
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        const r = Number(d?.rates?.[currency]);
+        setFxRate(Number.isFinite(r) && r > 0 ? r : 1);
+      })
+      .catch(() => { if (!cancelled) setFxRate(1); });
+    return () => { cancelled = true; };
+  }, [currency]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -1186,11 +1205,12 @@ const deliveryDateISO = useMemo(() => {
       sea: { ...DEFAULT_PRICING.sea, ...(pricing.sea || {}) },
       land: { ...DEFAULT_PRICING.land, ...(pricing.land || {}) },
     };
-    return computeInvoice({
+   return computeInvoice({
   scope, means, serviceLevel: effectiveServiceLevel,
   weightKg: weight,
   declaredValue: parseFloat(declaredValue) || 0,
   currency,
+  fxRate,
   senderCountryCode,
   receiverCountryCode: effectiveReceiverCode,
   senderCity, senderState,
@@ -1202,7 +1222,7 @@ const deliveryDateISO = useMemo(() => {
     return null;
   }
   }, [pricing, scope, means, effectiveServiceLevel, weight, declaredValue, currency,
-      senderCountryCode, receiverCountryCode, senderCity, senderState, receiverCity, receiverState]);
+      senderCountryCode, receiverCountryCode, senderCity, senderState, receiverCity, receiverState, fxRate]);
 
       
 

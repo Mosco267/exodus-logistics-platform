@@ -14,6 +14,7 @@ import {
 } from '@/lib/pricing';
 import { getCountryDistance, getStateDistance } from '@/lib/distances';
 import { addBusinessDays } from '@/lib/holidays';
+import { getRateToUsd } from '@/lib/fx';
  
 const DOC_ID = 'default' as const;
  
@@ -149,7 +150,8 @@ export async function POST(req: NextRequest) {
  
   /* ── The same calculator the invoice uses ────────────────── */
   const pricing = await loadPricing();
- 
+  const fxRate = await getRateToUsd(currency);
+
   let breakdown;
   try {
     breakdown = computeInvoice({
@@ -159,6 +161,7 @@ export async function POST(req: NextRequest) {
       weightKg: chargeableWeight,
       declaredValue,
       currency,
+      fxRate,
       senderCountryCode,
       receiverCountryCode: receiverCountryCode || senderCountryCode,
       senderCity,

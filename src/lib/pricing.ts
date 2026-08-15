@@ -276,6 +276,10 @@ export function computeInvoice(params: {
   weightKg: number;
   declaredValue: number;
   currency: string;
+  /** Units of `currency` per 1 USD. All pricing settings are USD-denominated,
+   *  so declared value is converted in and every output is converted back out.
+   *  Omit or pass 1 when the amounts are already USD. */
+  fxRate?: number;
   senderCountryCode: string;
   receiverCountryCode: string;
   senderCity: string;
@@ -284,16 +288,21 @@ export function computeInvoice(params: {
   receiverState: string;
   pricing: PricingProfiles;
 }): InvoiceBreakdown {
-  const {
+ const {
     scope, means, serviceLevel, weightKg, declaredValue, currency,
     senderCountryCode, receiverCountryCode,
     senderCity, senderState, receiverCity, receiverState,
     pricing,
   } = params;
 
+  const fx = Number.isFinite(params.fxRate) && (params.fxRate as number) > 0
+    ? (params.fxRate as number)
+    : 1;
+
   const profile = scope === 'local' ? pricing.local : pricing.international;
   const w = Math.max(0, weightKg);
-  const dv = Math.max(0, declaredValue);
+  // Declared value arrives in the display currency; rates are USD
+  const dv = Math.max(0, declaredValue) / fx;
 
   let baseFreight = 0;
 
@@ -336,9 +345,23 @@ export function computeInvoice(params: {
   const subtotal = baseFreight + fuel + insurance + handling + customs + shippingFixed;
   const total = Math.max(0, subtotal + tax - discount);
 
+  // Convert every output back into the display currency
+  const out = (usd: number) => Math.round(usd * fx * 100) / 100;
+
   return {
-    means, baseFreight, fuel, insurance, handling, customs, tax, discount,
-    subtotal, total, declaredValue: dv, weightKg: w, currency,
+    means,
+    baseFreight: out(baseFreight),
+    fuel: out(fuel),
+    insurance: out(insurance),
+    handling: out(handling),
+    customs: out(customs),
+    tax: out(tax),
+    discount: out(discount),
+    subtotal: out(subtotal),
+    total: out(total),
+    declaredValue: Math.max(0, declaredValue), // as entered
+    weightKg: w,
+    currency,
   };
 }
 

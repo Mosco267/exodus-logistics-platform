@@ -1303,5 +1303,6 @@
  
 "Quote.ctaBook": "Book this shipment",
 "Quote.ctaPrint": "Print",
-"Quote.ctaEdit": "Edit details"
+"Quote.ctaEdit": "Edit details",
+"Quote.localUnavailable": "We do not currently run local operations in {country}. Try an international shipment, or contact support."
 }
