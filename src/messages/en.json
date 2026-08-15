@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "This shipment has been cancelled. Contact support if you need assistance.",
 "StatusDetail.nextPickedUp": "Shipment will move to a warehouse for sorting and dispatch.",
 "StatusDetail.nextInWarehouse": "Shipment will be loaded for transit shortly.",
-"StatusDetail.nextOutForDelivery": "Please ensure the recipient is available to receive the package."
+"StatusDetail.nextOutForDelivery": "Please ensure the recipient is available to receive the package.",
+
+"Header.GetStarted": "Get Started",
+"Header.Language": "Language"
 }

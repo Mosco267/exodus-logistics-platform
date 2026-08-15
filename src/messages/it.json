@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "Questa spedizione è stata annullata. Contatta l'assistenza se hai bisogno di aiuto.",
 "StatusDetail.nextPickedUp": "La spedizione sarà trasferita in un magazzino per lo smistamento e la spedizione.",
 "StatusDetail.nextInWarehouse": "La spedizione sarà caricata per il transito a breve.",
-"StatusDetail.nextOutForDelivery": "Assicurati che il destinatario sia disponibile a ricevere il pacco."
+"StatusDetail.nextOutForDelivery": "Assicurati che il destinatario sia disponibile a ricevere il pacco.",
+
+"Header.GetStarted": "Inizia",
+"Header.Language": "Lingua"
 }

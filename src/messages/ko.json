@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "이 배송은 취소되었습니다. 도움이 필요하면 지원팀에 문의하세요.",
 "StatusDetail.nextPickedUp": "화물이 분류 및 발송을 위해 창고로 이동됩니다.",
 "StatusDetail.nextInWarehouse": "화물이 곧 운송을 위해 적재됩니다.",
-"StatusDetail.nextOutForDelivery": "수령인이 패키지를 받을 수 있도록 준비해 주세요."
+"StatusDetail.nextOutForDelivery": "수령인이 패키지를 받을 수 있도록 준비해 주세요.",
+
+"Header.GetStarted": "시작하기",
+"Header.Language": "언어"
 }

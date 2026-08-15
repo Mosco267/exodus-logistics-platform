@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "Это отправление было отменено. Свяжитесь со службой поддержки, если вам нужна помощь.",
 "StatusDetail.nextPickedUp": "Отправление будет передано на склад для сортировки и отправки.",
 "StatusDetail.nextInWarehouse": "Отправление будет загружено для транспортировки в ближайшее время.",
-"StatusDetail.nextOutForDelivery": "Пожалуйста, убедитесь, что получатель доступен для получения посылки."
+"StatusDetail.nextOutForDelivery": "Пожалуйста, убедитесь, что получатель доступен для получения посылки.",
+
+"Header.GetStarted": "Начать",
+"Header.Language": "Язык"
 }

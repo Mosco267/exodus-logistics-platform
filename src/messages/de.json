@@ -1042,5 +1042,9 @@
 "StatusDetail.fallbackCancelled": "Diese Sendung wurde storniert. Wenden Sie sich an den Support, wenn Sie Hilfe benötigen.",
 "StatusDetail.nextPickedUp": "Die Sendung wird zur Sortierung und zum Versand in ein Lager gebracht.",
 "StatusDetail.nextInWarehouse": "Die Sendung wird in Kürze für den Transit verladen.",
-"StatusDetail.nextOutForDelivery": "Bitte stellen Sie sicher, dass der Empfänger zur Annahme des Pakets verfügbar ist."
+"StatusDetail.nextOutForDelivery": "Bitte stellen Sie sicher, dass der Empfänger zur Annahme des Pakets verfügbar ist.",
+
+"Header.GetStarted": "Loslegen",
+"Header.Language": "Sprache"
+
 }

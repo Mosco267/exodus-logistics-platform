@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "تم إلغاء هذه الشحنة. تواصل مع الدعم إذا كنت بحاجة إلى مساعدة.",
 "StatusDetail.nextPickedUp": "ستنتقل الشحنة إلى المستودع للفرز والإرسال.",
 "StatusDetail.nextInWarehouse": "ستُحمَّل الشحنة للنقل قريباً.",
-"StatusDetail.nextOutForDelivery": "يرجى التأكد من توفر المستلم لاستلام الطرد."
+"StatusDetail.nextOutForDelivery": "يرجى التأكد من توفر المستلم لاستلام الطرد.",
+
+"Header.GetStarted": "ابدأ الآن",
+"Header.Language": "اللغة"
 }

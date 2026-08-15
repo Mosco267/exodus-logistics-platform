@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "Cette expédition a été annulée. Contactez le support si vous avez besoin d'aide.",
 "StatusDetail.nextPickedUp": "L'expédition sera transférée vers un entrepôt pour le tri et l'expédition.",
 "StatusDetail.nextInWarehouse": "L'expédition sera chargée pour le transit sous peu.",
-"StatusDetail.nextOutForDelivery": "Veuillez vous assurer que le destinataire est disponible pour recevoir le colis."
+"StatusDetail.nextOutForDelivery": "Veuillez vous assurer que le destinataire est disponible pour recevoir le colis.",
+
+"Header.GetStarted": "Commencer",
+"Header.Language": "Langue"
 }

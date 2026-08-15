@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "この配送はキャンセルされました。サポートが必要な場合はご連絡ください。",
 "StatusDetail.nextPickedUp": "荷物は仕分けと発送のために倉庫に移動されます。",
 "StatusDetail.nextInWarehouse": "荷物は間もなく配送のために積み込まれます。",
-"StatusDetail.nextOutForDelivery": "受取人が荷物を受け取れる状態であることをご確認ください。"
+"StatusDetail.nextOutForDelivery": "受取人が荷物を受け取れる状態であることをご確認ください。",
+
+"Header.GetStarted": "始める",
+"Header.Language": "言語"
 }

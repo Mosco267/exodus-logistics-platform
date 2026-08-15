@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "此货件已被取消。如需协助,请联系支持。",
 "StatusDetail.nextPickedUp": "货件将转至仓库进行分拣和发运。",
 "StatusDetail.nextInWarehouse": "货件将很快装运。",
-"StatusDetail.nextOutForDelivery": "请确保收件人可以接收包裹。"
+"StatusDetail.nextOutForDelivery": "请确保收件人可以接收包裹。",
+
+"Header.GetStarted": "开始使用",
+"Header.Language": "语言"
 }

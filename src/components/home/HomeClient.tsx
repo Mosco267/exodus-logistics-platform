@@ -609,7 +609,7 @@ export default function HomeClient() {
                       Sample quote
                     </p>
                     <p className="text-sm font-bold text-gray-900 mt-1">
-                      Lagos → London · 18 kg · Air
+                      America → London · 18 kg · Air
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center shrink-0">

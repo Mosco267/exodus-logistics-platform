@@ -211,7 +211,7 @@ export default function Header() {
                                 : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'
                             }`}>
                             {item.icon}
-                            <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
+                            <span>{item.name === 'Sign-in' ? translate('GetStarted') : translate(item.name)}</span>
                           </Link>
                         ))}
                       </div>
@@ -234,7 +234,7 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="inline-flex flex-col items-center gap-0.5 text-white hover:text-orange-400 transition-colors duration-300 p-1">
                 <Menu className="h-5 w-5" />
-                <span className="text-[9px] font-bold tracking-wide">Menu</span>
+                <span className="text-[9px] font-bold tracking-wide">{translate('Menu')}</span>
               </button>
             </div>
 
@@ -286,7 +286,7 @@ export default function Header() {
                           : 'text-blue-700 hover:text-orange-500 hover:bg-orange-50'
                       }`}>
                       <span className="[&>svg]:w-5 [&>svg]:h-5">{item.icon}</span>
-                      <span>{item.name === 'Sign-in' ? 'Get Started' : translate(item.name)}</span>
+                      <span>{item.name === 'Sign-in' ? translate('GetStarted') : translate(item.name)}</span>
                     </Link>
                   ))}
 
@@ -307,7 +307,7 @@ export default function Header() {
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 mt-3 px-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-3">Language</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-3">{translate('Language')}</p>
                     <div className="flex flex-wrap gap-2">
                       {languages.map((lang) => {
                         const code = langToCode[lang];

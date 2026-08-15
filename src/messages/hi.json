@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "यह शिपमेंट रद्द कर दिया गया है। यदि आपको सहायता चाहिए तो सहायता से संपर्क करें।",
 "StatusDetail.nextPickedUp": "शिपमेंट को छंटाई और प्रेषण के लिए गोदाम में स्थानांतरित किया जाएगा।",
 "StatusDetail.nextInWarehouse": "शिपमेंट जल्द ही परिवहन के लिए लोड किया जाएगा।",
-"StatusDetail.nextOutForDelivery": "कृपया सुनिश्चित करें कि प्राप्तकर्ता पैकेज प्राप्त करने के लिए उपलब्ध है।"
+"StatusDetail.nextOutForDelivery": "कृपया सुनिश्चित करें कि प्राप्तकर्ता पैकेज प्राप्त करने के लिए उपलब्ध है।",
+
+"Header.GetStarted": "शुरू करें",
+"Header.Language": "भाषा"
 }

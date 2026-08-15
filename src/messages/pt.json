@@ -1042,5 +1042,8 @@
 "StatusDetail.fallbackCancelled": "Este envio foi cancelado. Contacta o suporte se precisares de ajuda.",
 "StatusDetail.nextPickedUp": "O envio será transferido para um armazém para triagem e despacho.",
 "StatusDetail.nextInWarehouse": "O envio será carregado para trânsito em breve.",
-"StatusDetail.nextOutForDelivery": "Por favor, certifica-te de que o destinatário está disponível para receber a encomenda."
+"StatusDetail.nextOutForDelivery": "Por favor, certifica-te de que o destinatário está disponível para receber a encomenda.",
+
+"Header.GetStarted": "Começar",
+"Header.Language": "Idioma"
 }
