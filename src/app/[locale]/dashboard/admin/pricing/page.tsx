@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_PRICING } from "@/lib/pricing";
 
 type ZoneMultipliers = { sameContinent: number; nearContinent: number; farContinent: number };
 type LandZoneRates = { zone1: number; zone2: number; zone3: number; zone4: number };
@@ -20,35 +21,41 @@ type Settings = {
   air: AirSettings; sea: SeaSettings; land: LandSettings;
 };
 
-const DEFAULT: Settings = {
-  international: { shippingFee: 0, handlingFee: 25, customsFee: 50, taxFee: 0, discountFee: 0, fuelRate: 0.05, insuranceRate: 0.01 },
-  local: { shippingFee: 0, handlingFee: 10, customsFee: 0, taxFee: 0, discountFee: 0, fuelRate: 0.05, insuranceRate: 0.005 },
-  air: { ratePerKgExpress: 8, ratePerKgStandard: 5, zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.3, farContinent: 1.6 } },
-  sea: { ratePerKgStandard: 0.8, zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.3, farContinent: 1.6 } },
-  land: { zoneRates: { zone1: 5, zone2: 15, zone3: 35, zone4: 60 }, expressMultiplier: 1.5 },
-};
+// Single source of truth — see src/lib/pricing.ts
+const DEFAULT: Settings = DEFAULT_PRICING;
 
 const toP = (n: number) => (Number(n || 0) * 100).toFixed(2).replace(/\.00$/, "");
 const fromP = (s: string) => { const n = Number(s); return Number.isFinite(n) ? n / 100 : 0; };
 const toM = (n: number) => Number(n || 0).toFixed(2).replace(/\.00$/, "");
 const fromM = (s: string) => { const n = Number(s); return Number.isFinite(n) ? n : 0; };
 
-function Field({ label, value, onChange, isPercent, hint }: {
+/* Land zone rates are per-km-per-kg, so real values sit around 0.003–0.03.
+   Editing those directly invites a misplaced decimal, and toFixed(2) rounds
+   them away entirely. Display them per 1000 km instead: type 6, store 0.006. */
+const toR = (n: number) => (Number(n || 0) * 1000).toFixed(2).replace(/\.?0+$/, "");
+const fromR = (s: string) => { const n = Number(s); return Number.isFinite(n) ? n / 1000 : 0; };
+
+function Field({ label, value, onChange, isPercent, isRate1000, hint }: {
   label: string; value: number; onChange: (v: number) => void;
-  isPercent?: boolean; hint?: string;
+  isPercent?: boolean; isRate1000?: boolean; hint?: string;
 }) {
-  const [raw, setRaw] = useState(isPercent ? toP(value) : toM(value));
-  useEffect(() => { setRaw(isPercent ? toP(value) : toM(value)); }, [value, isPercent]);
+  const fmt = (v: number) => isPercent ? toP(v) : isRate1000 ? toR(v) : toM(v);
+  const parse = (s: string) => isPercent ? fromP(s) : isRate1000 ? fromR(s) : fromM(s);
+
+  const [raw, setRaw] = useState(fmt(value));
+  useEffect(() => { setRaw(fmt(value)); }, [value, isPercent, isRate1000]);
   return (
     <div className="rounded-2xl border border-gray-100 dark:border-white/10 p-4">
       <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</p>
       {hint && <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{hint}</p>}
       <div className="relative mt-2">
         <input value={raw}
-          onChange={e => { setRaw(e.target.value); onChange(isPercent ? fromP(e.target.value) : fromM(e.target.value)); }}
-          className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm pr-10"
+          onChange={e => { setRaw(e.target.value); onChange(parse(e.target.value)); }}
+          className={`w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm ${isRate1000 ? 'pr-24' : 'pr-10'}`}
           inputMode="decimal" />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{isPercent ? '%' : '$'}</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+          {isPercent ? '%' : isRate1000 ? '$ /1000km·kg' : '$'}
+        </span>
       </div>
     </div>
   );
@@ -165,12 +172,17 @@ export default function AdminPricingPage() {
         {/* ── Land freight ── */}
         <div className="mt-10">
           <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100">🚛 Land Freight Rates</h2>
-          <p className="mt-1 text-xs text-gray-500">Used for all local shipments. Rate is per kg × zone base rate.</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Used for all local shipments. Base freight = distance (km) × rate × weight (kg).
+            Rates are entered per 1000 km per kg, so a value of 6 means $0.006 per km per kg.
+            Longer zones should use a <strong>lower</strong> rate, since distance is already
+            in the formula and fixed costs spread out over the journey.
+          </p>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Zone 1 — Same City ($/kg)" value={settings.land.zoneRates.zone1} onChange={v => set(['land', 'zoneRates', 'zone1'], v)} hint="Sender & receiver in same city" />
-            <Field label="Zone 2 — Same State ($/kg)" value={settings.land.zoneRates.zone2} onChange={v => set(['land', 'zoneRates', 'zone2'], v)} hint="Same state, different city" />
-            <Field label="Zone 3 — Adjacent State ($/kg)" value={settings.land.zoneRates.zone3} onChange={v => set(['land', 'zoneRates', 'zone3'], v)} hint="Nearby state" />
-            <Field label="Zone 4 — Far State ($/kg)" value={settings.land.zoneRates.zone4} onChange={v => set(['land', 'zoneRates', 'zone4'], v)} hint="Distant state/region" />
+            <Field label="Zone 1 — Same City" value={settings.land.zoneRates.zone1} onChange={v => set(['land', 'zoneRates', 'zone1'], v)} isRate1000 hint="Same city · suggested 30" />
+            <Field label="Zone 2 — Same State" value={settings.land.zoneRates.zone2} onChange={v => set(['land', 'zoneRates', 'zone2'], v)} isRate1000 hint="Same state, different city · suggested 12" />
+            <Field label="Zone 3 — Adjacent State" value={settings.land.zoneRates.zone3} onChange={v => set(['land', 'zoneRates', 'zone3'], v)} isRate1000 hint="Nearby state · suggested 6" />
+            <Field label="Zone 4 — Far State" value={settings.land.zoneRates.zone4} onChange={v => set(['land', 'zoneRates', 'zone4'], v)} isRate1000 hint="Distant state/region · suggested 3" />
             <Field label="Express Multiplier" value={settings.land.expressMultiplier} onChange={v => set(['land', 'expressMultiplier'], v)} hint="e.g. 1.5 = 50% more for express" />
           </div>
         </div>

@@ -248,14 +248,9 @@ export function getEstimatedDeliveryDate(
   return date.toISOString().split('T')[0];
 }
 
-// ─── Distance-based zone multiplier (replaces continent-based) ─
-function getDistanceMultiplier(km: number): number {
-  if (km < 2000) return 1.0;
-  if (km < 5000) return 1.2;
-  if (km < 10000) return 1.4;
-  if (km < 15000) return 1.6;
-  return 1.8;
-}
+/* Minimum land charge floor. Prevents a near-zero total on very short
+   routes where km rounds down close to 0. */
+const LAND_MINIMUM_CHARGE = 5;
 
 // ─── Invoice breakdown ────────────────────────────────────────
 export type InvoiceBreakdown = {
@@ -306,22 +301,25 @@ export function computeInvoice(params: {
     const rate = serviceLevel === 'Express'
       ? pricing.air.ratePerKgExpress
       : pricing.air.ratePerKgStandard;
-    const km = getCountryDistance(senderCountryCode, receiverCountryCode);
-    const mult = getDistanceMultiplier(km);
+    // Admin-configured zone multiplier, chosen by continent relationship
+    const zone = getContinentZone(senderCountryCode, receiverCountryCode);
+    const mult = pricing.air.zoneMultipliers?.[zone] ?? 1;
     baseFreight = rate * w * mult;
   } else if (means === 'sea') {
-    const km = getCountryDistance(senderCountryCode, receiverCountryCode);
-    const mult = getDistanceMultiplier(km);
+    const zone = getContinentZone(senderCountryCode, receiverCountryCode);
+    const mult = pricing.sea.zoneMultipliers?.[zone] ?? 1;
     baseFreight = pricing.sea.ratePerKgStandard * w * mult;
   } else {
-  // land — use state distance within country
-  const km = getStateDistance(senderCountryCode, senderState, receiverState);
-  // Industry-typical: base fee + per-km-per-kg rate
-  // Express: ~$0.18/km/kg, Standard: ~$0.10/km/kg, with reasonable minimums
-  const ratePerKmKg = serviceLevel === 'Express' ? 0.018 : 0.010;
-  const minBase = serviceLevel === 'Express' ? 8 : 5;
-  baseFreight = Math.max(minBase, km * ratePerKmKg * w);
-}
+    // land — admin-configured per-km-per-kg rate, chosen by distance zone
+    const km = getStateDistance(senderCountryCode, senderState, receiverState);
+    const zone = getLandZone(senderCity, senderState, receiverCity, receiverState);
+    const ratePerKmKg = pricing.land.zoneRates?.[zone] ?? 0.010;
+    let base = km * ratePerKmKg * w;
+    if (serviceLevel === 'Express') {
+      base *= pricing.land.expressMultiplier ?? 1;
+    }
+    baseFreight = Math.max(LAND_MINIMUM_CHARGE, base);
+  }
 
   // Add declared value factor (0.5% of declared value as cargo value fee)
   const cargoValueFee = dv * 0.005;
