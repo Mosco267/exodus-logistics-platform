@@ -153,7 +153,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2">
             <Link href={l('/')} className="inline-flex items-center mb-4">
-              <img src="/logo-full.svg" alt="Exodus Logistics" className="h-8 w-auto brightness-0 invert" />
+              <img src="/logo-black.svg" alt="Exodus Logistics" className="h-8 w-auto brightness-0 invert" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
               Freight and parcel logistics for businesses and individuals.
