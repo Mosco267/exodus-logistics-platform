@@ -21,7 +21,6 @@ import {
   Truck,
   MapPin,
   Headphones,
-  ArrowUp,
   CheckCircle2,
   ChevronDown,
   Building2,
@@ -160,15 +159,7 @@ export default function HomeClient() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
 
-  // Back to top: bottom-LEFT so it never collides with the chat bubble
-  const [showTop, setShowTop] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setShowTop(window.scrollY > 120);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  
 
   // Every internal link keeps the active language
   const nav = (path: string) => router.push(`/${locale}${path}`);
@@ -254,7 +245,7 @@ export default function HomeClient() {
 
   // Typewriter
   const words = useMemo(
-    () => ['With Confidence?', 'Without Surprises?', 'With Exodus Logistics?'],
+    () => ['With Confidence?', 'Without Surprises?', 'With Exodus?'],
     []
   );
   const colors = useMemo(() => ['text-cyan-200', 'text-orange-300', 'text-white'], []);
@@ -1061,22 +1052,7 @@ export default function HomeClient() {
         </motion.div>
       </Section>
 
-      {/* ================= BACK TO TOP (bottom-left) ================= */}
-      <AnimatePresence>
-        {showTop && (
-          <motion.button
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            onClick={scrollToTop}
-            className="fixed bottom-6 left-6 z-[60] rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 transition-all p-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-            aria-label="Back to top"
-            title="Back to top"
-          >
-            <ArrowUp className="w-5 h-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      
     </div>
   );
 }
