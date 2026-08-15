@@ -1160,7 +1160,7 @@
 "Home.readyTitle": "Prêt à expédier",
 "Home.readyWord1": "En toute confiance ?",
 "Home.readyWord2": "Sans surprises ?",
-"Home.readyWord3": "Avec Exodus Maintenant ?",
+"Home.readyWord3": "Avec Exodus Là ?",
 "Home.readyP1": "Commencez par un devis. C'est gratuit, cela prend environ une minute, et vous voyez le coût complet avant de vous engager à quoi que ce soit.",
 "Home.readyP2": "Si les chiffres ne vous conviennent pas, vous aurez perdu une minute. S'ils vous conviennent, votre envoi est réservé et suivi depuis la même page.",
 "Home.readyCta": "Obtenir votre devis",
@@ -1221,5 +1221,12 @@
 "Footer.linkCookies": "Politique de cookies",
 "Footer.linkStatus": "État des serveurs",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Tous droits réservés."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. Tous droits réservés.",
+
+"QuickActions.trackTitle": "Suivre un envoi",
+"QuickActions.trackDesc": "Suivez votre colis en temps réel avec votre numéro de suivi",
+"QuickActions.invoiceTitle": "Voir la facture",
+"QuickActions.invoiceDesc": "Consultez et téléchargez vos factures instantanément",
+"QuickActions.quoteTitle": "Demander un devis",
+"QuickActions.quoteDesc": "Tarification immédiate pour vos besoins d'expédition"
 }

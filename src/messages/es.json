@@ -1221,5 +1221,12 @@
 "Footer.linkCookies": "Política de cookies",
 "Footer.linkStatus": "Estado del servidor",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Todos los derechos reservados."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. Todos los derechos reservados.",
+
+"QuickActions.trackTitle": "Rastrear envío",
+"QuickActions.trackDesc": "Sigue tu paquete en tiempo real con tu número de seguimiento",
+"QuickActions.invoiceTitle": "Ver factura",
+"QuickActions.invoiceDesc": "Consulta y descarga tus facturas al instante",
+"QuickActions.quoteTitle": "Solicitar presupuesto",
+"QuickActions.quoteDesc": "Precios inmediatos para tus necesidades de envío"
 }
