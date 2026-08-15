@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AppProviders from '@/components/AppProviders';
+import LiveChatLoader from '@/components/LiveChatLoader';
 
 export default function RootLayoutClient({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +24,7 @@ export default function RootLayoutClient({ children }: { children: ReactNode }) 
         </main>
 
         {!isDashboard && <Footer />}
+        <LiveChatLoader />
       </div>
     </AppProviders>
   );

@@ -160,10 +160,10 @@ export default function HomeClient() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
 
-  // Back to top — bottom-LEFT so it never collides with the chat bubble
+  // Back to top: bottom-LEFT so it never collides with the chat bubble
   const [showTop, setShowTop] = useState(false);
   useEffect(() => {
-    const onScroll = () => setShowTop(window.scrollY > 500);
+    const onScroll = () => setShowTop(window.scrollY > 120);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -310,7 +310,7 @@ export default function HomeClient() {
       {
         q: 'Why is my quote higher than the weight I entered suggests?',
         a:
-          `Carriers charge on whichever is greater: the actual weight of your package, or its volumetric weight — length × width × height in centimetres, divided by 5000.\n\n` +
+          `Carriers charge on whichever is greater: the actual weight of your package, or its volumetric weight, which is length × width × height in centimetres divided by 5000.\n\n` +
           `A large, light package occupies space that cannot be sold to anyone else, so it is priced on the space it takes rather than what it weighs.\n\n` +
           `When volumetric weight applies to your shipment, we say so on the quote and show both figures, so the higher price is never a surprise.`,
         href: '/quote',
@@ -320,7 +320,7 @@ export default function HomeClient() {
         a:
           `Enter your tracking number on the Track page. You will see a timeline of every stage the shipment has passed through, each with a timestamp and location.\n\n` +
           `Every entry states what happened and what happens next, rather than leaving you to interpret a status label.\n\n` +
-          `If a shipment is held — at customs, for example — the timeline says why and what is required to release it.`,
+          `If a shipment is held at customs, the timeline says why and what is required to release it.`,
         href: '/track',
       },
       {
@@ -450,8 +450,8 @@ export default function HomeClient() {
               </h1>
 
               <p className="mt-5 text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed">
-                Get a complete cost breakdown in seconds — freight, fuel, insurance,
-                customs, and handling, each on its own line. Then follow your shipment
+                Get a complete cost breakdown in seconds. Freight, fuel, insurance,
+                customs, and handling each appear on their own line. Then follow your shipment
                 from pickup to delivery with updates that tell you what happens next.
               </p>
 
@@ -573,7 +573,7 @@ export default function HomeClient() {
 
             <p className="text-gray-600 mt-4 leading-relaxed">
               Hidden fees are the most common complaint in freight, and they usually
-              arrive after the cargo is already moving — when refusing is no longer
+              arrive after the cargo is already moving, when refusing is no longer
               realistic.
             </p>
 
@@ -588,7 +588,7 @@ export default function HomeClient() {
               {[
                 'Volumetric weight flagged whenever it applies to your package',
                 'Currency shown in your local denomination, converted at quote time',
-                'The approved total is the invoiced total — nothing is added later',
+                'The approved total is the invoiced total, with nothing added later',
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2.5 text-gray-700">
                   <CheckCircle2 className="w-5 h-5 text-cyan-700 mt-0.5 shrink-0" />
@@ -607,7 +607,7 @@ export default function HomeClient() {
             </motion.button>
           </motion.div>
 
-          {/* Sample breakdown — mirrors the real invoice structure */}
+          {/* Sample breakdown: mirrors the real invoice structure */}
           <motion.div variants={itemVariants}>
             <div className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden">
               <div className="h-1.5 bg-gradient-to-r from-blue-700 via-cyan-500 to-cyan-400" />
@@ -669,7 +669,7 @@ export default function HomeClient() {
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
             Speed and cost pull against each other. Here is when each mode is the
-            right call — we select it automatically from your shipment details, and
+            right call. We select it automatically from your shipment details, and
             explain why.
           </p>
         </motion.div>
@@ -725,7 +725,7 @@ export default function HomeClient() {
               step: '03',
               icon: Route,
               title: 'Follow the timeline',
-              text: 'Each milestone records what happened, where, and when — plus the next expected step.',
+              text: 'Each milestone records what happened, where, and when, plus the next expected step.',
               href: '/track',
             },
             {
@@ -767,7 +767,7 @@ export default function HomeClient() {
               Global routes, handled locally
             </h2>
             <p className="text-gray-600 mt-4 leading-relaxed">
-              International shipping fails at the handoffs — between carriers, at
+              International shipping fails at the handoffs: between carriers, at
               borders, on the last mile. We work through vetted regional partners so
               each leg is handled by people who operate that lane routinely.
             </p>
@@ -866,7 +866,7 @@ export default function HomeClient() {
             {
               icon: Shield,
               title: 'Insurance that scales',
-              text: 'Premiums are calculated from your declared value. Accurate declaration matters — it determines both your premium and your maximum recovery.',
+              text: 'Premiums are calculated from your declared value. Accurate declaration matters, because it determines both your premium and your maximum recovery.',
               href: '/quote',
             },
             {
@@ -911,7 +911,7 @@ export default function HomeClient() {
             {
               icon: Users,
               title: 'Individuals',
-              text: 'Sending personal effects, gifts, or documents across borders. No account minimums, no contracts — quote, pay, and ship.',
+              text: 'Sending personal effects, gifts, or documents across borders. No account minimums and no contracts. Quote, pay, and ship.',
               href: '/quote',
             },
             {

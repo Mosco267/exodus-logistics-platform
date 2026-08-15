@@ -23,7 +23,7 @@ type CompanySettings = {
 
 /**
  * Reads whatever shape your admin settings return and normalises it.
- * Field names are guessed across common variants — if a value doesn't
+ * Field names are guessed across common variants. If a value doesn't
  * show up, add your actual key to the relevant `pick()` list below.
  */
 function normalizeSettings(raw: any): CompanySettings {
@@ -194,7 +194,7 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* ── Contact — from admin company settings ───────── */}
+        {/* ── Contact: from admin company settings ───────── */}
         {company && (company.addressLines.length > 0 || company.phone || company.email) && (
           <div className="mt-10 pt-8 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
             {company.addressLines.length > 0 && (

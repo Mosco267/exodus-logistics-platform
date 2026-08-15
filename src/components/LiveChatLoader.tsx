@@ -1,8 +1,17 @@
-// src/components/LiveChatLoader.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
+
+const TAWK_SRC = 'https://embed.tawk.to/6a8011ef8711e91d4fb54996/1k024c44a';
+
+/* Tawk expects a short language code. Map your locales to the
+   ones Tawk supports, falling back to English. */
+const TAWK_LANG: Record<string, string> = {
+  en: 'en', es: 'es', fr: 'fr', de: 'de',
+  zh: 'zh', it: 'it', ar: 'ar', pt: 'pt-br',
+  ru: 'ru', ja: 'ja', ko: 'ko', hi: 'hi',
+};
 
 declare global {
   interface Window {
@@ -14,7 +23,13 @@ declare global {
 export default function LiveChatLoader() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
+  const lang = TAWK_LANG[locale] || 'en';
 
+  // Keep the latest language available to the onLoad callback
+  const langRef = useRef(lang);
+  langRef.current = lang;
+
+  // Inject the script once per page load
   useEffect(() => {
     if (document.getElementById('tawk-script')) return;
 
@@ -22,24 +37,26 @@ export default function LiveChatLoader() {
     window.Tawk_LoadStart = new Date();
 
     window.Tawk_API.onLoad = function () {
-      window.Tawk_API.setAttributes({ language: locale }, () => {});
+      try {
+        window.Tawk_API?.setAttributes?.({ language: langRef.current }, () => {});
+      } catch {}
     };
 
     const s = document.createElement('script');
     s.id = 'tawk-script';
     s.async = true;
-    s.src = 'https://embed.tawk.to/YOUR_PROPERTY_ID/YOUR_WIDGET_ID';
+    s.src = TAWK_SRC;
     s.charset = 'UTF-8';
     s.setAttribute('crossorigin', '*');
     document.body.appendChild(s);
   }, []);
 
-  // Re-sync when the user switches language mid-session
+  // Re-sync if the visitor switches language mid session
   useEffect(() => {
-    if (window.Tawk_API?.setAttributes) {
-      window.Tawk_API.setAttributes({ language: locale }, () => {});
-    }
-  }, [locale]);
+    try {
+      window.Tawk_API?.setAttributes?.({ language: lang }, () => {});
+    } catch {}
+  }, [lang]);
 
   return null;
 }
