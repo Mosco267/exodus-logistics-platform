@@ -245,7 +245,7 @@ export default function HomeClient() {
 
   // Typewriter
   const words = useMemo(
-    () => ['With Confidence?', 'Without Surprises?', 'With Exodus?'],
+    () => ['With Confidence?', 'Without Surprises?', 'With Exodus Today?'],
     []
   );
   const colors = useMemo(() => ['text-cyan-200', 'text-orange-300', 'text-white'], []);
