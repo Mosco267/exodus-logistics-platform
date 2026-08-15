@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useIntl } from 'react-intl';
 import {
   MapPin, Phone, Mail, Facebook, Twitter, Linkedin, Instagram,
   ShieldCheck, Clock, Globe,
@@ -37,7 +38,6 @@ function normalizeSettings(raw: any): CompanySettings {
     return '';
   };
 
-  // Address may arrive as one string, an array, or separate fields.
   let addressLines: string[] = [];
   if (Array.isArray(c.addressLines)) {
     addressLines = c.addressLines.filter(Boolean);
@@ -71,6 +71,9 @@ export default function Footer() {
   const l = (path: string) => `/${locale}${path}`;
   const year = new Date().getFullYear();
 
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
   const [company, setCompany] = useState<CompanySettings | null>(null);
 
   useEffect(() => {
@@ -84,29 +87,29 @@ export default function Footer() {
 
   const columns = [
     {
-      title: 'Services',
+      title: t('Footer.colServices'),
       links: [
-        { label: 'Air freight', href: '/services' },
-        { label: 'Ocean freight', href: '/services' },
-        { label: 'Road transport', href: '/services' },
-        { label: 'Warehousing', href: '/services' },
+        { label: t('Footer.linkAir'), href: '/services' },
+        { label: t('Footer.linkSea'), href: '/services' },
+        { label: t('Footer.linkRoad'), href: '/services' },
+        { label: t('Footer.linkWarehouse'), href: '/services' },
       ],
     },
     {
-      title: 'Company',
+      title: t('Footer.colCompany'),
       links: [
-        { label: 'About us', href: '/about' },
-        { label: 'Contact', href: '/contact' },
-        { label: 'Help center', href: '/support' },
+        { label: t('Footer.linkAbout'), href: '/about' },
+        { label: t('Footer.linkContact'), href: '/contact' },
+        { label: t('Footer.linkHelp'), href: '/support' },
       ],
     },
     {
-      title: 'Shipping',
+      title: t('Footer.colShipping'),
       links: [
-        { label: 'Track a shipment', href: '/track' },
-        { label: 'Get a quote', href: '/quote' },
-        { label: 'View invoice', href: '/invoice' },
-        { label: 'Sign in', href: '/signin' },
+        { label: t('Footer.linkTrack'), href: '/track' },
+        { label: t('Footer.linkQuote'), href: '/quote' },
+        { label: t('Footer.linkInvoice'), href: '/invoice' },
+        { label: t('Footer.linkSignIn'), href: '/sign-in' },
       ],
     },
   ];
@@ -130,9 +133,9 @@ export default function Footer() {
       <div className="border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { icon: ShieldCheck, title: 'Insured shipments', text: 'Coverage scaled to your declared value' },
-            { icon: Clock, title: 'Tracked at every stage', text: 'Milestone updates from pickup to delivery' },
-            { icon: Globe, title: 'Twelve languages', text: 'Quotes, tracking, and support in yours' },
+            { icon: ShieldCheck, title: t('Footer.trust1Title'), text: t('Footer.trust1Text') },
+            { icon: Clock, title: t('Footer.trust2Title'), text: t('Footer.trust2Text') },
+            { icon: Globe, title: t('Footer.trust3Title'), text: t('Footer.trust3Text') },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title} className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
@@ -156,9 +159,7 @@ export default function Footer() {
               <img src="/logo-black.svg" alt="Exodus Logistics" className="h-8 w-auto brightness-0 invert" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
-              Freight and parcel logistics for businesses and individuals.
-              Itemised pricing before you book, tracking that explains itself,
-              and support that answers.
+              {t('Footer.brandBlurb')}
             </p>
 
             {socialLinks.length > 0 && (
@@ -229,14 +230,14 @@ export default function Footer() {
         {/* ── Bottom bar ──────────────────────────────────── */}
         <div className="border-t border-white/10 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-500">
-            © {year} Exodus Logistics Ltd. All rights reserved.
+            {t('Footer.copyright', { year })}
           </p>
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             {[
-              { label: 'Privacy policy', href: '/privacy' },
-              { label: 'Terms of service', href: '/terms' },
-              { label: 'Cookie policy', href: '/cookies' },
-              { label: 'Server status', href: '/servers' },
+              { label: t('Footer.linkPrivacy'), href: '/privacy' },
+              { label: t('Footer.linkTerms'), href: '/terms' },
+              { label: t('Footer.linkCookies'), href: '/cookies' },
+              { label: t('Footer.linkStatus'), href: '/servers' },
             ].map(x => (
               <Link key={x.label} href={l(x.href)}
                 className="text-xs text-gray-500 hover:text-white transition">

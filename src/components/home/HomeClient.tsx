@@ -10,8 +10,8 @@ import {
   useInView,
 } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
+import { useIntl } from 'react-intl';
 import {
-  Globe,
   Shield,
   Clock,
   Users,
@@ -25,16 +25,13 @@ import {
   ChevronDown,
   Building2,
   Boxes,
-  BadgeCheck,
   ClipboardCheck,
   Route,
   ScanLine,
   FileText,
   Lock,
   BadgeInfo,
-  Scale,
   Receipt,
-  CreditCard,
 } from 'lucide-react';
 
 import QuickActions from '@/components/QuickActions';
@@ -156,97 +153,48 @@ export default function HomeClient() {
   const reduceMotion = useReducedMotion();
   const isMobile = useIsMobile();
 
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
 
-  
-
-  // Every internal link keeps the active language
   const nav = (path: string) => router.push(`/${locale}${path}`);
 
   const services = useMemo(
     () => [
-      {
-        icon: Plane,
-        title: 'Air freight',
-        short:
-          'For time-critical cargo. Priority routing on international lanes, with clearance handled alongside the booking.',
-        href: '/services',
-      },
-      {
-        icon: Ship,
-        title: 'Ocean freight',
-        short:
-          'The economical choice above roughly 500 kg. Slower than air, substantially cheaper per kilogram on volume.',
-        href: '/services',
-      },
-      {
-        icon: Truck,
-        title: 'Road transport',
-        short:
-          'Domestic and regional movement, plus the first and last mile that connects to every air and ocean route.',
-        href: '/services',
-      },
-      {
-        icon: Package,
-        title: 'Warehousing',
-        short:
-          'Secure storage between legs, with inventory handling for businesses shipping repeatedly on the same lanes.',
-        href: '/services',
-      },
+      { icon: Plane, title: t('Home.svcAirTitle'), short: t('Home.svcAirDesc'), href: '/services' },
+      { icon: Ship, title: t('Home.svcSeaTitle'), short: t('Home.svcSeaDesc'), href: '/services' },
+      { icon: Truck, title: t('Home.svcRoadTitle'), short: t('Home.svcRoadDesc'), href: '/services' },
+      { icon: Package, title: t('Home.svcWarehouseTitle'), short: t('Home.svcWarehouseDesc'), href: '/services' },
     ],
-    []
+    [intl.locale]
   );
 
   const features = useMemo(
     () => [
-      {
-        icon: Receipt,
-        title: 'Priced before you commit',
-        short:
-          'Freight, fuel, insurance, handling, customs, and tax are itemised at quote time. No figure appears on your invoice that you have not already seen.',
-        href: '/quote',
-      },
-      {
-        icon: Clock,
-        title: 'Tracking that explains itself',
-        short:
-          'Each milestone states what happened, where, and what comes next, so you are never left interpreting a status code on your own.',
-        href: '/track',
-      },
-      {
-        icon: Shield,
-        title: 'Insurance sized to the cargo',
-        short:
-          'Coverage is calculated from your declared value rather than sold as a flat add-on, so you pay in proportion to what is actually at risk.',
-        href: '/quote',
-      },
-      {
-        icon: Users,
-        title: 'Support you can reach',
-        short:
-          'Live chat and a ticket system with full shipment history attached, so you are not repeating your tracking number to every new agent.',
-        href: '/support',
-      },
+      { icon: Receipt, title: t('Home.featPricingTitle'), short: t('Home.featPricingDesc'), href: '/quote' },
+      { icon: Clock, title: t('Home.featTrackingTitle'), short: t('Home.featTrackingDesc'), href: '/track' },
+      { icon: Shield, title: t('Home.featInsuranceTitle'), short: t('Home.featInsuranceDesc'), href: '/quote' },
+      { icon: Users, title: t('Home.featSupportTitle'), short: t('Home.featSupportDesc'), href: '/support' },
     ],
-    []
+    [intl.locale]
   );
 
-  // Only claims that are verifiable from the platform itself
   const stats = useMemo(
     () => [
-      { label: 'Air, ocean, and road', value: '3 modes', href: '/services' },
-      { label: 'Itemised before booking', value: 'Full quote', href: '/quote' },
-      { label: 'Platform languages', value: '12', href: '/about' },
-      { label: 'Milestone tracking', value: 'Live', href: '/track' },
+      { label: t('Home.statModesLabel'), value: t('Home.statModesValue'), href: '/services' },
+      { label: t('Home.statQuoteLabel'), value: t('Home.statQuoteValue'), href: '/quote' },
+      { label: t('Home.statLangsLabel'), value: t('Home.statLangsValue'), href: '/about' },
+      { label: t('Home.statTrackingLabel'), value: t('Home.statTrackingValue'), href: '/track' },
     ],
-    []
+    [intl.locale]
   );
 
   // Typewriter
   const words = useMemo(
-    () => ['With Confidence?', 'Without Surprises?', 'With Exodus Today?'],
-    []
+    () => [t('Home.readyWord1'), t('Home.readyWord2'), t('Home.readyWord3')],
+    [intl.locale]
   );
   const colors = useMemo(() => ['text-cyan-200', 'text-orange-300', 'text-white'], []);
 
@@ -254,13 +202,20 @@ export default function HomeClient() {
   const [wordIndex, setWordIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Reset the typewriter when the language changes
+  useEffect(() => {
+    setDisplayedText('');
+    setWordIndex(0);
+    setIsDeleting(false);
+  }, [intl.locale]);
+
   useEffect(() => {
     if (reduceMotion) return;
 
-    const current = words[wordIndex];
+    const current = words[wordIndex] || '';
     const speed = isDeleting ? 40 : 70;
 
-    const t = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       if (!isDeleting) {
         const next = current.substring(0, displayedText.length + 1);
         setDisplayedText(next);
@@ -275,7 +230,7 @@ export default function HomeClient() {
       }
     }, speed);
 
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timer);
   }, [displayedText, isDeleting, wordIndex, words, reduceMotion]);
 
   const readyRef = useRef<HTMLDivElement | null>(null);
@@ -290,56 +245,14 @@ export default function HomeClient() {
 
   const faqs = useMemo(
     () => [
-      {
-        q: 'How is my shipping cost calculated?',
-        a:
-          `Your quote is built from six components: base freight, a fuel surcharge, insurance on your declared value, a handling fee, customs clearance where the route requires it, and any applicable tax.\n\n` +
-          `Each line is shown separately before you book, so you can see exactly what you are paying for rather than a single unexplained total.\n\n` +
-          `Nothing is added later. The figure you approve is the figure on your invoice.`,
-        href: '/quote',
-      },
-      {
-        q: 'Why is my quote higher than the weight I entered suggests?',
-        a:
-          `Carriers charge on whichever is greater: the actual weight of your package, or its volumetric weight, which is length × width × height in centimetres divided by 5000.\n\n` +
-          `A large, light package occupies space that cannot be sold to anyone else, so it is priced on the space it takes rather than what it weighs.\n\n` +
-          `When volumetric weight applies to your shipment, we say so on the quote and show both figures, so the higher price is never a surprise.`,
-        href: '/quote',
-      },
-      {
-        q: 'How do I track my shipment?',
-        a:
-          `Enter your tracking number on the Track page. You will see a timeline of every stage the shipment has passed through, each with a timestamp and location.\n\n` +
-          `Every entry states what happened and what happens next, rather than leaving you to interpret a status label.\n\n` +
-          `If a shipment is held at customs, the timeline says why and what is required to release it.`,
-        href: '/track',
-      },
-      {
-        q: 'Do you handle customs clearance?',
-        a:
-          `Yes, on routes that require it. Clearance is priced into your quote rather than billed as an unexpected charge later.\n\n` +
-          `We tell you which documents are needed before dispatch, because incomplete paperwork is the single most common cause of delay in international shipping.\n\n` +
-          `If additional documentation becomes necessary in transit, you will be contacted directly rather than left to discover it from a stalled tracking page.`,
-        href: '/services',
-      },
-      {
-        q: 'Is my shipment insured?',
-        a:
-          `Insurance is calculated from the declared value you enter at quote time and appears as its own line on your invoice.\n\n` +
-          `Declaring an accurate value matters. Under-declaring reduces your premium but caps what can be recovered if something goes wrong.\n\n` +
-          `For high-value or fragile cargo, contact support before booking and we will advise on the right level of cover.`,
-        href: '/quote',
-      },
-      {
-        q: 'How can I pay?',
-        a:
-          `Bank transfer, PayPal, and major cryptocurrencies including Bitcoin, USDT, and Ethereum. Available methods are shown on your invoice.\n\n` +
-          `Every invoice carries a unique payment reference. Include it with your transfer so we can match your payment without delay.\n\n` +
-          `After paying, upload your receipt from the payment page. We verify it and confirm by email, and your shipment status updates automatically.`,
-        href: '/invoice',
-      },
+      { q: t('Home.faq1q'), a: t('Home.faq1a') },
+      { q: t('Home.faq2q'), a: t('Home.faq2a') },
+      { q: t('Home.faq3q'), a: t('Home.faq3a') },
+      { q: t('Home.faq4q'), a: t('Home.faq4a') },
+      { q: t('Home.faq5q'), a: t('Home.faq5a') },
+      { q: t('Home.faq6q'), a: t('Home.faq6a') },
     ],
-    []
+    [intl.locale]
   );
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -354,7 +267,7 @@ export default function HomeClient() {
             onClick={() => setShowQuoteForm(false)}
             className="mb-8 text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
           >
-            ← Back to home
+            ← {t('Home.backHome')}
           </button>
           <GetAQuoteForm />
         </div>
@@ -370,10 +283,10 @@ export default function HomeClient() {
             onClick={() => setShowInvoice(false)}
             className="mb-8 text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
           >
-            ← Back to home
+            ← {t('Home.backHome')}
           </button>
           <div className="text-center text-2xl font-bold text-gray-600">
-            Invoice view coming soon
+            {t('Home.invoiceSoon')}
           </div>
         </div>
       </div>
@@ -432,18 +345,17 @@ export default function HomeClient() {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-sm text-white/95 mb-5">
                 <Headphones className="w-4 h-4" />
-                Support in 12 languages
+                {t('Home.heroBadge')}
               </div>
 
               <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight drop-shadow-md">
-                Freight and parcels,{' '}
-                <span className="text-cyan-100">priced before you commit</span>
+                {t('Home.heroTitle', {
+                  accent: (chunks: any) => <span className="text-cyan-100">{chunks}</span>,
+                })}
               </h1>
 
               <p className="mt-5 text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed">
-                Get a complete cost breakdown in seconds. Freight, fuel, insurance,
-                customs, and handling each appear on their own line. Then follow your shipment
-                from pickup to delivery with updates that tell you what happens next.
+                {t('Home.heroSubtitle')}
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
@@ -453,7 +365,7 @@ export default function HomeClient() {
                   onClick={() => nav('/quote')}
                   className="bg-white text-blue-700 px-7 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
                 >
-                  Get a quote
+                  {t('Home.heroCtaQuote')}
                 </motion.button>
 
                 <motion.button
@@ -462,7 +374,7 @@ export default function HomeClient() {
                   onClick={() => nav('/track')}
                   className="bg-transparent text-white px-7 py-3.5 rounded-xl font-semibold border border-white/45 hover:bg-white/10 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
                 >
-                  Track a shipment
+                  {t('Home.heroCtaTrack')}
                 </motion.button>
               </div>
 
@@ -521,11 +433,12 @@ export default function HomeClient() {
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            What you get, <span className="text-cyan-600">specifically</span>
+            {t('Home.whyTitle', {
+              accent: (chunks: any) => <span className="text-cyan-600">{chunks}</span>,
+            })}
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            Most logistics providers promise reliability. Here is what that means in
-            practice on this platform.
+            {t('Home.whySub')}
           </p>
         </motion.div>
 
@@ -549,41 +462,27 @@ export default function HomeClient() {
         </div>
       </Section>
 
-      {/* ================= PRICING TRANSPARENCY (signature) ================= */}
+      {/* ================= PRICING TRANSPARENCY ================= */}
       <Section className="bg-gradient-to-b from-gray-50 to-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <motion.div variants={itemVariants}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-sm text-blue-700 mb-5">
               <Receipt className="w-4 h-4" />
-              No hidden charges
+              {t('Home.pricingBadge')}
             </div>
 
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-              Every line of your invoice, before you book
+              {t('Home.pricingTitle')}
             </h2>
 
-            <p className="text-gray-600 mt-4 leading-relaxed">
-              Hidden fees are the most common complaint in freight, and they usually
-              arrive after the cargo is already moving, when refusing is no longer
-              realistic.
-            </p>
-
-            <p className="text-gray-600 mt-3 leading-relaxed">
-              We calculate the full breakdown at quote time and show it to you in
-              full. Base freight reflects your route, weight, and mode. Fuel and
-              insurance are percentages you can see. Customs appears only where the
-              route requires it.
-            </p>
+            <p className="text-gray-600 mt-4 leading-relaxed">{t('Home.pricingP1')}</p>
+            <p className="text-gray-600 mt-3 leading-relaxed">{t('Home.pricingP2')}</p>
 
             <ul className="mt-7 space-y-3">
-              {[
-                'Volumetric weight flagged whenever it applies to your package',
-                'Currency shown in your local denomination, converted at quote time',
-                'The approved total is the invoiced total, with nothing added later',
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2.5 text-gray-700">
+              {[t('Home.pricingB1'), t('Home.pricingB2'), t('Home.pricingB3')].map((x) => (
+                <li key={x} className="flex items-start gap-2.5 text-gray-700">
                   <CheckCircle2 className="w-5 h-5 text-cyan-700 mt-0.5 shrink-0" />
-                  <span className="leading-relaxed">{t}</span>
+                  <span className="leading-relaxed">{x}</span>
                 </li>
               ))}
             </ul>
@@ -594,11 +493,10 @@ export default function HomeClient() {
               onClick={() => nav('/quote')}
               className="mt-8 px-6 py-3.5 rounded-xl bg-blue-700 text-white shadow hover:bg-blue-800 transition-all font-semibold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
-              See your breakdown
+              {t('Home.pricingCta')}
             </motion.button>
           </motion.div>
 
-          {/* Sample breakdown: mirrors the real invoice structure */}
           <motion.div variants={itemVariants}>
             <div className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden">
               <div className="h-1.5 bg-gradient-to-r from-blue-700 via-cyan-500 to-cyan-400" />
@@ -606,10 +504,10 @@ export default function HomeClient() {
                 <div className="flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Sample quote
+                      {t('Home.sampleLabel')}
                     </p>
                     <p className="text-sm font-bold text-gray-900 mt-1">
-                      America → London · 18 kg · Air
+                      {t('Home.sampleRoute')}
                     </p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center shrink-0">
@@ -619,11 +517,11 @@ export default function HomeClient() {
 
                 <div className="mt-4 space-y-2.5 text-sm">
                   {[
-                    { label: 'Base freight (Air)', value: '412.00' },
-                    { label: 'Fuel surcharge (12%)', value: '49.44' },
-                    { label: 'Insurance (1.5%)', value: '18.75' },
-                    { label: 'Handling fee', value: '25.00' },
-                    { label: 'Customs clearance', value: '60.00' },
+                    { label: t('Home.sampleFreight'), value: '412.00' },
+                    { label: t('Home.sampleFuel'), value: '49.44' },
+                    { label: t('Home.sampleInsurance'), value: '18.75' },
+                    { label: t('Home.sampleHandling'), value: '25.00' },
+                    { label: t('Home.sampleCustoms'), value: '60.00' },
                   ].map((row) => (
                     <div key={row.label} className="flex justify-between text-gray-600">
                       <span>{row.label}</span>
@@ -632,19 +530,18 @@ export default function HomeClient() {
                   ))}
 
                   <div className="flex justify-between text-green-600 pt-1">
-                    <span>Volume discount</span>
+                    <span>{t('Home.sampleDiscount')}</span>
                     <span className="font-semibold">− USD 30.00</span>
                   </div>
 
                   <div className="flex justify-between items-center border-t border-gray-100 pt-3.5 mt-1">
-                    <span className="font-extrabold text-gray-900">Total</span>
+                    <span className="font-extrabold text-gray-900">{t('Home.sampleTotal')}</span>
                     <span className="text-lg font-extrabold text-blue-700">USD 535.19</span>
                   </div>
                 </div>
 
                 <p className="mt-5 text-[11px] text-gray-400 leading-relaxed">
-                  Illustrative figures. Your quote is calculated from your actual route,
-                  weight, dimensions, and declared value.
+                  {t('Home.sampleNote')}
                 </p>
               </div>
             </div>
@@ -656,12 +553,12 @@ export default function HomeClient() {
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Choosing your <span className="text-blue-700">shipping mode</span>
+            {t('Home.modesTitle', {
+              accent: (chunks: any) => <span className="text-blue-700">{chunks}</span>,
+            })}
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            Speed and cost pull against each other. Here is when each mode is the
-            right call. We select it automatically from your shipment details, and
-            explain why.
+            {t('Home.modesSub')}
           </p>
         </motion.div>
 
@@ -689,46 +586,22 @@ export default function HomeClient() {
       <Section className="bg-gradient-to-b from-white to-gray-50">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            From quote to delivery
+            {t('Home.howTitle')}
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            Four stages. You are told what is required at each one before you reach it.
+            {t('Home.howSub')}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            {
-              step: '01',
-              icon: FileText,
-              title: 'Request a quote',
-              text: 'Enter route, weight, dimensions, and declared value. The full itemised cost returns in seconds.',
-              href: '/quote',
-            },
-            {
-              step: '02',
-              icon: ClipboardCheck,
-              title: 'Confirm and pay',
-              text: 'Review the breakdown, confirm pickup details, and pay by bank transfer, PayPal, or crypto.',
-              href: '/invoice',
-            },
-            {
-              step: '03',
-              icon: Route,
-              title: 'Follow the timeline',
-              text: 'Each milestone records what happened, where, and when, plus the next expected step.',
-              href: '/track',
-            },
-            {
-              step: '04',
-              icon: ScanLine,
-              title: 'Delivery confirmed',
-              text: 'Confirmation is logged with the full status history retained for your records.',
-              href: '/track',
-            },
+            { step: '01', icon: FileText, title: t('Home.how1Title'), text: t('Home.how1Text'), href: '/quote' },
+            { step: '02', icon: ClipboardCheck, title: t('Home.how2Title'), text: t('Home.how2Text'), href: '/invoice' },
+            { step: '03', icon: Route, title: t('Home.how3Title'), text: t('Home.how3Text'), href: '/track' },
+            { step: '04', icon: ScanLine, title: t('Home.how4Title'), text: t('Home.how4Text'), href: '/track' },
           ].map((x) => (
             <ClickCard
-              key={x.title}
+              key={x.step}
               onClick={() => nav(x.href)}
               className="group relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-gray-300 transition-all"
             >
@@ -755,27 +628,16 @@ export default function HomeClient() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <motion.div variants={itemVariants}>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-              Global routes, handled locally
+              {t('Home.coverageTitle')}
             </h2>
-            <p className="text-gray-600 mt-4 leading-relaxed">
-              International shipping fails at the handoffs: between carriers, at
-              borders, on the last mile. We work through vetted regional partners so
-              each leg is handled by people who operate that lane routinely.
-            </p>
-            <p className="text-gray-600 mt-3 leading-relaxed">
-              Your tracking timeline stays continuous across every handoff, so a
-              change of carrier never means a gap in visibility.
-            </p>
+            <p className="text-gray-600 mt-4 leading-relaxed">{t('Home.coverageP1')}</p>
+            <p className="text-gray-600 mt-3 leading-relaxed">{t('Home.coverageP2')}</p>
 
             <ul className="mt-7 space-y-3">
-              {[
-                'Status updates written in plain language, not carrier codes',
-                'Optional insurance and secure handling for sensitive cargo',
-                'Delivery estimates given as a date range, not a single optimistic day',
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2.5 text-gray-700">
+              {[t('Home.coverageB1'), t('Home.coverageB2'), t('Home.coverageB3')].map((x) => (
+                <li key={x} className="flex items-start gap-2.5 text-gray-700">
                   <CheckCircle2 className="w-5 h-5 text-cyan-700 mt-0.5 shrink-0" />
-                  <span className="leading-relaxed">{t}</span>
+                  <span className="leading-relaxed">{x}</span>
                 </li>
               ))}
             </ul>
@@ -787,7 +649,7 @@ export default function HomeClient() {
                 onClick={() => nav('/track')}
                 className="px-5 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all font-semibold text-gray-900 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                Track a shipment
+                {t('Home.heroCtaTrack')}
               </motion.button>
               <motion.button
                 whileHover={isMobile || reduceMotion ? undefined : { scale: 1.02 }}
@@ -795,7 +657,7 @@ export default function HomeClient() {
                 onClick={() => nav('/quote')}
                 className="px-5 py-3 rounded-xl bg-cyan-600 text-white shadow hover:bg-cyan-700 transition-all font-semibold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
               >
-                Get a quote
+                {t('Home.heroCtaQuote')}
               </motion.button>
             </div>
           </motion.div>
@@ -804,17 +666,17 @@ export default function HomeClient() {
             <div className="rounded-3xl bg-gray-50 border border-gray-200 shadow-sm p-6">
               <div className="flex items-center gap-2 text-gray-900 font-semibold">
                 <MapPin className="w-5 h-5 text-cyan-700" />
-                Where we operate
+                {t('Home.coverageMapTitle')}
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {[
-                  { label: 'North America', value: 'Direct air lanes' },
-                  { label: 'Europe', value: 'Established hubs' },
-                  { label: 'Asia', value: 'Priority routing' },
-                  { label: 'Africa', value: 'Partner network' },
-                  { label: 'South America', value: 'Expanding routes' },
-                  { label: 'Oceania', value: 'Scheduled ocean' },
+                  { label: t('Home.regionNA'), value: t('Home.regionNAValue') },
+                  { label: t('Home.regionEU'), value: t('Home.regionEUValue') },
+                  { label: t('Home.regionAsia'), value: t('Home.regionAsiaValue') },
+                  { label: t('Home.regionAfrica'), value: t('Home.regionAfricaValue') },
+                  { label: t('Home.regionSA'), value: t('Home.regionSAValue') },
+                  { label: t('Home.regionOceania'), value: t('Home.regionOceaniaValue') },
                 ].map((x) => (
                   <div
                     key={x.label}
@@ -827,8 +689,7 @@ export default function HomeClient() {
               </div>
 
               <p className="mt-5 text-xs text-gray-500 leading-relaxed">
-                Coverage varies by cargo type and service level. Enter your route on
-                the quote page to confirm availability.
+                {t('Home.coverageNote')}
               </p>
             </div>
           </motion.div>
@@ -839,33 +700,20 @@ export default function HomeClient() {
       <Section className="bg-gradient-to-b from-gray-50 to-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Handling, cover, and <span className="text-blue-700">paperwork</span>
+            {t('Home.trustTitle', {
+              accent: (chunks: any) => <span className="text-blue-700">{chunks}</span>,
+            })}
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            Three areas where shipments most often go wrong, and what we do about each.
+            {t('Home.trustSub')}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            {
-              icon: Lock,
-              title: 'Secure handling',
-              text: 'Cargo is scanned at each transfer point, so if something is delayed or misrouted we can identify exactly where it happened rather than guessing.',
-              href: '/services',
-            },
-            {
-              icon: Shield,
-              title: 'Insurance that scales',
-              text: 'Premiums are calculated from your declared value. Accurate declaration matters, because it determines both your premium and your maximum recovery.',
-              href: '/quote',
-            },
-            {
-              icon: BadgeInfo,
-              title: 'Documentation guidance',
-              text: 'Incomplete paperwork causes more delays than any other factor. We tell you what each destination requires before dispatch, not after a shipment is held.',
-              href: '/support',
-            },
+            { icon: Lock, title: t('Home.trust1Title'), text: t('Home.trust1Text'), href: '/services' },
+            { icon: Shield, title: t('Home.trust2Title'), text: t('Home.trust2Text'), href: '/quote' },
+            { icon: BadgeInfo, title: t('Home.trust3Title'), text: t('Home.trust3Text'), href: '/support' },
           ].map((x) => (
             <ClickCard
               key={x.title}
@@ -889,34 +737,20 @@ export default function HomeClient() {
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Who ships with <span className="text-orange-600">Exodus</span>
+            {t('Home.whoTitle', {
+              accent: (chunks: any) => <span className="text-orange-600">{chunks}</span>,
+            })}
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            The platform handles a single parcel and a recurring freight programme on
-            the same rails.
+            {t('Home.whoSub')}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            {
-              icon: Users,
-              title: 'Individuals',
-              text: 'Sending personal effects, gifts, or documents across borders. No account minimums and no contracts. Quote, pay, and ship.',
-              href: '/quote',
-            },
-            {
-              icon: Boxes,
-              title: 'Online sellers',
-              text: 'Shipping orders to international customers. Consistent tracking your buyers can follow themselves, plus warehousing between restocks.',
-              href: '/services',
-            },
-            {
-              icon: Building2,
-              title: 'Businesses',
-              text: 'Moving inventory, equipment, or high-value cargo on repeat lanes. Volume pricing and insurance sized to what you are actually moving.',
-              href: '/contact',
-            },
+            { icon: Users, title: t('Home.who1Title'), text: t('Home.who1Text'), href: '/quote' },
+            { icon: Boxes, title: t('Home.who2Title'), text: t('Home.who2Text'), href: '/services' },
+            { icon: Building2, title: t('Home.who3Title'), text: t('Home.who3Text'), href: '/contact' },
           ].map((x) => (
             <ClickCard
               key={x.title}
@@ -961,7 +795,7 @@ export default function HomeClient() {
             transition={{ duration: 0.55, ease: 'easeOut' }}
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-6 drop-shadow-lg">
-              Ready to Ship{' '}
+              {t('Home.readyTitle')}{' '}
               <span className={`${colors[wordIndex]} inline-block min-w-[280px] text-left`}>
                 {displayedText}
                 <span className="border-r-2 border-white/90 ml-1 animate-pulse" />
@@ -969,13 +803,11 @@ export default function HomeClient() {
             </h2>
 
             <p className="text-lg md:text-xl max-w-3xl mx-auto mb-5 text-white/95 leading-relaxed">
-              Start with a quote. It costs nothing, takes about a minute, and shows
-              you the complete cost before you commit to anything.
+              {t('Home.readyP1')}
             </p>
 
             <p className="text-base md:text-lg max-w-2xl mx-auto mb-9 text-white/85 leading-relaxed">
-              If the numbers do not work for you, you have lost a minute. If they do,
-              your shipment is booked and tracking from the same page.
+              {t('Home.readyP2')}
             </p>
 
             <motion.button
@@ -984,7 +816,7 @@ export default function HomeClient() {
               onClick={() => nav('/quote')}
               className="bg-white text-blue-700 px-9 py-4 rounded-full font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
             >
-              Get your quote
+              {t('Home.readyCta')}
             </motion.button>
           </motion.div>
         </div>
@@ -994,10 +826,10 @@ export default function HomeClient() {
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Questions worth answering properly
+            {t('Home.faqTitle')}
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
-            The things customers actually ask before their first shipment.
+            {t('Home.faqSub')}
           </p>
         </motion.div>
 
@@ -1041,18 +873,16 @@ export default function HomeClient() {
 
         <motion.div variants={itemVariants} className="text-center mt-10">
           <p className="text-gray-600">
-            Still unsure about something?{' '}
+            {t('Home.faqMore')}{' '}
             <button
               onClick={() => nav('/support')}
               className="font-semibold text-blue-700 hover:text-blue-800 underline underline-offset-2 cursor-pointer"
             >
-              Ask our team
+              {t('Home.faqMoreLink')}
             </button>
           </p>
         </motion.div>
       </Section>
-
-      
     </div>
   );
 }
