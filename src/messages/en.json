@@ -1229,5 +1229,79 @@
 "QuickActions.invoiceTitle": "View invoice",
 "QuickActions.invoiceDesc": "Access and download your invoices instantly",
 "QuickActions.quoteTitle": "Get a quote",
-"QuickActions.quoteDesc": "Instant pricing for your shipping needs"
+"QuickActions.quoteDesc": "Instant pricing for your shipping needs",
+
+"Quote.title": "Get an instant quote",
+"Quote.subtitle": "Full cost breakdown in seconds. No account needed.",
+ 
+"Quote.scopeLabel": "Shipment type",
+"Quote.scopeIntl": "International",
+"Quote.scopeIntlSub": "Between countries",
+"Quote.scopeLocal": "Local",
+"Quote.scopeLocalSub": "Within one country",
+ 
+"Quote.originTitle": "Collecting from",
+"Quote.destinationTitle": "Delivering to",
+"Quote.packageTitle": "Package details",
+ 
+"Quote.country": "Country",
+"Quote.selectCountry": "Select country",
+"Quote.searchCountry": "Search country",
+"Quote.stateProvince": "State / Province",
+"Quote.selectState": "Select state",
+"Quote.searchState": "Search state",
+"Quote.city": "City",
+"Quote.cityPlaceholder": "City name",
+"Quote.noResults": "No results",
+"Quote.localLocked": "Local shipments stay within the origin country.",
+ 
+"Quote.packageType": "Package type",
+"Quote.serviceLevel": "Service level",
+"Quote.weightKg": "Weight (kg)",
+"Quote.dimensions": "Dimensions (cm)",
+"Quote.length": "Length",
+"Quote.width": "Width",
+"Quote.height": "Height",
+"Quote.dimensionsRequired": "All three dimensions are required",
+"Quote.declaredValue": "Declared value",
+"Quote.declaredHint": "Used to calculate insurance. Declare the real value of the contents.",
+ 
+"Quote.hintBulkSea": "Bulk and container shipments travel by sea",
+"Quote.hintForcedStandard": "Standard service applies at this weight or type",
+"Quote.volumetricHint": "Charged at volumetric weight: {vol} kg, larger than the actual {actual} kg.",
+ 
+"Quote.required": "Required",
+"Quote.errRequired": "Please fill in all fields before calculating.",
+"Quote.errOverLimit": "This exceeds our online limits. Contact support for a manual quote.",
+"Quote.errRateLimited": "Too many quotes requested. Please wait a moment and try again.",
+"Quote.errFailed": "Quote unavailable right now. Please try again or contact support.",
+ 
+"Quote.calculating": "Calculating",
+"Quote.submit": "Calculate quote",
+"Quote.disclaimer": "Quotes are calculated from live rates and are valid for 7 days. Final charges may differ if the package is remeasured at collection.",
+ 
+"Quote.resultLabel": "Your quote",
+"Quote.summaryRoute": "Route",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Package",
+"Quote.summaryChargeable": "{kg} kg chargeable",
+"Quote.summaryDelivery": "Estimated {min}–{max} business days",
+ 
+"Quote.volumetricNotice": "This shipment is charged at its volumetric weight of {vol} kg rather than its actual weight of {actual} kg, because it takes up more space than it weighs.",
+"Quote.serviceNotice": "Standard service has been applied automatically. Express is not available for this weight or shipment type.",
+ 
+"Quote.breakdownTitle": "Cost breakdown",
+"Quote.rowFreight": "Base freight ({means})",
+"Quote.rowFuel": "Fuel surcharge",
+"Quote.rowInsurance": "Insurance",
+"Quote.rowHandling": "Handling fee",
+"Quote.rowCustoms": "Customs clearance",
+"Quote.rowTax": "Tax",
+"Quote.rowDiscount": "Discount",
+"Quote.rowTotal": "Total",
+"Quote.validUntil": "This quote is valid until {date}. Rates may change after that date.",
+ 
+"Quote.ctaBook": "Book this shipment",
+"Quote.ctaPrint": "Print",
+"Quote.ctaEdit": "Edit details"
 }
