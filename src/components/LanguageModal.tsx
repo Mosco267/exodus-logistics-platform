@@ -65,11 +65,15 @@ export default function LanguageModal({ open, onClose, accent, accentSolid }: Pr
     setLocale(code as any);
     // 2. Save to cookie so middleware respects user choice
     document.cookie = `exodus_locale=${code}; max-age=${60 * 60 * 24 * 365}; path=/`;
-    // 3. Rewrite URL to swap the locale prefix (so refreshes/share-links keep the choice)
+    // 3. Hard-navigate so the URL changes and the page reloads.
+    //    Tawk can only run one widget per page, and its triggers are
+    //    evaluated server-side against the real URL, so a soft
+    //    navigation would leave the chat in the old language.
     if (pathname) {
-      const newPath = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, `/${code}`);
-      const final = newPath === pathname ? `/${code}${pathname}` : newPath;
-      router.replace(final);
+      const stripped = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
+      const final = `/${code}${stripped}${window.location.search}${window.location.hash}`;
+      window.location.assign(final);
+      return; // page is unloading; skip onClose
     }
     onClose();
   };

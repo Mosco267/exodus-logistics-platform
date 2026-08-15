@@ -21,9 +21,9 @@ export const LocaleProvider = ({ children }: { children: ReactNode }) => {
 
   // Load saved language BEFORE rendering
   useEffect(() => {
-    let resolved: Locale = 'en';
+    let resolved: Locale | null = null;
 
-    // 1) Try URL locale first (e.g. /fr/dashboard)
+    // 1) URL locale wins outright, including an explicit /en
     try {
       const m = window.location.pathname.match(/^\/([a-z]{2})(\/|$)/);
       if (m && (SUPPORTED_LOCALES as string[]).includes(m[1])) {
@@ -32,7 +32,7 @@ export const LocaleProvider = ({ children }: { children: ReactNode }) => {
     } catch {}
 
     // 2) Fall back to localStorage
-    if (resolved === 'en') {
+    if (!resolved) {
       try {
         const saved = localStorage.getItem('selectedLanguage') as Locale | null;
         if (saved && (SUPPORTED_LOCALES as string[]).includes(saved)) {
@@ -42,7 +42,7 @@ export const LocaleProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // 3) Fall back to cookie (set by middleware)
-    if (resolved === 'en') {
+    if (!resolved) {
       try {
         const cookieMatch = document.cookie.match(/(?:^|;\s*)exodus_locale=([^;]+)/);
         const cookieLocale = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
@@ -52,7 +52,7 @@ export const LocaleProvider = ({ children }: { children: ReactNode }) => {
       } catch {}
     }
 
-    setLocale(resolved);
+     setLocale(resolved || 'en');
   }, []);
 
   // Save locale when it changes
