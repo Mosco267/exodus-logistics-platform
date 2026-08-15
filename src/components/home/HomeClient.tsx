@@ -9,7 +9,7 @@ import {
   useAnimation,
   useInView,
 } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Globe,
   Shield,
@@ -24,7 +24,6 @@ import {
   ArrowUp,
   CheckCircle2,
   ChevronDown,
-  Star,
   Building2,
   Boxes,
   BadgeCheck,
@@ -34,7 +33,9 @@ import {
   FileText,
   Lock,
   BadgeInfo,
-  TrendingUp,
+  Scale,
+  Receipt,
+  CreditCard,
 } from 'lucide-react';
 
 import QuickActions from '@/components/QuickActions';
@@ -42,7 +43,6 @@ import GetAQuoteForm from '@/components/GetAQuoteForm';
 
 /* ----------------------------- helpers ----------------------------- */
 
-// ✅ Put this hook ABOVE components that need it
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -72,7 +72,6 @@ const itemVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
 };
 
-// ✅ Section animates in AND out (works both scroll directions)
 function Section({
   id,
   className = '',
@@ -123,7 +122,6 @@ function ClickCard({
   const isMobile = useIsMobile();
   const reduceMotion = useReducedMotion();
 
-  // ✅ On mobile: disable hover lift (it can feel laggy)
   const whileHover = !isMobile && !reduceMotion ? { y: -4 } : undefined;
 
   return (
@@ -141,7 +139,7 @@ function ClickCard({
       }}
       className={[
         'rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl hover:border-gray-300 transition-all',
-        onClick ? 'cursor-pointer' : '',
+        onClick ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2' : '',
         className,
       ].join(' ')}
     >
@@ -154,13 +152,15 @@ function ClickCard({
 
 export default function HomeClient() {
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
   const reduceMotion = useReducedMotion();
   const isMobile = useIsMobile();
 
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
 
-  // Back to top
+  // Back to top — bottom-LEFT so it never collides with the chat bubble
   const [showTop, setShowTop] = useState(false);
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 500);
@@ -170,33 +170,38 @@ export default function HomeClient() {
   }, []);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  const nav = (path: string) => router.push(path);
+  // Every internal link keeps the active language
+  const nav = (path: string) => router.push(`/${locale}${path}`);
 
   const services = useMemo(
     () => [
       {
         icon: Plane,
-        title: 'Air Freight',
-        short: 'Fast international delivery with priority routing and tracking.',
-        href: '/services/air-freight',
+        title: 'Air freight',
+        short:
+          'For time-critical cargo. Priority routing on international lanes, with clearance handled alongside the booking.',
+        href: '/services',
       },
       {
         icon: Ship,
-        title: 'Ocean Freight',
-        short: 'Cost efficient shipping for bulk cargo with customs support.',
-        href: '/services/ocean-freight',
+        title: 'Ocean freight',
+        short:
+          'The economical choice above roughly 500 kg. Slower than air, substantially cheaper per kilogram on volume.',
+        href: '/services',
       },
       {
         icon: Truck,
-        title: 'Road Transport',
-        short: 'Reliable last mile delivery with optimized local dispatch.',
-        href: '/services/road-transport',
+        title: 'Road transport',
+        short:
+          'Domestic and regional movement, plus the first and last mile that connects to every air and ocean route.',
+        href: '/services',
       },
       {
         icon: Package,
         title: 'Warehousing',
-        short: 'Secure storage, inventory handling, and fulfillment services.',
-        href: '/services/warehousing',
+        short:
+          'Secure storage between legs, with inventory handling for businesses shipping repeatedly on the same lanes.',
+        href: '/services',
       },
     ],
     []
@@ -205,46 +210,54 @@ export default function HomeClient() {
   const features = useMemo(
     () => [
       {
-        icon: Globe,
-        title: 'Global Network',
-        short: 'Coverage across key routes with trusted partners worldwide.',
-        href: '/features/global-network',
-      },
-      {
-        icon: Shield,
-        title: 'Fully Insured',
-        short: 'Protection options designed for valuables and sensitive cargo.',
-        href: '/features/insurance',
+        icon: Receipt,
+        title: 'Priced before you commit',
+        short:
+          'Freight, fuel, insurance, handling, customs, and tax are itemised at quote time. No figure appears on your invoice that you have not already seen.',
+        href: '/quote',
       },
       {
         icon: Clock,
-        title: 'Real Time Tracking',
-        short: 'Accurate updates with clear milestones and ETA visibility.',
-        href: '/features/tracking',
+        title: 'Tracking that explains itself',
+        short:
+          'Each milestone states what happened, where, and what comes next, so you are never left interpreting a status code on your own.',
+        href: '/track',
+      },
+      {
+        icon: Shield,
+        title: 'Insurance sized to the cargo',
+        short:
+          'Coverage is calculated from your declared value rather than sold as a flat add-on, so you pay in proportion to what is actually at risk.',
+        href: '/quote',
       },
       {
         icon: Users,
-        title: 'Expert Support',
-        short: 'Dedicated support whenever you need guidance or updates.',
+        title: 'Support you can reach',
+        short:
+          'Live chat and a ticket system with full shipment history attached, so you are not repeating your tracking number to every new agent.',
         href: '/support',
       },
     ],
     []
   );
 
+  // Only claims that are verifiable from the platform itself
   const stats = useMemo(
     () => [
-      { label: 'Countries covered', value: '200+', href: '/network' },
-      { label: 'Delivery focus', value: 'Reliable', href: '/about' },
-      { label: 'Support', value: '24/7', href: '/support' },
-      { label: 'Tracking updates', value: 'Live', href: '/track' },
+      { label: 'Air, ocean, and road', value: '3 modes', href: '/services' },
+      { label: 'Itemised before booking', value: 'Full quote', href: '/quote' },
+      { label: 'Platform languages', value: '12', href: '/about' },
+      { label: 'Milestone tracking', value: 'Live', href: '/track' },
     ],
     []
   );
 
-  // Ready to ship typewriter
-  const words = useMemo(() => ['With Confidence?', 'With Low Cost?', 'With Exodus Logistics?'], []);
-  const colors = useMemo(() => ['text-cyan-200', 'text-orange-600', 'text-white'], []);
+  // Typewriter
+  const words = useMemo(
+    () => ['With Confidence?', 'Without Surprises?', 'With Exodus Logistics?'],
+    []
+  );
+  const colors = useMemo(() => ['text-cyan-200', 'text-orange-300', 'text-white'], []);
 
   const [displayedText, setDisplayedText] = useState('');
   const [wordIndex, setWordIndex] = useState(0);
@@ -274,7 +287,6 @@ export default function HomeClient() {
     return () => window.clearTimeout(t);
   }, [displayedText, isDeleting, wordIndex, words, reduceMotion]);
 
-  // ✅ Ready to Ship: animate both directions (up and down)
   const readyRef = useRef<HTMLDivElement | null>(null);
   const readyControls = useAnimation();
   const readyInView = useInView(readyRef, { amount: 0.25 });
@@ -285,40 +297,55 @@ export default function HomeClient() {
     else readyControls.start({ opacity: 0, y: 24 });
   }, [readyInView, readyControls, reduceMotion]);
 
-  // FAQ
   const faqs = useMemo(
     () => [
       {
+        q: 'How is my shipping cost calculated?',
+        a:
+          `Your quote is built from six components: base freight, a fuel surcharge, insurance on your declared value, a handling fee, customs clearance where the route requires it, and any applicable tax.\n\n` +
+          `Each line is shown separately before you book, so you can see exactly what you are paying for rather than a single unexplained total.\n\n` +
+          `Nothing is added later. The figure you approve is the figure on your invoice.`,
+        href: '/quote',
+      },
+      {
+        q: 'Why is my quote higher than the weight I entered suggests?',
+        a:
+          `Carriers charge on whichever is greater: the actual weight of your package, or its volumetric weight — length × width × height in centimetres, divided by 5000.\n\n` +
+          `A large, light package occupies space that cannot be sold to anyone else, so it is priced on the space it takes rather than what it weighs.\n\n` +
+          `When volumetric weight applies to your shipment, we say so on the quote and show both figures, so the higher price is never a surprise.`,
+        href: '/quote',
+      },
+      {
         q: 'How do I track my shipment?',
         a:
-          `Go to the Track page and enter your tracking number.\n\n` +
-          `You will see a clear timeline of updates that explains the current status and what comes next.\n\n` +
-          `If a delivery step changes, you will see the reason and the recommended next action.`,
+          `Enter your tracking number on the Track page. You will see a timeline of every stage the shipment has passed through, each with a timestamp and location.\n\n` +
+          `Every entry states what happened and what happens next, rather than leaving you to interpret a status label.\n\n` +
+          `If a shipment is held — at customs, for example — the timeline says why and what is required to release it.`,
         href: '/track',
       },
       {
         q: 'Do you handle customs clearance?',
         a:
-          `Yes, we support customs guidance depending on destination and cargo type.\n\n` +
-          `We help you prepare the right information early to reduce mistakes and avoid delays.\n\n` +
-          `If extra documentation is required, you will be informed before dispatch.`,
-        href: '/services/customs',
+          `Yes, on routes that require it. Clearance is priced into your quote rather than billed as an unexpected charge later.\n\n` +
+          `We tell you which documents are needed before dispatch, because incomplete paperwork is the single most common cause of delay in international shipping.\n\n` +
+          `If additional documentation becomes necessary in transit, you will be contacted directly rather than left to discover it from a stalled tracking page.`,
+        href: '/services',
       },
       {
-        q: 'Is insurance included?',
+        q: 'Is my shipment insured?',
         a:
-          `We provide insurance options based on declared value and shipment type.\n\n` +
-          `Insurance is recommended for high value cargo because it adds confidence and protection.\n\n` +
-          `If you are unsure, contact support and we will recommend the best option.`,
-        href: '/features/insurance',
-      },
-      {
-        q: 'How do I get a quote?',
-        a:
-          `Click Get Quote and fill origin, destination, weight, and declared value.\n\n` +
-          `Your quote is generated using the configured pricing rules.\n\n` +
-          `If pricing is not available at the moment, the platform will clearly recommend contacting support.`,
+          `Insurance is calculated from the declared value you enter at quote time and appears as its own line on your invoice.\n\n` +
+          `Declaring an accurate value matters. Under-declaring reduces your premium but caps what can be recovered if something goes wrong.\n\n` +
+          `For high-value or fragile cargo, contact support before booking and we will advise on the right level of cover.`,
         href: '/quote',
+      },
+      {
+        q: 'How can I pay?',
+        a:
+          `Bank transfer, PayPal, and major cryptocurrencies including Bitcoin, USDT, and Ethereum. Available methods are shown on your invoice.\n\n` +
+          `Every invoice carries a unique payment reference. Include it with your transfer so we can match your payment without delay.\n\n` +
+          `After paying, upload your receipt from the payment page. We verify it and confirm by email, and your shipment status updates automatically.`,
+        href: '/invoice',
       },
     ],
     []
@@ -326,7 +353,8 @@ export default function HomeClient() {
 
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Quote / invoice overrides
+  /* ----------------------------- overrides ----------------------------- */
+
   if (showQuoteForm) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
@@ -335,7 +363,7 @@ export default function HomeClient() {
             onClick={() => setShowQuoteForm(false)}
             className="mb-8 text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
           >
-            ← Back to Home
+            ← Back to home
           </button>
           <GetAQuoteForm />
         </div>
@@ -351,25 +379,27 @@ export default function HomeClient() {
             onClick={() => setShowInvoice(false)}
             className="mb-8 text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
           >
-            ← Back to Home
+            ← Back to home
           </button>
           <div className="text-center text-2xl font-bold text-gray-600">
-            Invoice View Page Coming Soon
+            Invoice view coming soon
           </div>
         </div>
       </div>
     );
   }
 
+  /* ----------------------------- render ----------------------------- */
+
   return (
     <div className="min-h-screen bg-white pt-12 md:pt-14">
+
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden text-white">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600" />
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
 
-          {/* On mobile: remove the grid for smoother scroll */}
           {!isMobile && (
             <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -411,47 +441,49 @@ export default function HomeClient() {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-sm text-white/95 mb-5">
                 <Headphones className="w-4 h-4" />
-                24/7 Support, Global Shipping
+                Support in 12 languages
               </div>
 
               <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight drop-shadow-md">
-                Ship Smarter with <span className="text-cyan-100">Exodus Logistics</span>
+                Freight and parcels,{' '}
+                <span className="text-cyan-100">priced before you commit</span>
               </h1>
 
-              <p className="mt-4 text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed">
-                Reliable logistics built for businesses and individuals, transparent pricing, live tracking, and delivery
-                you can trust.
+              <p className="mt-5 text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed">
+                Get a complete cost breakdown in seconds — freight, fuel, insurance,
+                customs, and handling, each on its own line. Then follow your shipment
+                from pickup to delivery with updates that tell you what happens next.
               </p>
 
-              <div className="mt-7 flex flex-col sm:flex-row gap-4">
+              <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <motion.button
                   whileHover={isMobile || reduceMotion ? undefined : { scale: 1.03 }}
                   whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   onClick={() => nav('/quote')}
-                  className="bg-white text-blue-700 px-7 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer"
+                  className="bg-white text-blue-700 px-7 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
                 >
-                  Get Instant Quote
+                  Get a quote
                 </motion.button>
 
                 <motion.button
                   whileHover={isMobile || reduceMotion ? undefined : { scale: 1.03 }}
                   whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   onClick={() => nav('/track')}
-                  className="bg-transparent text-white px-7 py-3.5 rounded-xl font-semibold border border-white/45 hover:bg-white/10 transition-all cursor-pointer"
+                  className="bg-transparent text-white px-7 py-3.5 rounded-xl font-semibold border border-white/45 hover:bg-white/10 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
                 >
-                  Track Shipment
+                  Track a shipment
                 </motion.button>
               </div>
 
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
+              <div className="mt-9 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
                 {stats.map((s) => (
                   <button
                     key={s.label}
                     onClick={() => nav(s.href)}
-                    className="text-left rounded-xl bg-white/15 border border-white/20 px-3 py-3 hover:bg-white/20 transition cursor-pointer"
+                    className="text-left rounded-xl bg-white/15 border border-white/20 px-3 py-3 hover:bg-white/20 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <div className="text-xl font-bold">{s.value}</div>
-                    <div className="text-xs text-white/90">{s.label}</div>
+                    <div className="text-xs text-white/90 leading-snug mt-0.5">{s.label}</div>
                   </button>
                 ))}
               </div>
@@ -469,11 +501,13 @@ export default function HomeClient() {
                     <button
                       key={s.title}
                       onClick={() => nav(s.href)}
-                      className="text-left rounded-2xl bg-white/12 border border-white/20 p-4 hover:bg-white/18 transition-all cursor-pointer"
+                      className="text-left rounded-2xl bg-white/12 border border-white/20 p-4 hover:bg-white/18 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                       <s.icon className="w-6 h-6 text-cyan-100" />
                       <div className="mt-2 font-semibold">{s.title}</div>
-                      <div className="text-sm text-white/90 mt-1">{s.short}</div>
+                      <div className="text-sm text-white/85 mt-1 leading-snug line-clamp-3">
+                        {s.short}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -485,154 +519,292 @@ export default function HomeClient() {
 
       {/* Quick Actions */}
       <div className="bg-gray-50">
-        <QuickActions onTrackClick={() => nav('/track')} onInvoiceClick={() => nav('/invoice')} onQuoteClick={() => nav('/quote')} />
+        <QuickActions
+          onTrackClick={() => nav('/track')}
+          onInvoiceClick={() => nav('/invoice')}
+          onQuoteClick={() => nav('/quote')}
+        />
       </div>
 
-      {/* ================= FEATURES ================= */}
-<Section className="bg-white">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-      Built for Reliable <span className="text-cyan-600">Delivery</span>
-    </h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      Professional operations designed to reduce delays, improve visibility, and protect shipments.
-    </p>
-  </motion.div>
-
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    {features.map((f) => (
-      <ClickCard
-        key={f.title}
-        onClick={() => nav(f.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-cyan-200 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-600 via-cyan-500 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="w-12 h-12 rounded-xl bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center">
-            <f.icon className="w-6 h-6 text-cyan-700" />
-          </div>
-          <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
-          <p className="mt-2 text-gray-600 leading-relaxed">{f.short}</p>
-          <div className="mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
-        </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
-
-      {/* ================= SERVICES SECTION ================= */}
-<Section className="bg-gradient-to-b from-white to-gray-50">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Services that <span className="text-blue-700">Scale</span>
-</h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      Flexible options for speed, cost, and security, for individuals and businesses.
-    </p>
-  </motion.div>
-
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    {services.map((s) => (
-      <ClickCard
-        key={s.title}
-        onClick={() => nav(s.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-blue-200 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-700 via-cyan-500 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
-            <s.icon className="w-6 h-6 text-blue-700" />
-          </div>
-          <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
-          <p className="mt-2 text-gray-600 leading-relaxed">{s.short}</p>
-          <div className="mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
-        </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
-
-      {/* ================= NEW: HOW IT WORKS ================= */}
-<Section className="bg-white">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  How Shipping Works
-</h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      A clear process designed to keep every step predictable, professional, and easy to follow.
-    </p>
-  </motion.div>
-
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-    {[
-      { icon: FileText, title: 'Request a Quote', text: 'Enter route details, weight, and declared value to generate accurate pricing.', href: '/quote' },
-      { icon: ClipboardCheck, title: 'Confirm Shipment', text: 'Confirm pickup details and documentation, then schedule dispatch.', href: '/services' },
-      { icon: Route, title: 'Track Progress', text: 'Follow milestones and ETAs with updates that explain what happens next.', href: '/track' },
-      { icon: ScanLine, title: 'Delivery Confirmation', text: 'Receive delivery confirmation and status history for your records.', href: '/invoice' },
-    ].map((x) => (
-      <ClickCard
-        key={x.title}
-        onClick={() => nav(x.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-gray-300 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-cyan-500 via-blue-600 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 ring-1 ring-gray-200 flex items-center justify-center">
-            <x.icon className="w-6 h-6 text-gray-800" />
-          </div>
-          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
-          <div className="mt-4 text-sm font-medium text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
-        </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
-
-      {/* ================= COVERAGE ================= */}
+      {/* ================= WHY EXODUS ================= */}
       <Section className="bg-white">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            What you get, <span className="text-cyan-600">specifically</span>
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            Most logistics providers promise reliability. Here is what that means in
+            practice on this platform.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((f) => (
+            <ClickCard
+              key={f.title}
+              onClick={() => nav(f.href)}
+              className="group relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-cyan-200 transition-all"
+            >
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-600 via-cyan-500 to-transparent opacity-90" />
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center">
+                  <f.icon className="w-6 h-6 text-cyan-700" />
+                </div>
+                <h3 className="mt-4 font-semibold text-gray-900 text-lg">{f.title}</h3>
+                <p className="mt-2 text-gray-600 leading-relaxed text-sm">{f.short}</p>
+              </div>
+            </ClickCard>
+          ))}
+        </div>
+      </Section>
+
+      {/* ================= PRICING TRANSPARENCY (signature) ================= */}
+      <Section className="bg-gradient-to-b from-gray-50 to-white">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <motion.div variants={itemVariants}>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Global coverage, local precision</h2>
-            <p className="text-gray-600 mt-3 max-w-xl">
-              We optimize routes using reliable carriers and clear milestones so you always know what happens next.
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-sm text-blue-700 mb-5">
+              <Receipt className="w-4 h-4" />
+              No hidden charges
+            </div>
+
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+              Every line of your invoice, before you book
+            </h2>
+
+            <p className="text-gray-600 mt-4 leading-relaxed">
+              Hidden fees are the most common complaint in freight, and they usually
+              arrive after the cargo is already moving — when refusing is no longer
+              realistic.
             </p>
 
-            <ul className="mt-6 space-y-3">
+            <p className="text-gray-600 mt-3 leading-relaxed">
+              We calculate the full breakdown at quote time and show it to you in
+              full. Base freight reflects your route, weight, and mode. Fuel and
+              insurance are percentages you can see. Customs appears only where the
+              route requires it.
+            </p>
+
+            <ul className="mt-7 space-y-3">
               {[
-                'Transparent status updates with clear next steps',
-                'Secure handling and optional insurance coverage',
-                'Support for urgent shipments and sensitive cargo',
+                'Volumetric weight flagged whenever it applies to your package',
+                'Currency shown in your local denomination, converted at quote time',
+                'The approved total is the invoiced total — nothing is added later',
               ].map((t) => (
-                <li key={t} className="flex items-start gap-2 text-gray-700">
-                  <CheckCircle2 className="w-5 h-5 text-cyan-700 mt-0.5" />
-                  <span>{t}</span>
+                <li key={t} className="flex items-start gap-2.5 text-gray-700">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-700 mt-0.5 shrink-0" />
+                  <span className="leading-relaxed">{t}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="mt-7 flex gap-3">
+            <motion.button
+              whileHover={isMobile || reduceMotion ? undefined : { scale: 1.02 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+              onClick={() => nav('/quote')}
+              className="mt-8 px-6 py-3.5 rounded-xl bg-blue-700 text-white shadow hover:bg-blue-800 transition-all font-semibold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              See your breakdown
+            </motion.button>
+          </motion.div>
+
+          {/* Sample breakdown — mirrors the real invoice structure */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-xl overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-blue-700 via-cyan-500 to-cyan-400" />
+              <div className="p-6 sm:p-7">
+                <div className="flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      Sample quote
+                    </p>
+                    <p className="text-sm font-bold text-gray-900 mt-1">
+                      Lagos → London · 18 kg · Air
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center shrink-0">
+                    <Plane className="w-5 h-5 text-blue-700" />
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2.5 text-sm">
+                  {[
+                    { label: 'Base freight (Air)', value: '412.00' },
+                    { label: 'Fuel surcharge (12%)', value: '49.44' },
+                    { label: 'Insurance (1.5%)', value: '18.75' },
+                    { label: 'Handling fee', value: '25.00' },
+                    { label: 'Customs clearance', value: '60.00' },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between text-gray-600">
+                      <span>{row.label}</span>
+                      <span className="font-semibold text-gray-800">USD {row.value}</span>
+                    </div>
+                  ))}
+
+                  <div className="flex justify-between text-green-600 pt-1">
+                    <span>Volume discount</span>
+                    <span className="font-semibold">− USD 30.00</span>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t border-gray-100 pt-3.5 mt-1">
+                    <span className="font-extrabold text-gray-900">Total</span>
+                    <span className="text-lg font-extrabold text-blue-700">USD 535.19</span>
+                  </div>
+                </div>
+
+                <p className="mt-5 text-[11px] text-gray-400 leading-relaxed">
+                  Illustrative figures. Your quote is calculated from your actual route,
+                  weight, dimensions, and declared value.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* ================= SERVICES ================= */}
+      <Section className="bg-white">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Choosing your <span className="text-blue-700">shipping mode</span>
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            Speed and cost pull against each other. Here is when each mode is the
+            right call — we select it automatically from your shipment details, and
+            explain why.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {services.map((s) => (
+            <ClickCard
+              key={s.title}
+              onClick={() => nav(s.href)}
+              className="group relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-blue-200 transition-all"
+            >
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-700 via-cyan-500 to-transparent opacity-90" />
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
+                  <s.icon className="w-6 h-6 text-blue-700" />
+                </div>
+                <h3 className="mt-4 font-semibold text-gray-900 text-lg">{s.title}</h3>
+                <p className="mt-2 text-gray-600 leading-relaxed text-sm">{s.short}</p>
+              </div>
+            </ClickCard>
+          ))}
+        </div>
+      </Section>
+
+      {/* ================= HOW IT WORKS ================= */}
+      <Section className="bg-gradient-to-b from-white to-gray-50">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            From quote to delivery
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            Four stages. You are told what is required at each one before you reach it.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[
+            {
+              step: '01',
+              icon: FileText,
+              title: 'Request a quote',
+              text: 'Enter route, weight, dimensions, and declared value. The full itemised cost returns in seconds.',
+              href: '/quote',
+            },
+            {
+              step: '02',
+              icon: ClipboardCheck,
+              title: 'Confirm and pay',
+              text: 'Review the breakdown, confirm pickup details, and pay by bank transfer, PayPal, or crypto.',
+              href: '/invoice',
+            },
+            {
+              step: '03',
+              icon: Route,
+              title: 'Follow the timeline',
+              text: 'Each milestone records what happened, where, and when — plus the next expected step.',
+              href: '/track',
+            },
+            {
+              step: '04',
+              icon: ScanLine,
+              title: 'Delivery confirmed',
+              text: 'Confirmation is logged with the full status history retained for your records.',
+              href: '/track',
+            },
+          ].map((x) => (
+            <ClickCard
+              key={x.title}
+              onClick={() => nav(x.href)}
+              className="group relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-gray-300 transition-all"
+            >
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-cyan-500 via-blue-600 to-transparent opacity-90" />
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 ring-1 ring-gray-200 flex items-center justify-center">
+                    <x.icon className="w-6 h-6 text-gray-800" />
+                  </div>
+                  <span className="text-2xl font-extrabold text-gray-200 tabular-nums">
+                    {x.step}
+                  </span>
+                </div>
+                <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+                <div className="mt-2 text-gray-600 leading-relaxed text-sm">{x.text}</div>
+              </div>
+            </ClickCard>
+          ))}
+        </div>
+      </Section>
+
+      {/* ================= COVERAGE ================= */}
+      <Section className="bg-white">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <motion.div variants={itemVariants}>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+              Global routes, handled locally
+            </h2>
+            <p className="text-gray-600 mt-4 leading-relaxed">
+              International shipping fails at the handoffs — between carriers, at
+              borders, on the last mile. We work through vetted regional partners so
+              each leg is handled by people who operate that lane routinely.
+            </p>
+            <p className="text-gray-600 mt-3 leading-relaxed">
+              Your tracking timeline stays continuous across every handoff, so a
+              change of carrier never means a gap in visibility.
+            </p>
+
+            <ul className="mt-7 space-y-3">
+              {[
+                'Status updates written in plain language, not carrier codes',
+                'Optional insurance and secure handling for sensitive cargo',
+                'Delivery estimates given as a date range, not a single optimistic day',
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-2.5 text-gray-700">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-700 mt-0.5 shrink-0" />
+                  <span className="leading-relaxed">{t}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8 flex flex-wrap gap-3">
               <motion.button
                 whileHover={isMobile || reduceMotion ? undefined : { scale: 1.02 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 onClick={() => nav('/track')}
-                className="px-5 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all font-semibold text-gray-900 cursor-pointer"
+                className="px-5 py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all font-semibold text-gray-900 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                Track Shipment
+                Track a shipment
               </motion.button>
               <motion.button
                 whileHover={isMobile || reduceMotion ? undefined : { scale: 1.02 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 onClick={() => nav('/quote')}
-                className="px-5 py-3 rounded-xl bg-cyan-600 text-white shadow hover:bg-cyan-700 transition-all font-semibold cursor-pointer"
+                className="px-5 py-3 rounded-xl bg-cyan-600 text-white shadow hover:bg-cyan-700 transition-all font-semibold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
               >
-                Get Quote
+                Get a quote
               </motion.button>
             </div>
           </motion.div>
@@ -641,190 +813,139 @@ export default function HomeClient() {
             <div className="rounded-3xl bg-gray-50 border border-gray-200 shadow-sm p-6">
               <div className="flex items-center gap-2 text-gray-900 font-semibold">
                 <MapPin className="w-5 h-5 text-cyan-700" />
-                Coverage Highlights
+                Where we operate
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {[
-                  { label: 'North America', value: 'Fast lanes', href: '/network/north-america' },
-                  { label: 'South America', value: 'Growing routes', href: '/network/south-america' },
-                  { label: 'Europe', value: 'Reliable hubs', href: '/network/europe' },
-                  { label: 'Asia', value: 'Priority routing', href: '/network/asia' },
-                  { label: 'Africa', value: 'Partner network', href: '/network/africa' },
-                  { label: 'Australia', value: 'Stable delivery lanes', href: '/network/australia' },
+                  { label: 'North America', value: 'Direct air lanes' },
+                  { label: 'Europe', value: 'Established hubs' },
+                  { label: 'Asia', value: 'Priority routing' },
+                  { label: 'Africa', value: 'Partner network' },
+                  { label: 'South America', value: 'Expanding routes' },
+                  { label: 'Oceania', value: 'Scheduled ocean' },
                 ].map((x) => (
-                  <button
+                  <div
                     key={x.label}
-                    onClick={() => nav(x.href)}
-                    className="text-left rounded-2xl bg-white p-4 border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all cursor-pointer"
+                    className="text-left rounded-2xl bg-white p-4 border border-gray-100"
                   >
                     <div className="text-sm text-gray-500">{x.label}</div>
-                    <div className="font-semibold text-gray-900 mt-1">{x.value}</div>
-                  </button>
+                    <div className="font-semibold text-gray-900 mt-1 text-sm">{x.value}</div>
+                  </div>
                 ))}
               </div>
+
+              <p className="mt-5 text-xs text-gray-500 leading-relaxed">
+                Coverage varies by cargo type and service level. Enter your route on
+                the quote page to confirm availability.
+              </p>
             </div>
           </motion.div>
         </div>
       </Section>
 
-      {/* ================= TESTIMONIALS ================= */}
-<Section className="bg-gradient-to-b from-gray-50 to-white">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Trusted by <span className="text-cyan-600">Customers</span>
-</h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      Reliable service, clear tracking, and professional support from pickup to delivery.
-    </p>
-  </motion.div>
+      {/* ================= TRUST AND COMPLIANCE ================= */}
+      <Section className="bg-gradient-to-b from-gray-50 to-white">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Handling, cover, and <span className="text-blue-700">paperwork</span>
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            Three areas where shipments most often go wrong, and what we do about each.
+          </p>
+        </motion.div>
 
-  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {[
-      { name: 'Business Client', role: 'Ecommerce Operations', text: 'The tracking updates were clear and professional. Delivery was on time and support responded quickly when we needed a routing change.', href: '/testimonials' },
-      { name: 'International Shipper', role: 'Personal Cargo', text: 'The quote process was simple and the shipment status made sense. I always knew what the next step would be.', href: '/testimonials' },
-      { name: 'SMB Owner', role: 'Import and Export', text: 'Customs guidance helped us avoid delays. Communication was consistent and the delivery confirmation was fast.', href: '/testimonials' },
-    ].map((t) => (
-      <ClickCard
-        key={t.name}
-        onClick={() => nav(t.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-orange-200 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-cyan-500 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="flex items-center gap-1 text-orange-500">
-            <Star className="w-4 h-4" />
-            <Star className="w-4 h-4" />
-            <Star className="w-4 h-4" />
-            <Star className="w-4 h-4" />
-            <Star className="w-4 h-4" />
-          </div>
-          <p className="mt-4 text-gray-700 leading-relaxed">{t.text}</p>
-          <div className="mt-5 font-semibold text-gray-900">{t.name}</div>
-          <div className="text-sm text-gray-500">{t.role}</div>
-          <div className="mt-4 text-sm font-medium text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: Lock,
+              title: 'Secure handling',
+              text: 'Cargo is scanned at each transfer point, so if something is delayed or misrouted we can identify exactly where it happened rather than guessing.',
+              href: '/services',
+            },
+            {
+              icon: Shield,
+              title: 'Insurance that scales',
+              text: 'Premiums are calculated from your declared value. Accurate declaration matters — it determines both your premium and your maximum recovery.',
+              href: '/quote',
+            },
+            {
+              icon: BadgeInfo,
+              title: 'Documentation guidance',
+              text: 'Incomplete paperwork causes more delays than any other factor. We tell you what each destination requires before dispatch, not after a shipment is held.',
+              href: '/support',
+            },
+          ].map((x) => (
+            <ClickCard
+              key={x.title}
+              onClick={() => nav(x.href)}
+              className="group relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-blue-200 transition-all"
+            >
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-700 via-cyan-500 to-transparent opacity-90" />
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
+                  <x.icon className="w-6 h-6 text-blue-700" />
+                </div>
+                <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+                <div className="mt-2 text-gray-600 leading-relaxed text-sm">{x.text}</div>
+              </div>
+            </ClickCard>
+          ))}
         </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
+      </Section>
+
       {/* ================= INDUSTRIES ================= */}
-<Section className="bg-white">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Logistics for Every <span className="text-orange-600">Industry</span>
-</h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      Designed for speed, safety, and consistent delivery performance.
-    </p>
-  </motion.div>
+      <Section className="bg-white">
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Who ships with <span className="text-orange-600">Exodus</span>
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            The platform handles a single parcel and a recurring freight programme on
+            the same rails.
+          </p>
+        </motion.div>
 
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {[
-      { icon: Building2, title: 'Business Shipping', text: 'Reliable routing and predictable delivery planning.', href: '/industries/business' },
-      { icon: Boxes, title: 'Ecommerce Fulfillment', text: 'Warehousing support and delivery coordination.', href: '/industries/ecommerce' },
-      { icon: BadgeCheck, title: 'High Value Cargo', text: 'Insurance options and secure handling processes.', href: '/industries/high-value' },
-    ].map((x) => (
-      <ClickCard
-        key={x.title}
-        onClick={() => nav(x.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-orange-200 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-blue-600 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="w-12 h-12 rounded-xl bg-orange-50 ring-1 ring-orange-100 flex items-center justify-center">
-            <x.icon className="w-6 h-6 text-orange-600" />
-          </div>
-          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
-          <div className="mt-4 text-sm font-medium text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: Users,
+              title: 'Individuals',
+              text: 'Sending personal effects, gifts, or documents across borders. No account minimums, no contracts — quote, pay, and ship.',
+              href: '/quote',
+            },
+            {
+              icon: Boxes,
+              title: 'Online sellers',
+              text: 'Shipping orders to international customers. Consistent tracking your buyers can follow themselves, plus warehousing between restocks.',
+              href: '/services',
+            },
+            {
+              icon: Building2,
+              title: 'Businesses',
+              text: 'Moving inventory, equipment, or high-value cargo on repeat lanes. Volume pricing and insurance sized to what you are actually moving.',
+              href: '/contact',
+            },
+          ].map((x) => (
+            <ClickCard
+              key={x.title}
+              onClick={() => nav(x.href)}
+              className="group relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-orange-200 transition-all"
+            >
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-blue-600 to-transparent opacity-90" />
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-orange-50 ring-1 ring-orange-100 flex items-center justify-center">
+                  <x.icon className="w-6 h-6 text-orange-600" />
+                </div>
+                <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
+                <div className="mt-2 text-gray-600 leading-relaxed text-sm">{x.text}</div>
+              </div>
+            </ClickCard>
+          ))}
         </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
+      </Section>
 
-      {/* ================= NEW: TRUST AND COMPLIANCE ================= */}
-<Section className="bg-gradient-to-b from-gray-50 to-white">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Trust, Safety, and <span className="text-blue-700">Compliance</span>
-</h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      Practical controls that help reduce risk and improve shipment confidence.
-    </p>
-  </motion.div>
-
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {[
-      { icon: Lock, title: 'Secure Handling', text: 'Standard procedures designed to protect parcels through each stage.', href: '/features/security' },
-      { icon: Shield, title: 'Insurance Options', text: 'Flexible protection based on shipment type and declared value.', href: '/features/insurance' },
-      { icon: BadgeInfo, title: 'Documentation Guidance', text: 'Clear support for common paperwork and clearance requirements.', href: '/services/customs' },
-    ].map((x) => (
-      <ClickCard
-        key={x.title}
-        onClick={() => nav(x.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-blue-200 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-700 via-cyan-500 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
-            <x.icon className="w-6 h-6 text-blue-700" />
-          </div>
-          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
-          <div className="mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
-        </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
-
-      {/* ================= NEW: LATEST UPDATES ================= */}
-<Section className="bg-white">
-  <motion.div variants={itemVariants} className="text-center mb-12">
-    <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-  Latest <span className="text-cyan-600">Updates</span>
-</h2>
-    <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-      Helpful updates about routes, service improvements, and shipping tips.
-    </p>
-  </motion.div>
-
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {[
-      { icon: TrendingUp, title: 'Faster status updates', text: 'Improved tracking milestones to make each step easier to understand.', href: '/features/tracking' },
-      { icon: FileText, title: 'Documentation checklist', text: 'A simple checklist that helps reduce mistakes and avoid delays.', href: '/services/customs' },
-      { icon: Package, title: 'Packaging tips', text: 'Best practices to help protect shipments and reduce damage risk.', href: '/support' },
-    ].map((x) => (
-      <ClickCard
-        key={x.title}
-        onClick={() => nav(x.href)}
-        className="relative overflow-hidden border border-gray-200/80 bg-white ring-1 ring-black/5 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.35)] hover:shadow-[0_18px_55px_-26px_rgba(0,0,0,0.45)] hover:border-cyan-200 transition-all"
-      >
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-cyan-500 via-blue-700 to-transparent opacity-90" />
-        <div className="p-6">
-          <div className="w-12 h-12 rounded-xl bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center">
-            <x.icon className="w-6 h-6 text-cyan-700" />
-          </div>
-          <div className="mt-4 font-semibold text-gray-900 text-lg">{x.title}</div>
-          <div className="mt-2 text-gray-600 leading-relaxed">{x.text}</div>
-          <div className="mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity">
-            Tap to open
-          </div>
-        </div>
-      </ClickCard>
-    ))}
-  </div>
-</Section>
-
-      {/* ================= READY TO SHIP (fixed: mobile + up/down) ================= */}
+      {/* ================= READY TO SHIP ================= */}
       <section className="relative py-24 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 overflow-hidden text-white">
         {!reduceMotion && !isMobile && (
           <>
@@ -848,35 +969,31 @@ export default function HomeClient() {
             animate={reduceMotion ? undefined : readyControls}
             transition={{ duration: 0.55, ease: 'easeOut' }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 drop-shadow-lg">
               Ready to Ship{' '}
-              <span className={`${colors[wordIndex]} inline-block min-w-[280px]`}>
+              <span className={`${colors[wordIndex]} inline-block min-w-[280px] text-left`}>
                 {displayedText}
                 <span className="border-r-2 border-white/90 ml-1 animate-pulse" />
               </span>
             </h2>
 
-            <p className="text-lg md:text-xl max-w-3xl mx-auto mb-4 text-white/95">
-              Ship with solutions built for speed, safety, and consistent delivery performance.
+            <p className="text-lg md:text-xl max-w-3xl mx-auto mb-5 text-white/95 leading-relaxed">
+              Start with a quote. It costs nothing, takes about a minute, and shows
+              you the complete cost before you commit to anything.
             </p>
 
-            <p className="text-base md:text-lg max-w-3xl mx-auto mb-4 text-white/90 leading-relaxed">
-              We coordinate pickup, routing, and delivery with reliable partners, and we keep every step clear so customers
-              understand exactly what is happening at each stage.
-            </p>
-
-            <p className="text-base md:text-lg max-w-3xl mx-auto mb-8 text-white/90 leading-relaxed">
-              Whether you are sending personal packages or managing business shipments, you get transparent pricing, optional
-              insurance, and tracking updates that stay professional and easy to follow.
+            <p className="text-base md:text-lg max-w-2xl mx-auto mb-9 text-white/85 leading-relaxed">
+              If the numbers do not work for you, you have lost a minute. If they do,
+              your shipment is booked and tracking from the same page.
             </p>
 
             <motion.button
               whileHover={isMobile || reduceMotion ? undefined : { scale: 1.03 }}
               whileTap={reduceMotion ? undefined : { scale: 0.98 }}
               onClick={() => nav('/quote')}
-              className="bg-white text-blue-700 px-9 py-4 rounded-full font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer"
+              className="bg-white text-blue-700 px-9 py-4 rounded-full font-semibold shadow-lg hover:shadow-2xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
             >
-              Start Your First Shipment
+              Get your quote
             </motion.button>
           </motion.div>
         </div>
@@ -885,9 +1002,11 @@ export default function HomeClient() {
       {/* ================= FAQ ================= */}
       <Section className="bg-white">
         <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Frequently Asked Questions</h2>
-          <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-            Clear answers written professionally so customers understand the process.
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Questions worth answering properly
+          </h2>
+          <p className="text-gray-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+            The things customers actually ask before their first shipment.
           </p>
         </motion.div>
 
@@ -895,13 +1014,17 @@ export default function HomeClient() {
           {faqs.map((f, idx) => {
             const isOpen = openFaq === idx;
             return (
-              <ClickCard key={f.q} className="p-5" onClick={() => setOpenFaq(isOpen ? null : idx)}>
+              <ClickCard
+                key={f.q}
+                className="p-5"
+                onClick={() => setOpenFaq(isOpen ? null : idx)}
+              >
                 <div className="flex items-center justify-between gap-4">
                   <div className="font-semibold text-gray-900">{f.q}</div>
                   <motion.div
                     animate={{ rotate: isOpen ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
-                    className="text-gray-500"
+                    className="text-gray-500 shrink-0"
                   >
                     <ChevronDown className="w-5 h-5" />
                   </motion.div>
@@ -914,7 +1037,7 @@ export default function HomeClient() {
                       animate={{ opacity: 1, height: 'auto', y: 0 }}
                       exit={{ opacity: 0, height: 0, y: -4 }}
                       transition={{ duration: 0.22, ease: 'easeOut' }}
-                      className="mt-3 text-gray-700 leading-relaxed whitespace-pre-line"
+                      className="mt-3 text-gray-700 leading-relaxed whitespace-pre-line text-sm"
                     >
                       {f.a}
                     </motion.div>
@@ -924,9 +1047,21 @@ export default function HomeClient() {
             );
           })}
         </div>
+
+        <motion.div variants={itemVariants} className="text-center mt-10">
+          <p className="text-gray-600">
+            Still unsure about something?{' '}
+            <button
+              onClick={() => nav('/support')}
+              className="font-semibold text-blue-700 hover:text-blue-800 underline underline-offset-2 cursor-pointer"
+            >
+              Ask our team
+            </button>
+          </p>
+        </motion.div>
       </Section>
 
-      {/* Back to top */}
+      {/* ================= BACK TO TOP (bottom-left) ================= */}
       <AnimatePresence>
         {showTop && (
           <motion.button
@@ -934,8 +1069,9 @@ export default function HomeClient() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             onClick={scrollToTop}
-            className="fixed bottom-6 right-6 z-[60] rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 transition-all p-3 cursor-pointer"
+            className="fixed bottom-6 left-6 z-[60] rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 transition-all p-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             aria-label="Back to top"
+            title="Back to top"
           >
             <ArrowUp className="w-5 h-5" />
           </motion.button>
