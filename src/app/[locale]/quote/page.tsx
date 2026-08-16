@@ -378,7 +378,7 @@ export default function QuotePage() {
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl border border-gray-200 shadow-xl overflow-hidden">
+            className="print-area bg-white rounded-3xl border border-gray-200 shadow-xl overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r from-blue-700 via-cyan-500 to-cyan-400" />
 
             <div className="p-6 sm:p-8">
@@ -481,7 +481,7 @@ export default function QuotePage() {
               </p>
 
               {/* Actions */}
-              <div className="mt-7 flex flex-col sm:flex-row gap-3">
+              <div className="mt-7 flex flex-col sm:flex-row gap-3 no-print">
                 <button onClick={book}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-700 text-white text-sm font-bold hover:bg-blue-800 transition cursor-pointer">
                   <CheckCircle2 size={16} /> {t('Quote.ctaBook')}

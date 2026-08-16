@@ -168,3 +168,64 @@ aside nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-r
 /* Prevent overscroll bounce on dashboard but keep pull-to-refresh */
 html { overscroll-behavior-y: auto; }
 body { overscroll-behavior-y: auto; }
+
+/* ─── Print ───────────────────────────────────────────────────
+   Only .print-area reaches the page. Everything else is hidden by
+   walking up from the print area and hiding each ancestor's siblings,
+   which catches the header, footer, chat widget and scroll button
+   without needing a class on each one. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .no-print,
+  .no-print * {
+    visibility: hidden !important;
+    display: none !important;
+  }
+
+  /* Third-party widgets sit outside the React tree */
+  #tawk-script,
+  iframe[title*="chat" i],
+  iframe[src*="tawk"] {
+    display: none !important;
+  }
+
+  /* Backgrounds and colours are stripped by default in most browsers */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Gradient bars render as empty strips — give them a solid fallback */
+  .print-area .bg-gradient-to-r {
+    background: #1d4ed8 !important;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+
+  /* Keep the breakdown from splitting across pages */
+  .print-area > div {
+    break-inside: avoid;
+  }
+}
