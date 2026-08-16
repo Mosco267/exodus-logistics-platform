@@ -203,6 +203,7 @@ export async function POST(req: NextRequest) {
       deliveryMinISO,
       deliveryMaxISO,
       charges: {
+        shipping: Number(breakdown.shipping.toFixed(2)),
         baseFreight: Number(breakdown.baseFreight.toFixed(2)),
         fuel: Number(breakdown.fuel.toFixed(2)),
         insurance: Number(breakdown.insurance.toFixed(2)),

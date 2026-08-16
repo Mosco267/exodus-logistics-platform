@@ -366,6 +366,7 @@ export default function QuotePage() {
     const c = quote.charges;
     const rows = [
       { label: t('Quote.rowFreight', { means: t(`ShipmentMeans.${quote.means}`) }), value: c.baseFreight },
+      ...(c.shipping > 0 ? [{ label: t('Quote.rowShipping'), value: c.shipping }] : []),
       { label: t('Quote.rowFuel'), value: c.fuel },
       { label: t('Quote.rowInsurance'), value: c.insurance },
       { label: t('Quote.rowHandling'), value: c.handling },

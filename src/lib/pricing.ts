@@ -255,6 +255,7 @@ const LAND_MINIMUM_CHARGE = 5;
 // ─── Invoice breakdown ────────────────────────────────────────
 export type InvoiceBreakdown = {
   means: ShipmentMeans;
+  shipping: number;
   baseFreight: number;
   fuel: number;
   insurance: number;
@@ -350,6 +351,7 @@ export function computeInvoice(params: {
 
   return {
     means,
+    shipping: out(shippingFixed),
     baseFreight: out(baseFreight),
     fuel: out(fuel),
     insurance: out(insurance),
