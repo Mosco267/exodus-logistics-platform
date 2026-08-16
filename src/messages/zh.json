@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "Cookie 政策",
 "Footer.linkStatus": "服务器状态",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. 保留所有权利。"
+"Footer.copyright": "© {year} Exodus Logistics Ltd. 保留所有权利。",
+
+"Quote.title": "获取即时报价",
+"Quote.subtitle": "几秒内获得完整费用明细,无需注册账户。",
+ 
+"Quote.scopeLabel": "运输类型",
+"Quote.scopeIntl": "国际运输",
+"Quote.scopeIntlSub": "跨国运输",
+"Quote.scopeLocal": "国内运输",
+"Quote.scopeLocalSub": "同一国家境内",
+ 
+"Quote.originTitle": "取件地",
+"Quote.destinationTitle": "送达地",
+"Quote.packageTitle": "包裹详情",
+ 
+"Quote.country": "国家",
+"Quote.selectCountry": "选择国家",
+"Quote.searchCountry": "搜索国家",
+"Quote.stateProvince": "州 / 省",
+"Quote.selectState": "选择州或省",
+"Quote.searchState": "搜索州或省",
+"Quote.city": "城市",
+"Quote.cityPlaceholder": "城市名称",
+"Quote.noResults": "无结果",
+"Quote.localLocked": "国内运输的收发地须在同一国家。",
+"Quote.localUnavailable": "我们目前不在{country}提供国内运输服务。您可以选择国际运输,或联系客服。",
+ 
+"Quote.packageType": "包裹类型",
+"Quote.serviceLevel": "服务等级",
+"Quote.weightKg": "重量(公斤)",
+"Quote.dimensions": "尺寸(厘米)",
+"Quote.length": "长",
+"Quote.width": "宽",
+"Quote.height": "高",
+"Quote.dimensionsRequired": "三个尺寸均为必填项",
+"Quote.declaredValue": "申报价值",
+"Quote.declaredHint": "用于计算保险费用。请申报物品的真实价值。",
+ 
+"Quote.hintBulkSea": "散货和集装箱货件通过海运发送",
+"Quote.hintForcedStandard": "此重量或类型适用标准服务",
+"Quote.volumetricHint": "按体积重量计费:{vol} 公斤,高于实际的 {actual} 公斤。",
+ 
+"Quote.required": "必填",
+"Quote.errRequired": "请在计算前填写所有字段。",
+"Quote.errOverLimit": "此货件超出线上限额。请联系客服获取人工报价。",
+"Quote.errRateLimited": "报价请求过于频繁。请稍候片刻后重试。",
+"Quote.errFailed": "报价暂时不可用。请重试或联系客服。",
+ 
+"Quote.calculating": "正在计算",
+"Quote.submit": "计算报价",
+"Quote.disclaimer": "报价按实时费率计算,有效期为 7 天。若取件时重新测量包裹,最终费用可能有所不同。",
+ 
+"Quote.resultLabel": "您的报价",
+"Quote.summaryRoute": "路线",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "包裹",
+"Quote.summaryChargeable": "计费重量 {kg} 公斤",
+"Quote.summaryDelivery": "预计 {min}–{max} 个工作日",
+ 
+"Quote.volumetricNotice": "此货件按体积重量 {vol} 公斤计费,而非实际重量 {actual} 公斤,因为它占用的空间超过其重量。",
+"Quote.serviceNotice": "已自动应用标准服务。此重量或货件类型不支持快递服务。",
+ 
+"Quote.breakdownTitle": "费用明细",
+"Quote.rowFreight": "基础运费({means})",
+"Quote.rowShipping": "运输费",
+"Quote.rowFuel": "燃油附加费",
+"Quote.rowInsurance": "保险",
+"Quote.rowHandling": "操作费",
+"Quote.rowCustoms": "清关费",
+"Quote.rowTax": "税费",
+"Quote.rowDiscount": "折扣",
+"Quote.rowTotal": "合计",
+"Quote.validUntil": "此报价有效期至 {date}。该日期之后费率可能变动。",
+ 
+"Quote.ctaBook": "预订此货件",
+"Quote.ctaPrint": "打印",
+"Quote.ctaEdit": "修改信息"
 }

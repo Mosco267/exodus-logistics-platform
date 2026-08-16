@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "Política de cookies",
 "Footer.linkStatus": "Estado dos servidores",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Todos os direitos reservados."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. Todos os direitos reservados.",
+
+"Quote.title": "Obtém um orçamento imediato",
+"Quote.subtitle": "Discriminação completa dos custos em segundos. Sem necessidade de conta.",
+ 
+"Quote.scopeLabel": "Tipo de envio",
+"Quote.scopeIntl": "Internacional",
+"Quote.scopeIntlSub": "Entre países",
+"Quote.scopeLocal": "Nacional",
+"Quote.scopeLocalSub": "Dentro de um país",
+ 
+"Quote.originTitle": "Recolha em",
+"Quote.destinationTitle": "Entrega em",
+"Quote.packageTitle": "Detalhes da encomenda",
+ 
+"Quote.country": "País",
+"Quote.selectCountry": "Seleciona o país",
+"Quote.searchCountry": "Procurar país",
+"Quote.stateProvince": "Estado / Província",
+"Quote.selectState": "Seleciona o estado",
+"Quote.searchState": "Procurar estado",
+"Quote.city": "Cidade",
+"Quote.cityPlaceholder": "Nome da cidade",
+"Quote.noResults": "Sem resultados",
+"Quote.localLocked": "Os envios nacionais permanecem dentro do país de origem.",
+"Quote.localUnavailable": "De momento não realizamos envios nacionais em {country}. Experimenta um envio internacional ou contacta o apoio.",
+ 
+"Quote.packageType": "Tipo de encomenda",
+"Quote.serviceLevel": "Nível de serviço",
+"Quote.weightKg": "Peso (kg)",
+"Quote.dimensions": "Dimensões (cm)",
+"Quote.length": "Comprimento",
+"Quote.width": "Largura",
+"Quote.height": "Altura",
+"Quote.dimensionsRequired": "As três dimensões são obrigatórias",
+"Quote.declaredValue": "Valor declarado",
+"Quote.declaredHint": "Usado para calcular o seguro. Declara o valor real do conteúdo.",
+ 
+"Quote.hintBulkSea": "Os envios a granel e em contentor seguem por via marítima",
+"Quote.hintForcedStandard": "Aplica-se o serviço padrão para este peso ou tipo",
+"Quote.volumetricHint": "Cobrado pelo peso volumétrico: {vol} kg, superior aos {actual} kg reais.",
+ 
+"Quote.required": "Obrigatório",
+"Quote.errRequired": "Preenche todos os campos antes de calcular.",
+"Quote.errOverLimit": "Isto excede os nossos limites online. Contacta o apoio para um orçamento manual.",
+"Quote.errRateLimited": "Demasiados pedidos de orçamento. Aguarda um momento e tenta novamente.",
+"Quote.errFailed": "Orçamento indisponível de momento. Tenta novamente ou contacta o apoio.",
+ 
+"Quote.calculating": "A calcular",
+"Quote.submit": "Calcular orçamento",
+"Quote.disclaimer": "Os orçamentos são calculados com tarifas atualizadas e são válidos durante 7 dias. Os custos finais podem diferir se a encomenda for remedida na recolha.",
+ 
+"Quote.resultLabel": "O teu orçamento",
+"Quote.summaryRoute": "Rota",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Encomenda",
+"Quote.summaryChargeable": "{kg} kg faturáveis",
+"Quote.summaryDelivery": "Estimados {min}–{max} dias úteis",
+ 
+"Quote.volumetricNotice": "Este envio é cobrado pelo peso volumétrico de {vol} kg em vez do peso real de {actual} kg, porque ocupa mais espaço do que pesa.",
+"Quote.serviceNotice": "O serviço padrão foi aplicado automaticamente. O expresso não está disponível para este peso ou tipo de envio.",
+ 
+"Quote.breakdownTitle": "Discriminação de custos",
+"Quote.rowFreight": "Frete base ({means})",
+"Quote.rowShipping": "Taxa de envio",
+"Quote.rowFuel": "Sobretaxa de combustível",
+"Quote.rowInsurance": "Seguro",
+"Quote.rowHandling": "Taxa de manuseamento",
+"Quote.rowCustoms": "Desalfandegamento",
+"Quote.rowTax": "Impostos",
+"Quote.rowDiscount": "Desconto",
+"Quote.rowTotal": "Total",
+"Quote.validUntil": "Este orçamento é válido até {date}. As tarifas podem mudar após essa data.",
+ 
+"Quote.ctaBook": "Reservar este envio",
+"Quote.ctaPrint": "Imprimir",
+"Quote.ctaEdit": "Editar dados"
 }

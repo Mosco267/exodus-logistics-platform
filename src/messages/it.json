@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "Informativa sui cookie",
 "Footer.linkStatus": "Stato dei server",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Tutti i diritti riservati."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. Tutti i diritti riservati.",
+
+"Quote.title": "Ottieni un preventivo immediato",
+"Quote.subtitle": "Dettaglio completo dei costi in pochi secondi. Senza registrazione.",
+ 
+"Quote.scopeLabel": "Tipo di spedizione",
+"Quote.scopeIntl": "Internazionale",
+"Quote.scopeIntlSub": "Tra paesi",
+"Quote.scopeLocal": "Nazionale",
+"Quote.scopeLocalSub": "All'interno di un paese",
+ 
+"Quote.originTitle": "Ritiro da",
+"Quote.destinationTitle": "Consegna a",
+"Quote.packageTitle": "Dettagli del pacco",
+ 
+"Quote.country": "Paese",
+"Quote.selectCountry": "Seleziona paese",
+"Quote.searchCountry": "Cerca paese",
+"Quote.stateProvince": "Stato / Provincia",
+"Quote.selectState": "Seleziona stato",
+"Quote.searchState": "Cerca stato",
+"Quote.city": "Città",
+"Quote.cityPlaceholder": "Nome della città",
+"Quote.noResults": "Nessun risultato",
+"Quote.localLocked": "Le spedizioni nazionali restano all'interno del paese di origine.",
+"Quote.localUnavailable": "Al momento non effettuiamo spedizioni nazionali in {country}. Prova una spedizione internazionale o contatta l'assistenza.",
+ 
+"Quote.packageType": "Tipo di pacco",
+"Quote.serviceLevel": "Livello di servizio",
+"Quote.weightKg": "Peso (kg)",
+"Quote.dimensions": "Dimensioni (cm)",
+"Quote.length": "Lunghezza",
+"Quote.width": "Larghezza",
+"Quote.height": "Altezza",
+"Quote.dimensionsRequired": "Tutte e tre le dimensioni sono obbligatorie",
+"Quote.declaredValue": "Valore dichiarato",
+"Quote.declaredHint": "Serve a calcolare l'assicurazione. Dichiara il valore reale del contenuto.",
+ 
+"Quote.hintBulkSea": "Le spedizioni sfuse e in container viaggiano via mare",
+"Quote.hintForcedStandard": "Per questo peso o tipo si applica il servizio standard",
+"Quote.volumetricHint": "Tariffato al peso volumetrico: {vol} kg, superiore ai {actual} kg effettivi.",
+ 
+"Quote.required": "Obbligatorio",
+"Quote.errRequired": "Compila tutti i campi prima di calcolare.",
+"Quote.errOverLimit": "Questa spedizione supera i nostri limiti online. Contatta l'assistenza per un preventivo manuale.",
+"Quote.errRateLimited": "Troppe richieste di preventivo. Attendi un momento e riprova.",
+"Quote.errFailed": "Preventivo non disponibile al momento. Riprova o contatta l'assistenza.",
+ 
+"Quote.calculating": "Calcolo in corso",
+"Quote.submit": "Calcola preventivo",
+"Quote.disclaimer": "I preventivi sono calcolati su tariffe aggiornate e sono validi 7 giorni. I costi finali possono variare se il pacco viene rimisurato al ritiro.",
+ 
+"Quote.resultLabel": "Il tuo preventivo",
+"Quote.summaryRoute": "Percorso",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Pacco",
+"Quote.summaryChargeable": "{kg} kg tariffabili",
+"Quote.summaryDelivery": "Stimati {min}–{max} giorni lavorativi",
+ 
+"Quote.volumetricNotice": "Questa spedizione è tariffata sul peso volumetrico di {vol} kg anziché sul peso effettivo di {actual} kg, perché occupa più spazio di quanto pesi.",
+"Quote.serviceNotice": "È stato applicato automaticamente il servizio standard. L'espresso non è disponibile per questo peso o tipo di spedizione.",
+ 
+"Quote.breakdownTitle": "Dettaglio dei costi",
+"Quote.rowFreight": "Nolo base ({means})",
+"Quote.rowShipping": "Costo di spedizione",
+"Quote.rowFuel": "Supplemento carburante",
+"Quote.rowInsurance": "Assicurazione",
+"Quote.rowHandling": "Costi di gestione",
+"Quote.rowCustoms": "Sdoganamento",
+"Quote.rowTax": "Imposte",
+"Quote.rowDiscount": "Sconto",
+"Quote.rowTotal": "Totale",
+"Quote.validUntil": "Questo preventivo è valido fino al {date}. Dopo tale data le tariffe possono cambiare.",
+ 
+"Quote.ctaBook": "Prenota questa spedizione",
+"Quote.ctaPrint": "Stampa",
+"Quote.ctaEdit": "Modifica dati"
 }

@@ -1228,5 +1228,81 @@
 "QuickActions.invoiceTitle": "Voir la facture",
 "QuickActions.invoiceDesc": "Consultez et téléchargez vos factures instantanément",
 "QuickActions.quoteTitle": "Demander un devis",
-"QuickActions.quoteDesc": "Tarification immédiate pour vos besoins d'expédition"
+"QuickActions.quoteDesc": "Tarification immédiate pour vos besoins d'expédition",
+
+"Quote.title": "Obtenez un devis instantané",
+"Quote.subtitle": "Détail complet des coûts en quelques secondes. Sans compte.",
+ 
+"Quote.scopeLabel": "Type d'envoi",
+"Quote.scopeIntl": "International",
+"Quote.scopeIntlSub": "Entre pays",
+"Quote.scopeLocal": "National",
+"Quote.scopeLocalSub": "À l'intérieur d'un pays",
+ 
+"Quote.originTitle": "Enlèvement à",
+"Quote.destinationTitle": "Livraison à",
+"Quote.packageTitle": "Détails du colis",
+ 
+"Quote.country": "Pays",
+"Quote.selectCountry": "Sélectionnez un pays",
+"Quote.searchCountry": "Rechercher un pays",
+"Quote.stateProvince": "État / Province",
+"Quote.selectState": "Sélectionnez un état",
+"Quote.searchState": "Rechercher un état",
+"Quote.city": "Ville",
+"Quote.cityPlaceholder": "Nom de la ville",
+"Quote.noResults": "Aucun résultat",
+"Quote.localLocked": "Les envois nationaux restent à l'intérieur du pays d'origine.",
+"Quote.localUnavailable": "Nous n'assurons pas actuellement d'envois nationaux en {country}. Essayez un envoi international ou contactez l'assistance.",
+ 
+"Quote.packageType": "Type de colis",
+"Quote.serviceLevel": "Niveau de service",
+"Quote.weightKg": "Poids (kg)",
+"Quote.dimensions": "Dimensions (cm)",
+"Quote.length": "Longueur",
+"Quote.width": "Largeur",
+"Quote.height": "Hauteur",
+"Quote.dimensionsRequired": "Les trois dimensions sont obligatoires",
+"Quote.declaredValue": "Valeur déclarée",
+"Quote.declaredHint": "Sert au calcul de l'assurance. Déclarez la valeur réelle du contenu.",
+ 
+"Quote.hintBulkSea": "Les envois en vrac et en conteneur voyagent par mer",
+"Quote.hintForcedStandard": "Le service standard s'applique à ce poids ou à ce type",
+"Quote.volumetricHint": "Facturé au poids volumétrique : {vol} kg, supérieur aux {actual} kg réels.",
+ 
+"Quote.required": "Obligatoire",
+"Quote.errRequired": "Veuillez remplir tous les champs avant de calculer.",
+"Quote.errOverLimit": "Cela dépasse nos limites en ligne. Contactez l'assistance pour un devis manuel.",
+"Quote.errRateLimited": "Trop de devis demandés. Patientez un instant et réessayez.",
+"Quote.errFailed": "Le devis est indisponible pour le moment. Réessayez ou contactez l'assistance.",
+ 
+"Quote.calculating": "Calcul en cours",
+"Quote.submit": "Calculer le devis",
+"Quote.disclaimer": "Les devis sont calculés à partir des tarifs en vigueur et sont valables 7 jours. Les frais définitifs peuvent différer si le colis est remesuré à l'enlèvement.",
+ 
+"Quote.resultLabel": "Votre devis",
+"Quote.summaryRoute": "Trajet",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Colis",
+"Quote.summaryChargeable": "{kg} kg facturables",
+"Quote.summaryDelivery": "Estimation {min}–{max} jours ouvrés",
+ 
+"Quote.volumetricNotice": "Cet envoi est facturé à son poids volumétrique de {vol} kg plutôt qu'à son poids réel de {actual} kg, car il occupe plus de place qu'il ne pèse.",
+"Quote.serviceNotice": "Le service standard a été appliqué automatiquement. L'express n'est pas disponible pour ce poids ou ce type d'envoi.",
+ 
+"Quote.breakdownTitle": "Détail des coûts",
+"Quote.rowFreight": "Fret de base ({means})",
+"Quote.rowShipping": "Frais d'expédition",
+"Quote.rowFuel": "Surcharge carburant",
+"Quote.rowInsurance": "Assurance",
+"Quote.rowHandling": "Frais de manutention",
+"Quote.rowCustoms": "Dédouanement",
+"Quote.rowTax": "Taxes",
+"Quote.rowDiscount": "Remise",
+"Quote.rowTotal": "Total",
+"Quote.validUntil": "Ce devis est valable jusqu'au {date}. Les tarifs peuvent évoluer après cette date.",
+ 
+"Quote.ctaBook": "Réserver cet envoi",
+"Quote.ctaPrint": "Imprimer",
+"Quote.ctaEdit": "Modifier les informations"
 }

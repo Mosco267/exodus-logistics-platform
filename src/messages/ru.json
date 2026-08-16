@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "Политика использования cookie",
 "Footer.linkStatus": "Статус серверов",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Все права защищены."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. Все права защищены.",
+
+"Quote.title": "Мгновенный расчёт стоимости",
+"Quote.subtitle": "Полная разбивка затрат за секунды. Без регистрации.",
+ 
+"Quote.scopeLabel": "Тип отправления",
+"Quote.scopeIntl": "Международное",
+"Quote.scopeIntlSub": "Между странами",
+"Quote.scopeLocal": "Внутреннее",
+"Quote.scopeLocalSub": "В пределах одной страны",
+ 
+"Quote.originTitle": "Забор груза",
+"Quote.destinationTitle": "Доставка",
+"Quote.packageTitle": "Данные посылки",
+ 
+"Quote.country": "Страна",
+"Quote.selectCountry": "Выберите страну",
+"Quote.searchCountry": "Поиск страны",
+"Quote.stateProvince": "Регион / Область",
+"Quote.selectState": "Выберите регион",
+"Quote.searchState": "Поиск региона",
+"Quote.city": "Город",
+"Quote.cityPlaceholder": "Название города",
+"Quote.noResults": "Нет результатов",
+"Quote.localLocked": "Внутренние отправления остаются в пределах страны отправления.",
+"Quote.localUnavailable": "Сейчас мы не выполняем внутренние перевозки в стране {country}. Попробуйте международное отправление или свяжитесь со службой поддержки.",
+ 
+"Quote.packageType": "Тип посылки",
+"Quote.serviceLevel": "Уровень сервиса",
+"Quote.weightKg": "Вес (кг)",
+"Quote.dimensions": "Габариты (см)",
+"Quote.length": "Длина",
+"Quote.width": "Ширина",
+"Quote.height": "Высота",
+"Quote.dimensionsRequired": "Требуются все три габарита",
+"Quote.declaredValue": "Заявленная стоимость",
+"Quote.declaredHint": "Используется для расчёта страхования. Указывайте реальную стоимость содержимого.",
+ 
+"Quote.hintBulkSea": "Насыпные и контейнерные грузы перевозятся морем",
+"Quote.hintForcedStandard": "Для этого веса или типа применяется стандартный сервис",
+"Quote.volumetricHint": "Расчёт по объёмному весу: {vol} кг, что больше фактических {actual} кг.",
+ 
+"Quote.required": "Обязательно",
+"Quote.errRequired": "Заполните все поля перед расчётом.",
+"Quote.errOverLimit": "Это превышает наши онлайн-лимиты. Свяжитесь с поддержкой для расчёта вручную.",
+"Quote.errRateLimited": "Слишком много запросов на расчёт. Подождите немного и повторите попытку.",
+"Quote.errFailed": "Расчёт сейчас недоступен. Повторите попытку или свяжитесь с поддержкой.",
+ 
+"Quote.calculating": "Идёт расчёт",
+"Quote.submit": "Рассчитать стоимость",
+"Quote.disclaimer": "Расчёт выполняется по действующим тарифам и действителен 7 дней. Итоговая сумма может измениться, если посылку перемерят при заборе.",
+ 
+"Quote.resultLabel": "Ваш расчёт",
+"Quote.summaryRoute": "Маршрут",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Посылка",
+"Quote.summaryChargeable": "{kg} кг к оплате",
+"Quote.summaryDelivery": "Ориентировочно {min}–{max} рабочих дней",
+ 
+"Quote.volumetricNotice": "Это отправление рассчитано по объёмному весу {vol} кг вместо фактического веса {actual} кг, поскольку оно занимает больше места, чем весит.",
+"Quote.serviceNotice": "Стандартный сервис применён автоматически. Экспресс недоступен для этого веса или типа отправления.",
+ 
+"Quote.breakdownTitle": "Разбивка стоимости",
+"Quote.rowFreight": "Базовый фрахт ({means})",
+"Quote.rowShipping": "Сбор за отправку",
+"Quote.rowFuel": "Топливная надбавка",
+"Quote.rowInsurance": "Страхование",
+"Quote.rowHandling": "Сбор за обработку",
+"Quote.rowCustoms": "Таможенное оформление",
+"Quote.rowTax": "Налоги",
+"Quote.rowDiscount": "Скидка",
+"Quote.rowTotal": "Итого",
+"Quote.validUntil": "Расчёт действителен до {date}. После этой даты тарифы могут измениться.",
+ 
+"Quote.ctaBook": "Оформить отправление",
+"Quote.ctaPrint": "Печать",
+"Quote.ctaEdit": "Изменить данные"
 }

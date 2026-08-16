@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "سياسة ملفات تعريف الارتباط",
 "Footer.linkStatus": "حالة الخوادم",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. جميع الحقوق محفوظة."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. جميع الحقوق محفوظة.",
+
+"Quote.title": "احصل على عرض سعر فوري",
+"Quote.subtitle": "تفصيل كامل للتكاليف خلال ثوانٍ. دون الحاجة إلى حساب.",
+ 
+"Quote.scopeLabel": "نوع الشحنة",
+"Quote.scopeIntl": "دولية",
+"Quote.scopeIntlSub": "بين الدول",
+"Quote.scopeLocal": "محلية",
+"Quote.scopeLocalSub": "داخل الدولة نفسها",
+ 
+"Quote.originTitle": "الاستلام من",
+"Quote.destinationTitle": "التسليم إلى",
+"Quote.packageTitle": "تفاصيل الطرد",
+ 
+"Quote.country": "الدولة",
+"Quote.selectCountry": "اختر الدولة",
+"Quote.searchCountry": "ابحث عن دولة",
+"Quote.stateProvince": "الولاية / المحافظة",
+"Quote.selectState": "اختر الولاية",
+"Quote.searchState": "ابحث عن ولاية",
+"Quote.city": "المدينة",
+"Quote.cityPlaceholder": "اسم المدينة",
+"Quote.noResults": "لا توجد نتائج",
+"Quote.localLocked": "تبقى الشحنات المحلية داخل دولة المنشأ.",
+"Quote.localUnavailable": "لا نوفّر حالياً شحناً محلياً في {country}. جرّب شحنة دولية أو تواصل مع الدعم.",
+ 
+"Quote.packageType": "نوع الطرد",
+"Quote.serviceLevel": "مستوى الخدمة",
+"Quote.weightKg": "الوزن (كجم)",
+"Quote.dimensions": "الأبعاد (سم)",
+"Quote.length": "الطول",
+"Quote.width": "العرض",
+"Quote.height": "الارتفاع",
+"Quote.dimensionsRequired": "الأبعاد الثلاثة جميعها مطلوبة",
+"Quote.declaredValue": "القيمة المصرَّح بها",
+"Quote.declaredHint": "تُستخدم لحساب التأمين. صرّح بالقيمة الحقيقية للمحتويات.",
+ 
+"Quote.hintBulkSea": "الشحنات السائبة وشحنات الحاويات تُنقل بحراً",
+"Quote.hintForcedStandard": "تُطبَّق الخدمة القياسية لهذا الوزن أو النوع",
+"Quote.volumetricHint": "يُحتسب بالوزن الحجمي: {vol} كجم، وهو أكبر من الوزن الفعلي {actual} كجم.",
+ 
+"Quote.required": "مطلوب",
+"Quote.errRequired": "يرجى تعبئة جميع الحقول قبل الحساب.",
+"Quote.errOverLimit": "يتجاوز هذا حدودنا عبر الإنترنت. تواصل مع الدعم للحصول على عرض سعر يدوي.",
+"Quote.errRateLimited": "عدد كبير من طلبات التسعير. يرجى الانتظار قليلاً ثم المحاولة مجدداً.",
+"Quote.errFailed": "عرض السعر غير متاح حالياً. حاول مرة أخرى أو تواصل مع الدعم.",
+ 
+"Quote.calculating": "جارٍ الحساب",
+"Quote.submit": "احسب عرض السعر",
+"Quote.disclaimer": "تُحتسب عروض الأسعار وفق الأسعار السارية وتظل صالحة لمدة 7 أيام. قد تختلف الرسوم النهائية إذا أُعيد قياس الطرد عند الاستلام.",
+ 
+"Quote.resultLabel": "عرض سعرك",
+"Quote.summaryRoute": "المسار",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "الطرد",
+"Quote.summaryChargeable": "{kg} كجم قابلة للاحتساب",
+"Quote.summaryDelivery": "من {min} إلى {max} يوم عمل تقديرياً",
+ 
+"Quote.volumetricNotice": "تُحتسب هذه الشحنة بوزنها الحجمي البالغ {vol} كجم بدلاً من وزنها الفعلي البالغ {actual} كجم، لأنها تشغل مساحة أكبر مما تزن.",
+"Quote.serviceNotice": "طُبِّقت الخدمة القياسية تلقائياً. الخدمة السريعة غير متاحة لهذا الوزن أو نوع الشحنة.",
+ 
+"Quote.breakdownTitle": "تفصيل التكاليف",
+"Quote.rowFreight": "الشحن الأساسي ({means})",
+"Quote.rowShipping": "رسوم الشحن",
+"Quote.rowFuel": "رسوم الوقود الإضافية",
+"Quote.rowInsurance": "التأمين",
+"Quote.rowHandling": "رسوم المناولة",
+"Quote.rowCustoms": "التخليص الجمركي",
+"Quote.rowTax": "الضرائب",
+"Quote.rowDiscount": "الخصم",
+"Quote.rowTotal": "الإجمالي",
+"Quote.validUntil": "عرض السعر هذا صالح حتى {date}. وقد تتغير الأسعار بعد ذلك التاريخ.",
+ 
+"Quote.ctaBook": "احجز هذه الشحنة",
+"Quote.ctaPrint": "طباعة",
+"Quote.ctaEdit": "تعديل البيانات"
 }

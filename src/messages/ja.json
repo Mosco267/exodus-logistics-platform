@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "Cookie ポリシー",
 "Footer.linkStatus": "サーバー稼働状況",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. All rights reserved."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. All rights reserved.",
+
+"Quote.title": "すぐに見積もりを取得",
+"Quote.subtitle": "数秒で費用の内訳をすべて確認できます。アカウント登録は不要です。",
+ 
+"Quote.scopeLabel": "配送区分",
+"Quote.scopeIntl": "国際配送",
+"Quote.scopeIntlSub": "国をまたぐ配送",
+"Quote.scopeLocal": "国内配送",
+"Quote.scopeLocalSub": "同一国内の配送",
+ 
+"Quote.originTitle": "集荷元",
+"Quote.destinationTitle": "お届け先",
+"Quote.packageTitle": "荷物の詳細",
+ 
+"Quote.country": "国",
+"Quote.selectCountry": "国を選択",
+"Quote.searchCountry": "国を検索",
+"Quote.stateProvince": "都道府県 / 州",
+"Quote.selectState": "都道府県を選択",
+"Quote.searchState": "都道府県を検索",
+"Quote.city": "市区町村",
+"Quote.cityPlaceholder": "市区町村名",
+"Quote.noResults": "該当なし",
+"Quote.localLocked": "国内配送は発送元の国内に限られます。",
+"Quote.localUnavailable": "現在 {country} での国内配送は承っておりません。国際配送をご利用いただくか、サポートまでご連絡ください。",
+ 
+"Quote.packageType": "荷物の種類",
+"Quote.serviceLevel": "サービス区分",
+"Quote.weightKg": "重量(kg)",
+"Quote.dimensions": "寸法(cm)",
+"Quote.length": "長さ",
+"Quote.width": "幅",
+"Quote.height": "高さ",
+"Quote.dimensionsRequired": "3 辺すべての入力が必要です",
+"Quote.declaredValue": "申告価額",
+"Quote.declaredHint": "保険料の算出に使用します。内容品の実際の価額をご申告ください。",
+ 
+"Quote.hintBulkSea": "バルクおよびコンテナ貨物は海上輸送となります",
+"Quote.hintForcedStandard": "この重量または種類にはスタンダードが適用されます",
+"Quote.volumetricHint": "容積重量で計算します:{vol} kg(実重量 {actual} kg を上回るため)。",
+ 
+"Quote.required": "必須",
+"Quote.errRequired": "計算前にすべての項目をご入力ください。",
+"Quote.errOverLimit": "オンラインでのお取り扱い上限を超えています。個別見積もりについてはサポートまでご連絡ください。",
+"Quote.errRateLimited": "見積もりのご依頼が集中しています。少し時間をおいて再度お試しください。",
+"Quote.errFailed": "現在お見積もりをご利用いただけません。再度お試しいただくか、サポートまでご連絡ください。",
+ 
+"Quote.calculating": "計算中",
+"Quote.submit": "見積もりを計算",
+"Quote.disclaimer": "お見積もりは最新の料金で算出され、7 日間有効です。集荷時に再計測した場合、最終料金が異なることがあります。",
+ 
+"Quote.resultLabel": "お見積もり",
+"Quote.summaryRoute": "経路",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "荷物",
+"Quote.summaryChargeable": "課金重量 {kg} kg",
+"Quote.summaryDelivery": "目安 {min}〜{max} 営業日",
+ 
+"Quote.volumetricNotice": "この荷物は実重量 {actual} kg ではなく容積重量 {vol} kg で計算されています。重量よりも大きな容積を占めるためです。",
+"Quote.serviceNotice": "スタンダードサービスが自動的に適用されました。この重量または荷物の種類ではエクスプレスをご利用いただけません。",
+ 
+"Quote.breakdownTitle": "費用の内訳",
+"Quote.rowFreight": "基本運賃({means})",
+"Quote.rowShipping": "配送手数料",
+"Quote.rowFuel": "燃油サーチャージ",
+"Quote.rowInsurance": "保険",
+"Quote.rowHandling": "取扱手数料",
+"Quote.rowCustoms": "通関手数料",
+"Quote.rowTax": "税金",
+"Quote.rowDiscount": "割引",
+"Quote.rowTotal": "合計",
+"Quote.validUntil": "このお見積もりは {date} まで有効です。以降は料金が変更となる場合があります。",
+ 
+"Quote.ctaBook": "この内容で予約する",
+"Quote.ctaPrint": "印刷",
+"Quote.ctaEdit": "入力内容を修正"
 }

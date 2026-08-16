@@ -1228,6 +1228,82 @@
 "QuickActions.invoiceTitle": "Rechnung ansehen",
 "QuickActions.invoiceDesc": "Rufen Sie Ihre Rechnungen sofort ab und laden Sie sie herunter",
 "QuickActions.quoteTitle": "Angebot anfordern",
-"QuickActions.quoteDesc": "Sofortige Preise für Ihren Versandbedarf"
+"QuickActions.quoteDesc": "Sofortige Preise für Ihren Versandbedarf",
+
+"Quote.title": "Sofortangebot erhalten",
+"Quote.subtitle": "Vollständige Kostenaufschlüsselung in Sekunden. Kein Konto nötig.",
+ 
+"Quote.scopeLabel": "Sendungsart",
+"Quote.scopeIntl": "International",
+"Quote.scopeIntlSub": "Zwischen Ländern",
+"Quote.scopeLocal": "Inland",
+"Quote.scopeLocalSub": "Innerhalb eines Landes",
+ 
+"Quote.originTitle": "Abholung in",
+"Quote.destinationTitle": "Zustellung in",
+"Quote.packageTitle": "Paketdetails",
+ 
+"Quote.country": "Land",
+"Quote.selectCountry": "Land auswählen",
+"Quote.searchCountry": "Land suchen",
+"Quote.stateProvince": "Bundesland / Provinz",
+"Quote.selectState": "Bundesland auswählen",
+"Quote.searchState": "Bundesland suchen",
+"Quote.city": "Stadt",
+"Quote.cityPlaceholder": "Name der Stadt",
+"Quote.noResults": "Keine Ergebnisse",
+"Quote.localLocked": "Inlandssendungen bleiben innerhalb des Ursprungslandes.",
+"Quote.localUnavailable": "In {country} bieten wir derzeit keine Inlandssendungen an. Versuchen Sie eine internationale Sendung oder wenden Sie sich an den Support.",
+ 
+"Quote.packageType": "Pakettyp",
+"Quote.serviceLevel": "Servicelevel",
+"Quote.weightKg": "Gewicht (kg)",
+"Quote.dimensions": "Abmessungen (cm)",
+"Quote.length": "Länge",
+"Quote.width": "Breite",
+"Quote.height": "Höhe",
+"Quote.dimensionsRequired": "Alle drei Abmessungen sind erforderlich",
+"Quote.declaredValue": "Deklarierter Wert",
+"Quote.declaredHint": "Wird zur Berechnung der Versicherung verwendet. Geben Sie den tatsächlichen Wert des Inhalts an.",
+ 
+"Quote.hintBulkSea": "Schüttgut- und Containersendungen reisen per Seefracht",
+"Quote.hintForcedStandard": "Bei diesem Gewicht oder Typ gilt der Standardservice",
+"Quote.volumetricHint": "Berechnet nach Volumengewicht: {vol} kg, mehr als die tatsächlichen {actual} kg.",
+ 
+"Quote.required": "Pflichtfeld",
+"Quote.errRequired": "Bitte füllen Sie alle Felder aus, bevor Sie berechnen.",
+"Quote.errOverLimit": "Dies überschreitet unsere Online-Grenzwerte. Wenden Sie sich für ein manuelles Angebot an den Support.",
+"Quote.errRateLimited": "Zu viele Angebotsanfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
+"Quote.errFailed": "Das Angebot ist derzeit nicht verfügbar. Bitte erneut versuchen oder den Support kontaktieren.",
+ 
+"Quote.calculating": "Wird berechnet",
+"Quote.submit": "Angebot berechnen",
+"Quote.disclaimer": "Angebote werden anhand aktueller Tarife berechnet und sind 7 Tage gültig. Die endgültigen Kosten können abweichen, wenn das Paket bei der Abholung neu vermessen wird.",
+ 
+"Quote.resultLabel": "Ihr Angebot",
+"Quote.summaryRoute": "Strecke",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Paket",
+"Quote.summaryChargeable": "{kg} kg berechnet",
+"Quote.summaryDelivery": "Voraussichtlich {min}–{max} Werktage",
+ 
+"Quote.volumetricNotice": "Diese Sendung wird mit ihrem Volumengewicht von {vol} kg statt ihrem tatsächlichen Gewicht von {actual} kg berechnet, weil sie mehr Raum einnimmt, als sie wiegt.",
+"Quote.serviceNotice": "Der Standardservice wurde automatisch angewendet. Express ist für dieses Gewicht oder diese Sendungsart nicht verfügbar.",
+ 
+"Quote.breakdownTitle": "Kostenaufschlüsselung",
+"Quote.rowFreight": "Grundfracht ({means})",
+"Quote.rowShipping": "Versandgebühr",
+"Quote.rowFuel": "Treibstoffzuschlag",
+"Quote.rowInsurance": "Versicherung",
+"Quote.rowHandling": "Abwicklungsgebühr",
+"Quote.rowCustoms": "Zollabfertigung",
+"Quote.rowTax": "Steuern",
+"Quote.rowDiscount": "Rabatt",
+"Quote.rowTotal": "Gesamt",
+"Quote.validUntil": "Dieses Angebot gilt bis zum {date}. Danach können sich die Tarife ändern.",
+ 
+"Quote.ctaBook": "Diese Sendung buchen",
+"Quote.ctaPrint": "Drucken",
+"Quote.ctaEdit": "Angaben bearbeiten"
 
 }

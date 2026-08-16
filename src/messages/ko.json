@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "쿠키 정책",
 "Footer.linkStatus": "서버 상태",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. All rights reserved."
+"Footer.copyright": "© {year} Exodus Logistics Ltd. All rights reserved.",
+
+"Quote.title": "즉시 견적 받기",
+"Quote.subtitle": "몇 초 만에 전체 비용 내역을 확인하세요. 계정 없이 이용 가능합니다.",
+ 
+"Quote.scopeLabel": "배송 유형",
+"Quote.scopeIntl": "국제 배송",
+"Quote.scopeIntlSub": "국가 간 배송",
+"Quote.scopeLocal": "국내 배송",
+"Quote.scopeLocalSub": "같은 국가 내 배송",
+ 
+"Quote.originTitle": "집화지",
+"Quote.destinationTitle": "도착지",
+"Quote.packageTitle": "화물 정보",
+ 
+"Quote.country": "국가",
+"Quote.selectCountry": "국가 선택",
+"Quote.searchCountry": "국가 검색",
+"Quote.stateProvince": "주 / 도",
+"Quote.selectState": "주 또는 도 선택",
+"Quote.searchState": "주 또는 도 검색",
+"Quote.city": "도시",
+"Quote.cityPlaceholder": "도시 이름",
+"Quote.noResults": "결과 없음",
+"Quote.localLocked": "국내 배송은 출발 국가 내에서만 가능합니다.",
+"Quote.localUnavailable": "현재 {country}에서는 국내 배송 서비스를 제공하지 않습니다. 국제 배송을 이용하시거나 고객 지원팀에 문의해 주세요.",
+ 
+"Quote.packageType": "화물 종류",
+"Quote.serviceLevel": "서비스 등급",
+"Quote.weightKg": "무게(kg)",
+"Quote.dimensions": "규격(cm)",
+"Quote.length": "길이",
+"Quote.width": "너비",
+"Quote.height": "높이",
+"Quote.dimensionsRequired": "세 가지 규격을 모두 입력해 주세요",
+"Quote.declaredValue": "신고 가액",
+"Quote.declaredHint": "보험료 산정에 사용됩니다. 내용물의 실제 가액을 입력해 주세요.",
+ 
+"Quote.hintBulkSea": "벌크 및 컨테이너 화물은 해상으로 운송됩니다",
+"Quote.hintForcedStandard": "이 무게 또는 종류에는 스탠다드 서비스가 적용됩니다",
+"Quote.volumetricHint": "부피 중량으로 청구됩니다: {vol}kg, 실제 {actual}kg보다 큽니다.",
+ 
+"Quote.required": "필수",
+"Quote.errRequired": "계산하기 전에 모든 항목을 입력해 주세요.",
+"Quote.errOverLimit": "온라인 취급 한도를 초과했습니다. 개별 견적은 고객 지원팀에 문의해 주세요.",
+"Quote.errRateLimited": "견적 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+"Quote.errFailed": "현재 견적을 이용할 수 없습니다. 다시 시도하시거나 고객 지원팀에 문의해 주세요.",
+ 
+"Quote.calculating": "계산 중",
+"Quote.submit": "견적 계산",
+"Quote.disclaimer": "견적은 최신 요율로 산정되며 7일간 유효합니다. 집화 시 재측정될 경우 최종 요금이 달라질 수 있습니다.",
+ 
+"Quote.resultLabel": "견적 결과",
+"Quote.summaryRoute": "경로",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "화물",
+"Quote.summaryChargeable": "청구 중량 {kg}kg",
+"Quote.summaryDelivery": "예상 {min}~{max} 영업일",
+ 
+"Quote.volumetricNotice": "이 화물은 실제 중량 {actual}kg이 아닌 부피 중량 {vol}kg으로 청구됩니다. 무게보다 더 많은 공간을 차지하기 때문입니다.",
+"Quote.serviceNotice": "스탠다드 서비스가 자동으로 적용되었습니다. 이 중량 또는 화물 종류에는 익스프레스를 이용하실 수 없습니다.",
+ 
+"Quote.breakdownTitle": "비용 내역",
+"Quote.rowFreight": "기본 운임({means})",
+"Quote.rowShipping": "배송 수수료",
+"Quote.rowFuel": "유류할증료",
+"Quote.rowInsurance": "보험",
+"Quote.rowHandling": "취급 수수료",
+"Quote.rowCustoms": "통관 수수료",
+"Quote.rowTax": "세금",
+"Quote.rowDiscount": "할인",
+"Quote.rowTotal": "합계",
+"Quote.validUntil": "이 견적은 {date}까지 유효합니다. 이후에는 요율이 변경될 수 있습니다.",
+ 
+"Quote.ctaBook": "이 내용으로 예약",
+"Quote.ctaPrint": "인쇄",
+"Quote.ctaEdit": "정보 수정"
 }

@@ -1228,5 +1228,81 @@
 "Footer.linkCookies": "कुकी नीति",
 "Footer.linkStatus": "सर्वर स्थिति",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. सर्वाधिकार सुरक्षित।"
+"Footer.copyright": "© {year} Exodus Logistics Ltd. सर्वाधिकार सुरक्षित।",
+
+"Quote.title": "तुरंत कोटेशन पाएँ",
+"Quote.subtitle": "सेकंडों में लागत का पूरा विवरण। खाता बनाने की ज़रूरत नहीं।",
+ 
+"Quote.scopeLabel": "शिपमेंट का प्रकार",
+"Quote.scopeIntl": "अंतरराष्ट्रीय",
+"Quote.scopeIntlSub": "देशों के बीच",
+"Quote.scopeLocal": "घरेलू",
+"Quote.scopeLocalSub": "एक ही देश के भीतर",
+ 
+"Quote.originTitle": "पिकअप स्थान",
+"Quote.destinationTitle": "डिलीवरी स्थान",
+"Quote.packageTitle": "पैकेज का विवरण",
+ 
+"Quote.country": "देश",
+"Quote.selectCountry": "देश चुनें",
+"Quote.searchCountry": "देश खोजें",
+"Quote.stateProvince": "राज्य / प्रांत",
+"Quote.selectState": "राज्य चुनें",
+"Quote.searchState": "राज्य खोजें",
+"Quote.city": "शहर",
+"Quote.cityPlaceholder": "शहर का नाम",
+"Quote.noResults": "कोई परिणाम नहीं",
+"Quote.localLocked": "घरेलू शिपमेंट मूल देश के भीतर ही रहती हैं।",
+"Quote.localUnavailable": "हम फ़िलहाल {country} में घरेलू शिपिंग नहीं करते। अंतरराष्ट्रीय शिपमेंट आज़माएँ या सहायता से संपर्क करें।",
+ 
+"Quote.packageType": "पैकेज का प्रकार",
+"Quote.serviceLevel": "सेवा स्तर",
+"Quote.weightKg": "वज़न (किग्रा)",
+"Quote.dimensions": "आयाम (सेमी)",
+"Quote.length": "लंबाई",
+"Quote.width": "चौड़ाई",
+"Quote.height": "ऊँचाई",
+"Quote.dimensionsRequired": "तीनों आयाम भरना ज़रूरी है",
+"Quote.declaredValue": "घोषित मूल्य",
+"Quote.declaredHint": "बीमे की गणना के लिए उपयोग होता है। सामग्री का वास्तविक मूल्य घोषित करें।",
+ 
+"Quote.hintBulkSea": "थोक और कंटेनर शिपमेंट समुद्र के रास्ते जाती हैं",
+"Quote.hintForcedStandard": "इस वज़न या प्रकार पर मानक सेवा लागू होती है",
+"Quote.volumetricHint": "आयतन भार पर शुल्क: {vol} किग्रा, वास्तविक {actual} किग्रा से अधिक।",
+ 
+"Quote.required": "आवश्यक",
+"Quote.errRequired": "गणना से पहले सभी फ़ील्ड भरें।",
+"Quote.errOverLimit": "यह हमारी ऑनलाइन सीमा से अधिक है। मैनुअल कोटेशन के लिए सहायता से संपर्क करें।",
+"Quote.errRateLimited": "बहुत अधिक कोटेशन अनुरोध। थोड़ी देर रुककर दोबारा कोशिश करें।",
+"Quote.errFailed": "कोटेशन अभी उपलब्ध नहीं है। दोबारा कोशिश करें या सहायता से संपर्क करें।",
+ 
+"Quote.calculating": "गणना हो रही है",
+"Quote.submit": "कोटेशन की गणना करें",
+"Quote.disclaimer": "कोटेशन मौजूदा दरों पर बनते हैं और 7 दिनों तक मान्य रहते हैं। पिकअप के समय दोबारा माप होने पर अंतिम शुल्क बदल सकता है।",
+ 
+"Quote.resultLabel": "आपका कोटेशन",
+"Quote.summaryRoute": "मार्ग",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "पैकेज",
+"Quote.summaryChargeable": "{kg} किग्रा शुल्क योग्य",
+"Quote.summaryDelivery": "अनुमानित {min}–{max} कार्यदिवस",
+ 
+"Quote.volumetricNotice": "इस शिपमेंट पर वास्तविक वज़न {actual} किग्रा के बजाय आयतन भार {vol} किग्रा के हिसाब से शुल्क लगता है, क्योंकि यह अपने वज़न से ज़्यादा जगह घेरती है।",
+"Quote.serviceNotice": "मानक सेवा अपने आप लागू कर दी गई है। इस वज़न या शिपमेंट प्रकार के लिए एक्सप्रेस उपलब्ध नहीं है।",
+ 
+"Quote.breakdownTitle": "लागत का विवरण",
+"Quote.rowFreight": "मूल भाड़ा ({means})",
+"Quote.rowShipping": "शिपिंग शुल्क",
+"Quote.rowFuel": "ईंधन अधिभार",
+"Quote.rowInsurance": "बीमा",
+"Quote.rowHandling": "हैंडलिंग शुल्क",
+"Quote.rowCustoms": "सीमा शुल्क निकासी",
+"Quote.rowTax": "कर",
+"Quote.rowDiscount": "छूट",
+"Quote.rowTotal": "कुल",
+"Quote.validUntil": "यह कोटेशन {date} तक मान्य है। उसके बाद दरें बदल सकती हैं।",
+ 
+"Quote.ctaBook": "यह शिपमेंट बुक करें",
+"Quote.ctaPrint": "प्रिंट करें",
+"Quote.ctaEdit": "विवरण संपादित करें"
 }

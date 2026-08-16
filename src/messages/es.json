@@ -1228,5 +1228,81 @@
 "QuickActions.invoiceTitle": "Ver factura",
 "QuickActions.invoiceDesc": "Consulta y descarga tus facturas al instante",
 "QuickActions.quoteTitle": "Solicitar presupuesto",
-"QuickActions.quoteDesc": "Precios inmediatos para tus necesidades de envío"
+"QuickActions.quoteDesc": "Precios inmediatos para tus necesidades de envío",
+
+"Quote.title": "Obtén un presupuesto al instante",
+"Quote.subtitle": "Desglose completo de costes en segundos. Sin necesidad de cuenta.",
+ 
+"Quote.scopeLabel": "Tipo de envío",
+"Quote.scopeIntl": "Internacional",
+"Quote.scopeIntlSub": "Entre países",
+"Quote.scopeLocal": "Nacional",
+"Quote.scopeLocalSub": "Dentro de un país",
+ 
+"Quote.originTitle": "Recogida en",
+"Quote.destinationTitle": "Entrega en",
+"Quote.packageTitle": "Detalles del paquete",
+ 
+"Quote.country": "País",
+"Quote.selectCountry": "Selecciona país",
+"Quote.searchCountry": "Buscar país",
+"Quote.stateProvince": "Estado / Provincia",
+"Quote.selectState": "Selecciona estado",
+"Quote.searchState": "Buscar estado",
+"Quote.city": "Ciudad",
+"Quote.cityPlaceholder": "Nombre de la ciudad",
+"Quote.noResults": "Sin resultados",
+"Quote.localLocked": "Los envíos nacionales permanecen dentro del país de origen.",
+"Quote.localUnavailable": "Actualmente no operamos envíos nacionales en {country}. Prueba con un envío internacional o contacta con soporte.",
+ 
+"Quote.packageType": "Tipo de paquete",
+"Quote.serviceLevel": "Nivel de servicio",
+"Quote.weightKg": "Peso (kg)",
+"Quote.dimensions": "Dimensiones (cm)",
+"Quote.length": "Largo",
+"Quote.width": "Ancho",
+"Quote.height": "Alto",
+"Quote.dimensionsRequired": "Las tres dimensiones son obligatorias",
+"Quote.declaredValue": "Valor declarado",
+"Quote.declaredHint": "Se usa para calcular el seguro. Declara el valor real del contenido.",
+ 
+"Quote.hintBulkSea": "Los envíos a granel y en contenedor viajan por mar",
+"Quote.hintForcedStandard": "Se aplica el servicio estándar para este peso o tipo",
+"Quote.volumetricHint": "Se cobra por peso volumétrico: {vol} kg, superior a los {actual} kg reales.",
+ 
+"Quote.required": "Obligatorio",
+"Quote.errRequired": "Rellena todos los campos antes de calcular.",
+"Quote.errOverLimit": "Esto supera nuestros límites en línea. Contacta con soporte para un presupuesto manual.",
+"Quote.errRateLimited": "Demasiadas solicitudes de presupuesto. Espera un momento e inténtalo de nuevo.",
+"Quote.errFailed": "El presupuesto no está disponible ahora mismo. Inténtalo de nuevo o contacta con soporte.",
+ 
+"Quote.calculating": "Calculando",
+"Quote.submit": "Calcular presupuesto",
+"Quote.disclaimer": "Los presupuestos se calculan con tarifas actualizadas y son válidos durante 7 días. Los cargos finales pueden variar si el paquete se vuelve a medir en la recogida.",
+ 
+"Quote.resultLabel": "Tu presupuesto",
+"Quote.summaryRoute": "Ruta",
+"Quote.summaryMode": "{mode} · {service}",
+"Quote.summaryPackage": "Paquete",
+"Quote.summaryChargeable": "{kg} kg facturables",
+"Quote.summaryDelivery": "Estimado {min}–{max} días hábiles",
+ 
+"Quote.volumetricNotice": "Este envío se cobra por su peso volumétrico de {vol} kg en lugar de su peso real de {actual} kg, porque ocupa más espacio del que pesa.",
+"Quote.serviceNotice": "Se ha aplicado automáticamente el servicio estándar. El servicio exprés no está disponible para este peso o tipo de envío.",
+ 
+"Quote.breakdownTitle": "Desglose de costes",
+"Quote.rowFreight": "Flete base ({means})",
+"Quote.rowShipping": "Tasa de envío",
+"Quote.rowFuel": "Recargo por combustible",
+"Quote.rowInsurance": "Seguro",
+"Quote.rowHandling": "Tasa de gestión",
+"Quote.rowCustoms": "Despacho de aduanas",
+"Quote.rowTax": "Impuestos",
+"Quote.rowDiscount": "Descuento",
+"Quote.rowTotal": "Total",
+"Quote.validUntil": "Este presupuesto es válido hasta el {date}. Las tarifas pueden cambiar después de esa fecha.",
+ 
+"Quote.ctaBook": "Reservar este envío",
+"Quote.ctaPrint": "Imprimir",
+"Quote.ctaEdit": "Editar datos"
 }
