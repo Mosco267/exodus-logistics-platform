@@ -57,6 +57,28 @@ export type LandFreightSettings = {
   expressMultiplier: number;
 };
 
+/* Per-country overrides for LOCAL (domestic) shipments.
+   Freight costs differ enormously by market: a 30 kg parcel moved 250 km
+   costs roughly $70 in the US and about $8 in Nigeria. One global rate
+   card cannot serve both.
+
+   Every field is optional. Anything omitted falls back to the global
+   `local` profile and `land` settings, so a country can override only
+   its handling fee without restating the whole card.
+
+   Countries with no entry inherit the defaults entirely. */
+export type CountryRateOverride = {
+  label?: string;
+  zoneRates?: Partial<LandZoneRates>;
+  expressMultiplier?: number;
+  handlingFee?: number;
+  fuelRate?: number;
+  insuranceRate?: number;
+  minimumCharge?: number;
+};
+
+export type CountryRates = Record<string, CountryRateOverride>;
+
 // ─── Full pricing profiles ───────────────────────────────────
 export type PricingProfiles = {
   international: PricingSettings;
@@ -64,7 +86,67 @@ export type PricingProfiles = {
   air: AirFreightSettings;
   sea: SeaFreightSettings;
   land: LandFreightSettings;
+  /** Keyed by ISO country code, e.g. { NG: {...}, GB: {...} } */
+  countryRates?: CountryRates;
 };
+
+/* Minimum land charge floor. Prevents a near-zero total on very short
+   routes where km rounds down close to 0. */
+const LAND_MINIMUM_CHARGE = 8;
+
+/* Weight breaks. Freight cost is mostly per-trip, not per-kilogram, so the
+   effective rate must fall as weight rises. Without this, 300 kg prices at
+   15x the cost of 20 kg, which no carrier charges.
+   Each tier's factor applies only to the weight falling inside that tier. */
+const WEIGHT_BREAKS: { upTo: number; factor: number }[] = [
+  { upTo: 30, factor: 1.00 },
+  { upTo: 100, factor: 0.55 },
+  { upTo: 300, factor: 0.30 },
+  { upTo: 1000, factor: 0.18 },
+  { upTo: Infinity, factor: 0.10 },
+];
+
+/** Weight in kg converted to rate-equivalent units, applying tiered factors. */
+function effectiveWeight(kg: number): number {
+  let remaining = Math.max(0, kg);
+  let prev = 0;
+  let total = 0;
+  for (const tier of WEIGHT_BREAKS) {
+    if (remaining <= 0) break;
+    const band = Math.min(remaining, tier.upTo - prev);
+    total += band * tier.factor;
+    remaining -= band;
+    prev = tier.upTo;
+  }
+  return total;
+}
+
+/** Resolves the effective land settings for a country, falling back to global. */
+export function resolveLandRates(
+  countryCode: string,
+  pricing: PricingProfiles
+): { zoneRates: LandZoneRates; expressMultiplier: number; minimumCharge: number } {
+  const o = pricing.countryRates?.[String(countryCode || '').toUpperCase()] || {};
+  return {
+    zoneRates: { ...pricing.land.zoneRates, ...(o.zoneRates || {}) },
+    expressMultiplier: o.expressMultiplier ?? pricing.land.expressMultiplier ?? 1,
+    minimumCharge: o.minimumCharge ?? LAND_MINIMUM_CHARGE,
+  };
+}
+
+/** Resolves the effective local fee profile for a country. */
+export function resolveLocalProfile(
+  countryCode: string,
+  pricing: PricingProfiles
+): PricingSettings {
+  const o = pricing.countryRates?.[String(countryCode || '').toUpperCase()] || {};
+  return {
+    ...pricing.local,
+    handlingFee: o.handlingFee ?? pricing.local.handlingFee,
+    fuelRate: o.fuelRate ?? pricing.local.fuelRate,
+    insuranceRate: o.insuranceRate ?? pricing.local.insuranceRate,
+  };
+}
 
 // ─── Defaults ────────────────────────────────────────────────
 export const DEFAULT_PRICING: PricingProfiles = {
@@ -96,8 +178,26 @@ export const DEFAULT_PRICING: PricingProfiles = {
     zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.25, farContinent: 1.5 },
   },
   land: {
-    zoneRates: { zone1: 0.08, zone2: 0.12, zone3: 0.18, zone4: 0.25 },  // per km/kg (kept for backward compat)
-    expressMultiplier: 1.4,
+    /* Per km per kg, USD. Rates FALL as distance rises, because fixed costs
+       (pickup, sorting, admin) spread over a longer journey. Calibrated to
+       the US market, which is also the fallback for any country without an
+       entry in countryRates. */
+    zoneRates: { zone1: 0.025, zone2: 0.010, zone3: 0.006, zone4: 0.0018 },
+    expressMultiplier: 1.45,
+  },
+  countryRates: {
+    US: { label: 'United States' },
+    GB: { label: 'United Kingdom', zoneRates: { zone1: 0.030, zone2: 0.014, zone3: 0.009, zone4: 0.004 }, handlingFee: 9 },
+    DE: { label: 'Germany', zoneRates: { zone1: 0.028, zone2: 0.013, zone3: 0.008, zone4: 0.0035 }, handlingFee: 9 },
+    CA: { label: 'Canada', zoneRates: { zone1: 0.024, zone2: 0.009, zone3: 0.005, zone4: 0.0015 } },
+    AU: { label: 'Australia', zoneRates: { zone1: 0.026, zone2: 0.010, zone3: 0.005, zone4: 0.0016 }, handlingFee: 9 },
+    AE: { label: 'UAE', zoneRates: { zone1: 0.020, zone2: 0.009, zone3: 0.006, zone4: 0.003 }, handlingFee: 6 },
+    ZA: { label: 'South Africa', zoneRates: { zone1: 0.010, zone2: 0.004, zone3: 0.0022, zone4: 0.0009 }, handlingFee: 3, insuranceRate: 0.01 },
+    BR: { label: 'Brazil', zoneRates: { zone1: 0.009, zone2: 0.0035, zone3: 0.0020, zone4: 0.0008 }, handlingFee: 3, insuranceRate: 0.01 },
+    IN: { label: 'India', zoneRates: { zone1: 0.006, zone2: 0.0022, zone3: 0.0013, zone4: 0.0006 }, handlingFee: 2, insuranceRate: 0.01 },
+    NG: { label: 'Nigeria', zoneRates: { zone1: 0.008, zone2: 0.003, zone3: 0.0016, zone4: 0.0008 }, handlingFee: 2, insuranceRate: 0.01, minimumCharge: 3 },
+    GH: { label: 'Ghana', zoneRates: { zone1: 0.008, zone2: 0.003, zone3: 0.0016, zone4: 0.0008 }, handlingFee: 2, insuranceRate: 0.01, minimumCharge: 3 },
+    KE: { label: 'Kenya', zoneRates: { zone1: 0.007, zone2: 0.0028, zone3: 0.0015, zone4: 0.0007 }, handlingFee: 2, insuranceRate: 0.01, minimumCharge: 3 },
   },
 };
 
@@ -157,18 +257,32 @@ export function getContinentZone(fromCode: string, toCode: string): keyof ZoneMu
 // ─── Land zone detection ─────────────────────────────────────
 export type LandZone = 'zone1' | 'zone2' | 'zone3' | 'zone4';
 
+/* Zone is chosen by actual distance rather than by name matching.
+   The previous version compared first letters of state names, so Lagos and
+   Oyo landed in zone4 despite bordering, while California and Colorado
+   landed in zone3 despite being 1,500 km apart.
+   Same city and same state still short-circuit, since those are certain. */
 export function getLandZone(
   senderCity: string, senderState: string,
-  receiverCity: string, receiverState: string
+  receiverCity: string, receiverState: string,
+  distanceKm?: number
 ): LandZone {
   const sc = senderCity.trim().toLowerCase();
   const rc = receiverCity.trim().toLowerCase();
   const ss = senderState.trim().toLowerCase();
   const rs = receiverState.trim().toLowerCase();
-  if (sc && rc && sc === rc) return 'zone1';
+
+  if (sc && rc && sc === rc && ss === rs) return 'zone1';
   if (ss && rs && ss === rs) return 'zone2';
-  // Simple heuristic: first letter of state same = adjacent
-  if (ss && rs && ss[0] === rs[0]) return 'zone3';
+
+  const km = Number(distanceKm);
+  if (Number.isFinite(km) && km > 0) {
+    if (km < 50) return 'zone1';
+    if (km < 300) return 'zone2';
+    if (km < 800) return 'zone3';
+    return 'zone4';
+  }
+
   return 'zone4';
 }
 
@@ -248,9 +362,6 @@ export function getEstimatedDeliveryDate(
   return date.toISOString().split('T')[0];
 }
 
-/* Minimum land charge floor. Prevents a near-zero total on very short
-   routes where km rounds down close to 0. */
-const LAND_MINIMUM_CHARGE = 5;
 
 // ─── Invoice breakdown ────────────────────────────────────────
 export type InvoiceBreakdown = {
@@ -300,7 +411,9 @@ export function computeInvoice(params: {
     ? (params.fxRate as number)
     : 1;
 
-  const profile = scope === 'local' ? pricing.local : pricing.international;
+ const profile = scope === 'local'
+    ? resolveLocalProfile(senderCountryCode, pricing)
+    : pricing.international;
   const w = Math.max(0, weightKg);
   // Declared value arrives in the display currency; rates are USD
   const dv = Math.max(0, declaredValue) / fx;
@@ -314,21 +427,22 @@ export function computeInvoice(params: {
     // Admin-configured zone multiplier, chosen by continent relationship
     const zone = getContinentZone(senderCountryCode, receiverCountryCode);
     const mult = pricing.air.zoneMultipliers?.[zone] ?? 1;
-    baseFreight = rate * w * mult;
+    baseFreight = rate * effectiveWeight(w) * mult;
   } else if (means === 'sea') {
     const zone = getContinentZone(senderCountryCode, receiverCountryCode);
-    const mult = pricing.sea.zoneMultipliers?.[zone] ?? 1;
-    baseFreight = pricing.sea.ratePerKgStandard * w * mult;
+   const mult = pricing.sea.zoneMultipliers?.[zone] ?? 1;
+    baseFreight = pricing.sea.ratePerKgStandard * effectiveWeight(w) * mult;
   } else {
     // land — admin-configured per-km-per-kg rate, chosen by distance zone
     const km = getStateDistance(senderCountryCode, senderState, receiverState);
-    const zone = getLandZone(senderCity, senderState, receiverCity, receiverState);
-    const ratePerKmKg = pricing.land.zoneRates?.[zone] ?? 0.010;
-    let base = km * ratePerKmKg * w;
+    const zone = getLandZone(senderCity, senderState, receiverCity, receiverState, km);
+    const landRates = resolveLandRates(senderCountryCode, pricing);
+    const ratePerKmKg = landRates.zoneRates?.[zone] ?? 0.010;
+    let base = km * ratePerKmKg * effectiveWeight(w);
     if (serviceLevel === 'Express') {
-      base *= pricing.land.expressMultiplier ?? 1;
+      base *= landRates.expressMultiplier;
     }
-    baseFreight = Math.max(LAND_MINIMUM_CHARGE, base);
+    baseFreight = Math.max(landRates.minimumCharge, base);
   }
 
   // Add declared value factor (0.5% of declared value as cargo value fee)

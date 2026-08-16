@@ -25,27 +25,9 @@ export type PricingProfiles = {
   land?: any;
 };
 
-// ✅ DEFAULTS
-export const DEFAULT_PRICING: PricingProfiles = {
-  international: {
-    shippingFee: 120,
-    handlingFee: 10,
-    customsFee: 25,
-    taxFee: 0,
-    discountFee: 0,
-    fuelRate: 0.10,
-    insuranceRate: 0.02,
-  },
-  local: {
-    shippingFee: 45,
-    handlingFee: 5,
-    customsFee: 0,
-    taxFee: 0,
-    discountFee: 0,
-    fuelRate: 0.06,
-    insuranceRate: 0.01,
-  },
-};
+// Single source of truth — see src/lib/pricing.ts
+import { DEFAULT_PRICING as LIB_DEFAULTS } from "@/lib/pricing";
+export const DEFAULT_PRICING = LIB_DEFAULTS as any;
 
 type PricingSettingsDoc = {
   _id: typeof DOC_ID;
@@ -105,10 +87,11 @@ function normalizeProfiles(s: any): PricingProfiles {
       s?.local ?? DEFAULT_PRICING.local,
       DEFAULT_PRICING.local
     ),
-    // Preserve air/sea/land as-is — they have their own structure
+    // Preserve as-is — these have their own structure
     ...(s?.air ? { air: s.air } : {}),
     ...(s?.sea ? { sea: s.sea } : {}),
     ...(s?.land ? { land: s.land } : {}),
+    ...(s?.countryRates ? { countryRates: s.countryRates } : {}),
   };
 }
 
