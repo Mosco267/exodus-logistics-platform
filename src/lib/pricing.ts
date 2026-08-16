@@ -36,6 +36,8 @@ export type PricingSettings = {
   // Percentage rates (shared)
   fuelRate: number;       // fraction e.g. 0.05 = 5%
   insuranceRate: number;  // fraction e.g. 0.01 = 1%
+  /** Fraction of the discounted subtotal, e.g. 0.075 = 7.5% VAT. */
+  taxRate?: number;
 };
 
 // ─── Air freight settings ─────────────────────────────────────
@@ -87,14 +89,37 @@ export type LandFreightSettings = {
    its handling fee without restating the whole card.
 
    Countries with no entry inherit the defaults entirely. */
+/** Fee overrides that apply within one scope (local or international). */
+export type CountryScopeOverride = {
+  shippingFee?: number;
+  handlingFee?: number;
+  customsFee?: number;
+  fuelRate?: number;
+  insuranceRate?: number;
+  /** Fraction, e.g. 0.075 = 7.5%. Applied to the discounted subtotal. */
+  taxRate?: number;
+  /** Fixed amount added on top of taxRate. Usually 0. */
+  taxFee?: number;
+};
+
 export type CountryRateOverride = {
   label?: string;
+
+  /* Land rates — domestic shipments only */
   zoneRates?: Partial<LandZoneRates>;
   expressMultiplier?: number;
+  minimumCharge?: number;
+
+  /* Legacy flat fields. These mean "local" and are kept so existing
+     country cards keep working. `local` below takes precedence. */
   handlingFee?: number;
   fuelRate?: number;
   insuranceRate?: number;
-  minimumCharge?: number;
+
+  /* Scope-specific overrides */
+  local?: CountryScopeOverride;
+  /** Applied when this country is the ORIGIN of an international shipment. */
+  international?: CountryScopeOverride;
 };
 
 export type CountryRates = Record<string, CountryRateOverride>;
@@ -156,18 +181,47 @@ export function resolveLandRates(
   };
 }
 
-/** Resolves the effective local fee profile for a country. */
+/** Merges a scope override onto a base profile, ignoring undefined fields. */
+function applyScope(base: PricingSettings, o?: CountryScopeOverride): PricingSettings {
+  if (!o) return base;
+  return {
+    ...base,
+    shippingFee: o.shippingFee ?? base.shippingFee,
+    handlingFee: o.handlingFee ?? base.handlingFee,
+    customsFee: o.customsFee ?? base.customsFee,
+    fuelRate: o.fuelRate ?? base.fuelRate,
+    insuranceRate: o.insuranceRate ?? base.insuranceRate,
+    taxRate: o.taxRate ?? base.taxRate,
+    taxFee: o.taxFee ?? base.taxFee,
+  };
+}
+
+/** Effective local profile for a country. Legacy flat fields apply first,
+ *  then the explicit `local` block wins. */
 export function resolveLocalProfile(
   countryCode: string,
   pricing: PricingProfiles
 ): PricingSettings {
   const o = pricing.countryRates?.[String(countryCode || '').toUpperCase()] || {};
-  return {
+  const legacy: PricingSettings = {
     ...pricing.local,
     handlingFee: o.handlingFee ?? pricing.local.handlingFee,
     fuelRate: o.fuelRate ?? pricing.local.fuelRate,
     insuranceRate: o.insuranceRate ?? pricing.local.insuranceRate,
   };
+  return applyScope(legacy, o.local);
+}
+
+/** Effective international profile, keyed on the ORIGIN country.
+ *  You are selling a freight service from there, so that jurisdiction's
+ *  service tax applies. Destination import VAT is separate and is covered
+ *  by the customs fee. */
+export function resolveInternationalProfile(
+  originCountryCode: string,
+  pricing: PricingProfiles
+): PricingSettings {
+  const o = pricing.countryRates?.[String(originCountryCode || '').toUpperCase()] || {};
+  return applyScope(pricing.international, o.international);
 }
 
 // ─── Defaults ────────────────────────────────────────────────
@@ -501,7 +555,7 @@ export function computeInvoice(params: {
 
  const profile = scope === 'local'
     ? resolveLocalProfile(senderCountryCode, pricing)
-    : pricing.international;
+    : resolveInternationalProfile(senderCountryCode, pricing);
   const w = Math.max(0, weightKg);
   // Declared value arrives in the display currency; rates are USD
   const dv = Math.max(0, declaredValue) / fx;
@@ -544,12 +598,17 @@ export function computeInvoice(params: {
   const insurance = dv * profile.insuranceRate;
   const handling = profile.handlingFee;
   const customs = scope === 'international' ? profile.customsFee : 0;
-  const tax = profile.taxFee;
   const discount = profile.discountFee;
   const shippingFixed = profile.shippingFee;
 
   const subtotal = baseFreight + fuel + insurance + handling + customs + shippingFixed;
-  const total = Math.max(0, subtotal + tax - discount);
+
+  /* Tax applies to the discounted subtotal, which is standard practice.
+     taxRate is a fraction of that; taxFee is a flat amount on top. */
+  const taxable = Math.max(0, subtotal - discount);
+  const tax = (profile.taxFee || 0) + taxable * (profile.taxRate || 0);
+
+  const total = Math.max(0, taxable + tax);
 
   // Convert every output back into the display currency
   const out = (usd: number) => Math.round(usd * fx * 100) / 100;

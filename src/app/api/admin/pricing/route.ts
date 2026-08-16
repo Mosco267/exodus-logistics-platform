@@ -4,26 +4,14 @@ import { auth } from "@/auth";
 
 const DOC_ID = "default" as const;
 
-export type PricingSettings = {
-  // ✅ FIXED (money)
-  shippingFee: number;
-  handlingFee: number;
-  customsFee: number;
-  taxFee: number;
-  discountFee: number;
+// Types live in src/lib/pricing.ts — importing rather than redeclaring keeps
+// this route from drifting out of sync with the calculator.
+import type {
+  PricingSettings,
+  PricingProfiles,
+} from "@/lib/pricing";
 
-  // ✅ DECIMALS (0.10 = 10%)
-  fuelRate: number;       // % of shipping
-  insuranceRate: number;  // % of declared value
-};
-
-export type PricingProfiles = {
-  international: PricingSettings;
-  local: PricingSettings;
-  air?: any;
-  sea?: any;
-  land?: any;
-};
+export type { PricingSettings, PricingProfiles };
 
 // Single source of truth — see src/lib/pricing.ts
 import { DEFAULT_PRICING as LIB_DEFAULTS } from "@/lib/pricing";
@@ -74,6 +62,7 @@ function normalizeSettings(
 
     fuelRate: toDecimalPercent(incoming.fuelRate, fallback.fuelRate),
     insuranceRate: toDecimalPercent(incoming.insuranceRate, fallback.insuranceRate),
+    taxRate: toDecimalPercent(incoming.taxRate, fallback.taxRate ?? 0),
   };
 }
 
@@ -87,10 +76,29 @@ function normalizeProfiles(s: any): PricingProfiles {
       s?.local ?? DEFAULT_PRICING.local,
       DEFAULT_PRICING.local
     ),
-    // Preserve as-is — these have their own structure
-    ...(s?.air ? { air: s.air } : {}),
-    ...(s?.sea ? { sea: s.sea } : {}),
-    ...(s?.land ? { land: s.land } : {}),
+
+    /* Freight structures pass through as stored, with defaults filling any
+       gaps. Nested objects are merged so a document holding only
+       land.zoneRates still gets expressMultiplier from the defaults. */
+    air: {
+      ...DEFAULT_PRICING.air,
+      ...(s?.air || {}),
+      zoneMultipliers: { ...DEFAULT_PRICING.air.zoneMultipliers, ...(s?.air?.zoneMultipliers || {}) },
+      ...(s?.air?.zoneRates ? { zoneRates: s.air.zoneRates } : {}),
+    },
+    sea: {
+      ...DEFAULT_PRICING.sea,
+      ...(s?.sea || {}),
+      zoneMultipliers: { ...DEFAULT_PRICING.sea.zoneMultipliers, ...(s?.sea?.zoneMultipliers || {}) },
+      ...(s?.sea?.zoneRates ? { zoneRates: s.sea.zoneRates } : {}),
+    },
+    land: {
+      ...DEFAULT_PRICING.land,
+      ...(s?.land || {}),
+      zoneRates: { ...DEFAULT_PRICING.land.zoneRates, ...(s?.land?.zoneRates || {}) },
+    },
+
+    // Preserved exactly as stored — never seeded from defaults
     ...(s?.countryRates ? { countryRates: s.countryRates } : {}),
     ...(s?.zoneTable ? { zoneTable: s.zoneTable } : {}),
   };

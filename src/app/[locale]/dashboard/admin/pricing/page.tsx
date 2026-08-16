@@ -13,7 +13,7 @@ type LandZoneRates = { zone1: number; zone2: number; zone3: number; zone4: numbe
 
 type PricingProfile = {
   shippingFee: number; handlingFee: number; customsFee: number;
-  taxFee: number; discountFee: number; fuelRate: number; insuranceRate: number;
+  taxFee: number; discountFee: number; fuelRate: number; insuranceRate: number; taxRate?: number;
 };
 
 type AirSettings = { ratePerKgExpress: number; ratePerKgStandard: number; zoneMultipliers: ZoneMultipliers };
@@ -28,6 +28,7 @@ type CountryOverride = {
   fuelRate?: number;
   insuranceRate?: number;
   minimumCharge?: number;
+  local?: any; international?: any; taxRate?: number;
 };
 
 type Settings = {
@@ -235,6 +236,7 @@ export default function AdminPricingPage() {
               <Field label="Discount (fixed)" value={settings[scope].discountFee} onChange={v => set([scope, "discountFee"], v ?? 0)} />
               <Field label="Fuel Surcharge %" value={settings[scope].fuelRate} onChange={v => set([scope, "fuelRate"], v ?? 0)} isPercent hint="% of base freight" />
               <Field label="Insurance %" value={settings[scope].insuranceRate} onChange={v => set([scope, "insuranceRate"], v ?? 0)} isPercent hint="% of declared value" />
+              <Field label="Tax %" value={settings[scope].taxRate} onChange={v => set([scope, "taxRate"], v ?? 0)} isPercent hint="VAT/GST on the discounted subtotal" />
             </div>
           </div>
         ))}
@@ -383,6 +385,37 @@ export default function AdminPricingPage() {
                     <Field label="Insurance %" value={co.insuranceRate}
                       onChange={v => set(["countryRates", activeCountry, "insuranceRate"], v)}
                       isPercent placeholder={toP(settings.local.insuranceRate)} hint="% of declared value" />
+                    <Field label="Tax % — Domestic" value={co.local?.taxRate}
+                      onChange={v => set(["countryRates", activeCountry, "local", "taxRate"], v)}
+                      isPercent placeholder={toP(settings.local.taxRate || 0)} hint="VAT/GST on domestic shipments" />
+                  </div>
+
+                  <div className="mt-6 pt-5 border-t border-gray-100 dark:border-white/10">
+                    <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">
+                      International — when {co.label || activeCountry} is the origin
+                    </h3>
+                    <p className="mt-1 text-xs text-gray-500 max-w-lg">
+                      Applies to shipments leaving this country. Tax follows the origin
+                      jurisdiction, since that is where the freight service is sold.
+                      Destination import VAT is separate and covered by the customs fee.
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Handling Fee" value={co.international?.handlingFee}
+                        onChange={v => set(["countryRates", activeCountry, "international", "handlingFee"], v)}
+                        placeholder={toM(settings.international.handlingFee)} />
+                      <Field label="Customs Clearance" value={co.international?.customsFee}
+                        onChange={v => set(["countryRates", activeCountry, "international", "customsFee"], v)}
+                        placeholder={toM(settings.international.customsFee)} />
+                      <Field label="Fuel Surcharge %" value={co.international?.fuelRate}
+                        onChange={v => set(["countryRates", activeCountry, "international", "fuelRate"], v)}
+                        isPercent placeholder={toP(settings.international.fuelRate)} />
+                      <Field label="Insurance %" value={co.international?.insuranceRate}
+                        onChange={v => set(["countryRates", activeCountry, "international", "insuranceRate"], v)}
+                        isPercent placeholder={toP(settings.international.insuranceRate)} />
+                      <Field label="Tax %" value={co.international?.taxRate}
+                        onChange={v => set(["countryRates", activeCountry, "international", "taxRate"], v)}
+                        isPercent placeholder={toP(settings.international.taxRate || 0)} />
+                    </div>
                   </div>
                 </div>
               )}
