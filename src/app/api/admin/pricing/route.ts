@@ -92,6 +92,7 @@ function normalizeProfiles(s: any): PricingProfiles {
     ...(s?.sea ? { sea: s.sea } : {}),
     ...(s?.land ? { land: s.land } : {}),
     ...(s?.countryRates ? { countryRates: s.countryRates } : {}),
+    ...(s?.zoneTable ? { zoneTable: s.zoneTable } : {}),
   };
 }
 

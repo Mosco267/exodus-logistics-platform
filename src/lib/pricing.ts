@@ -42,13 +42,33 @@ export type PricingSettings = {
 export type AirFreightSettings = {
   ratePerKgExpress: number;
   ratePerKgStandard: number;
+  /** Legacy 3-band multipliers. Used only when zoneTable has no entry. */
   zoneMultipliers: ZoneMultipliers;
+  /** Multiplier per zone 1–9. Zone 1 is domestic-adjacent, 9 is the most remote. */
+  zoneRates?: Record<string, number>;
 };
 
 // ─── Sea freight settings ─────────────────────────────────────
 export type SeaFreightSettings = {
   ratePerKgStandard: number;
   zoneMultipliers: ZoneMultipliers;
+  zoneRates?: Record<string, number>;
+};
+
+/* Carrier-style zone table. Real carriers price international freight by
+   zone rather than by distance, because cost is driven by which lanes and
+   hubs a shipment routes through. Three continent bands were too coarse —
+   Morocco and Nigeria both landed in "farContinent" despite very different
+   lanes. This assigns each origin a zone per destination region.
+
+   Keyed by origin continent, then destination continent, giving a base zone.
+   Per-country adjustments refine lanes that are unusually well or poorly
+   served relative to their region. */
+export type ZoneTable = {
+  /** e.g. { "NA": { "EU": 4, "AF": 7 } } */
+  regions: Record<string, Record<string, number>>;
+  /** Per-destination-country override, e.g. { "MA": -1 } shifts a zone down */
+  countryAdjust?: Record<string, number>;
 };
 
 // ─── Land freight settings ───────────────────────────────────
@@ -86,8 +106,10 @@ export type PricingProfiles = {
   air: AirFreightSettings;
   sea: SeaFreightSettings;
   land: LandFreightSettings;
-  /** Keyed by ISO country code, e.g. { NG: {...}, GB: {...} } */
+ /** Keyed by ISO country code, e.g. { NG: {...}, GB: {...} } */
   countryRates?: CountryRates;
+  /** Overrides the built-in carrier zone table. */
+  zoneTable?: ZoneTable;
 };
 
 /* Minimum land charge floor. Prevents a near-zero total on very short
@@ -172,10 +194,12 @@ export const DEFAULT_PRICING: PricingProfiles = {
     ratePerKgExpress: 12.50,     // ~$12.50/kg express airfreight (DHL/FedEx range)
     ratePerKgStandard: 7.80,     // ~$7.80/kg standard airfreight
     zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.3, farContinent: 1.6 },
+    zoneRates: { "1": 0.80, "2": 0.95, "3": 1.10, "4": 1.25, "5": 1.45, "6": 1.65, "7": 1.85, "8": 2.10, "9": 2.40 },
   },
   sea: {
     ratePerKgStandard: 1.20,     // $1.20/kg LCL sea freight
     zoneMultipliers: { sameContinent: 1.0, nearContinent: 1.25, farContinent: 1.5 },
+    zoneRates: { "1": 0.85, "2": 0.95, "3": 1.05, "4": 1.15, "5": 1.30, "6": 1.45, "7": 1.60, "8": 1.80, "9": 2.00 },
   },
   land: {
     /* Per km per kg, USD. Rates FALL as distance rises, because fixed costs
@@ -244,6 +268,70 @@ const NEAR_CONTINENTS: Record<string, string[]> = {
   SA: ['NA','EU'],
   OC: ['AS'],
 };
+
+/* Default zone table. Zones run 1 (nearest, best-served) to 9 (most remote).
+   Rates rise with zone number. Adjustments shift a specific destination up or
+   down relative to its region — Morocco is closer and better connected to
+   Europe and North America than most of Africa, so it shifts down. */
+export const DEFAULT_ZONE_TABLE: ZoneTable = {
+  regions: {
+    NA: { NA: 2, SA: 4, EU: 4, AF: 7, AS: 6, OC: 8 },
+    EU: { EU: 2, NA: 4, AF: 5, AS: 5, SA: 7, OC: 8 },
+    AS: { AS: 3, OC: 5, EU: 5, AF: 6, NA: 6, SA: 8 },
+    AF: { AF: 4, EU: 5, AS: 6, NA: 7, SA: 8, OC: 9 },
+    SA: { SA: 3, NA: 4, EU: 7, AF: 8, AS: 8, OC: 9 },
+    OC: { OC: 3, AS: 5, NA: 8, EU: 8, AF: 9, SA: 9 },
+  },
+  countryAdjust: {
+    // Well-connected hubs — shift toward cheaper zones
+    SG: -1, HK: -1, AE: -1, NL: -1, GB: -1, DE: -1, US: -1, JP: -1,
+    MA: -1, ZA: -1, KR: -1, CN: -1, CA: -1, FR: -1, BE: -1,
+    // Thin or costly lanes — shift toward pricier zones
+    NZ: 1, PG: 1, BO: 1, PY: 1, MN: 1, NP: 1, AF: 1, SS: 1,
+    TD: 1, NE: 1, ML: 1, MG: 1, ER: 1, SO: 1, YE: 1,
+  },
+};
+
+/** Default multiplier per zone. Applied to the per-kg rate. */
+export const DEFAULT_ZONE_MULTIPLIERS: Record<string, number> = {
+  "1": 0.80, "2": 0.95, "3": 1.10, "4": 1.25, "5": 1.45,
+  "6": 1.65, "7": 1.85, "8": 2.10, "9": 2.40,
+};
+
+/** Resolves the carrier zone (1–9) for a lane. */
+export function getShippingZone(
+  fromCode: string,
+  toCode: string,
+  table: ZoneTable = DEFAULT_ZONE_TABLE
+): number {
+  const from = COUNTRY_CONTINENT[String(fromCode || '').toUpperCase()] || 'NA';
+  const to = COUNTRY_CONTINENT[String(toCode || '').toUpperCase()] || 'NA';
+
+  const base = table.regions?.[from]?.[to] ?? 6;
+  const adjust = table.countryAdjust?.[String(toCode || '').toUpperCase()] ?? 0;
+
+  return Math.min(9, Math.max(1, base + adjust));
+}
+
+/** Multiplier for a lane, falling back to the legacy 3-band scheme. */
+export function getZoneMultiplier(
+  fromCode: string,
+  toCode: string,
+  zoneRates: Record<string, number> | undefined,
+  legacy: ZoneMultipliers,
+  table?: ZoneTable
+): number {
+  const zone = getShippingZone(fromCode, toCode, table);
+  const fromTable = zoneRates?.[String(zone)];
+  if (Number.isFinite(fromTable) && (fromTable as number) > 0) return fromTable as number;
+
+  const preset = DEFAULT_ZONE_MULTIPLIERS[String(zone)];
+  if (Number.isFinite(preset)) return preset;
+
+  // Legacy fallback
+  const band = getContinentZone(fromCode, toCode);
+  return legacy?.[band] ?? 1;
+}
 
 export function getContinentZone(fromCode: string, toCode: string): keyof ZoneMultipliers {
   const from = COUNTRY_CONTINENT[fromCode] || 'NA';
@@ -424,13 +512,16 @@ export function computeInvoice(params: {
     const rate = serviceLevel === 'Express'
       ? pricing.air.ratePerKgExpress
       : pricing.air.ratePerKgStandard;
-    // Admin-configured zone multiplier, chosen by continent relationship
-    const zone = getContinentZone(senderCountryCode, receiverCountryCode);
-    const mult = pricing.air.zoneMultipliers?.[zone] ?? 1;
+   const mult = getZoneMultiplier(
+      senderCountryCode, receiverCountryCode,
+      pricing.air.zoneRates, pricing.air.zoneMultipliers, pricing.zoneTable
+    );
     baseFreight = rate * effectiveWeight(w) * mult;
   } else if (means === 'sea') {
-    const zone = getContinentZone(senderCountryCode, receiverCountryCode);
-   const mult = pricing.sea.zoneMultipliers?.[zone] ?? 1;
+    const mult = getZoneMultiplier(
+      senderCountryCode, receiverCountryCode,
+      pricing.sea.zoneRates, pricing.sea.zoneMultipliers, pricing.zoneTable
+    );
     baseFreight = pricing.sea.ratePerKgStandard * effectiveWeight(w) * mult;
   } else {
     // land — admin-configured per-km-per-kg rate, chosen by distance zone
