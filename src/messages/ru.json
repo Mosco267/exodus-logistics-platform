@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "Политика использования cookie",
 "Footer.linkStatus": "Статус серверов",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Все права защищены.",
+"Footer.copyright": "© {year} {company}. Все права защищены.",
+"Footer.registrationNumber": "Рег. номер {number}",
 
 "Quote.title": "Мгновенный расчёт стоимости",
 "Quote.subtitle": "Полная разбивка затрат за секунды. Без регистрации.",

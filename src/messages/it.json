@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "Informativa sui cookie",
 "Footer.linkStatus": "Stato dei server",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Tutti i diritti riservati.",
+"Footer.copyright": "© {year} {company}. Tutti i diritti riservati.",
+"Footer.registrationNumber": "N. registrazione {number}",
 
 "Quote.title": "Ottieni un preventivo immediato",
 "Quote.subtitle": "Dettaglio completo dei costi in pochi secondi. Senza registrazione.",

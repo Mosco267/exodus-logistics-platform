@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { auth } from "@/auth";
+
+async function requireAdmin() {
+  const session = await auth();
+  const role = String((session as any)?.user?.role || "").toUpperCase();
+  return role === "ADMIN";
+}
 
 type CompanySettingsDoc = {
   _id: string; // "default"
@@ -13,6 +20,9 @@ type CompanySettingsDoc = {
 };
 
 export async function GET() {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const dbName = process.env.MONGODB_DB;
   if (!dbName) return NextResponse.json({ error: "Missing MONGODB_DB" }, { status: 500 });
 
@@ -27,6 +37,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const dbName = process.env.MONGODB_DB;
   if (!dbName) return NextResponse.json({ error: "Missing MONGODB_DB" }, { status: 500 });
 

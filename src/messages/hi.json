@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "कुकी नीति",
 "Footer.linkStatus": "सर्वर स्थिति",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. सर्वाधिकार सुरक्षित।",
+"Footer.copyright": "© {year} {company}. सर्वाधिकार सुरक्षित।",
+"Footer.registrationNumber": "पंजीकरण संख्या {number}",
 
 "Quote.title": "तुरंत कोटेशन पाएँ",
 "Quote.subtitle": "सेकंडों में लागत का पूरा विवरण। खाता बनाने की ज़रूरत नहीं।",

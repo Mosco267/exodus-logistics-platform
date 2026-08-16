@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "쿠키 정책",
 "Footer.linkStatus": "서버 상태",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. All rights reserved.",
+"Footer.copyright": "© {year} {company}. All rights reserved.",
+"Footer.registrationNumber": "등록 번호 {number}",
 
 "Quote.title": "즉시 견적 받기",
 "Quote.subtitle": "몇 초 만에 전체 비용 내역을 확인하세요. 계정 없이 이용 가능합니다.",

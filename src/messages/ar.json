@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "سياسة ملفات تعريف الارتباط",
 "Footer.linkStatus": "حالة الخوادم",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. جميع الحقوق محفوظة.",
+"Footer.copyright": "© {year} {company}. جميع الحقوق محفوظة.",
+"Footer.registrationNumber": "رقم التسجيل {number}",
 
 "Quote.title": "احصل على عرض سعر فوري",
 "Quote.subtitle": "تفصيل كامل للتكاليف خلال ثوانٍ. دون الحاجة إلى حساب.",

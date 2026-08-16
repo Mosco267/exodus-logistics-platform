@@ -1221,7 +1221,8 @@
 "Footer.linkCookies": "Cookie-Richtlinie",
 "Footer.linkStatus": "Serverstatus",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. Alle Rechte vorbehalten.",
+"Footer.copyright": "© {year} {company}. Alle Rechte vorbehalten.",
+"Footer.registrationNumber": "Registernummer {number}",
 
 "QuickActions.trackTitle": "Sendung verfolgen",
 "QuickActions.trackDesc": "Verfolgen Sie Ihr Paket in Echtzeit mit Ihrer Sendungsnummer",

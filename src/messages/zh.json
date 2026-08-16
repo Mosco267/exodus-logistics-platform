@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "Cookie 政策",
 "Footer.linkStatus": "服务器状态",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. 保留所有权利。",
+"Footer.copyright": "© {year} {company}. 保留所有权利。",
+"Footer.registrationNumber": "注册号 {number}",
 
 "Quote.title": "获取即时报价",
 "Quote.subtitle": "几秒内获得完整费用明细,无需注册账户。",

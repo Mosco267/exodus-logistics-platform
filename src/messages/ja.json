@@ -1228,7 +1228,8 @@
 "Footer.linkCookies": "Cookie ポリシー",
 "Footer.linkStatus": "サーバー稼働状況",
  
-"Footer.copyright": "© {year} Exodus Logistics Ltd. All rights reserved.",
+"Footer.copyright": "© {year} {company}. All rights reserved.",
+"Footer.registrationNumber": "登録番号 {number}",
 
 "Quote.title": "すぐに見積もりを取得",
 "Quote.subtitle": "数秒で費用の内訳をすべて確認できます。アカウント登録は不要です。",
