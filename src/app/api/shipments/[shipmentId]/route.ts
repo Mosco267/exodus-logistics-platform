@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { createNotification } from "@/lib/notifications";
+import { normalizeShipmentStatusKey } from "@/lib/shipment-utils";
 import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING, type PricingProfiles } from "@/lib/pricing";
 import {
   sendShipmentStatusEmail,
@@ -536,7 +537,7 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
       notifVars = {
         shipmentId,
         status: String(finalStatus),
-        statusKey: `ShipmentStatus.${normalizeStatus(String(finalStatus))}`,
+                statusKey: `ShipmentStatus.${normalizeShipmentStatusKey(String(finalStatus))}`,
       };
     }
 
@@ -544,12 +545,16 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
       const trackingLabel = String($set?.status || body?.trackingEvent?.label || "Shipment Update").trim();
       title = trackingLabel;
       message = `Shipment ${shipmentId} was updated to ${trackingLabel}.`;
-      titleKey = "";  // stage labels are admin-authored, no key exists
+            /* Canonical stages have translations; custom ones do not. Point the
+         title at ShipmentStatus.* when the label maps to a known status,
+         and leave it as the admin's own words otherwise. */
+      const stageKeyId = `ShipmentStatus.${normalizeShipmentStatusKey(trackingLabel)}`;
+      titleKey = stageKeyId;
       messageKey = "Notif.shipmentStageMessage";
       notifVars = {
         shipmentId,
         stage: trackingLabel,
-        stageKey: `ShipmentStatus.${normalizeStatus(trackingLabel)}`,
+                stageKey: `ShipmentStatus.${normalizeShipmentStatusKey(trackingLabel)}`,
       };
     }
 
