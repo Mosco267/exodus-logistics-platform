@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl } from "react-intl";
+import { useCompany } from "@/lib/useCompany";
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
@@ -122,8 +123,12 @@ export default function DashboardInvoiceDetailPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
-  const intl = useIntl();
+ const intl = useIntl();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  /* Company details come from admin settings, so the support address
+     on this invoice changes when you change it there. */
+  const company = useCompany();
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -512,11 +517,11 @@ export default function DashboardInvoiceDetailPage() {
             <div className="px-2 py-6 flex flex-col items-center text-center gap-2">
               <ShieldCheck className="w-6 h-6" style={{ color: accentSolid }} />
               <p className="text-xs font-extrabold text-gray-800 dark:text-gray-200 tracking-wide uppercase">
-                {t("InvoiceDetail.officiallyIssued")}
+                {t("InvoiceDetail.officiallyIssued", { company: company.name || "Exodus Logistics Ltd." })}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
                 {t("InvoiceDetail.footerNote", {
-                  email: (chunks: any) => <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>support@goexoduslogistics.com</a>,
+                  email: () => <a href={`mailto:${company.email}`} className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>{company.email}</a>,
                 })}
               </p>
             </div>
