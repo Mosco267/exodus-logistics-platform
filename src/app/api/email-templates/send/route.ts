@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { renderEmailTemplate } from "@/lib/emailTemplate";
 import { Resend } from "resend";
+import { auth } from "@/auth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -40,6 +41,15 @@ function toText(html: string) {
 
 export async function POST(req: Request) {
   try {
+    /* Admin only. This sends from the verified domain with an
+       attacker-controllable recipient and partly controllable body,
+       which is a phishing tool if left open. */
+    const session = await auth();
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const templateKey = String(body?.templateKey || "").trim();
     const to = String(body?.to || "").trim().toLowerCase();
