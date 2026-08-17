@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "Réserver cet envoi",
 "Quote.ctaPrint": "Imprimer",
-"Quote.ctaEdit": "Modifier les informations"
+"Quote.ctaEdit": "Modifier les informations",
+
+"Notif.shipmentUpdatedTitle": "Envoi mis à jour",
+"Notif.shipmentUpdatedMessage": "L'envoi {shipmentId} a été mis à jour.",
+"Notif.shipmentStatusTitle": "Statut de l'envoi mis à jour",
+"Notif.shipmentStatusMessage": "Le statut de l'envoi {shipmentId} est passé à {status}.",
+"Notif.shipmentStageMessage": "L'envoi {shipmentId} est passé à {stage}.",
+"Notif.invoicePaidTitle": "Facture payée",
+"Notif.invoicePaidMessage": "La facture de l'envoi {shipmentId} est désormais payée.",
+"Notif.invoiceOverdueTitle": "Facture en retard",
+"Notif.invoiceOverdueMessage": "La facture de l'envoi {shipmentId} est en retard.",
+"Notif.invoiceCancelledTitle": "Facture annulée",
+"Notif.invoiceCancelledMessage": "La facture de l'envoi {shipmentId} a été annulée.",
+"Notif.invoiceUpdatedTitle": "Facture mise à jour",
+"Notif.invoiceUnpaidMessage": "La facture de l'envoi {shipmentId} est impayée."
 }

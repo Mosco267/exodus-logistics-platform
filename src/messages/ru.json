@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "Оформить отправление",
 "Quote.ctaPrint": "Печать",
-"Quote.ctaEdit": "Изменить данные"
+"Quote.ctaEdit": "Изменить данные",
+
+"Notif.shipmentUpdatedTitle": "Отправление обновлено",
+"Notif.shipmentUpdatedMessage": "Отправление {shipmentId} было обновлено.",
+"Notif.shipmentStatusTitle": "Статус отправления обновлён",
+"Notif.shipmentStatusMessage": "Статус отправления {shipmentId} изменён на «{status}».",
+"Notif.shipmentStageMessage": "Отправление {shipmentId} перешло в статус «{stage}».",
+"Notif.invoicePaidTitle": "Счёт оплачен",
+"Notif.invoicePaidMessage": "Счёт по отправлению {shipmentId} оплачен.",
+"Notif.invoiceOverdueTitle": "Счёт просрочен",
+"Notif.invoiceOverdueMessage": "Счёт по отправлению {shipmentId} просрочен.",
+"Notif.invoiceCancelledTitle": "Счёт отменён",
+"Notif.invoiceCancelledMessage": "Счёт по отправлению {shipmentId} был отменён.",
+"Notif.invoiceUpdatedTitle": "Счёт обновлён",
+"Notif.invoiceUnpaidMessage": "Счёт по отправлению {shipmentId} не оплачен."
 }

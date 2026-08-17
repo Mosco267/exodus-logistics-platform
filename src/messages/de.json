@@ -1305,6 +1305,20 @@
  
 "Quote.ctaBook": "Diese Sendung buchen",
 "Quote.ctaPrint": "Drucken",
-"Quote.ctaEdit": "Angaben bearbeiten"
+"Quote.ctaEdit": "Angaben bearbeiten",
+
+"Notif.shipmentUpdatedTitle": "Sendung aktualisiert",
+"Notif.shipmentUpdatedMessage": "Die Sendung {shipmentId} wurde aktualisiert.",
+"Notif.shipmentStatusTitle": "Sendungsstatus aktualisiert",
+"Notif.shipmentStatusMessage": "Der Status der Sendung {shipmentId} wurde auf {status} geändert.",
+"Notif.shipmentStageMessage": "Die Sendung {shipmentId} wurde auf {stage} aktualisiert.",
+"Notif.invoicePaidTitle": "Rechnung bezahlt",
+"Notif.invoicePaidMessage": "Die Rechnung für die Sendung {shipmentId} ist jetzt bezahlt.",
+"Notif.invoiceOverdueTitle": "Rechnung überfällig",
+"Notif.invoiceOverdueMessage": "Die Rechnung für die Sendung {shipmentId} ist überfällig.",
+"Notif.invoiceCancelledTitle": "Rechnung storniert",
+"Notif.invoiceCancelledMessage": "Die Rechnung für die Sendung {shipmentId} wurde storniert.",
+"Notif.invoiceUpdatedTitle": "Rechnung aktualisiert",
+"Notif.invoiceUnpaidMessage": "Die Rechnung für die Sendung {shipmentId} ist unbezahlt."
 
 }

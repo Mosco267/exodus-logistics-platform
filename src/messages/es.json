@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "Reservar este envío",
 "Quote.ctaPrint": "Imprimir",
-"Quote.ctaEdit": "Editar datos"
+"Quote.ctaEdit": "Editar datos",
+
+"Notif.shipmentUpdatedTitle": "Envío actualizado",
+"Notif.shipmentUpdatedMessage": "El envío {shipmentId} ha sido actualizado.",
+"Notif.shipmentStatusTitle": "Estado del envío actualizado",
+"Notif.shipmentStatusMessage": "El estado del envío {shipmentId} ha cambiado a {status}.",
+"Notif.shipmentStageMessage": "El envío {shipmentId} ha pasado a {stage}.",
+"Notif.invoicePaidTitle": "Factura pagada",
+"Notif.invoicePaidMessage": "La factura del envío {shipmentId} ya está pagada.",
+"Notif.invoiceOverdueTitle": "Factura vencida",
+"Notif.invoiceOverdueMessage": "La factura del envío {shipmentId} está vencida.",
+"Notif.invoiceCancelledTitle": "Factura cancelada",
+"Notif.invoiceCancelledMessage": "La factura del envío {shipmentId} ha sido cancelada.",
+"Notif.invoiceUpdatedTitle": "Factura actualizada",
+"Notif.invoiceUnpaidMessage": "La factura del envío {shipmentId} está sin pagar."
 }

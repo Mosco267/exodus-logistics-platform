@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "이 내용으로 예약",
 "Quote.ctaPrint": "인쇄",
-"Quote.ctaEdit": "정보 수정"
+"Quote.ctaEdit": "정보 수정",
+
+"Notif.shipmentUpdatedTitle": "화물 정보 업데이트",
+"Notif.shipmentUpdatedMessage": "화물 {shipmentId} 정보가 업데이트되었습니다.",
+"Notif.shipmentStatusTitle": "배송 상태 업데이트",
+"Notif.shipmentStatusMessage": "화물 {shipmentId}의 상태가 '{status}'(으)로 변경되었습니다.",
+"Notif.shipmentStageMessage": "화물 {shipmentId}이(가) '{stage}' 단계로 업데이트되었습니다.",
+"Notif.invoicePaidTitle": "청구서 결제 완료",
+"Notif.invoicePaidMessage": "화물 {shipmentId}의 청구서가 결제되었습니다.",
+"Notif.invoiceOverdueTitle": "청구서 연체",
+"Notif.invoiceOverdueMessage": "화물 {shipmentId}의 청구서가 연체되었습니다.",
+"Notif.invoiceCancelledTitle": "청구서 취소",
+"Notif.invoiceCancelledMessage": "화물 {shipmentId}의 청구서가 취소되었습니다.",
+"Notif.invoiceUpdatedTitle": "청구서 업데이트",
+"Notif.invoiceUnpaidMessage": "화물 {shipmentId}의 청구서가 미결제 상태입니다."
 }

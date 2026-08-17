@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "この内容で予約する",
 "Quote.ctaPrint": "印刷",
-"Quote.ctaEdit": "入力内容を修正"
+"Quote.ctaEdit": "入力内容を修正",
+
+"Notif.shipmentUpdatedTitle": "荷物情報を更新しました",
+"Notif.shipmentUpdatedMessage": "荷物 {shipmentId} の情報が更新されました。",
+"Notif.shipmentStatusTitle": "配送ステータスを更新しました",
+"Notif.shipmentStatusMessage": "荷物 {shipmentId} のステータスが「{status}」に変わりました。",
+"Notif.shipmentStageMessage": "荷物 {shipmentId} が「{stage}」に更新されました。",
+"Notif.invoicePaidTitle": "請求書が支払われました",
+"Notif.invoicePaidMessage": "荷物 {shipmentId} の請求書は支払い済みです。",
+"Notif.invoiceOverdueTitle": "請求書が期限超過です",
+"Notif.invoiceOverdueMessage": "荷物 {shipmentId} の請求書が支払期限を過ぎています。",
+"Notif.invoiceCancelledTitle": "請求書を取り消しました",
+"Notif.invoiceCancelledMessage": "荷物 {shipmentId} の請求書は取り消されました。",
+"Notif.invoiceUpdatedTitle": "請求書を更新しました",
+"Notif.invoiceUnpaidMessage": "荷物 {shipmentId} の請求書は未払いです。"
 }

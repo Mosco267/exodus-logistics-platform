@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "यह शिपमेंट बुक करें",
 "Quote.ctaPrint": "प्रिंट करें",
-"Quote.ctaEdit": "विवरण संपादित करें"
+"Quote.ctaEdit": "विवरण संपादित करें",
+
+"Notif.shipmentUpdatedTitle": "शिपमेंट अपडेट हुई",
+"Notif.shipmentUpdatedMessage": "शिपमेंट {shipmentId} अपडेट कर दी गई है।",
+"Notif.shipmentStatusTitle": "शिपमेंट स्थिति अपडेट हुई",
+"Notif.shipmentStatusMessage": "शिपमेंट {shipmentId} की स्थिति बदलकर {status} हो गई है।",
+"Notif.shipmentStageMessage": "शिपमेंट {shipmentId} अपडेट होकर {stage} हो गई है।",
+"Notif.invoicePaidTitle": "चालान का भुगतान हुआ",
+"Notif.invoicePaidMessage": "शिपमेंट {shipmentId} के चालान का भुगतान हो चुका है।",
+"Notif.invoiceOverdueTitle": "चालान अतिदेय",
+"Notif.invoiceOverdueMessage": "शिपमेंट {shipmentId} का चालान अतिदेय हो गया है।",
+"Notif.invoiceCancelledTitle": "चालान रद्द",
+"Notif.invoiceCancelledMessage": "शिपमेंट {shipmentId} का चालान रद्द कर दिया गया है।",
+"Notif.invoiceUpdatedTitle": "चालान अपडेट हुआ",
+"Notif.invoiceUnpaidMessage": "शिपमेंट {shipmentId} का चालान अवैतनिक है।"
 }

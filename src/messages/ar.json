@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "احجز هذه الشحنة",
 "Quote.ctaPrint": "طباعة",
-"Quote.ctaEdit": "تعديل البيانات"
+"Quote.ctaEdit": "تعديل البيانات",
+
+"Notif.shipmentUpdatedTitle": "تم تحديث الشحنة",
+"Notif.shipmentUpdatedMessage": "تم تحديث الشحنة {shipmentId}.",
+"Notif.shipmentStatusTitle": "تم تحديث حالة الشحنة",
+"Notif.shipmentStatusMessage": "تغيّرت حالة الشحنة {shipmentId} إلى {status}.",
+"Notif.shipmentStageMessage": "تم تحديث الشحنة {shipmentId} إلى {stage}.",
+"Notif.invoicePaidTitle": "تم دفع الفاتورة",
+"Notif.invoicePaidMessage": "أصبحت فاتورة الشحنة {shipmentId} مدفوعة.",
+"Notif.invoiceOverdueTitle": "الفاتورة متأخرة",
+"Notif.invoiceOverdueMessage": "أصبحت فاتورة الشحنة {shipmentId} متأخرة.",
+"Notif.invoiceCancelledTitle": "تم إلغاء الفاتورة",
+"Notif.invoiceCancelledMessage": "تم إلغاء فاتورة الشحنة {shipmentId}.",
+"Notif.invoiceUpdatedTitle": "تم تحديث الفاتورة",
+"Notif.invoiceUnpaidMessage": "فاتورة الشحنة {shipmentId} غير مدفوعة."
 }

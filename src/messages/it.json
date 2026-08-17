@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "Prenota questa spedizione",
 "Quote.ctaPrint": "Stampa",
-"Quote.ctaEdit": "Modifica dati"
+"Quote.ctaEdit": "Modifica dati",
+
+"Notif.shipmentUpdatedTitle": "Spedizione aggiornata",
+"Notif.shipmentUpdatedMessage": "La spedizione {shipmentId} è stata aggiornata.",
+"Notif.shipmentStatusTitle": "Stato della spedizione aggiornato",
+"Notif.shipmentStatusMessage": "Lo stato della spedizione {shipmentId} è cambiato in {status}.",
+"Notif.shipmentStageMessage": "La spedizione {shipmentId} è passata a {stage}.",
+"Notif.invoicePaidTitle": "Fattura pagata",
+"Notif.invoicePaidMessage": "La fattura della spedizione {shipmentId} è ora pagata.",
+"Notif.invoiceOverdueTitle": "Fattura scaduta",
+"Notif.invoiceOverdueMessage": "La fattura della spedizione {shipmentId} è scaduta.",
+"Notif.invoiceCancelledTitle": "Fattura annullata",
+"Notif.invoiceCancelledMessage": "La fattura della spedizione {shipmentId} è stata annullata.",
+"Notif.invoiceUpdatedTitle": "Fattura aggiornata",
+"Notif.invoiceUnpaidMessage": "La fattura della spedizione {shipmentId} non è pagata."
 }

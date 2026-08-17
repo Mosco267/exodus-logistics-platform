@@ -1305,5 +1305,19 @@
  
 "Quote.ctaBook": "预订此货件",
 "Quote.ctaPrint": "打印",
-"Quote.ctaEdit": "修改信息"
+"Quote.ctaEdit": "修改信息",
+
+"Notif.shipmentUpdatedTitle": "货件已更新",
+"Notif.shipmentUpdatedMessage": "货件 {shipmentId} 已更新。",
+"Notif.shipmentStatusTitle": "货件状态已更新",
+"Notif.shipmentStatusMessage": "货件 {shipmentId} 的状态已变更为{status}。",
+"Notif.shipmentStageMessage": "货件 {shipmentId} 已更新为{stage}。",
+"Notif.invoicePaidTitle": "发票已支付",
+"Notif.invoicePaidMessage": "货件 {shipmentId} 的发票已支付。",
+"Notif.invoiceOverdueTitle": "发票已逾期",
+"Notif.invoiceOverdueMessage": "货件 {shipmentId} 的发票已逾期。",
+"Notif.invoiceCancelledTitle": "发票已取消",
+"Notif.invoiceCancelledMessage": "货件 {shipmentId} 的发票已被取消。",
+"Notif.invoiceUpdatedTitle": "发票已更新",
+"Notif.invoiceUnpaidMessage": "货件 {shipmentId} 的发票尚未支付。"
 }
