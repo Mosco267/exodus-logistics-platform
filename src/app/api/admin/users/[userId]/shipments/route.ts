@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { auth } from "@/auth";
 
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const session = await auth();
+    const role = String((session as any)?.user?.role || "").toUpperCase();
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { userId } = await ctx.params;
 
     const client = await clientPromise;
@@ -23,11 +30,7 @@ export async function GET(
 
     const email = String((user as any)?.email || "").toLowerCase();
 
-    const or: any[] = [];
-    if (userId) or.push({ createdByUserId: String(userId) });
-    if (email) or.push({ createdByEmail: email });
-
-    if (or.length === 0) {
+    if (!userId && !email) {
       return NextResponse.json({ shipments: [] });
     }
 
