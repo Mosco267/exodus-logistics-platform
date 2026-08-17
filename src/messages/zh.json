@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "货件已送达",
 "StatusDetail.shipmentDeliveredDesc": "此货件已成功送达。如有疑虑,请联系支持并提供您的追踪编号。",
 "StatusDetail.officiallyIssued": "由 Exodus Logistics Ltd. 正式签发",
-"StatusDetail.contactSupport": "如对此货件有疑问,请联系 <email>support@goexoduslogistics.com</email>。",
+"StatusDetail.contactSupport": "如对此货件有疑问,请联系 <email></email>。",
  
 "Chat.back": "返回",
 "Chat.title": "在线聊天",

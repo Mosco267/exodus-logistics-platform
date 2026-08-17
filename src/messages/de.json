@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "Sendung zugestellt",
 "StatusDetail.shipmentDeliveredDesc": "Diese Sendung wurde erfolgreich zugestellt. Bei Bedenken wenden Sie sich bitte mit Ihrer Sendungsverfolgungsnummer an den Support.",
 "StatusDetail.officiallyIssued": "Offiziell ausgestellt von Exodus Logistics Ltd.",
-"StatusDetail.contactSupport": "Bei Fragen zu dieser Sendung wenden Sie sich an <email>support@goexoduslogistics.com</email>.",
+"StatusDetail.contactSupport": "Bei Fragen zu dieser Sendung wenden Sie sich an <email></email>.",
  
 "Chat.back": "Zurück",
 "Chat.title": "Live-Chat",

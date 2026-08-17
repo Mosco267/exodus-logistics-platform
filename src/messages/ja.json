@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "配送完了",
 "StatusDetail.shipmentDeliveredDesc": "この配送は正常に届けられました。ご不明な点がございましたら、追跡番号を添えてサポートまでお問い合わせください。",
 "StatusDetail.officiallyIssued": "Exodus Logistics Ltd. により公式に発行",
-"StatusDetail.contactSupport": "この配送に関するご質問は、<email>support@goexoduslogistics.com</email> までお問い合わせください。",
+"StatusDetail.contactSupport": "この配送に関するご質問は、<email></email> までお問い合わせください。",
  
 "Chat.back": "戻る",
 "Chat.title": "ライブチャット",

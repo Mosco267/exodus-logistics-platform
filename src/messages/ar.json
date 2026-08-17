@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "تم تسليم الشحنة",
 "StatusDetail.shipmentDeliveredDesc": "تم تسليم هذه الشحنة بنجاح. إذا كانت هناك مخاوف، تواصل مع الدعم مع رقم التتبع الخاص بك.",
 "StatusDetail.officiallyIssued": "صادر رسمياً من Exodus Logistics Ltd.",
-"StatusDetail.contactSupport": "للاستفسارات حول هذه الشحنة، تواصل مع <email>support@goexoduslogistics.com</email>.",
+"StatusDetail.contactSupport": "للاستفسارات حول هذه الشحنة، تواصل مع <email></email>.",
  
 "Chat.back": "رجوع",
 "Chat.title": "الدردشة المباشرة",

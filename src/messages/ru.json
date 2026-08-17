@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "Отправление доставлено",
 "StatusDetail.shipmentDeliveredDesc": "Это отправление успешно доставлено. Если есть вопросы, обратитесь в службу поддержки с указанием номера отслеживания.",
 "StatusDetail.officiallyIssued": "Официально выдано Exodus Logistics Ltd.",
-"StatusDetail.contactSupport": "По вопросам об этом отправлении обращайтесь по адресу <email>support@goexoduslogistics.com</email>.",
+"StatusDetail.contactSupport": "По вопросам об этом отправлении обращайтесь по адресу <email></email>.",
  
 "Chat.back": "Назад",
 "Chat.title": "Чат в реальном времени",

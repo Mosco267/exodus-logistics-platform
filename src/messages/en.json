@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "Shipment delivered",
 "StatusDetail.shipmentDeliveredDesc": "This shipment has been successfully delivered. If there are concerns, contact support with your tracking number.",
 "StatusDetail.officiallyIssued": "Officially Issued by Exodus Logistics Ltd.",
-"StatusDetail.contactSupport": "For questions about this shipment, contact <email>support@goexoduslogistics.com</email>.",
+"StatusDetail.contactSupport": "For questions about this shipment, contact <email></email>.",
  
 "Chat.back": "Back",
 "Chat.title": "Live Chat",

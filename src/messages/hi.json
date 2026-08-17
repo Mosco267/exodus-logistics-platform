@@ -896,7 +896,7 @@
 "StatusDetail.shipmentDelivered": "शिपमेंट वितरित",
 "StatusDetail.shipmentDeliveredDesc": "यह शिपमेंट सफलतापूर्वक वितरित किया गया है। यदि कोई चिंता हो, तो अपने ट्रैकिंग नंबर के साथ सहायता से संपर्क करें।",
 "StatusDetail.officiallyIssued": "Exodus Logistics Ltd. द्वारा आधिकारिक रूप से जारी",
-"StatusDetail.contactSupport": "इस शिपमेंट से संबंधित प्रश्नों के लिए, <email>support@goexoduslogistics.com</email> पर संपर्क करें।",
+"StatusDetail.contactSupport": "इस शिपमेंट से संबंधित प्रश्नों के लिए, <email></email> पर संपर्क करें।",
  
 "Chat.back": "पीछे",
 "Chat.title": "लाइव चैट",

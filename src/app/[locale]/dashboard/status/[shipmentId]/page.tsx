@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl, type IntlShape } from "react-intl";
+import { useCompany } from "@/lib/useCompany";
 import {
   getShipmentStatusLabel,
   normalizeShipmentStatusKey,
@@ -124,6 +125,7 @@ export default function ShipmentStatusPage() {
   const shipmentId = decodeURIComponent((params?.shipmentId as string) || "");
   const intl = useIntl();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const company = useCompany();
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -184,6 +186,17 @@ export default function ShipmentStatusPage() {
 
  const normalized = useMemo(() => normalizeShipmentStatusKey(data?.status), [data?.status]);
 
+  /* Statuses we ship translations for. When the shipment sits on one of
+     these, the translated copy wins over admin-authored English, since
+     admins write in one language and customers read in twelve.
+     Custom statuses fall through to whatever the admin wrote, because
+     there is no translation to prefer. */
+  const CANONICAL_STATUSES = [
+    'created', 'intransit', 'customclearance', 'delivered',
+    'unclaimed', 'cancelled', 'pickedup', 'inwarehouse', 'outfordelivery',
+  ];
+  const isCanonical = CANONICAL_STATUSES.includes(normalized);
+
   const invoiceCurrency = (data?.invoice?.currency || "USD").toUpperCase();
   const invoicePaid = Boolean(data?.invoice?.paid);
   const hasInvoiceAmount = typeof data?.invoice?.amount === "number";
@@ -233,19 +246,23 @@ export default function ShipmentStatusPage() {
       ? t('StatusDetail.nextOutForDelivery')
       : "";
 
+ /* Per-shipment notes are written for one specific shipment, so they always
+     win — an admin explaining why this parcel is held knows more than any
+     generic string. Below that, canonical statuses prefer the translation
+     over the admin default; custom statuses use the admin default. */
   const shipmentUpdateText =
-    statusConfig?.defaultUpdate && statusConfig.defaultUpdate.trim().length > 0
-      ? statusConfig.defaultUpdate.trim()
-      : (data?.statusNote && data.statusNote.trim().length > 0
-          ? data.statusNote.trim()
-          : shipmentUpdateFallback);
+    (data?.statusNote && data.statusNote.trim().length > 0)
+      ? data.statusNote.trim()
+      : (isCanonical
+          ? shipmentUpdateFallback
+          : (statusConfig?.defaultUpdate?.trim() || shipmentUpdateFallback));
 
   const nextStepText =
-    statusConfig?.nextStep && statusConfig.nextStep.trim().length > 0
-      ? statusConfig.nextStep.trim()
-      : (data?.nextStep && data.nextStep.trim().length > 0
-          ? data.nextStep.trim()
-          : nextStepFallback);
+    (data?.nextStep && data.nextStep.trim().length > 0)
+      ? data.nextStep.trim()
+      : (isCanonical
+          ? nextStepFallback
+          : (statusConfig?.nextStep?.trim() || nextStepFallback));
 
   const effectiveColor = (statusConfig?.color || data?.statusColor || "").toLowerCase();
   const statusBadgeClass = colorMap[effectiveColor] || getStatusBadgeClass(data?.status || "");
@@ -480,9 +497,9 @@ export default function ShipmentStatusPage() {
             </p>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
               {t('StatusDetail.contactSupport', {
-                email: (chunks: any) => (
-                  <a href="mailto:support@goexoduslogistics.com" className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>
-                    {chunks}
+                email: () => (
+                  <a href={`mailto:${company.email}`} className="underline font-semibold hover:opacity-80" style={{ color: accentSolid }}>
+                    {company.email}
                   </a>
                 ),
               })}
