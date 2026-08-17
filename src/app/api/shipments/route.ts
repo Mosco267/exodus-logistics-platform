@@ -309,10 +309,12 @@ export async function POST(req: Request) {
   const invoicePaid = invoiceStatus === "paid";
 
   const statusTitle = toTitleStatus(body.status || "Created");
-  const defaultStatusNote =
-    statusTitle === "Created"
-      ? "Shipment has been created and is being processed."
-      : `Shipment status updated to ${statusTitle}.`;
+
+  /* No generic default note. The UI renders a translated message per status,
+     so storing English here would override it in all twelve languages.
+     statusNote is now genuinely optional: set it only when there is
+     something specific to say about this one shipment. */
+  const statusNote = cleanStr(body.statusNote);
 
   const createdByUserId = String(body.createdByUserId || "").trim() || null;
   const createdByEmail = String(body.createdByEmail || "").trim().toLowerCase() || null;
@@ -407,7 +409,7 @@ export async function POST(req: Request) {
         createdByEmail,
 
         status: statusTitle,
-        statusNote: String(body.statusNote || defaultStatusNote).trim(),
+        statusNote,
         statusUpdatedAt: now,
         cancelledAt: null,
 
@@ -416,7 +418,7 @@ export async function POST(req: Request) {
             key: "created",
             label: statusTitle || "Created",
             details: "",
-            note: String(body.statusNote || defaultStatusNote).trim(),
+            note: statusNote,
             additionalNote: "",
             occurredAt: now.toISOString(),
             color: "#f59e0b",
