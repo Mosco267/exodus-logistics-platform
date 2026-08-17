@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
+import { createNotification } from "@/lib/notifications";
 import { computeInvoiceFromDeclaredValue, DEFAULT_PRICING, type PricingProfiles } from "@/lib/pricing";
 import {
   sendShipmentStatusEmail,
@@ -514,20 +515,42 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
       if (receiverEmail) await sendShipmentStatusEmail(receiverEmail, { name: receiverName, shipmentId, statusLabel: trackingStageEmailLabel, trackingNumber, invoiceNumber: invoiceNumber || undefined, destination, fullDestination, origin, note: trackingStageEmailNote, additionalNote: trackingStageEmailAdditionalNote, }).catch(() => null);
     }
 
-    // NOTIFICATION + EMAIL for invoice changes
+        /* Notifications store a translation key plus the English text.
+       The key renders in the reader's language at display time; the English
+       stays as a fallback for records written before keys existed. */
     let title = "Shipment Updated";
     let message = `Shipment ${shipmentId} was updated.`;
+    let titleKey = "Notif.shipmentUpdatedTitle";
+    let messageKey = "Notif.shipmentUpdatedMessage";
+    let notifVars: Record<string, string> = { shipmentId };
 
     if (typeof body.status === "string") {
       const finalStatus = $set?.status || body.status || (existing as any)?.status || "updated";
       title = "Shipment Status Updated";
       message = `Shipment ${shipmentId} status changed to ${finalStatus}.`;
+      titleKey = "Notif.shipmentStatusTitle";
+      messageKey = "Notif.shipmentStatusMessage";
+      /* statusKey resolves through ShipmentStatus.* so the status name itself
+         is translated, not just the sentence around it. Custom statuses have
+         no key, so the raw label is used. */
+      notifVars = {
+        shipmentId,
+        status: String(finalStatus),
+        statusKey: `ShipmentStatus.${normalizeStatus(String(finalStatus))}`,
+      };
     }
 
     if (body?.trackingEvent) {
       const trackingLabel = String($set?.status || body?.trackingEvent?.label || "Shipment Update").trim();
       title = trackingLabel;
       message = `Shipment ${shipmentId} was updated to ${trackingLabel}.`;
+      titleKey = "";  // stage labels are admin-authored, no key exists
+      messageKey = "Notif.shipmentStageMessage";
+      notifVars = {
+        shipmentId,
+        stage: trackingLabel,
+        stageKey: `ShipmentStatus.${normalizeStatus(trackingLabel)}`,
+      };
     }
 
     if (body?.invoice !== undefined && !body?.trackingEvent) {
@@ -535,7 +558,7 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
   const nextStatus = String(nextInvoice.status || "unpaid").toLowerCase();
 
   if (prevStatus !== nextStatus) {
-    title = nextStatus === "paid" ? "Invoice Paid"
+        title = nextStatus === "paid" ? "Invoice Paid"
       : nextStatus === "overdue" ? "Invoice Overdue"
       : nextStatus === "cancelled" ? "Invoice Cancelled"
       : "Invoice Updated";
@@ -543,6 +566,16 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
       : nextStatus === "overdue" ? `Invoice for shipment ${shipmentId} is now OVERDUE.`
       : nextStatus === "cancelled" ? `Invoice for shipment ${shipmentId} has been CANCELLED.`
       : `Invoice for shipment ${shipmentId} is now UNPAID.`;
+
+    titleKey = nextStatus === "paid" ? "Notif.invoicePaidTitle"
+      : nextStatus === "overdue" ? "Notif.invoiceOverdueTitle"
+      : nextStatus === "cancelled" ? "Notif.invoiceCancelledTitle"
+      : "Notif.invoiceUpdatedTitle";
+    messageKey = nextStatus === "paid" ? "Notif.invoicePaidMessage"
+      : nextStatus === "overdue" ? "Notif.invoiceOverdueMessage"
+      : nextStatus === "cancelled" ? "Notif.invoiceCancelledMessage"
+      : "Notif.invoiceUnpaidMessage";
+    notifVars = { shipmentId };
 
     // Add sub-entry to created stage + update all created event dot colors
     const subEntryType =
@@ -587,10 +620,15 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
     const notifEmail = String((updated as any)?.senderEmail || (updated as any)?.receiverEmail || (updated as any)?.createdByEmail || (existing as any)?.senderEmail || (existing as any)?.receiverEmail || (existing as any)?.createdByEmail || "").trim().toLowerCase();
 const notifUserId = String((updated as any)?.createdByUserId || (existing as any)?.createdByUserId || "").trim();
 
-await db.collection("notifications").insertOne({
+await createNotification({
   userEmail: notifEmail,
   userId: notifUserId || undefined,
-  title, message, shipmentId, read: false, createdAt: new Date(),
+  titleKey: titleKey || undefined,
+  messageKey,
+  vars: notifVars,
+  title,
+  message,
+  shipmentId,
 });
 
     return NextResponse.json({ ok: true, shipment: updated });

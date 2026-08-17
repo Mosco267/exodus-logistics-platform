@@ -9,11 +9,17 @@ import {
   Loader2, AlertCircle, FileText, Mail,
 } from "lucide-react";
 import { useIntl, type IntlShape } from "react-intl";
+import { renderNotif } from "@/lib/notifications-display";
 
 type Notif = {
   _id: string;
   title?: string;
   message?: string;
+  /* Translation keys, present on notifications written after the i18n
+     rollout. Older records only have the plain strings above. */
+  titleKey?: string;
+  messageKey?: string;
+  vars?: Record<string, any>;
   shipmentId?: string;
   trackingNumber?: string;
   invoiceNumber?: string;
@@ -107,11 +113,13 @@ function classifyNotif(n: Notif, intl: IntlShape): {
   if (n.isCustomAdminMessage) {
     return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400", label: t("Notifications.catMessage") };
   }
-  const title = (n.title || "").toLowerCase();
-  const msg = (n.message || "").toLowerCase();
-  const blob = `${title} ${msg}`;
+    /* Match on the translation key when there is one. Rendered text is in the
+     reader's language, so English keyword matching would miss and every
+     notification would fall through to the grey default icon. */
+  const keyBlob = `${n.titleKey || ""} ${n.messageKey || ""}`.trim().toLowerCase();
+  const blob = keyBlob || `${(n.title || "").toLowerCase()} ${(n.message || "").toLowerCase()}`;
 
-  if (n.link?.includes("/support/chat") || blob.includes("message from support")) {
+  if (n.link?.includes("/support/chat") || blob.includes("chat") || blob.includes("message from support")) {
     return { Icon: MessageCircle, bg: "bg-blue-100 dark:bg-blue-500/15", fg: "text-blue-600 dark:text-blue-400", label: t("Notifications.catChat") };
   }
   if (n.ticketId || n.ticketNumber || blob.includes("ticket")) {
@@ -199,15 +207,16 @@ export default function NotificationsPage() {
     if (filter === "unread") r = r.filter(n => !n.read);
     else if (filter === "read") r = r.filter(n => Boolean(n.read));
 
-    if (search.trim()) {
+        if (search.trim()) {
       const v = search.trim().toLowerCase();
-      r = r.filter(n =>
-        (n.title || "").toLowerCase().includes(v) ||
-        (n.message || "").toLowerCase().includes(v)
-      );
+      r = r.filter(n => {
+        // Search what the reader actually sees, not the stored English
+        const { title, message } = renderNotif(intl, n);
+        return title.toLowerCase().includes(v) || message.toLowerCase().includes(v);
+      });
     }
     return r;
-  }, [items, filter, search]);
+  }, [items, filter, search, intl.locale]);
 
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [filter, search]);
 
@@ -490,7 +499,8 @@ export default function NotificationsPage() {
           <>
             <ul className="divide-y divide-gray-100 dark:divide-white/10">
               {visible.map(n => {
-                const { Icon, bg, fg, label } = classifyNotif(n, intl);
+                                const { Icon, bg, fg, label } = classifyNotif(n, intl);
+                const { title, message } = renderNotif(intl, n);
                 const isUnread = !n.read;
                 const isSelected = selected.has(n._id);
 
@@ -544,7 +554,7 @@ export default function NotificationsPage() {
                             <p className={`text-sm leading-tight ${
                               isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"
                             }`}>
-                              {n.title || t("Notifications.fallbackTitle")}
+                                                            {title || t("Notifications.fallbackTitle")}
                             </p>
                             <div className="flex items-center gap-1.5 shrink-0">
                               {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1.5" aria-label={t("Notifications.unreadLabel")} />}
@@ -553,7 +563,7 @@ export default function NotificationsPage() {
                           <p className={`mt-1 text-xs leading-relaxed line-clamp-2 ${
                             isUnread ? "text-gray-700 dark:text-gray-200" : "text-gray-500 dark:text-gray-400"
                           }`}>
-                            {n.message || ""}
+                            {message || ""}
                           </p>
                           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                             <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${fg}`}>{label}</span>
@@ -635,8 +645,11 @@ function DetailsModal({
   bcpLocale: string;
 }) {
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
-  const { Icon, bg, fg } = classifyNotif(notif, intl);
-  const tokens = useMemo(() => parseMessageTokens(notif.message || ""), [notif.message]);
+    const { Icon, bg, fg } = classifyNotif(notif, intl);
+  const { title: notifTitle, message: notifMessage } = renderNotif(intl, notif);
+  /* Tokenise the rendered text so shipment and invoice numbers stay
+     clickable regardless of the language the message is shown in. */
+  const tokens = useMemo(() => parseMessageTokens(notifMessage || ""), [notifMessage]);
 
   const TokenPill = ({ type, value }: { type: "shipment" | "tracking" | "invoice"; value: string }) => {
     const style = {
@@ -665,7 +678,7 @@ function DetailsModal({
               <Icon size={18} className={fg} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">{notif.title || t("Notifications.fallbackTitle")}</h3>
+                            <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-tight">{notifTitle || t("Notifications.fallbackTitle")}</h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{notif.createdAt ? new Date(notif.createdAt).toLocaleString(bcpLocale) : ""}</p>
             </div>
           </div>

@@ -1306,5 +1306,22 @@
 "Quote.ctaPrint": "Print",
 "Quote.ctaEdit": "Edit details",
 "Quote.localUnavailable": "We do not currently run local operations in {country}. Try an international shipment, or contact support.",
-"Quote.rowShipping": "Shipping fee"
+"Quote.rowShipping": "Shipping fee",
+
+"Notif.accountRestoredTitle": "Account restored",
+"Notif.accountRestoredMessage": "Your account has been restored. You can now sign in again. Contact support if you need help.",
+
+"Notif.shipmentUpdatedTitle": "Shipment updated",
+"Notif.shipmentUpdatedMessage": "Shipment {shipmentId} was updated.",
+"Notif.shipmentStatusTitle": "Shipment status updated",
+"Notif.shipmentStatusMessage": "Shipment {shipmentId} status changed to {status}.",
+"Notif.shipmentStageMessage": "Shipment {shipmentId} was updated to {stage}.",
+"Notif.invoicePaidTitle": "Invoice paid",
+"Notif.invoicePaidMessage": "The invoice for shipment {shipmentId} is now paid.",
+"Notif.invoiceOverdueTitle": "Invoice overdue",
+"Notif.invoiceOverdueMessage": "The invoice for shipment {shipmentId} is now overdue.",
+"Notif.invoiceCancelledTitle": "Invoice cancelled",
+"Notif.invoiceCancelledMessage": "The invoice for shipment {shipmentId} has been cancelled.",
+"Notif.invoiceUpdatedTitle": "Invoice updated",
+"Notif.invoiceUnpaidMessage": "The invoice for shipment {shipmentId} is now unpaid."
 }

@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { auth } from "@/auth";
 import { sendRestoreEmail } from "@/lib/email";
+import { IntlShape } from "react-intl";
 
 export async function PATCH(_req: Request, ctx: any) {
   try {
@@ -42,15 +43,21 @@ export async function PATCH(_req: Request, ctx: any) {
 
     // ✅ In-app notification
     if (email) {
-      await db.collection("notifications").insertOne({
-        userEmail: email,
-        userId: String(user._id),
-        title: "Account restored",
-        message:
-          "Your account has been restored. You can now log in again. If you need help, contact support.",
-        read: false,
-        createdAt: new Date(),
-      });
+      /* Prefer the translation key so historical notifications render in the
+   reader's language. Falls back to stored English for records written
+   before keys existed. */
+function notifText(
+  intl: IntlShape,
+  keyField: string | undefined,
+  fallback: string | undefined,
+  vars?: Record<string, any>
+): string {
+  if (keyField) {
+    const msg = intl.formatMessage({ id: keyField, defaultMessage: fallback || '' }, vars);
+    if (msg) return msg;
+  }
+  return fallback || '';
+}
     }
 
     // ✅ Email

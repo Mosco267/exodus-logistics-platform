@@ -9,11 +9,17 @@ import {
   CheckCheck, Inbox, Loader2, Mail,
 } from "lucide-react";
 import { useIntl, type IntlShape } from "react-intl";
+import { renderNotif } from "@/lib/notifications-display";
 
 type Notif = {
   _id: string;
   title?: string;
   message?: string;
+  /* Translation keys, present on notifications written after the i18n
+     rollout. Older records only have the plain strings above. */
+  titleKey?: string;
+  messageKey?: string;
+  vars?: Record<string, any>;
   shipmentId?: string;
   link?: string;
   ticketId?: string;
@@ -52,11 +58,13 @@ function classifyNotif(n: Notif): {
   if (n.isCustomAdminMessage) {
     return { Icon: Mail, bg: "bg-indigo-100 dark:bg-indigo-500/15", fg: "text-indigo-600 dark:text-indigo-400" };
   }
-  const t = (n.title || "").toLowerCase();
-  const m = (n.message || "").toLowerCase();
-  const blob = `${t} ${m}`;
+   /* Match on the translation key when there is one. The rendered text is in
+     the reader's language, so English keyword matching would miss and every
+     notification would fall through to the grey default icon. */
+  const keyBlob = `${n.titleKey || ""} ${n.messageKey || ""}`.trim().toLowerCase();
+  const blob = keyBlob || `${(n.title || "").toLowerCase()} ${(n.message || "").toLowerCase()}`;
 
-  if (n.link?.includes("/support/chat") || blob.includes("message from support")) {
+  if (n.link?.includes("/support/chat") || blob.includes("chat") || blob.includes("message from support")) {
     return { Icon: MessageCircle, bg: "bg-blue-100 dark:bg-blue-500/15", fg: "text-blue-600 dark:text-blue-400" };
   }
   if (n.ticketId || n.ticketNumber || blob.includes("ticket")) {
@@ -272,8 +280,9 @@ export default function NotificationsBell() {
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100 dark:divide-white/10">
-                  {items.map((n) => {
+                                    {items.map((n) => {
                     const { Icon, bg, fg } = classifyNotif(n);
+                    const { title, message } = renderNotif(intl, n);
                     const isUnread = !n.read;
                     return (
                       <li key={String(n._id)}>
@@ -292,14 +301,14 @@ export default function NotificationsBell() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className={`text-sm leading-tight truncate ${isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-300"}`}>
-                                  {n.title || t("Notifications.fallbackTitle")}
+                                                                    {title || t("Notifications.fallbackTitle")}
                                 </p>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {isUnread && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-500 mt-1" aria-label={t("Notifications.unreadLabel")} />}
                                 </div>
                               </div>
                               <p className={`mt-0.5 text-xs leading-snug line-clamp-2 ${isUnread ? "text-gray-700 dark:text-gray-200" : "text-gray-500 dark:text-gray-400"}`}>
-                                {n.message || ""}
+                                                                {message || ""}
                               </p>
                               <p className="mt-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500">
                                 {timeAgo(n.createdAt, intl, bcpLocale)}
