@@ -7,7 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   AlertCircle, ArrowLeft, Calendar, MapPin, Package,
-  FileText, Truck, CreditCard, ShieldCheck,
+  FileText, Truck, CreditCard, ShieldCheck, Printer,
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl } from "react-intl";
@@ -61,30 +61,31 @@ const ACCEPTED_METHOD_KEYS = ["crypto", "bankTransfer", "paypal", "zelle", "cash
 function safeStr(v: any) { return String(v ?? "").trim(); }
 function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
-function fmtDate(iso?: string | null): string {
+function fmtDate(iso?: string | null, bcp = "en-US"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
+  /* hour12 left to the locale — most markets use 24-hour time. */
+  return new Intl.DateTimeFormat(bcp, {
+    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
   }).format(d);
 }
 
-function fmtNumberWithCommas(value: number, decimals = 2): string {
+function fmtNumberWithCommas(value: number, decimals = 2, bcp = "en-US"): string {
   if (!Number.isFinite(value)) return "0.00";
-  return value.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return value.toLocaleString(bcp, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function fmtMoney(amount: number, currency: string) {
+function fmtMoney(amount: number, currency: string, bcp = "en-US") {
   const c = (currency || "USD").toUpperCase();
-  return `${c} ${fmtNumberWithCommas(num(amount), 2)}`;
+  return `${c} ${fmtNumberWithCommas(num(amount), 2, bcp)}`;
 }
 
-function fmtIntWithCommas(value: any): string {
+function fmtIntWithCommas(value: any, bcp = "en-US"): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return safeStr(value) || "—";
-  if (Number.isInteger(n)) return n.toLocaleString("en-US");
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (Number.isInteger(n)) return n.toLocaleString(bcp);
+  return n.toLocaleString(bcp, { maximumFractionDigits: 2 });
 }
 
 function fmtPercent(v: any) {
@@ -238,6 +239,10 @@ export default function DashboardInvoiceDetailPage() {
     return intl.formatMessage({ id: `PaymentMethod.${key}`, defaultMessage: paymentMethodRaw });
   }, [paymentMethodRaw, intl.locale]);
 
+    const bcpLocale = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN",
+    it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP",
+    ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
+
   const originFull = safeStr(data?.shipment?.originFull) || "—";
   const destinationFull = safeStr(data?.shipment?.destinationFull) || "—";
     /* Stored values are English keys or labels; the shared helpers normalise
@@ -249,12 +254,12 @@ export default function DashboardInvoiceDetailPage() {
   const serviceLevel = rawService ? getServiceLevelLabel(rawService, intl) : "—";
   const shipmentMeans = rawMeans ? getShipmentMeansLabel(rawMeans, intl) : "—";
   const weightKg = data?.shipment?.weightKg;
-  const weightLine = weightKg != null && safeStr(weightKg) !== "" ? `${fmtIntWithCommas(weightKg)} kg` : "—";
+  const weightLine = weightKg != null && safeStr(weightKg) !== "" ? `${fmtIntWithCommas(weightKg, bcpLocale)} kg` : "—";
   const dim = data?.shipment?.dimensionsCm;
   const dimUnit = safeStr(dim?.unit) || "cm";
-  const dimLine = dim ? `${fmtIntWithCommas(dim.length)} × ${fmtIntWithCommas(dim.width)} × ${fmtIntWithCommas(dim.height)} ${dimUnit}` : "—";
+  const dimLine = dim ? `${fmtIntWithCommas(dim.length, bcpLocale)} × ${fmtIntWithCommas(dim.width, bcpLocale)} × ${fmtIntWithCommas(dim.height, bcpLocale)} ${dimUnit}` : "—";
 
-    const bcpLocale = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
+    
 
   const estDeliveryStr = useMemo(
     () => fmtEstimatedDelivery(data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope, bcpLocale),
@@ -296,11 +301,32 @@ export default function DashboardInvoiceDetailPage() {
   const card = "rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-4";
   const card5 = "rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 p-5";
 
-  return (
+    return (
     <div className="max-w-4xl mx-auto pb-12 space-y-5">
+      <style jsx global>{`
+        @media print {
+          /* Hide everything, then reveal only the invoice. visibility rather
+             than display lets the invoice show through hidden ancestors. */
+          body * { visibility: hidden !important; }
+          .print-area, .print-area * { visibility: visible !important; }
+          .print-area {
+            position: absolute; left: 0; top: 0; width: 100%;
+            margin: 0; padding: 0;
+          }
+          .no-print, .no-print * { visibility: hidden !important; display: none !important; }
+          #tawk-script, iframe[title*="chat" i], iframe[src*="tawk"] { display: none !important; }
+          body { background: white !important; }
+          .print-area { box-shadow: none !important; border-radius: 0 !important; }
+          /* Browsers strip backgrounds by default; the header and status
+             badges are meaningless without them. */
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .print-area .rounded-xl { break-inside: avoid; }
+          @page { margin: 14mm; }
+        }
+      `}</style>
 
-      {/* ── Top nav (print button removed) ──────────────── */}
-      <div className="flex flex-col sm:flex-row gap-2">
+      {/* ── Top nav ─────────────────────────────────────── */}
+      <div className="no-print flex flex-col sm:flex-row gap-2">
         <button onClick={() => router.push(`/${locale}/dashboard/invoices`)}
           className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
           <ArrowLeft className="w-4 h-4" /> {t("InvoiceDetail.backToInvoices")}
@@ -311,6 +337,10 @@ export default function DashboardInvoiceDetailPage() {
             <Truck className="w-4 h-4" /> {t("InvoiceDetail.trackShipment")}
           </Link>
         )}
+                <button onClick={() => window.print()}
+          className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
+          <Printer className="w-4 h-4" /> {t("InvoiceDetail.print")}
+        </button>
         {status === "unpaid" || status === "overdue" ? (
           <Link href={`/${locale}/dashboard/shipments/${encodeURIComponent(shipmentId)}/payment`}
             className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold transition shadow-sm hover:opacity-90"
@@ -336,8 +366,8 @@ export default function DashboardInvoiceDetailPage() {
       )}
 
       {!loading && data && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="print-area rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
 
           {/* Header */}
           <div style={{ background: accentGradient }} className="p-5 sm:p-6">
@@ -364,7 +394,7 @@ export default function DashboardInvoiceDetailPage() {
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.dates")}</p>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t("InvoiceDetail.created")}</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">{fmtDate(data?.dates?.createdAt || null)}</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{fmtDate(data?.dates?.createdAt || null, bcpLocale)}</p>
                 {data?.estimatedDelivery && (
                   <>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t("InvoiceDetail.estDelivery")}</p>
@@ -389,7 +419,7 @@ export default function DashboardInvoiceDetailPage() {
                   <CreditCard className="w-4 h-4" style={{ color: accentSolid }} />
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.amount")}</p>
                 </div>
-                <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{fmtMoney(calc.total, currency)}</p>
+                <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{fmtMoney(calc.total, currency, bcpLocale)}</p>
                 <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${statusColor}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />{statusBadge}
                 </div>
@@ -422,7 +452,7 @@ export default function DashboardInvoiceDetailPage() {
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("InvoiceDetail.declaration")}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.declaredValue")}</p><p className="font-semibold text-gray-900 dark:text-white">{fmtMoney(declaredValue, currency)}</p></div>
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.declaredValue")}</p><p className="font-semibold text-gray-900 dark:text-white">{fmtMoney(declaredValue, currency, bcpLocale)}</p></div>
                   <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.type")}</p><p className="font-semibold text-gray-900 dark:text-white">{shipmentType}</p></div>
                   <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.service")}</p><p className="font-semibold text-gray-900 dark:text-white">{serviceLevel}</p></div>
                   <div><p className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500">{t("InvoiceDetail.weight")}</p><p className="font-semibold text-gray-900 dark:text-white">{weightLine}</p></div>
@@ -493,54 +523,54 @@ export default function DashboardInvoiceDetailPage() {
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
                     <p className="text-xs font-extrabold uppercase text-gray-500 dark:text-gray-400">{t("InvoiceDetail.declaredValue")}</p>
-                    <p className="text-sm text-gray-900 dark:text-white font-semibold">{fmtNumberWithCommas(declaredValue, 2)} {currency}</p>
+                    <p className="text-sm text-gray-900 dark:text-white font-semibold">{fmtNumberWithCommas(declaredValue, 2, bcpLocale)} {currency}</p>
                   </div>
 
                   <div className="p-4 space-y-2.5 text-sm">
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
                       <span>{t("InvoiceDetail.baseFreight", { means: shipmentMeans !== "—" ? shipmentMeans : t("InvoiceDetail.shipping") })}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.baseFreight, 2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.baseFreight, 2, bcpLocale)}</span>
                     </div>
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
                       <span>{t("InvoiceDetail.fuelSurcharge", { rate: fmtPercent(fuelRate) })}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.fuel, 2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.fuel, 2, bcpLocale)}</span>
                     </div>
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
                       <span>{t("InvoiceDetail.insurance", { rate: fmtPercent(insuranceRate) })}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.insurance, 2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.insurance, 2, bcpLocale)}</span>
                     </div>
                     <div className="flex justify-between text-gray-700 dark:text-gray-300">
                       <span>{t("InvoiceDetail.handling")}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.handling, 2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.handling, 2, bcpLocale)}</span>
                     </div>
                     {calc.customs > 0 && (
                       <div className="flex justify-between text-gray-700 dark:text-gray-300">
                         <span>{t("InvoiceDetail.customs")}</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.customs, 2)}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.customs, 2, bcpLocale)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between pt-2.5 border-t border-gray-100 dark:border-white/10">
                       <span className="font-bold text-gray-900 dark:text-white">{t("InvoiceDetail.subtotal")}</span>
-                      <span className="font-bold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.subtotal, 2)}</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.subtotal, 2, bcpLocale)}</span>
                     </div>
                     {calc.tax > 0 && (
                       <div className="flex justify-between text-gray-700 dark:text-gray-300">
                         <span>{t("InvoiceDetail.tax")}</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.tax, 2)}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{fmtNumberWithCommas(calc.tax, 2, bcpLocale)}</span>
                       </div>
                     )}
                     {calc.discount > 0 && (
                       <div className="flex justify-between text-green-600 dark:text-green-400">
                         <span>{t("InvoiceDetail.discount")}</span>
-                        <span className="font-semibold">−{fmtNumberWithCommas(calc.discount, 2)}</span>
+                        <span className="font-semibold">−{fmtNumberWithCommas(calc.discount, 2, bcpLocale)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between pt-3 border-t border-gray-100 dark:border-white/10 text-base">
                       <span className="font-extrabold text-gray-900 dark:text-white">{t("InvoiceDetail.total")}</span>
                       <span className="font-extrabold" style={{ color: accentSolid }}>
-                        {fmtNumberWithCommas(calc.total, 2)} {currency}
+                        {fmtNumberWithCommas(calc.total, 2, bcpLocale)} {currency}
                       </span>
                     </div>
                   </div>

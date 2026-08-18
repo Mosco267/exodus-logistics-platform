@@ -1566,5 +1566,7 @@
 "TrackDetailPublic.badgeCurrent": "Current stage",
 "TrackDetailPublic.badgeUpcoming": "Upcoming",
 "TrackDetailPublic.currentLocation": "Current location",
-"TrackDetailPublic.location": "Location"
+"TrackDetailPublic.location": "Location",
+
+"InvoiceDetail.print": "Print invoice"
 }

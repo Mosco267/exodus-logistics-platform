@@ -332,31 +332,52 @@ export default function InvoiceFullPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white">
-      <style jsx global>{`
+            <style jsx global>{`
         @media print {
-          @page { margin: 0; size: A4 portrait; }
+          /* Hide everything, then reveal only the invoice. Using visibility
+             rather than display lets the invoice show through its hidden
+             ancestors, which display:none would collapse. */
           body * { visibility: hidden !important; }
           .print-area, .print-area * { visibility: visible !important; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-          header, nav, footer { display: none !important; }
-          .no-print { display: none !important; }
+
+          .print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+          }
+
+          .no-print, .no-print * {
+            visibility: hidden !important;
+            display: none !important;
+          }
+
+          /* Third-party widgets sit outside the React tree */
+          #tawk-script,
+          iframe[title*="chat" i],
+          iframe[src*="tawk"] { display: none !important; }
+
           body { background: white !important; }
-          .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-white * { color: white !important; }
-          .print-white > div {
-            display: flex !important; flex-direction: row !important;
-            align-items: center !important; justify-content: space-between !important; text-align: left !important;
+
+          .print-card {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0 !important;
           }
-          .print-white > div > div:first-child {
-            display: flex !important; flex-direction: row !important; align-items: center !important; gap: 16px !important;
+
+          /* Browsers strip backgrounds by default; the invoice header and
+             status badges are meaningless without them. */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          .print-white > div > div:first-child > div { text-align: left !important; }
-          .print-white > div > div:first-child > div > div {
-            display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important;
-          }
-          .print-white img { height: 40px !important; width: auto !important; content: url('/logo.svg') !important; }
-          .print-white > div > div:last-child { text-align: right !important; min-width: 200px !important; }
+
+          /* Keep cards from splitting across pages */
+          .print-area .rounded-2xl { break-inside: avoid; }
+
+          @page { margin: 14mm; }
         }
       `}</style>
 

@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "मौजूदा चरण",
 "TrackDetailPublic.badgeUpcoming": "आगामी",
 "TrackDetailPublic.currentLocation": "मौजूदा स्थान",
-"TrackDetailPublic.location": "स्थान"
+"TrackDetailPublic.location": "स्थान",
+
+"InvoiceDetail.print": "चालान प्रिंट करें"
 }

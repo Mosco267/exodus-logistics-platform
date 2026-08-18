@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "当前阶段",
 "TrackDetailPublic.badgeUpcoming": "待进行",
 "TrackDetailPublic.currentLocation": "当前位置",
-"TrackDetailPublic.location": "位置"
+"TrackDetailPublic.location": "位置",
+
+"InvoiceDetail.print": "打印发票"
 }

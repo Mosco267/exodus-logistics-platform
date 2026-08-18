@@ -75,31 +75,33 @@ type TrackApiResponse = {
   carrierName?: string | null;
 };
 
-function fmtDate(iso?: string | null): string {
+function fmtDate(iso?: string | null, bcp = "en-US"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  /* hour12 is left to the locale — most of the world uses 24-hour time,
+     and forcing AM/PM looks wrong outside English-speaking markets. */
+  return new Intl.DateTimeFormat(bcp, {
     month: "short", day: "numeric", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: true,
+    hour: "2-digit", minute: "2-digit",
   }).format(d);
 }
 
 function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
-function fmtNumberWithCommas(value: number, decimals = 2): string {
+function fmtNumberWithCommas(value: number, decimals = 2, bcp = "en-US"): string {
   if (!Number.isFinite(value)) return "0.00";
-  return value.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return value.toLocaleString(bcp, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function fmtIntWithCommas(value: any): string {
+function fmtIntWithCommas(value: any, bcp = "en-US"): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value ?? "").trim() || "—";
-  if (Number.isInteger(n)) return n.toLocaleString("en-US");
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (Number.isInteger(n)) return n.toLocaleString(bcp);
+  return n.toLocaleString(bcp, { maximumFractionDigits: 2 });
 }
 
-function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, scope?: string | null): { text: string; endDate: Date | null } {
+function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, scope?: string | null, bcp = "en-US"): { text: string; endDate: Date | null } {
   if (!maxISO) return { text: "—", endDate: null };
   const maxD = new Date(maxISO);
   if (Number.isNaN(maxD.getTime())) return { text: "—", endDate: null };
@@ -114,13 +116,13 @@ function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, sc
     minD.setDate(minD.getDate() - extra);
   }
 
-  const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
-  const fmtFull = (d: Date) => d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+ const fmt = (d: Date) => d.toLocaleDateString(bcp, { day: "2-digit", month: "short" });
+  const fmtFull = (d: Date) => d.toLocaleDateString(bcp, { day: "2-digit", month: "short", year: "numeric" });
 
   let text: string;
   if (minD.getTime() === maxD.getTime()) text = fmtFull(maxD);
   else if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
-    text = `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
+    text = `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString(bcp, { month: "short", year: "numeric" })}`;
   } else text = `${fmt(minD)} – ${fmtFull(maxD)}`;
 
   return { text, endDate: maxD };
@@ -217,9 +219,13 @@ export default function DashboardTrackDetailPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
-  const intl = useIntl();
+    const intl = useIntl();
   const company = useCompany();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
+  const bcp = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN",
+    it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP",
+    ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -302,13 +308,13 @@ export default function DashboardTrackDetailPage() {
   const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
 
   const { text: estimatedRangeText, endDate: estimatedEndDate } = useMemo(
-    () => fmtEstimatedDelivery(data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope),
-    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope]
+        () => fmtEstimatedDelivery(data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope, bcp),
+    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope, bcp]
   );
 
   const deliveryOverdue = useMemo(() => {
     if (!data?.estimatedDelivery) return false;
-    if (String(data?.currentStatus || "").toLowerCase() === "delivered") return false;
+        if (normalizeShipmentStatusKey(data?.currentStatus) === "delivered") return false;
     return isDeliveryOverdue(estimatedEndDate);
   }, [estimatedEndDate, data?.currentStatus, data?.estimatedDelivery]);
 
@@ -328,8 +334,8 @@ export default function DashboardTrackDetailPage() {
 
  const invoiceStatusLabel = getInvoiceStatusLabel(invoiceStatus, intl);
 
-  const weightLine = data?.weightKg != null && String(data.weightKg).trim() !== "" ? `${fmtIntWithCommas(data.weightKg)} kg` : "—";
-  const dimLine = data?.dimensionsCm ? `${fmtIntWithCommas(data.dimensionsCm.length)} × ${fmtIntWithCommas(data.dimensionsCm.width)} × ${fmtIntWithCommas(data.dimensionsCm.height)} cm` : "—";
+    const weightLine = data?.weightKg != null && String(data.weightKg).trim() !== "" ? `${fmtIntWithCommas(data.weightKg, bcp)} kg` : "—";
+  const dimLine = data?.dimensionsCm ? `${fmtIntWithCommas(data.dimensionsCm.length, bcp)} × ${fmtIntWithCommas(data.dimensionsCm.width, bcp)} × ${fmtIntWithCommas(data.dimensionsCm.height, bcp)} cm` : "—";
 
   return (
     <div className="max-w-4xl mx-auto pb-12 space-y-5">
@@ -404,7 +410,7 @@ export default function DashboardTrackDetailPage() {
                   </p>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {t('TrackDetail.lastUpdatedLine', {
-                      date: fmtDate(events[currentIndex]?.occurredAt || data.updatedAt),
+                      date: fmtDate(events[currentIndex]?.occurredAt || data.updatedAt, bcp),
                       bold: (chunks: any) => <span className="font-semibold text-gray-700 dark:text-gray-200">{chunks}</span>,
                     })}
                   </p>
@@ -462,7 +468,7 @@ export default function DashboardTrackDetailPage() {
                     <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('TrackDetail.invoice')}</p>
                   </div>
                   <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>{invoiceStatusLabel}</div>
-                  <p className="mt-1.5 text-sm font-bold text-gray-900 dark:text-white">{invoiceCurrency} {fmtNumberWithCommas(invoiceAmount, 2)}</p>
+                  <p className="mt-1.5 text-sm font-bold text-gray-900 dark:text-white">{invoiceCurrency} {fmtNumberWithCommas(invoiceAmount, 2, bcp)}</p>
                   {invoiceNumber && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">{invoiceNumber}</p>}
                 </div>
 
@@ -511,7 +517,7 @@ export default function DashboardTrackDetailPage() {
                     <Calendar className="w-4 h-4" style={{ color: accentSolid }} />
                     <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('TrackDetail.created')}</p>
                   </div>
-                  <p className="text-xs font-bold text-gray-900 dark:text-white">{fmtDate(data.createdAt || events[0]?.occurredAt)}</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white">{fmtDate(data.createdAt || events[0]?.occurredAt, bcp)}</p>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('TrackDetail.localTimezone')}</p>
                 </div>
               </div>
@@ -536,7 +542,7 @@ export default function DashboardTrackDetailPage() {
                   {events.map((ev, idx) => {
                     const isOpen = openIdx === idx;
                     const stageLoc = fmtLoc(ev.location);
-                    const stageWhen = fmtDate(ev.occurredAt);
+                    const stageWhen = fmtDate(ev.occurredAt, bcp);
                     const lastEntryColor = ev?.entries?.[ev.entries.length - 1];
                     const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) || "";
                     const isCompleted = idx < currentIndex;
@@ -643,7 +649,7 @@ export default function DashboardTrackDetailPage() {
                                   <div className="space-y-2">
                                     {(ev.entries || []).map((en, j) => {
                                       const loc = fmtLoc(en.location);
-                                      const when = fmtDate(en.occurredAt);
+                                      const when = fmtDate(en.occurredAt, bcp);
                                       const isLastEntry = j === (ev.entries?.length || 0) - 1;
                                       const entryDotBg = safeColor(en.detailColor) || safeColor(en.color) || "#9ca3af";
 

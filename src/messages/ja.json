@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "現在の段階",
 "TrackDetailPublic.badgeUpcoming": "予定",
 "TrackDetailPublic.currentLocation": "現在地",
-"TrackDetailPublic.location": "場所"
+"TrackDetailPublic.location": "場所",
+
+"InvoiceDetail.print": "請求書を印刷"
 }

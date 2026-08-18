@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "المرحلة الحالية",
 "TrackDetailPublic.badgeUpcoming": "قادمة",
 "TrackDetailPublic.currentLocation": "الموقع الحالي",
-"TrackDetailPublic.location": "الموقع"
+"TrackDetailPublic.location": "الموقع",
+
+"InvoiceDetail.print": "طباعة الفاتورة"
 }

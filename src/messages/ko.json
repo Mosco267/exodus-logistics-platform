@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "현재 단계",
 "TrackDetailPublic.badgeUpcoming": "예정",
 "TrackDetailPublic.currentLocation": "현재 위치",
-"TrackDetailPublic.location": "위치"
+"TrackDetailPublic.location": "위치",
+
+"InvoiceDetail.print": "청구서 인쇄"
 }

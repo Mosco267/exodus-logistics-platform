@@ -70,9 +70,11 @@ function normalizeStatus(status?: string) {
   return (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 }
 
-function formatMoney(currency: string, amount: number) {
+function formatMoney(currency: string, amount: number, bcp = "en-US") {
   const cur = (currency || "").toUpperCase();
-  return `${cur} ${Number(amount || 0).toLocaleString()}`.trim();
+  return `${cur} ${Number(amount || 0).toLocaleString(bcp, {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  })}`.trim();
 }
 
 function getStatusBadgeClass(status: string) {
@@ -123,9 +125,13 @@ export default function ShipmentStatusPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const shipmentId = decodeURIComponent((params?.shipmentId as string) || "");
-  const intl = useIntl();
+    const intl = useIntl();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
   const company = useCompany();
+
+  const bcp = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN",
+    it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP",
+    ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
   const [accentGradient, setAccentGradient] = useState("linear-gradient(135deg, #0b3aa4, #0e7490)");
@@ -201,7 +207,7 @@ export default function ShipmentStatusPage() {
   const invoicePaid = Boolean(data?.invoice?.paid);
   const hasInvoiceAmount = typeof data?.invoice?.amount === "number";
   const invoiceAmount = hasInvoiceAmount ? Number(data!.invoice!.amount) : null;
-  const moneyText = hasInvoiceAmount ? formatMoney(invoiceCurrency, invoiceAmount as number) : "—";
+   const moneyText = hasInvoiceAmount ? formatMoney(invoiceCurrency, invoiceAmount as number, bcp) : "—";
   const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
 
   const routeText = `${(data?.senderCountryCode || "—").toUpperCase()} → ${(data?.destinationCountryCode || "—").toUpperCase()}`;
@@ -363,7 +369,7 @@ export default function ShipmentStatusPage() {
               {data.statusUpdatedAt && (
                 <p className="text-[11px] text-white/80 flex items-center gap-1.5">
                   <Clock className="w-3 h-3" />
-                  {t('StatusDetail.updatedAt', { date: new Date(data.statusUpdatedAt).toLocaleString() })}
+                                    {t('StatusDetail.updatedAt', { date: new Date(data.statusUpdatedAt).toLocaleString(bcp) })}
                 </p>
               )}
             </div>
@@ -429,7 +435,7 @@ export default function ShipmentStatusPage() {
               </div>
               {invoicePaid && data.invoice?.paidAt && (
                 <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-                  {t('StatusDetail.paidAt', { date: new Date(data.invoice.paidAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) })}
+                                    {t('StatusDetail.paidAt', { date: new Date(data.invoice.paidAt).toLocaleDateString(bcp, { month: "short", day: "numeric", year: "numeric" }) })}
                 </p>
               )}
             </div>

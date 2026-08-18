@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "Etapa actual",
 "TrackDetailPublic.badgeUpcoming": "Próximo",
 "TrackDetailPublic.currentLocation": "Ubicación actual",
-"TrackDetailPublic.location": "Ubicación"
+"TrackDetailPublic.location": "Ubicación",
+
+"InvoiceDetail.print": "Imprimir factura"
 }

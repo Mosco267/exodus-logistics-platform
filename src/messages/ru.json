@@ -1549,5 +1549,7 @@
 "TrackDetailPublic.badgeCurrent": "Текущий этап",
 "TrackDetailPublic.badgeUpcoming": "Предстоит",
 "TrackDetailPublic.currentLocation": "Текущее местоположение",
-"TrackDetailPublic.location": "Местоположение"
+"TrackDetailPublic.location": "Местоположение",
+
+"InvoiceDetail.print": "Печать счёта"
 }
