@@ -11,6 +11,7 @@ import {
   sendShipmentEditedEmail
 } from "@/lib/email";
 
+
 const normalizeStatus = (status?: string) =>
   (status ?? "").toLowerCase().trim().replace(/[\s_-]+/g, "");
 
@@ -432,12 +433,22 @@ await db.collection("shipments").updateOne(
     if (body?.trackingEvent) {
       const ev = body.trackingEvent;
 
+            const rawDetails = String(ev?.details || "").trim();
+      const stageKey = normalizeShipmentStatusKey(String(ev?.label || ""));
+      const CANONICAL = new Set([
+        "created", "pickedup", "inwarehouse", "intransit", "customclearance",
+        "outfordelivery", "delivered", "unclaimed", "cancelled",
+      ]);
+
       const event: any = {
         key: String(ev?.key || ev?.label || "update").trim().toLowerCase().replace(/[\s_-]+/g, "-"),
         label: String(ev?.label || "Update").trim(),
 
-        // Fix 2 — store details, note, additionalNote separately
-        details: String(ev?.details || "").trim(),
+        details: rawDetails,
+        /* When an admin leaves details blank on a canonical stage, store a
+           translation key instead. The track page renders it in the reader's
+           language. Admin-written details take precedence and stay as typed. */
+        detailsKey: !rawDetails && CANONICAL.has(stageKey) ? `Timeline.${stageKey}` : "",
         note: String(ev?.note || "").trim(),
         additionalNote: String(ev?.additionalNote || "").trim(),
 

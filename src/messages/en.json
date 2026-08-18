@@ -1331,5 +1331,15 @@
 "PaymentMethod.zelle": "Zelle",
 "PaymentMethod.cash": "Cash",
 "PaymentMethod.other": "Other",
-"PaymentMethod.card": "Credit / debit card"
+"PaymentMethod.card": "Credit / debit card",
+
+"Timeline.created": "Your shipment has been registered in our system and is being prepared for collection.",
+"Timeline.pickedup": "Your shipment has been collected and is on its way to our sorting facility.",
+"Timeline.inwarehouse": "Your shipment has arrived at our facility and is being processed for onward transit.",
+"Timeline.intransit": "Your shipment is in transit and moving toward its destination.",
+"Timeline.customclearance": "Your shipment is undergoing customs clearance. This can take a few days depending on the destination.",
+"Timeline.outfordelivery": "Your shipment is out for delivery and should arrive today. Please ensure someone is available to receive it.",
+"Timeline.delivered": "Your shipment has been delivered. Thank you for shipping with us.",
+"Timeline.unclaimed": "Your shipment is at the delivery facility awaiting collection.",
+"Timeline.cancelled": "This shipment has been cancelled. Contact support if you need assistance."
 }

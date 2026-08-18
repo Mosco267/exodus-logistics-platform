@@ -18,6 +18,7 @@ import {
   getShipmentTypeLabel,
   normalizeShipmentStatusKey,
 } from "@/lib/shipment-utils";
+import { useCompany } from "@/lib/useCompany";
 
 type LocationLite = { country?: string; state?: string; city?: string; county?: string };
 
@@ -217,6 +218,7 @@ export default function DashboardTrackDetailPage() {
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
   const intl = useIntl();
+  const company = useCompany();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [accentSolid, setAccentSolid] = useState("#0b3aa4");
@@ -422,8 +424,8 @@ export default function DashboardTrackDetailPage() {
                   <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <p className="text-sm text-red-700 dark:text-red-400 font-medium leading-relaxed">
                     {t('TrackDetail.overdueBanner', {
-                      a: (chunks: any) => (
-                        <a href="mailto:support@goexoduslogistics.com" className="cursor-pointer font-bold underline hover:opacity-80 transition">{chunks}</a>
+                                            a: (chunks: any) => (
+                        <a href={`mailto:${company.email}`} className="cursor-pointer font-bold underline hover:opacity-80 transition">{chunks}</a>
                       ),
                     })}
                   </p>
@@ -652,9 +654,18 @@ export default function DashboardTrackDetailPage() {
                                           </div>
                                           <div className={`rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">{when}{loc ? ` · ${loc}` : ""}</p>
-                                            {(en as any).details?.trim() && (
-                                              <p className="text-sm text-gray-800 dark:text-gray-200 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
-                                            )}
+                                                                                        {(() => {
+                                              /* Canonical stages store a detailsKey and render translated.
+                                                 Admin-written details override it and stay as typed. */
+                                              const raw = String((en as any).details || "").trim();
+                                              const key = String((en as any).detailsKey || "").trim();
+                                              if (!raw && !key) return null;
+                                              const text = raw || intl.formatMessage({ id: key, defaultMessage: "" });
+                                              if (!text) return null;
+                                              return (
+                                                <p className="text-sm text-gray-800 dark:text-gray-200 mt-1 font-medium leading-relaxed">{text}</p>
+                                              );
+                                            })()}
                                           </div>
                                         </div>
                                       );
