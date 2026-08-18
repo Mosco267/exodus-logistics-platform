@@ -12,6 +12,11 @@ import {
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl } from "react-intl";
 import { useCompany } from "@/lib/useCompany";
+import {
+  getShipmentTypeLabel,
+  getShipmentMeansLabel,
+  getServiceLevelLabel,
+} from "@/lib/shipment-utils";
 
 type InvoiceStatus = "paid" | "unpaid" | "overdue" | "cancelled";
 
@@ -48,7 +53,10 @@ type ApiResponse = {
   error?: string;
 };
 
-const ACCEPTED_METHODS = ["Cryptocurrency", "Bank transfer", "PayPal", "Zelle", "Cash", "Other"];
+/* Keys rather than labels. Rendered through PaymentMethod.* at display time.
+   Longer term these should come from payment_settings so the list matches
+   what is actually enabled in admin. */
+const ACCEPTED_METHOD_KEYS = ["crypto", "bankTransfer", "paypal", "zelle", "cash", "other"];
 
 function safeStr(v: any) { return String(v ?? "").trim(); }
 function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
@@ -93,7 +101,7 @@ function isOverdue(dueDate?: string | null) {
   return Date.now() > d.getTime();
 }
 
-function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, scope?: string | null): string {
+function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, scope?: string | null, bcp = "en-US"): string {
   if (!maxISO) return "—";
   const maxD = new Date(maxISO);
   if (Number.isNaN(maxD.getTime())) return "—";
@@ -108,12 +116,12 @@ function fmtEstimatedDelivery(maxISO?: string | null, minISO?: string | null, sc
     minD.setDate(minD.getDate() - extra);
   }
 
-  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-  const fmtFull = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const fmt = (d: Date) => d.toLocaleDateString(bcp, { day: "2-digit", month: "short" });
+  const fmtFull = (d: Date) => d.toLocaleDateString(bcp, { day: "2-digit", month: "short", year: "numeric" });
 
   if (minD.getTime() === maxD.getTime()) return fmtFull(maxD);
   if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
-    return `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
+    return `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString(bcp, { month: "short", year: "numeric" })}`;
   }
   return `${fmt(minD)} – ${fmtFull(maxD)}`;
 }
@@ -210,22 +218,47 @@ export default function DashboardInvoiceDetailPage() {
   const fuelRate = pricingUsed?.fuelSurchargeRate ?? pricingUsed?.fuelRate ?? pricingUsed?.fuel ?? 0;
   const insuranceRate = pricingUsed?.insuranceRate ?? pricingUsed?.insurance ?? pricingUsed?.insurancePercent ?? 0;
 
-  const paymentMethodRaw = safeStr(data?.paymentMethod);
+    const paymentMethodRaw = safeStr(data?.paymentMethod);
+
+  /* Stored methods vary in shape — "Bank transfer", "bankTransfer", or a
+     custom name an admin typed. Normalise to a key where possible and
+     translate; anything unrecognised passes through as written. */
+  const paymentMethodLabel = useMemo(() => {
+    const s = paymentMethodRaw.toLowerCase().replace(/[\s_-]+/g, "");
+    const key =
+      s.includes("crypto") || s.includes("bitcoin") || s.includes("usdt") || s.includes("ethereum") ? "crypto"
+      : s.includes("bank") ? "bankTransfer"
+      : s.includes("paypal") ? "paypal"
+      : s.includes("zelle") ? "zelle"
+      : s.includes("cash") ? "cash"
+      : s.includes("card") || s.includes("credit") || s.includes("debit") ? "card"
+      : s === "other" ? "other"
+      : "";
+    if (!key) return paymentMethodRaw;
+    return intl.formatMessage({ id: `PaymentMethod.${key}`, defaultMessage: paymentMethodRaw });
+  }, [paymentMethodRaw, intl.locale]);
 
   const originFull = safeStr(data?.shipment?.originFull) || "—";
   const destinationFull = safeStr(data?.shipment?.destinationFull) || "—";
-  const shipmentType = safeStr(data?.shipment?.shipmentType) || "—";
-  const serviceLevel = safeStr(data?.shipment?.serviceLevel) || "—";
-  const shipmentMeans = safeStr(data?.shipment?.shipmentMeans) || "—";
+    /* Stored values are English keys or labels; the shared helpers normalise
+     and translate them. Custom admin values pass through unchanged. */
+  const rawType = safeStr(data?.shipment?.shipmentType);
+  const rawService = safeStr(data?.shipment?.serviceLevel);
+  const rawMeans = safeStr(data?.shipment?.shipmentMeans);
+  const shipmentType = rawType ? getShipmentTypeLabel(rawType, intl) : "—";
+  const serviceLevel = rawService ? getServiceLevelLabel(rawService, intl) : "—";
+  const shipmentMeans = rawMeans ? getShipmentMeansLabel(rawMeans, intl) : "—";
   const weightKg = data?.shipment?.weightKg;
   const weightLine = weightKg != null && safeStr(weightKg) !== "" ? `${fmtIntWithCommas(weightKg)} kg` : "—";
   const dim = data?.shipment?.dimensionsCm;
   const dimUnit = safeStr(dim?.unit) || "cm";
   const dimLine = dim ? `${fmtIntWithCommas(dim.length)} × ${fmtIntWithCommas(dim.width)} × ${fmtIntWithCommas(dim.height)} ${dimUnit}` : "—";
 
+    const bcpLocale = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
+
   const estDeliveryStr = useMemo(
-    () => fmtEstimatedDelivery(data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope),
-    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope]
+    () => fmtEstimatedDelivery(data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope, bcpLocale),
+    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope, bcpLocale]
   );
 
   const statusBadge = status === "paid" ? t("InvoiceDetail.badgePaid") : status === "overdue" ? t("InvoiceDetail.badgeOverdue") : status === "cancelled" ? t("InvoiceDetail.badgeCancelled") : t("InvoiceDetail.badgeUnpaid");
@@ -235,8 +268,8 @@ export default function DashboardInvoiceDetailPage() {
     : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-400";
   const statusDot = status === "paid" ? "bg-green-500" : status === "overdue" ? "bg-red-500" : status === "cancelled" ? "bg-gray-400" : "bg-amber-500";
 
-  const paymentMethodLine = paymentMethodRaw && status === "paid"
-    ? t("InvoiceDetail.methodCompletedVia", { method: paymentMethodRaw })
+    const paymentMethodLine = paymentMethodRaw && status === "paid"
+    ? t("InvoiceDetail.methodCompletedVia", { method: paymentMethodLabel })
     : status === "paid" ? t("InvoiceDetail.methodNotRecorded")
     : status === "cancelled" ? t("InvoiceDetail.methodNotApplicable")
     : status === "overdue" ? t("InvoiceDetail.methodAwaitingRemit")
@@ -250,7 +283,7 @@ export default function DashboardInvoiceDetailPage() {
     ? t("InvoiceDetail.msgCancelled")
     : t("InvoiceDetail.msgUnpaid");
 
-  const bcpLocale = ({ en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN", it: "it-IT", ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN" } as Record<string, string>)[locale] || "en-US";
+  
   const dueDateStr = dueDate ? new Date(dueDate).toLocaleDateString(bcpLocale, { month: "short", day: "numeric", year: "numeric" }) : "";
   const dueDateLine = dueDate
     ? (status === "overdue"
@@ -426,9 +459,11 @@ export default function DashboardInvoiceDetailPage() {
                   <h2 className="text-sm font-extrabold text-gray-900 dark:text-white uppercase tracking-wide">{t("InvoiceDetail.payment")}</h2>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t("InvoiceDetail.acceptedMethods")}</p>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {ACCEPTED_METHODS.map((m) => (
-                    <span key={m} className="inline-flex items-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-gray-700 dark:text-gray-300">{m}</span>
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {ACCEPTED_METHOD_KEYS.map((k) => (
+                    <span key={k} className="inline-flex items-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-gray-700 dark:text-gray-300">
+                      {t(`PaymentMethod.${k}`)}
+                    </span>
                   ))}
                 </div>
                 <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3 space-y-2">

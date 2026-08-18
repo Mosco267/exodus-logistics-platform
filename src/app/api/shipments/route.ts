@@ -16,6 +16,7 @@ import {
   sendShipmentCreatedReceiverEmailV2,
 } from "@/lib/email";
 import { createNotification } from "@/lib/notifications";
+import { normalizeShipmentStatusKey } from "@/lib/shipment-utils";
 
 export async function GET(req: Request) {
   try {
@@ -199,25 +200,36 @@ function makeCreatedEventSubEntry(
     occurredAt: iso,
     location: { country: "", state: "", city: "", county: "" },
   };
+    /* details stays empty so the track page renders detailsKey in the reader's
+     language. badgeTextKey does the same for the badge. The English strings
+     are kept only as a fallback for anything that reads the raw document. */
   if (type === "pending") return { ...base,
-    details: "Your shipment has been successfully created. However, your invoice payment is currently pending. Please complete your payment at your earliest convenience to ensure your shipment is processed and dispatched without delay.",
+    details: "",
+    detailsKey: "Timeline.invoicePending",
     color: "#f59e0b", detailColor: "#f59e0b",
-    badgeText: "Pending Invoice", badgeColor: "#3b82f6", badgeLocked: true,
+    badgeText: "Pending Invoice", badgeTextKey: "TimelineBadge.pendingInvoice",
+    badgeColor: "#3b82f6", badgeLocked: true,
   };
   if (type === "overdue") return { ...base,
-    details: "Your invoice payment is now overdue. To avoid further delays or cancellation of your shipment, we kindly urge you to complete your payment immediately. Please contact our support team if you require assistance or have any concerns regarding your invoice.",
+    details: "",
+    detailsKey: "Timeline.invoiceOverdue",
     color: "#ef4444", detailColor: "#ef4444",
-    badgeText: "Invoice Overdue", badgeColor: "#ef4444", badgeLocked: true,
+    badgeText: "Invoice Overdue", badgeTextKey: "TimelineBadge.invoiceOverdue",
+    badgeColor: "#ef4444", badgeLocked: true,
   };
   if (type === "cancelled") return { ...base,
-    details: "We regret to inform you that your shipment has been cancelled due to non-payment of the outstanding invoice. If you wish to proceed with your shipment, please create a new shipment request or contact our support team for further assistance. If you believe this cancellation was made in error, kindly reach out to us at support@goexoduslogistics.com and we will be happy to assist you.",
+    details: "",
+    detailsKey: "Timeline.invoiceCancelled",
     color: "#6b7280", detailColor: "#6b7280",
-    badgeText: "Shipment Cancelled", badgeColor: "#6b7280", badgeLocked: true,
+    badgeText: "Shipment Cancelled", badgeTextKey: "TimelineBadge.shipmentCancelled",
+    badgeColor: "#6b7280", badgeLocked: true,
   };
   return { ...base,
-    details: "Excellent news. Your invoice has been successfully paid. Your shipment is now confirmed and will be progressing to the next phase shortly. You will be notified as soon as there is an update on your shipment status. Thank you for choosing Exodus Logistics.",
+    details: "",
+    detailsKey: "Timeline.invoicePaid",
     color: "#22c55e", detailColor: "#22c55e",
-    badgeText: "Completed", badgeColor: "#22c55e", badgeLocked: false,
+    badgeText: "Completed", badgeTextKey: "TimelineBadge.completed",
+    badgeColor: "#22c55e", badgeLocked: false,
   };
 }
 
@@ -415,9 +427,10 @@ export async function POST(req: Request) {
 
         trackingEvents: [
           {
-            key: "created",
+                        key: "created",
             label: statusTitle || "Created",
             details: "",
+            detailsKey: `Timeline.${normalizeShipmentStatusKey(statusTitle || "Created")}`,
             note: statusNote,
             additionalNote: "",
             occurredAt: now.toISOString(),
@@ -524,9 +537,12 @@ export async function POST(req: Request) {
 
       // Dashboard notification for the user who made the shipment
       if (createdByEmail) {
-        await createNotification({
+                await createNotification({
           userEmail: createdByEmail,
           userId: createdByUserId || undefined,
+          titleKey: "Notif.shipmentCreatedTitle",
+          messageKey: "Notif.shipmentCreatedMessage",
+          vars: { shipmentId },
           title: "Shipment Created",
           message: `Your shipment ${shipmentId} has been created and is being processed.`,
           shipmentId,

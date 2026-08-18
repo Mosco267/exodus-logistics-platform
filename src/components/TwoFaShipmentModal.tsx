@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, ShieldCheck, X, Mail, Smartphone } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useIntl } from 'react-intl';
 
 type Props = {
   accent: string;
@@ -16,6 +17,9 @@ type Props = {
 const RESEND_SECONDS = 60;
 
 export default function TwoFaShipmentModal({ accent, method, emailHint, onSuccess, onClose }: Props) {
+    const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,7 +65,7 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
     fetch('/api/user/2fa/email/send-shipment-code', { method: 'POST' })
       .then(r => r.json())
       .then(() => { setResending(false); startCountdown(); })
-      .catch(() => { setResending(false); setError('Failed to send code. Please try again.'); });
+            .catch(() => { setResending(false); setError(t('TwoFa.errSendFailed')); });
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [method]);
 
@@ -72,18 +76,18 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
     setResentMessage('');
     try {
       await fetch('/api/user/2fa/email/send-shipment-code', { method: 'POST' });
-      setResentMessage('A new code has been sent to your email.');
+            setResentMessage(t('TwoFa.resent'));
       setTimeout(() => setResentMessage(''), 4000);
       startCountdown();
     } catch {
-      setError('Failed to resend code.');
+      setError(t('TwoFa.errResendFailed'));
     } finally {
       setResending(false);
     }
   };
 
   const handleVerify = async () => {
-    if (code.replace(/\s/g, '').length < 6) { setError('Enter the 6-digit code'); return; }
+        if (code.replace(/\s/g, '').length < 6) { setError(t('TwoFa.errEnterCode')); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/user/2fa/verify-shipment', {
@@ -92,22 +96,20 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
         body: JSON.stringify({ code, method }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Invalid code'); return; }
+            if (!res.ok) { setError(data.error || t('TwoFa.errInvalidCode')); return; }
       onSuccess();
-    } catch { setError('Something went wrong'); }
+    } catch { setError(t('TwoFa.errGeneric')); }
     finally { setLoading(false); }
   };
 
   if (typeof document === 'undefined') return null;
 
   const Icon = method === 'email' ? Mail : Smartphone;
-  const titleText = method === 'email' ? 'Email Verification' : 'App Verification';
+    const titleText = method === 'email' ? t('TwoFa.titleEmail') : t('TwoFa.titleApp');
   const subText = method === 'email'
-    ? `Enter the code sent to ${emailHint || 'your email'}`
-    : 'Enter the 6-digit code from your authenticator app';
-  const description = method === 'email'
-    ? 'We sent a 6-digit verification code to your email. Please enter it below to confirm your shipment creation.'
-    : 'Two-factor authentication is enabled on your account. Open your authenticator app and enter the 6-digit code to proceed with creating your shipment.';
+    ? t('TwoFa.subEmail', { email: emailHint || t('TwoFa.yourEmail') })
+    : t('TwoFa.subApp');
+  const description = method === 'email' ? t('TwoFa.descEmail') : t('TwoFa.descApp');
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
@@ -176,13 +178,17 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
             <div className="text-center mb-4">
               {secondsLeft > 0 ? (
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  Resend code in <span className="font-bold text-gray-900 dark:text-white">{secondsLeft}s</span>
+                                   {t('TwoFa.resendIn', {
+                    seconds: (chunks: any) => <span className="font-bold text-gray-900 dark:text-white">{secondsLeft}s</span>,
+                  })}
                 </p>
               ) : (
                 <button onClick={handleResend} disabled={resending}
   className="text-xs font-semibold transition cursor-pointer disabled:opacity-50 hover:opacity-80"
   style={{ background: accent, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-  {resending ? 'Sending...' : <>Didn't receive a code? <span className="underline underline-offset-2">Resend</span></>}
+    {resending ? t('TwoFa.sending') : t('TwoFa.noCode', {
+    resend: (chunks: any) => <span className="underline underline-offset-2">{chunks}</span>,
+  })}
 </button>
               )}
             </div>
@@ -191,13 +197,13 @@ export default function TwoFaShipmentModal({ accent, method, emailHint, onSucces
           <div className="flex gap-2.5">
             <button onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition">
-              Cancel
+                           {t('TwoFa.cancel')}
             </button>
             <button onClick={handleVerify} disabled={loading || code.replace(/\D/g, '').length < 6}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 cursor-pointer disabled:opacity-50"
               style={{ background: accent }}>
               {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-              {loading ? 'Verifying...' : 'Confirm'}
+                            {loading ? t('TwoFa.verifying') : t('TwoFa.confirm')}
             </button>
           </div>
         </div>

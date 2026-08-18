@@ -547,7 +547,10 @@ export default function DashboardTrackDetailPage() {
                     const isLast = idx === events.length - 1;
 
                     const lastEntry = ev?.entries?.[ev.entries.length - 1];
-                    const customBadgeText = (lastEntry as any)?.badgeText || "";
+                                        const customBadgeKey = (lastEntry as any)?.badgeTextKey || "";
+                    const customBadgeText = customBadgeKey
+                      ? intl.formatMessage({ id: customBadgeKey, defaultMessage: (lastEntry as any)?.badgeText || "" })
+                      : ((lastEntry as any)?.badgeText || "");
                     const customBadgeColor = (lastEntry as any)?.badgeColor || "";
 
                     const currentDotColor = safeColor(stageBaseColor) || "#f59e0b";

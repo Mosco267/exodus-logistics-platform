@@ -1341,5 +1341,38 @@
 "Timeline.outfordelivery": "Your shipment is out for delivery and should arrive today. Please ensure someone is available to receive it.",
 "Timeline.delivered": "Your shipment has been delivered. Thank you for shipping with us.",
 "Timeline.unclaimed": "Your shipment is at the delivery facility awaiting collection.",
-"Timeline.cancelled": "This shipment has been cancelled. Contact support if you need assistance."
+"Timeline.cancelled": "This shipment has been cancelled. Contact support if you need assistance.",
+
+"Notif.shipmentCreatedTitle": "Shipment created",
+"Notif.shipmentCreatedMessage": "Your shipment {shipmentId} has been created and is being processed.",
+
+"Timeline.invoicePending": "Your shipment has been created. Payment for the invoice is still outstanding — completing it promptly keeps your shipment moving without delay.",
+"Timeline.invoiceOverdue": "Payment for this invoice is now overdue. Please complete it as soon as possible to avoid further delay or cancellation. Contact support if you need help.",
+"Timeline.invoiceCancelled": "This shipment has been cancelled because the invoice went unpaid. To proceed, create a new shipment or contact support if you believe this was a mistake.",
+"Timeline.invoicePaid": "Your invoice has been paid and the shipment is confirmed. We will notify you as it moves to the next stage.",
+
+"TimelineBadge.pendingInvoice": "Pending invoice",
+"TimelineBadge.invoiceOverdue": "Invoice overdue",
+"TimelineBadge.shipmentCancelled": "Cancelled",
+"TimelineBadge.completed": "Completed",
+
+"TwoFa.titleEmail": "Email verification",
+"TwoFa.titleApp": "App verification",
+"TwoFa.subEmail": "Enter the code sent to {email}",
+"TwoFa.subApp": "Enter the 6-digit code from your authenticator app",
+"TwoFa.yourEmail": "your email",
+"TwoFa.descEmail": "We sent a 6-digit verification code to your email. Enter it below to confirm your shipment.",
+"TwoFa.descApp": "Two-factor authentication is enabled on your account. Open your authenticator app and enter the 6-digit code to continue.",
+"TwoFa.resendIn": "Resend code in <seconds></seconds>",
+"TwoFa.noCode": "Didn't receive a code? <resend>Resend</resend>",
+"TwoFa.sending": "Sending…",
+"TwoFa.resent": "A new code has been sent to your email.",
+"TwoFa.cancel": "Cancel",
+"TwoFa.confirm": "Confirm",
+"TwoFa.verifying": "Verifying…",
+"TwoFa.errSendFailed": "Failed to send code. Please try again.",
+"TwoFa.errResendFailed": "Failed to resend code.",
+"TwoFa.errEnterCode": "Enter the 6-digit code",
+"TwoFa.errInvalidCode": "Invalid code",
+"TwoFa.errGeneric": "Something went wrong"
 }

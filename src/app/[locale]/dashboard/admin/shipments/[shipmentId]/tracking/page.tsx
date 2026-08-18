@@ -551,10 +551,15 @@ const contextualPrevColor = useMemo(() => {
     const colors = getDefaultColors(s.key);
     setStageColor(colors.stageColor);
     setDetailColor(colors.detailColor);
-    const def = s.defaultUpdate || "";
+        const def = s.defaultUpdate || "";
+
+    /* The default is shown as placeholder guidance, not pre-filled. Saving it
+       would write English into statusNote, which overrides the translated
+       text the status page renders for canonical stages. Leave these empty
+       unless there is something specific to say about this shipment. */
     setDefaultNote(def);
-    setNote(def);
-    setAdditionalNote(def);
+    setNote("");
+    setAdditionalNote("");
     setDetails("");
     setShowStageDropdown(false);
   };
@@ -562,7 +567,8 @@ const contextualPrevColor = useMemo(() => {
   const addEvent = async () => {
     setErr(""); setOk("");
     if (!label.trim()) { setErr("Please select a stage."); return; }
-    if (!details.trim()) { setErr("Details is required."); return; }
+        /* Details is optional on canonical stages — leaving it blank stores a
+       translation key so customers read it in their own language. */
     if (!locCity.trim() && !locCountry.trim()) { setErr("Please fill in at least city and country."); return; }
 
     const isoTime = useLocalTime ? new Date().toISOString() : new Date(occurredAt).toISOString();
@@ -938,10 +944,13 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Details <span className="text-red-500">*</span></label>
+                <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+  Details <span className="text-xs font-normal text-gray-400">(leave blank to use the translated default)</span>
+</label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-300 pointer-events-none" />
-                  <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Describe what happened at this stage…"
+                                    <textarea value={details} onChange={(e) => setDetails(e.target.value)}
+                    placeholder={defaultDetails || "Describe what happened at this stage…"}
                     className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 min-h-[90px] resize-none placeholder:text-gray-400 transition" />
                 </div>
               </div>
