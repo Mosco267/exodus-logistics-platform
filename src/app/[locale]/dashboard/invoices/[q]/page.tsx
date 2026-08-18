@@ -309,9 +309,24 @@ export default function DashboardInvoiceDetailPage() {
              than display lets the invoice show through hidden ancestors. */
           body * { visibility: hidden !important; }
           .print-area, .print-area * { visibility: visible !important; }
-          .print-area {
+                    .print-area {
             position: absolute; left: 0; top: 0; width: 100%;
+            max-width: none;
             margin: 0; padding: 0;
+          }
+
+          /* The dashboard shell constrains height and scrolls internally,
+             which caps printing at one page. Release those constraints so
+             the invoice can paginate. */
+          html, body {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          main, [class*="overflow-y-auto"], [class*="h-screen"], [class*="min-h-screen"] {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
           }
           .no-print, .no-print * { visibility: hidden !important; display: none !important; }
           #tawk-script, iframe[title*="chat" i], iframe[src*="tawk"] { display: none !important; }
