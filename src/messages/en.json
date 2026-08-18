@@ -1323,5 +1323,13 @@
 "Notif.invoiceCancelledTitle": "Invoice cancelled",
 "Notif.invoiceCancelledMessage": "The invoice for shipment {shipmentId} has been cancelled.",
 "Notif.invoiceUpdatedTitle": "Invoice updated",
-"Notif.invoiceUnpaidMessage": "The invoice for shipment {shipmentId} is now unpaid."
+"Notif.invoiceUnpaidMessage": "The invoice for shipment {shipmentId} is now unpaid.",
+
+"PaymentMethod.crypto": "Cryptocurrency",
+"PaymentMethod.bankTransfer": "Bank transfer",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "Cash",
+"PaymentMethod.other": "Other",
+"PaymentMethod.card": "Credit / debit card"
 }
