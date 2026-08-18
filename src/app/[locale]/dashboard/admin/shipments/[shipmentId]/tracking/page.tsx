@@ -17,6 +17,21 @@ type TrackingEvent = {
 };
 type StatusDoc = { key: string; label: string; color: string; icon?: string; defaultUpdate?: string; };
 
+/* Mirrors the Timeline.* translation keys. Shown as placeholder guidance so
+   admins can see what the customer will read. Leaving the field blank stores
+   the key and renders translated; typing overrides it in one language only. */
+const DEFAULT_DETAILS: Record<string, string> = {
+  created: "Your shipment has been registered in our system and is being prepared for collection.",
+  pickedup: "Your shipment has been collected and is on its way to our sorting facility.",
+  inwarehouse: "Your shipment has arrived at our facility and is being processed for onward transit.",
+  intransit: "Your shipment is in transit and moving toward its destination.",
+  customclearance: "Your shipment is undergoing customs clearance. This can take a few days depending on the destination.",
+  outfordelivery: "Your shipment is out for delivery and should arrive today. Please ensure someone is available to receive it.",
+  delivered: "Your shipment has been delivered. Thank you for shipping with us.",
+  unclaimed: "Your shipment is at the delivery facility awaiting collection.",
+  cancelled: "This shipment has been cancelled. Contact support if you need assistance.",
+};
+
 const RED_STAGES = new Set(["paymentissue", "invalidaddress", "cancelled", "canceled", "unclaimed"]);
 const GREEN_STAGES = new Set(["delivered"]);
 
@@ -334,7 +349,8 @@ export default function AdminShipmentTrackingPage() {
   const [details, setDetails] = useState("");
   const [note, setNote] = useState("");
   const [additionalNote, setAdditionalNote] = useState("");
-  const [defaultNote, setDefaultNote] = useState("");
+    const [defaultNote, setDefaultNote] = useState("");
+  const [defaultDetails, setDefaultDetails] = useState("");
   const [stageColor, setStageColor] = useState("#f59e0b");
   const [detailColor, setDetailColor] = useState("#f59e0b");
   const [locCity, setLocCity] = useState("");
@@ -557,10 +573,18 @@ const contextualPrevColor = useMemo(() => {
        would write English into statusNote, which overrides the translated
        text the status page renders for canonical stages. Leave these empty
        unless there is something specific to say about this shipment. */
-    setDefaultNote(def);
+        setDefaultNote(def);
     setNote("");
     setAdditionalNote("");
     setDetails("");
+
+    const normKey = s.key.toLowerCase().replace(/[\s_-]+/g, "");
+    const aliased = normKey === "warehouse" ? "inwarehouse"
+      : normKey === "picked" ? "pickedup"
+      : normKey === "customs" ? "customclearance"
+      : normKey;
+    setDefaultDetails(DEFAULT_DETAILS[aliased] || "");
+
     setShowStageDropdown(false);
   };
 
@@ -952,7 +976,12 @@ badgeLocked: subBadgeMode === "custom" && subBadgeText.trim() ? subBadgeLocked :
                                     <textarea value={details} onChange={(e) => setDetails(e.target.value)}
                     placeholder={defaultDetails || "Describe what happened at this stage…"}
                     className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 min-h-[90px] resize-none placeholder:text-gray-400 transition" />
-                </div>
+                                </div>
+                {defaultDetails && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Leave blank to use the default above — it shows in the customer's own language.
+                  </p>
+                )}
               </div>
 
               <div>
