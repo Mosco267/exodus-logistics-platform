@@ -291,8 +291,11 @@ await db.collection("shipments").updateOne(
         $set.status = String(statusDoc.label || rawStatus).trim();
         $set.statusUpdatedAt = now;
         $set.statusColor = body.statusColor !== undefined ? String(body.statusColor || "").trim() : String(statusDoc.color || "").trim();
-        $set.statusNote = body.statusNote !== undefined ? String(body.statusNote || "").trim() : String(statusDoc.defaultUpdate || "").trim();
-        $set.nextStep = body.nextStep !== undefined ? String(body.nextStep || "").trim() : String(statusDoc.nextStep || "").trim();
+                /* Only store a note when one was explicitly supplied. Copying the
+           status config's English default here would override the translated
+           text the status page renders per language. */
+        $set.statusNote = body.statusNote !== undefined ? String(body.statusNote || "").trim() : "";
+        $set.nextStep = body.nextStep !== undefined ? String(body.nextStep || "").trim() : "";
       } else {
         $set.status = rawStatus;
         $set.statusUpdatedAt = now;
@@ -469,7 +472,7 @@ badgeLocked: Boolean(ev?.badgeLocked ?? false),
 
       $push.trackingEvents = event;
       $set.status = event.label;
-      $set.statusNote = event.note || event.details || $set.statusNote || "";
+           $set.statusNote = event.note || "";
       $set.statusUpdatedAt = new Date(event.occurredAt);
     }
 
