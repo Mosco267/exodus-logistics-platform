@@ -915,6 +915,7 @@ try {
         accountType: 'individual',
         emailUpdates,
         forceCreate: true,
+        locale,
       }),
     });
     const json = await res.json();

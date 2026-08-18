@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "Tarjeta de crédito o débito",
 "Delivery.sameDayNextDay": "El mismo día o el siguiente",
 "Delivery.days": "{count} días hábiles",
-"Delivery.range": "{min}–{max} días hábiles"
+"Delivery.range": "{min}–{max} días hábiles",
+
+"NewShipment.autoSelected": "Selección automática",
+    "NewShipment.estDelivery": "Entrega est.",
+    "NewShipment.volumetricNotice": "Se cobra por peso volumétrico: {vol} kg, superior a los {actual} kg reales, debido al tamaño del paquete."
 }

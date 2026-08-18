@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "信用卡 / 借记卡",
 "Delivery.sameDayNextDay": "当日至次日",
 "Delivery.days": "{count} 个工作日",
-"Delivery.range": "{min}–{max} 个工作日"
+"Delivery.range": "{min}–{max} 个工作日",
+
+"NewShipment.autoSelected": "自动选择",
+    "NewShipment.estDelivery": "预计送达",
+    "NewShipment.volumetricNotice": "按体积重量计费:{vol} 公斤,高于实际的 {actual} 公斤,因包裹尺寸较大。"
 }

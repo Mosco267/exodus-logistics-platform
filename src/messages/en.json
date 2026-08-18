@@ -1378,5 +1378,9 @@
 
 "Delivery.sameDayNextDay": "Same day to next day",
 "Delivery.days": "{count} business days",
-"Delivery.range": "{min}–{max} business days"
+"Delivery.range": "{min}–{max} business days",
+
+"NewShipment.autoSelected": "Auto-selected",
+"NewShipment.estDelivery": "Est. delivery",
+"NewShipment.volumetricNotice": "Charged at volumetric weight: {vol} kg, larger than the actual {actual} kg, because of the package size."
 }

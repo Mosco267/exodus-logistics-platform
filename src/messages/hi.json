@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "क्रेडिट / डेबिट कार्ड",
 "Delivery.sameDayNextDay": "उसी दिन या अगले दिन",
 "Delivery.days": "{count} कार्यदिवस",
-"Delivery.range": "{min}–{max} कार्यदिवस"
+"Delivery.range": "{min}–{max} कार्यदिवस",
+
+"NewShipment.autoSelected": "स्वतः चयनित",
+    "NewShipment.estDelivery": "अनुमानित डिलीवरी",
+    "NewShipment.volumetricNotice": "आयतन भार पर शुल्क: {vol} किग्रा, वास्तविक {actual} किग्रा से अधिक, पैकेज के आकार के कारण।"
 }

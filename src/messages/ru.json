@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "Кредитная или дебетовая карта",
 "Delivery.sameDayNextDay": "В день отправки или на следующий день",
 "Delivery.days": "{count} рабочих дней",
-"Delivery.range": "{min}–{max} рабочих дней"
+"Delivery.range": "{min}–{max} рабочих дней",
+
+"NewShipment.autoSelected": "Выбрано автоматически",
+    "NewShipment.estDelivery": "Ожид. доставка",
+    "NewShipment.volumetricNotice": "Расчёт по объёмному весу: {vol} кг вместо фактических {actual} кг из-за габаритов посылки."
 }

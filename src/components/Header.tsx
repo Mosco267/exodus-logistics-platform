@@ -54,8 +54,17 @@ export default function Header() {
   // Tawk runs one widget per page and evaluates its triggers server-side
   // against the real URL, so a context-only change leaves the chat behind.
   const changeLanguage = (code: Locale) => {
-    setLocale(code);
+        setLocale(code);
     document.cookie = `exodus_locale=${code}; max-age=${60 * 60 * 24 * 365}; path=/`;
+
+    /* Persist for signed-in users so server-side email uses the language
+       they actually read. Fire and forget — navigation continues regardless. */
+    void fetch('/api/user/locale', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale: code }),
+      keepalive: true,
+    }).catch(() => {});
 
     // Tawk keeps one conversation per visitor, so the previous
     // language's greeting would stack on top of the new one.

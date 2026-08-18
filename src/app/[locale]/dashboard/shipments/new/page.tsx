@@ -1819,18 +1819,21 @@ const handleSubmit = async () => {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 dark:text-white">{MEANS_CONFIG[means].label}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Auto-selected · {deliveryLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('NewShipment.autoSelected')} · {deliveryLabel}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Est. Delivery</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{t('NewShipment.estDelivery')}</p>
         <p className="text-xs font-bold text-gray-700 dark:text-gray-200 mt-0.5">{deliveryDateStr}</p>
       </div>
     </div>
     {volumetricWeight > actualWeight && actualWeight > 0 && (
       <div className="px-3.5 pb-3 -mt-1">
         <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
-          <Info size={11} className="shrink-0" />
-          Charged at volumetric weight: {formatMoney(volumetricWeight)} kg (larger than actual {formatMoney(actualWeight)} kg) due to package size.
+                    <Info size={11} className="shrink-0" />
+          {t('NewShipment.volumetricNotice', {
+            vol: formatMoney(volumetricWeight),
+            actual: formatMoney(actualWeight),
+          })}
         </p>
       </div>
     )}

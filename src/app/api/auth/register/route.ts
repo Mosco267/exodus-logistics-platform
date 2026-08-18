@@ -16,10 +16,16 @@ const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-seri
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+        const body = await req.json();
     const name = String(body.name || "").trim();
     const email = String(body.email || "").toLowerCase().trim();
     const password = String(body.password || "");
+
+    /* Language the customer signed up in. Stored so server-side email can
+       address them in it — the server has no access to react-intl. */
+    const SUPPORTED = ["en","es","fr","de","zh","it","ar","pt","ru","ja","ko","hi"];
+    const rawLocale = String(body.locale || "").toLowerCase().trim();
+    const preferredLocale = SUPPORTED.includes(rawLocale) ? rawLocale : "en";
 
     if (!name) return NextResponse.json({ error: "Full name is required." }, { status: 400 });
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
@@ -63,8 +69,9 @@ if (existing) return NextResponse.json({ error: "An account with this email alre
     await db.collection("pending_users").deleteMany({ email });
     await db.collection("pending_users").insertOne({
       name, email, passwordHash,
-      phone: String(body.phone || "").trim(),
+            phone: String(body.phone || "").trim(),
       country: String(body.country || "").trim(),
+      preferredLocale,
       role: "USER", provider: "credentials",
       verificationCode, verificationExpiry,
       createdAt: new Date(),

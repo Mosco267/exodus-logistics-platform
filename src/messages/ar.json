@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "بطاقة ائتمان أو خصم",
 "Delivery.sameDayNextDay": "في نفس اليوم أو اليوم التالي",
 "Delivery.days": "{count} أيام عمل",
-"Delivery.range": "من {min} إلى {max} يوم عمل"
+"Delivery.range": "من {min} إلى {max} يوم عمل",
+
+"NewShipment.autoSelected": "اختيار تلقائي",
+    "NewShipment.estDelivery": "التسليم المتوقع",
+    "NewShipment.volumetricNotice": "يُحتسب بالوزن الحجمي: {vol} كجم، وهو أكبر من الوزن الفعلي {actual} كجم، بسبب حجم الطرد."
 }

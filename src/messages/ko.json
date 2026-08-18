@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "신용 / 직불 카드",
 "Delivery.sameDayNextDay": "당일 또는 익일",
 "Delivery.days": "{count} 영업일",
-"Delivery.range": "{min}~{max} 영업일"
+"Delivery.range": "{min}~{max} 영업일",
+
+"NewShipment.autoSelected": "자동 선택",
+    "NewShipment.estDelivery": "예상 배송",
+    "NewShipment.volumetricNotice": "부피 중량으로 청구: {vol}kg, 실제 {actual}kg보다 큽니다. 화물 크기 때문입니다."
 }

@@ -30,8 +30,11 @@ export async function POST(req: Request) {
   passwordHash: pending.passwordHash,
   phone: pending.phone || '',
   country: pending.country || '',
-  role: pending.role,
+    role: pending.role,
   provider: pending.provider,
+  /* Carried from the pending record so server-side email can address the
+     customer in the language they signed up in. */
+  preferredLocale: pending.preferredLocale || 'en',
   emailVerified: true,
   avatarUrl: '',
   hasVisitedDashboard: false,

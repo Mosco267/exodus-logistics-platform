@@ -1387,5 +1387,9 @@
 "PaymentMethod.card": "クレジット / デビットカード",
 "Delivery.sameDayNextDay": "当日〜翌日",
 "Delivery.days": "{count} 営業日",
-"Delivery.range": "{min}〜{max} 営業日"
+"Delivery.range": "{min}〜{max} 営業日",
+
+"NewShipment.autoSelected": "自動選択",
+    "NewShipment.estDelivery": "配達予定",
+    "NewShipment.volumetricNotice": "容積重量で計算:{vol} kg(実重量 {actual} kg を上回るため)。荷物のサイズによるものです。"
 }
