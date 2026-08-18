@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "코드를 재전송하지 못했습니다.",
 "TwoFa.errEnterCode": "6자리 코드를 입력하세요",
 "TwoFa.errInvalidCode": "잘못된 코드입니다",
-"TwoFa.errGeneric": "문제가 발생했습니다"
+"TwoFa.errGeneric": "문제가 발생했습니다",
+
+"PaymentMethod.crypto": "암호화폐",
+"PaymentMethod.bankTransfer": "계좌이체",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "현금",
+"PaymentMethod.other": "기타",
+"PaymentMethod.card": "신용 / 직불 카드",
+"Delivery.sameDayNextDay": "당일 또는 익일",
+"Delivery.days": "{count} 영업일",
+"Delivery.range": "{min}~{max} 영업일"
 }

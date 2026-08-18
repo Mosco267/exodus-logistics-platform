@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "Reinvio del codice non riuscito.",
 "TwoFa.errEnterCode": "Inserisci il codice a 6 cifre",
 "TwoFa.errInvalidCode": "Codice non valido",
-"TwoFa.errGeneric": "Qualcosa è andato storto"
+"TwoFa.errGeneric": "Qualcosa è andato storto",
+
+"PaymentMethod.crypto": "Criptovaluta",
+"PaymentMethod.bankTransfer": "Bonifico bancario",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "Contanti",
+"PaymentMethod.other": "Altro",
+"PaymentMethod.card": "Carta di credito o debito",
+"Delivery.sameDayNextDay": "In giornata o il giorno successivo",
+"Delivery.days": "{count} giorni lavorativi",
+"Delivery.range": "{min}–{max} giorni lavorativi"
 }

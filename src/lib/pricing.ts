@@ -448,6 +448,9 @@ export function autoSelectMeans(
 
 
 // ─── Distance-based delivery time ────────────────────────────
+/* `label` is English and for internal use only — logs, admin views, emails
+   that have not been localised yet. Customer-facing surfaces should render
+   min/max through Delivery.* so the text follows the reader's language. */
 export function getDeliveryDays(
   means: ShipmentMeans,
   serviceLevel: ServiceLevel,

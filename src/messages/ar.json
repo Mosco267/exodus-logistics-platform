@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "تعذّرت إعادة إرسال الرمز.",
 "TwoFa.errEnterCode": "أدخل الرمز المكوّن من 6 أرقام",
 "TwoFa.errInvalidCode": "رمز غير صالح",
-"TwoFa.errGeneric": "حدث خطأ ما"
+"TwoFa.errGeneric": "حدث خطأ ما",
+
+"PaymentMethod.crypto": "عملة مشفّرة",
+"PaymentMethod.bankTransfer": "تحويل مصرفي",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "نقداً",
+"PaymentMethod.other": "أخرى",
+"PaymentMethod.card": "بطاقة ائتمان أو خصم",
+"Delivery.sameDayNextDay": "في نفس اليوم أو اليوم التالي",
+"Delivery.days": "{count} أيام عمل",
+"Delivery.range": "من {min} إلى {max} يوم عمل"
 }

@@ -1167,6 +1167,15 @@ const delivery = useMemo(() =>
   [means, effectiveServiceLevel, distanceKm]
 );
 
+/* delivery.label from pricing.ts is English and for internal use.
+   Render this instead so the estimate follows the reader's language. */
+const deliveryLabel = useMemo(() => {
+  const { min, max } = delivery;
+  if (min === 0) return t('Delivery.sameDayNextDay');
+  if (min === max) return t('Delivery.days', { count: max });
+  return t('Delivery.range', { min, max });
+}, [delivery, intl.locale]);
+
   // Fix 7: date range display
   const deliveryDateStr = useMemo(() => {
   if (weight <= 0) return '';
@@ -1174,14 +1183,16 @@ const delivery = useMemo(() =>
   const today = new Date();
   const minDate = addBusinessDays(today, min);
   const maxDate = addBusinessDays(today, max);
-  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-  const fmtFull = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const bcp = ({ en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', zh: 'zh-CN', it: 'it-IT',
+    ar: 'ar-SA', pt: 'pt-PT', ru: 'ru-RU', ja: 'ja-JP', ko: 'ko-KR', hi: 'hi-IN' } as Record<string, string>)[locale] || 'en-US';
+  const fmt = (d: Date) => d.toLocaleDateString(bcp, { day: '2-digit', month: 'short' });
+  const fmtFull = (d: Date) => d.toLocaleDateString(bcp, { day: '2-digit', month: 'short', year: 'numeric' });
   if (min === max) return fmtFull(minDate);
   if (minDate.getMonth() === maxDate.getMonth() && minDate.getFullYear() === maxDate.getFullYear()) {
-    return `${minDate.getDate()}–${maxDate.getDate()} ${maxDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
+    return `${minDate.getDate()}–${maxDate.getDate()} ${maxDate.toLocaleDateString(bcp, { month: 'short', year: 'numeric' })}`;
   }
   return `${fmt(minDate)} – ${fmtFull(maxDate)}`;
-}, [delivery, weight]);
+}, [delivery, weight, locale]);
 
   const deliveryDateMinISO = useMemo(() => {
   const { min } = delivery;
@@ -1808,7 +1819,7 @@ const handleSubmit = async () => {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 dark:text-white">{MEANS_CONFIG[means].label}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Auto-selected · {delivery.label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Auto-selected · {deliveryLabel}</p>
       </div>
       <div className="text-right shrink-0">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Est. Delivery</p>

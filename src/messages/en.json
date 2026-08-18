@@ -1374,5 +1374,9 @@
 "TwoFa.errResendFailed": "Failed to resend code.",
 "TwoFa.errEnterCode": "Enter the 6-digit code",
 "TwoFa.errInvalidCode": "Invalid code",
-"TwoFa.errGeneric": "Something went wrong"
+"TwoFa.errGeneric": "Something went wrong",
+
+"Delivery.sameDayNextDay": "Same day to next day",
+"Delivery.days": "{count} business days",
+"Delivery.range": "{min}–{max} business days"
 }

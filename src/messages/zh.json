@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "验证码重新发送失败。",
 "TwoFa.errEnterCode": "请输入 6 位验证码",
 "TwoFa.errInvalidCode": "验证码无效",
-"TwoFa.errGeneric": "出现了一些问题"
+"TwoFa.errGeneric": "出现了一些问题",
+
+"PaymentMethod.crypto": "加密货币",
+"PaymentMethod.bankTransfer": "银行转账",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "现金",
+"PaymentMethod.other": "其他",
+"PaymentMethod.card": "信用卡 / 借记卡",
+"Delivery.sameDayNextDay": "当日至次日",
+"Delivery.days": "{count} 个工作日",
+"Delivery.range": "{min}–{max} 个工作日"
 }

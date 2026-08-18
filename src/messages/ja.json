@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "コードを再送信できませんでした。",
 "TwoFa.errEnterCode": "6 桁のコードを入力してください",
 "TwoFa.errInvalidCode": "コードが正しくありません",
-"TwoFa.errGeneric": "問題が発生しました"
+"TwoFa.errGeneric": "問題が発生しました",
+
+"PaymentMethod.crypto": "暗号通貨",
+"PaymentMethod.bankTransfer": "銀行振込",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "現金",
+"PaymentMethod.other": "その他",
+"PaymentMethod.card": "クレジット / デビットカード",
+"Delivery.sameDayNextDay": "当日〜翌日",
+"Delivery.days": "{count} 営業日",
+"Delivery.range": "{min}〜{max} 営業日"
 }

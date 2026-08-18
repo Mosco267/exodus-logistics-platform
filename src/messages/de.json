@@ -1375,6 +1375,17 @@
 "TwoFa.errResendFailed": "Code konnte nicht erneut gesendet werden.",
 "TwoFa.errEnterCode": "Geben Sie den 6-stelligen Code ein",
 "TwoFa.errInvalidCode": "Ungültiger Code",
-"TwoFa.errGeneric": "Etwas ist schiefgelaufen"
+"TwoFa.errGeneric": "Etwas ist schiefgelaufen",
+
+"PaymentMethod.crypto": "Kryptowährung",
+"PaymentMethod.bankTransfer": "Banküberweisung",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "Bargeld",
+"PaymentMethod.other": "Sonstiges",
+"PaymentMethod.card": "Kredit- oder Debitkarte",
+"Delivery.sameDayNextDay": "Noch heute oder morgen",
+"Delivery.days": "{count} Werktage",
+"Delivery.range": "{min}–{max} Werktage"
 
 }

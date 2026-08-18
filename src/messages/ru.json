@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "Не удалось отправить код повторно.",
 "TwoFa.errEnterCode": "Введите 6-значный код",
 "TwoFa.errInvalidCode": "Неверный код",
-"TwoFa.errGeneric": "Что-то пошло не так"
+"TwoFa.errGeneric": "Что-то пошло не так",
+
+"PaymentMethod.crypto": "Криптовалюта",
+"PaymentMethod.bankTransfer": "Банковский перевод",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "Наличные",
+"PaymentMethod.other": "Другое",
+"PaymentMethod.card": "Кредитная или дебетовая карта",
+"Delivery.sameDayNextDay": "В день отправки или на следующий день",
+"Delivery.days": "{count} рабочих дней",
+"Delivery.range": "{min}–{max} рабочих дней"
 }

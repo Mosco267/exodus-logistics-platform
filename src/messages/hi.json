@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "कोड दोबारा भेजा नहीं जा सका।",
 "TwoFa.errEnterCode": "6 अंकों का कोड दर्ज करें",
 "TwoFa.errInvalidCode": "अमान्य कोड",
-"TwoFa.errGeneric": "कुछ गड़बड़ हो गई"
+"TwoFa.errGeneric": "कुछ गड़बड़ हो गई",
+
+"PaymentMethod.crypto": "क्रिप्टोकरेंसी",
+"PaymentMethod.bankTransfer": "बैंक ट्रांसफ़र",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "नकद",
+"PaymentMethod.other": "अन्य",
+"PaymentMethod.card": "क्रेडिट / डेबिट कार्ड",
+"Delivery.sameDayNextDay": "उसी दिन या अगले दिन",
+"Delivery.days": "{count} कार्यदिवस",
+"Delivery.range": "{min}–{max} कार्यदिवस"
 }

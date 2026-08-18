@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { details } from "framer-motion/client";
 
 function escapeRegex(input: string) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -156,9 +155,13 @@ export async function POST(req: Request) {
       return {
         key,
         label,
-        // note field: details takes priority over note for display
+                // note field: details takes priority over note for display
         note: cleanStr(ev?.note || ev?.statusNote || ""),
         details: cleanStr(ev?.details || ""),
+        /* Canonical stages store a key instead of English prose. The track
+           page renders it in the reader's language. */
+        detailsKey: cleanStr(ev?.detailsKey || ""),
+        badgeTextKey: cleanStr(ev?.badgeTextKey || ""),
         occurredAt,
         color: cleanStr(ev?.color),
         detailColor: cleanStr(ev?.detailColor),
@@ -199,16 +202,21 @@ export async function POST(req: Request) {
           badgeText: e.badgeText || "",
           badgeColor: e.badgeColor || "",
           badgeLocked: e.badgeLocked ?? false,
-          entries: e.details ? [
+                    /* An entry counts as having content if it carries details, a
+             translation key, or a note. Checking details alone would drop
+             every canonical stage, since those store a key instead. */
+          entries: (e.details || e.detailsKey || e.note) ? [
             {
               occurredAt: e.occurredAt,
               note: e.note,
               details: e.details,
+              detailsKey: e.detailsKey || "",
               color: e.color || "",
               detailColor: e.detailColor || "",
               location: e.location,
               currentLocation: e.currentLocation || "",
               badgeText: e.badgeText || "",
+              badgeTextKey: e.badgeTextKey || "",
               badgeColor: e.badgeColor || "",
               badgeLocked: e.badgeLocked ?? false,
             },
@@ -216,17 +224,19 @@ export async function POST(req: Request) {
           meta: e.meta,
         });
       } else {
-        const g = groups[idx];
-        if (e.details) {
+                const g = groups[idx];
+        if (e.details || e.detailsKey || e.note) {
           g.entries.push({
             occurredAt: e.occurredAt,
             note: e.note,
             details: e.details,
+            detailsKey: e.detailsKey || "",
             color: e.color || "",
             detailColor: e.detailColor || "",
             location: e.location,
             currentLocation: e.currentLocation || "",
             badgeText: e.badgeText || "",
+            badgeTextKey: e.badgeTextKey || "",
             badgeColor: e.badgeColor || "",
             badgeLocked: e.badgeLocked ?? false,
           });

@@ -1376,5 +1376,16 @@
 "TwoFa.errResendFailed": "Não foi possível reenviar o código.",
 "TwoFa.errEnterCode": "Introduz o código de 6 dígitos",
 "TwoFa.errInvalidCode": "Código inválido",
-"TwoFa.errGeneric": "Algo correu mal"
+"TwoFa.errGeneric": "Algo correu mal",
+
+"PaymentMethod.crypto": "Criptomoeda",
+"PaymentMethod.bankTransfer": "Transferência bancária",
+"PaymentMethod.paypal": "PayPal",
+"PaymentMethod.zelle": "Zelle",
+"PaymentMethod.cash": "Dinheiro",
+"PaymentMethod.other": "Outro",
+"PaymentMethod.card": "Cartão de crédito ou débito",
+"Delivery.sameDayNextDay": "No próprio dia ou no dia seguinte",
+"Delivery.days": "{count} dias úteis",
+"Delivery.range": "{min}–{max} dias úteis"
 }
