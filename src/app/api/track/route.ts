@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     const q = normUpper(body?.trackingNumber || body?.q || "");
 
     if (!q) {
-      return NextResponse.json({ error: "Tracking number is required" }, { status: 400 });
+            return NextResponse.json({ error: "MISSING_PARAMS" }, { status: 400 });
     }
 
     const client = await clientPromise;
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     );
 
     if (!shipment) {
-      return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
+            return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     }
 
     const s: any = shipment;
@@ -306,6 +306,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+        return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
   }
 }

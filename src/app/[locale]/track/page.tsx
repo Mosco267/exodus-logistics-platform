@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Truck, AlertCircle, PackageSearch, ScanLine, MapPin } from "lucide-react";
+import { useIntl } from "react-intl";
 
 export default function TrackSearchPage() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "en";
-  const searchParams = useSearchParams();
+    const searchParams = useSearchParams();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
@@ -31,7 +34,7 @@ export default function TrackSearchPage() {
     const v = q.trim();
 
     if (!v) {
-      setError("Enter your Tracking Number.");
+           setError(t("TrackLookup.errNoNumber"));
       return;
     }
 
@@ -49,12 +52,12 @@ export default function TrackSearchPage() {
             <MapPin className="w-7 h-7 text-blue-700" />
           </div>
 
-          <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
-            Track Shipment
+                    <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
+            {t("TrackLookup.title")}
           </h1>
 
           <p className="mt-2 text-gray-600 max-w-2xl">
-            Enter your tracking number to view live milestones and the current location.
+            {t("TrackLookup.subtitle")}
           </p>
         </div>
 
@@ -66,8 +69,8 @@ export default function TrackSearchPage() {
         >
           <div className="p-6 sm:p-8">
             <form onSubmit={submit}>
-              <label className="text-sm font-semibold text-gray-700">
-                Tracking Number
+                            <label className="text-sm font-semibold text-gray-700">
+                {t("TrackLookup.label")}
               </label>
 
               <div className="mt-2 relative">
@@ -78,7 +81,7 @@ export default function TrackSearchPage() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value.toUpperCase())}
-                  placeholder="example: EX24US1234567W"
+                                    placeholder={t("TrackLookup.placeholder")}
                   className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
                              focus:outline-none focus:ring-2 focus:ring-blue-500/40
                              uppercase placeholder:normal-case placeholder:text-sm"
@@ -95,7 +98,7 @@ export default function TrackSearchPage() {
                            disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Truck className="w-5 h-5 mr-2" />
-                {loading ? "Opening…" : "Track Shipment"}
+                                {loading ? t("TrackLookup.opening") : t("TrackLookup.submit")}
               </button>
 
               {error && (
@@ -109,7 +112,9 @@ export default function TrackSearchPage() {
 
           {/* Footer hint strip (makes it feel different from Invoice) */}
           <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: You can paste your tracking number here from emails. Look for the unique ID we provided when shipment was created. It usually starts with "EX". That's your key to unlock the <span className="font-semibold">Live Tracking Details!</span>.
+                        {t("TrackLookup.tip", {
+              b: (chunks: any) => <span className="font-semibold">{chunks}</span>,
+            })}
           </div>
         </motion.div>
       </div>

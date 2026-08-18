@@ -1,49 +1,38 @@
+// src/app/[locale]/track/[q]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useIntl } from "react-intl";
 import {
-  AlertCircle,
-  Calendar,
-  ChevronDown,
-  MapPin,
-  Package,
-  FileText,
-  Copy,
-  Check,
-  Info,
-  CornerDownRight,
-  Truck,
-  LifeBuoy,
-  CheckCircle2,
-  CircleDashed,
-  Warehouse,
-  Plane,
-  ShieldCheck,
-  Home,
-  Clock3,
-  AlertTriangle,
-  ClipboardList,
-  Route,
+  AlertCircle, Calendar, ChevronDown, MapPin, Package, FileText, Copy, Check,
+  Info, CornerDownRight, Truck, LifeBuoy, CheckCircle2, CircleDashed, Warehouse,
+  Plane, ShieldCheck, Home, Clock3, AlertTriangle, ClipboardList, Route,
 } from "lucide-react";
+import { useCompany } from "@/lib/useCompany";
+import {
+  getShipmentStatusLabel,
+  getInvoiceStatusLabel,
+  getShipmentMeansLabel,
+  getShipmentTypeLabel,
+  getServiceLevelLabel,
+  normalizeShipmentStatusKey,
+} from "@/lib/shipment-utils";
 
-type LocationLite = {
-  country?: string;
-  state?: string;
-  city?: string;
-  county?: string;
-};
+type LocationLite = { country?: string; state?: string; city?: string; county?: string };
 
 type Entry = {
   occurredAt: string;
   note?: string;
   details?: string;
+  detailsKey?: string;
   color?: string;
   detailColor?: string;
   location?: LocationLite;
   badgeText?: string;
+  badgeTextKey?: string;
   badgeColor?: string;
   badgeLocked?: boolean;
 };
@@ -89,45 +78,41 @@ type TrackApiResponse = {
   carrierName?: string | null;
 };
 
-// ─── Date helpers ──────────────────────────────────────────────
-function fmtDate(iso?: string | null): string {
+const BCP: Record<string, string> = {
+  en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", zh: "zh-CN", it: "it-IT",
+  ar: "ar-SA", pt: "pt-PT", ru: "ru-RU", ja: "ja-JP", ko: "ko-KR", hi: "hi-IN",
+};
+
+function fmtDate(iso?: string | null, bcp = "en-US"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
+  return new Intl.DateTimeFormat(bcp, {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
   }).format(d);
 }
 
-// ─── Number / comma helpers ────────────────────────────────────
-function num(v: any) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
-
-function fmtNumberWithCommas(value: number, decimals = 2): string {
+function fmtNumberWithCommas(value: number, decimals = 2, bcp = "en-US"): string {
   if (!Number.isFinite(value)) return "0.00";
-  return value.toLocaleString("en-US", {
+  return value.toLocaleString(bcp, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
-function fmtIntWithCommas(value: any): string {
+function fmtIntWithCommas(value: any, bcp = "en-US"): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value ?? "").trim() || "—";
-  if (Number.isInteger(n)) return n.toLocaleString("en-US");
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (Number.isInteger(n)) return n.toLocaleString(bcp);
+  return n.toLocaleString(bcp, { maximumFractionDigits: 2 });
 }
 
-// ─── Estimated delivery formatter (mirrors admin create-shipment) ───
-// Uses real min/max from API if available; falls back to +2/+3 days
 function fmtEstimatedDelivery(
   maxISO?: string | null,
   minISO?: string | null,
-  scope?: string | null
+  scope?: string | null,
+  bcp = "en-US"
 ): { text: string; endDate: Date | null } {
   if (!maxISO) return { text: "—", endDate: null };
   const maxD = new Date(maxISO);
@@ -138,23 +123,19 @@ function fmtEstimatedDelivery(
     const d = new Date(minISO);
     minD = Number.isNaN(d.getTime()) ? new Date(maxD) : d;
   } else {
-    // Fallback: extrapolate min from max
     const extra = String(scope || "").toLowerCase() === "local" ? 2 : 3;
     minD = new Date(maxD);
     minD.setDate(minD.getDate() - extra);
   }
 
-  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-  const fmtFull = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const fmt = (d: Date) => d.toLocaleDateString(bcp, { day: "2-digit", month: "short" });
+  const fmtFull = (d: Date) => d.toLocaleDateString(bcp, { day: "2-digit", month: "short", year: "numeric" });
 
   let text: string;
-  if (minD.getTime() === maxD.getTime()) {
-    text = fmtFull(maxD);
-  } else if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
-    text = `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
-  } else {
-    text = `${fmt(minD)} – ${fmtFull(maxD)}`;
-  }
+  if (minD.getTime() === maxD.getTime()) text = fmtFull(maxD);
+  else if (minD.getMonth() === maxD.getMonth() && minD.getFullYear() === maxD.getFullYear()) {
+    text = `${minD.getDate()}–${maxD.getDate()} ${maxD.toLocaleDateString(bcp, { month: "short", year: "numeric" })}`;
+  } else text = `${fmt(minD)} – ${fmtFull(maxD)}`;
 
   return { text, endDate: maxD };
 }
@@ -171,9 +152,7 @@ function fmtLoc(loc?: LocationLite): string {
   return [loc.city, loc.state, loc.country].map((x) => String(x || "").trim()).filter(Boolean).join(", ");
 }
 
-function safeColor(c?: string): string {
-  return String(c || "").trim();
-}
+function safeColor(c?: string): string { return String(c || "").trim(); }
 
 function getBadgeStyle(color: string): React.CSSProperties {
   const map: Record<string, { bg: string; border: string; text: string }> = {
@@ -203,32 +182,36 @@ function getStageIcon(label?: string, iconKey?: string) {
   if (key === "alert") return AlertCircle;
   if (key === "file") return FileText;
 
+  /* Normalise the label to a canonical key first, so icons work whatever
+     language the stage is displayed in. */
+  const normKey = normalizeShipmentStatusKey(label);
+  if (normKey === "created") return Package;
+  if (normKey === "pickedup") return Truck;
+  if (normKey === "inwarehouse") return Warehouse;
+  if (normKey === "customclearance") return ShieldCheck;
+  if (normKey === "outfordelivery") return Truck;
+  if (normKey === "delivered") return Home;
+  if (normKey === "intransit") return Truck;
+  if (normKey === "unclaimed") return Clock3;
+
+  // Transit modes that are not canonical statuses
   const v = String(label || "").trim().toLowerCase();
-  if (v.includes("created")) return Package;
-  if (v.includes("pickup") || v.includes("picked")) return Truck;
-  if (v.includes("warehouse")) return Warehouse;
   if (v.includes("air") || v.includes("flight") || v.includes("freight")) return Plane;
-  if (v.includes("custom")) return ShieldCheck;
-  if (v.includes("out for delivery")) return Truck;
-  if (v.includes("delivered")) return Home;
-  if (v.includes("transit")) return Truck;
-  if (v.includes("unclaimed")) return Clock3;
   return CircleDashed;
 }
 
-function CopyIconButton({ value, copied, onCopy }: { value: string; copied: boolean; onCopy: () => void }) {
+function CopyIconButton({ value, copied, onCopy, label }: {
+  value: string; copied: boolean; onCopy: () => void; label: string;
+}) {
   if (!value) return null;
   return (
     <button
       type="button"
       onClick={onCopy}
-      aria-label={copied ? "Copied" : "Copy to clipboard"}
+      aria-label={label}
       className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 bg-white text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition shrink-0"
     >
-      {copied
-        ? <Check className="w-3.5 h-3.5 text-green-600" />
-        : <Copy className="w-3.5 h-3.5" />
-      }
+      {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
@@ -256,6 +239,10 @@ export default function TrackResultPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "en";
   const q = String(params?.q || "").trim();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const bcp = BCP[locale] || "en-US";
+  const company = useCompany();
 
   const [data, setData] = useState<TrackApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -274,18 +261,25 @@ export default function TrackResultPage() {
         body: JSON.stringify({ q }),
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok) { setErr(json?.error || "Tracking unavailable. Try again later."); return; }
+      if (!res.ok) {
+        const code = String(json?.error || "");
+        setErr(
+          code === "NOT_FOUND" ? t("TrackDetailPublic.errNotFound")
+          : t("TrackDetailPublic.errUnavailable")
+        );
+        return;
+      }
       setData(json as TrackApiResponse);
       const evs = Array.isArray((json as any)?.events) ? (json as any).events : [];
       setOpenIdx(evs.length ? evs.length - 1 : 0);
-    } catch (e: any) {
-      setErr(e?.message || "Tracking unavailable. Try again later.");
+    } catch {
+      setErr(t("TrackDetailPublic.errUnavailable"));
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { if (!q) return; void load(); }, [q]);
+  useEffect(() => { if (!q) return; void load(); }, [q, intl.locale]);
 
   const events = useMemo(() => {
     const evs = Array.isArray(data?.events) ? [...(data?.events || [])] : [];
@@ -309,8 +303,8 @@ export default function TrackResultPage() {
     let maxIdx = 0;
     let maxTime = new Date(events[0]?.occurredAt || 0).getTime();
     events.forEach((ev, idx) => {
-      const t = new Date(ev?.occurredAt || 0).getTime();
-      if (t > maxTime) { maxTime = t; maxIdx = idx; }
+      const tt = new Date(ev?.occurredAt || 0).getTime();
+      if (tt > maxTime) { maxTime = tt; maxIdx = idx; }
     });
     return maxIdx;
   }, [events]);
@@ -322,19 +316,19 @@ export default function TrackResultPage() {
   const invoiceNumber = String(data?.invoice?.invoiceNumber || "").trim();
   const invoiceQ = data?.trackingNumber || data?.shipmentId || q;
 
-  // Estimated delivery — uses real min if API provides it, else falls back to +2/+3 days
   const { text: estimatedRangeText, endDate: estimatedEndDate } = useMemo(
     () => fmtEstimatedDelivery(
       data?.estimatedDelivery,
       data?.estimatedDeliveryDateMin,
       data?.shipmentScope,
+      bcp,
     ),
-    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope]
+    [data?.estimatedDelivery, data?.estimatedDeliveryDateMin, data?.shipmentScope, bcp]
   );
 
   const deliveryOverdue = useMemo(() => {
     if (!data?.estimatedDelivery) return false;
-    if (String(data?.currentStatus || "").toLowerCase() === "delivered") return false;
+    if (normalizeShipmentStatusKey(data?.currentStatus) === "delivered") return false;
     return isDeliveryOverdue(estimatedEndDate);
   }, [estimatedEndDate, data?.currentStatus, data?.estimatedDelivery]);
 
@@ -352,20 +346,25 @@ export default function TrackResultPage() {
     : invoiceStatus === "cancelled" ? "text-gray-700 bg-gray-50 border-gray-200"
     : "text-amber-700 bg-amber-50 border-amber-200";
 
-  const invoiceStatusLabel =
-    invoiceStatus === "paid" ? "PAID"
-    : invoiceStatus === "overdue" ? "OVERDUE"
-    : invoiceStatus === "cancelled" ? "CANCELLED"
-    : "UNPAID";
+  const invoiceStatusLabel = getInvoiceStatusLabel(invoiceStatus, intl);
 
-  // Weight/dimensions with commas
   const weightLine = data?.weightKg != null && String(data.weightKg).trim() !== ""
-    ? `${fmtIntWithCommas(data.weightKg)} kg`
+    ? `${fmtIntWithCommas(data.weightKg, bcp)} kg`
+    : "—";
+  const dimLine = data?.dimensionsCm
+    ? `${fmtIntWithCommas(data.dimensionsCm.length, bcp)} × ${fmtIntWithCommas(data.dimensionsCm.width, bcp)} × ${fmtIntWithCommas(data.dimensionsCm.height, bcp)} cm`
     : "—";
 
-  const dimLine = data?.dimensionsCm
-    ? `${fmtIntWithCommas(data.dimensionsCm.length)} × ${fmtIntWithCommas(data.dimensionsCm.width)} × ${fmtIntWithCommas(data.dimensionsCm.height)} cm`
-    : "—";
+  const meansLabel = data?.shipmentMeans ? getShipmentMeansLabel(data.shipmentMeans, intl) : "—";
+  const typeLabel = data?.shipmentType ? getShipmentTypeLabel(data.shipmentType, intl) : "—";
+  const serviceLine = [
+    String(data?.shipmentScope || "").toLowerCase() === "local"
+      ? t("TrackDetailPublic.scopeLocal")
+      : t("TrackDetailPublic.scopeInternational"),
+    data?.serviceLevel ? getServiceLevelLabel(data.serviceLevel, intl) : "",
+  ].filter(Boolean).join(" ").trim() || "—";
+
+  const cardCls = "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/40 to-white">
@@ -374,13 +373,13 @@ export default function TrackResultPage() {
         <div className="mb-6 flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
           <button type="button" onClick={() => router.replace(`/${locale}/track`)}
             className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-            <MapPin className="w-4 h-4" /><span>Back to Track</span>
+            <MapPin className="w-4 h-4" /><span>{t("TrackDetailPublic.backToTrack")}</span>
           </button>
           {invoiceQ && (
             <Link
               href={`/${locale}/invoice${invoiceNumber ? `?invoice=${encodeURIComponent(invoiceNumber)}` : ""}`}
               className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition shadow-sm">
-              <FileText className="w-4 h-4" /><span>View Invoice</span>
+              <FileText className="w-4 h-4" /><span>{t("TrackDetailPublic.viewInvoice")}</span>
             </Link>
           )}
         </div>
@@ -388,7 +387,7 @@ export default function TrackResultPage() {
         {loading && (
           <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-lg flex items-center gap-3">
             <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
-            <p className="text-sm text-gray-600 font-medium">Loading tracking information…</p>
+            <p className="text-sm text-gray-600 font-medium">{t("TrackDetailPublic.loading")}</p>
           </div>
         )}
 
@@ -397,7 +396,7 @@ export default function TrackResultPage() {
             <div className="flex items-center gap-3 text-red-700 font-semibold">
               <AlertCircle className="w-5 h-5 shrink-0" /> {err}
             </div>
-            <p className="mt-2 text-sm text-gray-500 pl-8">Please verify your tracking number and try again.</p>
+            <p className="mt-2 text-sm text-gray-500 pl-8">{t("TrackDetailPublic.errHint")}</p>
           </div>
         )}
 
@@ -409,38 +408,54 @@ export default function TrackResultPage() {
 
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Shipment Number</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t("TrackDetailPublic.shipmentNumber")}</p>
                     <div className="flex items-center gap-2">
                       <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px] sm:max-w-none leading-tight">
                         {data.shipmentId || "—"}
                       </h1>
-                      <CopyIconButton value={data.shipmentId} copied={copiedKey === "ship"} onCopy={() => handleCopy("ship", data.shipmentId)} />
+                      <CopyIconButton value={data.shipmentId} copied={copiedKey === "ship"}
+                        onCopy={() => handleCopy("ship", data.shipmentId)}
+                        label={t(copiedKey === "ship" ? "TrackDetailPublic.copied" : "TrackDetailPublic.copy")} />
                     </div>
                     <div className="mt-3 space-y-1.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">Tracking No.</span>
+                        <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">{t("TrackDetailPublic.trackingNo")}</span>
                         <span className="text-sm font-bold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{data.trackingNumber || "—"}</span>
-                        <CopyIconButton value={data.trackingNumber} copied={copiedKey === "track"} onCopy={() => handleCopy("track", data.trackingNumber)} />
+                        <CopyIconButton value={data.trackingNumber} copied={copiedKey === "track"}
+                          onCopy={() => handleCopy("track", data.trackingNumber)}
+                          label={t(copiedKey === "track" ? "TrackDetailPublic.copied" : "TrackDetailPublic.copy")} />
                       </div>
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">Invoice No.</span>
+                        <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">{t("TrackDetailPublic.invoiceNo")}</span>
                         <span className="text-sm font-bold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{invoiceNumber || "—"}</span>
-                        {invoiceNumber && <CopyIconButton value={invoiceNumber} copied={copiedKey === "inv"} onCopy={() => handleCopy("inv", invoiceNumber)} />}
+                        {invoiceNumber && (
+                          <CopyIconButton value={invoiceNumber} copied={copiedKey === "inv"}
+                            onCopy={() => handleCopy("inv", invoiceNumber)}
+                            label={t(copiedKey === "inv" ? "TrackDetailPublic.copied" : "TrackDetailPublic.copy")} />
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="sm:text-right shrink-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Current Status</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t("TrackDetailPublic.currentStatus")}</p>
                     <p className="text-lg sm:text-xl font-extrabold text-blue-700 leading-tight">
-                      {events[currentIndex]?.label || data.currentStatus || "—"}
+                      {(events[currentIndex]?.label || data.currentStatus)
+                        ? getShipmentStatusLabel(events[currentIndex]?.label || data.currentStatus, intl)
+                        : "—"}
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
-                      Last updated: <span className="font-semibold text-gray-700">{fmtDate(events[currentIndex]?.occurredAt || data.updatedAt)}</span>
+                      {t("TrackDetailPublic.lastUpdatedLine", {
+                        date: fmtDate(events[currentIndex]?.occurredAt || data.updatedAt, bcp),
+                        b: (chunks: any) => <span className="font-semibold text-gray-700">{chunks}</span>,
+                      })}
                     </p>
                     {data.estimatedDelivery && (
                       <p className="mt-1 text-xs text-gray-500">
-                        Est. delivery: <span className="font-semibold text-gray-700">{estimatedRangeText}</span>
+                        {t("TrackDetailPublic.estDeliveryLine", {
+                          date: estimatedRangeText,
+                          b: (chunks: any) => <span className="font-semibold text-gray-700">{chunks}</span>,
+                        })}
                       </p>
                     )}
                   </div>
@@ -450,9 +465,11 @@ export default function TrackResultPage() {
                   <div className="mt-4 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
                     <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                     <p className="text-sm text-red-700 font-medium leading-relaxed">
-                      The estimated delivery date has passed in your local time. Please{" "}
-                      <a href="mailto:support@goexoduslogistics.com" className="cursor-pointer font-bold underline hover:text-red-900 transition">contact support</a>{" "}
-                      for an updated delivery timeline.
+                      {t("TrackDetailPublic.overdueBanner", {
+                        a: (chunks: any) => (
+                          <a href={`mailto:${company.email}`} className="cursor-pointer font-bold underline hover:text-red-900 transition">{chunks}</a>
+                        ),
+                      })}
                     </p>
                   </div>
                 )}
@@ -462,94 +479,102 @@ export default function TrackResultPage() {
                     {data.origin && (
                       <div className="flex items-start gap-2 text-gray-700">
                         <Truck className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
-                        <span><span className="font-semibold">Origin:</span> {data.origin}</span>
+                        <span><span className="font-semibold">{t("TrackDetailPublic.originLabel")}</span> {data.origin}</span>
                       </div>
                     )}
                     {data.statusNote && (
                       <div className="flex items-start gap-2 text-gray-700">
                         <Info className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
-                        <span><span className="font-semibold">Note:</span> {data.statusNote}</span>
+                        <span><span className="font-semibold">{t("TrackDetailPublic.noteLabel")}</span> {data.statusNote}</span>
                       </div>
                     )}
                     {data.nextStep && (
                       <div className="flex items-start gap-2 text-gray-700">
                         <CornerDownRight className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
-                        <span><span className="font-semibold">Next step:</span> {data.nextStep}</span>
+                        <span><span className="font-semibold">{t("TrackDetailPublic.nextStepLabel")}</span> {data.nextStep}</span>
                       </div>
                     )}
                   </div>
                 )}
 
                 <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                  <div className={cardCls}>
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Invoice</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.invoice")}</p>
                     </div>
                     <div className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-extrabold ${invoiceStatusColor}`}>{invoiceStatusLabel}</div>
-                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceCurrency} {fmtNumberWithCommas(invoiceAmount, 2)}</p>
+                    <p className="mt-1.5 text-sm font-bold text-gray-900">{invoiceCurrency} {fmtNumberWithCommas(invoiceAmount, 2, bcp)}</p>
                     {invoiceNumber && <p className="mt-1 text-xs text-gray-500 font-medium">{invoiceNumber}</p>}
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                  <div className={cardCls}>
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Destination</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.destination")}</p>
                     </div>
                     <p className="text-sm font-bold text-gray-900 leading-snug">{data.destination || "—"}</p>
-                    <p className="mt-1 text-xs text-gray-500"><span className="font-semibold">Current location:</span>{" "}{data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <span className="font-semibold">{t("TrackDetailPublic.currentLocationLabel")}</span>{" "}
+                      {data.currentLocation || fmtLoc(events[currentIndex]?.location) || "—"}
+                    </p>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                  <div className={cardCls}>
                     <div className="flex items-center gap-2 mb-2">
                       <Truck className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Delivery</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.delivery")}</p>
                     </div>
                     <p className="text-sm font-bold text-gray-900">{estimatedRangeText}</p>
-                    <p className="mt-1 text-xs text-gray-500"><span className="font-semibold">Means:</span> {data.shipmentMeans || "—"}</p>
+                    <p className="mt-1 text-xs text-gray-500"><span className="font-semibold">{t("TrackDetailPublic.meansLabel")}</span> {meansLabel}</p>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                  <div className={cardCls}>
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Package</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.package")}</p>
                     </div>
                     <div className="space-y-1 text-xs text-gray-700">
-                      <p><span className="font-semibold">Weight:</span> {weightLine}</p>
-                      <p><span className="font-semibold">Dimensions:</span> {dimLine}</p>
-                      <p><span className="font-semibold">Type:</span> {data.shipmentType || "—"}</p>
+                      <p><span className="font-semibold">{t("TrackDetailPublic.weightLabel")}</span> {weightLine}</p>
+                      <p><span className="font-semibold">{t("TrackDetailPublic.dimensionsLabel")}</span> {dimLine}</p>
+                      <p><span className="font-semibold">{t("TrackDetailPublic.typeLabel")}</span> {typeLabel}</p>
                     </div>
                   </div>
 
                   {data.packageDescription && (
-                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                    <div className={cardCls}>
                       <div className="flex items-center gap-2 mb-2">
                         <ClipboardList className="w-4 h-4 text-blue-600" />
-                        <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Description</p>
+                        <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.description")}</p>
                       </div>
                       <p className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{data.packageDescription}</p>
                     </div>
                   )}
 
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                  <div className={cardCls}>
                     <div className="flex items-center gap-2 mb-2">
                       <LifeBuoy className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Carrier</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.carrier")}</p>
                     </div>
                     <div className="space-y-1 text-xs text-gray-700">
-                      <p><span className="font-semibold">Carrier:</span> {data.carrierName || "Exodus Logistics"}</p>
-                      <p><span className="font-semibold">Service:</span> {`${String(data.shipmentScope || "").toLowerCase() === "local" ? "Local" : "International"} ${data.serviceLevel || ""}`.trim() || "—"}</p>
-                      <p><span className="font-semibold">Support:</span>{" "}<a href="mailto:support@goexoduslogistics.com" className="cursor-pointer text-blue-700 underline font-semibold hover:text-blue-900 transition">support@goexoduslogistics.com</a></p>
+                      <p><span className="font-semibold">{t("TrackDetailPublic.carrierLabel")}</span> {data.carrierName || company.name || "Exodus Logistics"}</p>
+                      <p><span className="font-semibold">{t("TrackDetailPublic.serviceLabel")}</span> {serviceLine}</p>
+                      {company.email && (
+                        <p>
+                          <span className="font-semibold">{t("TrackDetailPublic.supportLabel")}</span>{" "}
+                          <a href={`mailto:${company.email}`} className="cursor-pointer text-blue-700 underline font-semibold hover:text-blue-900 transition">{company.email}</a>
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition">
+                  <div className={cardCls}>
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Created</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t("TrackDetailPublic.created")}</p>
                     </div>
-                    <p className="text-xs font-bold text-gray-900">{fmtDate(data.createdAt || events[0]?.occurredAt)}</p>
-                    <p className="mt-1 text-xs text-gray-500">All times shown in your local timezone.</p>
+                    <p className="text-xs font-bold text-gray-900">{fmtDate(data.createdAt || events[0]?.occurredAt, bcp)}</p>
+                    <p className="mt-1 text-xs text-gray-500">{t("TrackDetailPublic.localTimezone")}</p>
                   </div>
                 </div>
               </div>
@@ -561,29 +586,34 @@ export default function TrackResultPage() {
               <div className="p-5 sm:p-7">
                 <div className="flex items-center gap-3 mb-1">
                   <Package className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-extrabold text-gray-900">Shipment Timeline</h2>
+                  <h2 className="text-lg font-extrabold text-gray-900">{t("TrackDetailPublic.timelineTitle")}</h2>
                 </div>
-                <p className="text-sm text-gray-500 mb-6">Live tracking history. All times are shown in your local timezone.</p>
+                <p className="text-sm text-gray-500 mb-6">{t("TrackDetailPublic.timelineSubtitle")}</p>
 
                 {events.length === 0 ? (
-                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 text-center">No tracking updates yet.</div>
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 text-center">{t("TrackDetailPublic.timelineEmpty")}</div>
                 ) : (
                   <div className="space-y-0 -ml-3">
                     {events.map((ev, idx) => {
                       const isOpen = openIdx === idx;
                       const stageLoc = fmtLoc(ev.location);
-                      const stageWhen = fmtDate(ev.occurredAt);
+                      const stageWhen = fmtDate(ev.occurredAt, bcp);
                       const lastEntryColor = ev?.entries?.[ev.entries.length - 1];
                       const stageBaseColor = safeColor(lastEntryColor?.color) || safeColor(ev?.color) || "";
                       const isCompleted = idx < currentIndex;
                       const isCurrent = idx === currentIndex;
-                      const labelLower = String(ev.label || "").toLowerCase();
-                      const isCancelled = labelLower === "cancelled" || labelLower === "canceled";
-                      const isDelivered = labelLower === "delivered";
+                      const stageKey = normalizeShipmentStatusKey(ev.label);
+                      const isCancelled = stageKey === "cancelled";
+                      const isDelivered = stageKey === "delivered";
                       const isLast = idx === events.length - 1;
 
                       const lastEntry = ev?.entries?.[ev.entries.length - 1];
-                      const customBadgeText = (lastEntry as any)?.badgeText || "";
+                      /* Canonical badges carry a key so they translate; custom
+                         ones keep the admin's own wording. */
+                      const customBadgeKey = (lastEntry as any)?.badgeTextKey || "";
+                      const customBadgeText = customBadgeKey
+                        ? intl.formatMessage({ id: customBadgeKey, defaultMessage: (lastEntry as any)?.badgeText || "" })
+                        : ((lastEntry as any)?.badgeText || "");
                       const customBadgeColor = (lastEntry as any)?.badgeColor || "";
 
                       const currentDotColor = safeColor(stageBaseColor) || "#f59e0b";
@@ -600,8 +630,9 @@ export default function TrackResultPage() {
                               style={{ background: currentDotColor, width: "19px", height: "19px", marginTop: "19px" }}
                             >
                               {(() => {
-                                const completedBadges = new Set(["completed", "delivered", "done", "finished"]);
-                                const badgeIsCompletion = completedBadges.has(customBadgeText.toLowerCase());
+                                const completedKeys = new Set(["completed", "delivered", "done", "finished"]);
+                                const badgeIsCompletion = completedKeys.has(String(customBadgeKey).split(".").pop()?.toLowerCase() || "")
+                                  || completedKeys.has(customBadgeText.toLowerCase());
                                 const showCheck = (isCompleted && (!customBadgeText || badgeIsCompletion))
                                   || (!customBadgeText && isDelivered)
                                   || badgeIsCompletion;
@@ -612,11 +643,8 @@ export default function TrackResultPage() {
                               <div
                                 className="absolute"
                                 style={{
-                                  top: "40px",
-                                  bottom: "-24px",
-                                  width: "3px",
-                                  left: "50%",
-                                  transform: "translateX(-50%)",
+                                  top: "40px", bottom: "-24px", width: "3px",
+                                  left: "50%", transform: "translateX(-50%)",
                                   background: `linear-gradient(to bottom, ${currentDotColor} 0%, ${nextDotColor} 100%)`,
                                   borderRadius: "0 0 4px 4px",
                                 }}
@@ -664,7 +692,7 @@ export default function TrackResultPage() {
 
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-base font-extrabold text-gray-900">{ev.label}</p>
+                                        <p className="text-base font-extrabold text-gray-900">{getShipmentStatusLabel(ev.label, intl)}</p>
                                         <span
                                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                                             !customBadgeText
@@ -677,7 +705,13 @@ export default function TrackResultPage() {
                                           }`}
                                           style={customBadgeText && customBadgeColor ? getBadgeStyle(customBadgeColor) : undefined}
                                         >
-                                          {customBadgeText || (isCompleted ? "Completed" : isCurrent && isCancelled ? "Cancelled" : isCurrent && isDelivered ? "Delivered" : isCurrent ? "Current Stage" : "Upcoming")}
+                                          {customBadgeText || (
+                                            isCompleted ? t("TrackDetailPublic.badgeCompleted")
+                                            : isCurrent && isCancelled ? t("TrackDetailPublic.badgeCancelled")
+                                            : isCurrent && isDelivered ? t("TrackDetailPublic.badgeDelivered")
+                                            : isCurrent ? t("TrackDetailPublic.badgeCurrent")
+                                            : t("TrackDetailPublic.badgeUpcoming")
+                                          )}
                                         </span>
                                       </div>
                                       <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">{stageWhen}{stageLoc ? ` · ${stageLoc}` : ""}</p>
@@ -690,9 +724,9 @@ export default function TrackResultPage() {
                                 {isOpen && (
                                   <div className="mt-4 border-t border-gray-200 pt-4">
                                     <div className="space-y-2">
-                                      {(ev.entries || []).length > 0 && (ev.entries || []).map((en, j) => {
+                                      {(ev.entries || []).map((en, j) => {
                                         const loc = fmtLoc(en.location);
-                                        const when = fmtDate(en.occurredAt);
+                                        const when = fmtDate(en.occurredAt, bcp);
                                         const isLastEntry = j === (ev.entries?.length || 0) - 1;
                                         const entryDotBg = safeColor(en.detailColor) || safeColor(en.color) || "#9ca3af";
 
@@ -706,9 +740,18 @@ export default function TrackResultPage() {
                                             </div>
                                             <div className={`rounded-xl border border-gray-200 bg-white px-4 py-3 ${!isLastEntry ? "mb-2" : ""}`}>
                                               <p className="text-xs font-semibold text-gray-400">{when}{loc ? ` · ${loc}` : ""}</p>
-                                              {(en as any).details?.trim() && (
-                                                <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{(en as any).details}</p>
-                                              )}
+                                              {(() => {
+                                                /* Canonical stages store a detailsKey and render translated.
+                                                   Admin-written details override it and stay as typed. */
+                                                const raw = String((en as any).details || "").trim();
+                                                const key = String((en as any).detailsKey || "").trim();
+                                                if (!raw && !key) return null;
+                                                const text = raw || intl.formatMessage({ id: key, defaultMessage: "" });
+                                                if (!text) return null;
+                                                return (
+                                                  <p className="text-sm text-gray-800 mt-1 font-medium leading-relaxed">{text}</p>
+                                                );
+                                              })()}
                                             </div>
                                           </div>
                                         );
@@ -717,16 +760,16 @@ export default function TrackResultPage() {
 
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Invoice</p>
-                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {fmtNumberWithCommas(invoiceAmount, 2)} {invoiceCurrency}</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t("TrackDetailPublic.invoice")}</p>
+                                        <p className="mt-0.5 text-xs font-bold text-gray-900">{invoiceStatusLabel} · {fmtNumberWithCommas(invoiceAmount, 2, bcp)} {invoiceCurrency}</p>
                                       </div>
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Destination</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t("TrackDetailPublic.destination")}</p>
                                         <p className="mt-0.5 text-xs font-bold text-gray-900">{data.destination || "—"}</p>
                                       </div>
                                       <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
                                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                                          {isCurrent ? "Current Location" : "Location"}
+                                          {isCurrent ? t("TrackDetailPublic.currentLocation") : t("TrackDetailPublic.location")}
                                         </p>
                                         <p className="mt-0.5 text-xs font-bold text-gray-900">
                                           {isCurrent
