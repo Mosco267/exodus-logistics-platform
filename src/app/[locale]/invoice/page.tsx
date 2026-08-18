@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, FileText, Mail, ScanLine } from "lucide-react";
+import { useIntl } from "react-intl";
 
 /**
  * ✅ Only auto-inserts "-"
@@ -39,7 +40,9 @@ export default function InvoicePage() {
   const sp = useSearchParams();
   const params = useParams();
   const router = useRouter();
-  const locale = (params?.locale as string) || "en";
+    const locale = (params?.locale as string) || "en";
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   // If someone visits /invoice?q=XXXX, prefill invoice field only.
   const qFromUrl = useMemo(() => String(sp.get("invoice") || sp.get("q") || "").trim(), [sp]);
@@ -62,12 +65,12 @@ export default function InvoicePage() {
   const inv = String(invoiceNumber || "").trim().toUpperCase();
   const em = String(email || "").trim().toLowerCase();
 
-  if (!inv) {
-    setErr("Enter your invoice number.");
+    if (!inv) {
+    setErr(t("InvoiceLookup.errNoNumber"));
     return;
   }
   if (!em || !em.includes("@")) {
-    setErr("Enter the sender or receiver email address.");
+    setErr(t("InvoiceLookup.errNoEmail"));
     return;
   }
 
@@ -83,9 +86,15 @@ export default function InvoicePage() {
     const json = await res.json().catch(() => null);
 
     if (!res.ok) {
+                  /* The API returns codes rather than prose so messages can be shown in
+         the reader's language. An unrecognised code falls back to the
+         generic not-found message. */
+      const code = String(json?.error || "");
       setErr(
-        json?.error ||
-          "Unable to open invoice. Please confirm the invoice number and sender/receiver email."
+        code === "EMAIL_MISMATCH" ? t("InvoiceLookup.errEmailMismatch")
+        : code === "MISSING_PARAMS" ? t("InvoiceLookup.errMissingParams")
+        : code === "SERVER_ERROR" ? t("InvoiceLookup.errUnavailable")
+        : t("InvoiceLookup.errNotFound")
       );
       return;
     }
@@ -94,7 +103,7 @@ export default function InvoicePage() {
       `/${locale}/invoice/full?invoice=${encodeURIComponent(inv)}&email=${encodeURIComponent(em)}`
     );
   } catch (e: any) {
-    setErr(e?.message || "Unable to verify invoice right now. Please try again.");
+        setErr(e?.message || t("InvoiceLookup.errUnavailable"));
   } finally {
     setLoading(false);
   }
@@ -108,14 +117,13 @@ export default function InvoicePage() {
             <FileText className="w-7 h-7 text-blue-700" />
           </div>
 
-          <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
-            Invoice
+                    <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-gray-900">
+            {t("InvoiceLookup.title")}
           </h1>
-
           <p className="mt-2 text-gray-600 max-w-2xl">
-            For security, invoices can only be opened using your{" "}
-            <span className="font-semibold">invoice number</span> and the{" "}
-            <span className="font-semibold">sender or receiver email</span>.
+            {t("InvoiceLookup.subtitle", {
+              b: (chunks: any) => <span className="font-semibold">{chunks}</span>,
+            })}
           </p>
         </div>
 
@@ -128,8 +136,8 @@ export default function InvoicePage() {
             <form onSubmit={submit} className="space-y-4">
               {/* Invoice Number */}
               <div>
-                <label className="text-sm font-semibold text-gray-700">
-                  Invoice number
+                                <label className="text-sm font-semibold text-gray-700">
+                  {t("InvoiceLookup.invoiceLabel")}
                 </label>
 
                 <div className="mt-2 relative">
@@ -140,7 +148,7 @@ export default function InvoicePage() {
                   <input
                     value={invoiceNumber}
                     onChange={(e) => setInvoiceNumber(formatInvoiceInput(e.target.value))}
-                    placeholder="example: EXS-INV-2026-02-1234567"
+                                        placeholder={t("InvoiceLookup.invoicePlaceholder")}
                     className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40
                                uppercase placeholder:normal-case placeholder:text-sm"
@@ -153,8 +161,8 @@ export default function InvoicePage() {
 
               {/* Email */}
               <div>
-                <label className="text-sm font-semibold text-gray-700">
-                  Email address
+                                <label className="text-sm font-semibold text-gray-700">
+                  {t("InvoiceLookup.emailLabel")}
                 </label>
 
                 <div className="mt-2 relative">
@@ -165,7 +173,7 @@ export default function InvoicePage() {
                   <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="example: customer@email.com"
+                                        placeholder={t("InvoiceLookup.emailPlaceholder")}
                     className="w-full rounded-2xl border border-gray-300 pl-12 pr-4 py-4 text-lg
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40
                                placeholder:normal-case placeholder:text-sm"
@@ -184,7 +192,7 @@ export default function InvoicePage() {
                            disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <FileText className="w-5 h-5 mr-2" />
-                {loading ? "Opening…" : "View Invoice"}
+                                {loading ? t("InvoiceLookup.opening") : t("InvoiceLookup.submit")}
               </button>
 
               {err && (
@@ -197,8 +205,9 @@ export default function InvoicePage() {
           </div>
 
           <div className="px-6 sm:px-8 py-4 bg-blue-50 border-t border-blue-100 text-sm text-gray-700">
-            Tip: You can paste your invoice number from emails. Your invoice number usually looks like{" "}
-            <span className="font-semibold">EXS-INV-2026-02-1234567</span>. The email you enter must match the sender or receiver email on the invoice.
+                        {t("InvoiceLookup.tip", {
+              b: (chunks: any) => <span className="font-semibold">{chunks}</span>,
+            })}
           </div>
         </motion.div>
       </div>

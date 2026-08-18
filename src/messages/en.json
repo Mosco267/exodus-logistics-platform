@@ -1382,5 +1382,22 @@
 
 "NewShipment.autoSelected": "Auto-selected",
 "NewShipment.estDelivery": "Est. delivery",
-"NewShipment.volumetricNotice": "Charged at volumetric weight: {vol} kg, larger than the actual {actual} kg, because of the package size."
+"NewShipment.volumetricNotice": "Charged at volumetric weight: {vol} kg, larger than the actual {actual} kg, because of the package size.",
+
+"InvoiceLookup.title": "Invoice",
+"InvoiceLookup.subtitle": "For security, invoices open only with the <b>invoice number</b> and the <b>sender or receiver email</b>.",
+"InvoiceLookup.invoiceLabel": "Invoice number",
+"InvoiceLookup.invoicePlaceholder": "for example: EXS-INV-2026-02-1234567",
+"InvoiceLookup.emailLabel": "Email address",
+"InvoiceLookup.emailPlaceholder": "for example: customer@email.com",
+"InvoiceLookup.submit": "View invoice",
+"InvoiceLookup.opening": "Opening…",
+"InvoiceLookup.errNoNumber": "Enter your invoice number.",
+"InvoiceLookup.errNoEmail": "Enter the sender or receiver email address.",
+"InvoiceLookup.errNotFound": "Unable to open this invoice. Check the invoice number and that the email matches the sender or receiver.",
+"InvoiceLookup.errUnavailable": "Unable to verify the invoice right now. Please try again.",
+"InvoiceLookup.tip": "You can paste the invoice number straight from your email. It usually looks like <b>EXS-INV-2026-02-1234567</b>, and the email you enter must match the sender or receiver on the invoice.",
+
+"InvoiceLookup.errEmailMismatch": "That email does not match the sender or receiver on this invoice.",
+"InvoiceLookup.errMissingParams": "Enter both the invoice number and an email address."
 }

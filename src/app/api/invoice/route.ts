@@ -68,13 +68,15 @@ export async function GET(req: Request) {
     const invoiceParam = cleanStr(url.searchParams.get("invoice"));
     const emailParam = cleanStr(url.searchParams.get("email")).toLowerCase();
 
+        /* Errors return codes, not prose. The client maps them to the reader's
+       language; a sentence here would always be English. */
     if (!q && !invoiceParam) {
-      return NextResponse.json({ error: "Provide q OR invoice (+ email)." }, { status: 400 });
+      return NextResponse.json({ error: "MISSING_PARAMS" }, { status: 400 });
     }
 
     const dbName = process.env.MONGODB_DB;
     if (!dbName) {
-      return NextResponse.json({ error: "Server is missing MONGODB_DB environment variable." }, { status: 500 });
+            return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
     }
 
     const client = await clientPromise;
@@ -84,11 +86,13 @@ export async function GET(req: Request) {
       .collection<CompanySettingsDoc>("company_settings")
       .findOne({ _id: "default" });
 
+        /* No invented fallbacks. If admin settings are empty the invoice shows
+       nothing rather than a placeholder address a customer might rely on. */
     const company = {
-      name: companyDoc?.name || "Exodus Logistics Ltd.",
-      address: companyDoc?.address || "1199 E Calaveras Blvd, California, USA 90201",
-      phone: companyDoc?.phone || "+1 (516) 243-7836",
-      email: companyDoc?.email || "support@goexoduslogistics.com",
+      name: companyDoc?.name || "",
+      address: companyDoc?.address || "",
+      phone: companyDoc?.phone || "",
+      email: companyDoc?.email || "",
       registrationNumber: companyDoc?.registrationNumber || "",
     };
 
@@ -103,7 +107,7 @@ export async function GET(req: Request) {
     // ─── Public-facing invoice lookup (with email proof) ─────────────
     if (invoiceParam) {
       if (!emailParam) {
-        return NextResponse.json({ error: "email is required when using invoice." }, { status: 400 });
+                return NextResponse.json({ error: "MISSING_PARAMS" }, { status: 400 });
       }
 
       const invUpper = normUpper(invoiceParam);
@@ -128,7 +132,7 @@ export async function GET(req: Request) {
       }
 
       if (!shipment) {
-        return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
+                return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
       }
 
       const senderEmail = cleanStr(shipment?.senderEmail).toLowerCase();
@@ -141,7 +145,7 @@ export async function GET(req: Request) {
         emailParam === createdByEmail;
 
       if (!ok) {
-        return NextResponse.json({ error: "Invoice/email mismatch." }, { status: 403 });
+                return NextResponse.json({ error: "EMAIL_MISMATCH" }, { status: 403 });
       }
     }
 
@@ -185,7 +189,7 @@ export async function GET(req: Request) {
       }
 
       if (!shipment) {
-        return NextResponse.json({ error: "Shipment not found" }, { status: 404 });
+               return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
       }
     }
 
@@ -316,6 +320,6 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+       return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
   }
 }
