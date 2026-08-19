@@ -31,8 +31,16 @@ export async function POST(req: Request) {
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     if (!password || password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
 
-    const client = await clientPromise;
+        const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
+
+    /* Registration can be paused from admin. Checked here rather than in
+       middleware because middleware runs on the Edge and cannot reach Mongo.
+       This is the real gate — hiding the form does not stop a direct POST. */
+    const authSettings: any = await db.collection("app_settings").findOne({ _id: "auth" as any });
+    if (authSettings?.signUpDisabled) {
+      return NextResponse.json({ error: "SIGNUP_DISABLED" }, { status: 503 });
+    }
 
     // Check banned first
 const banned = await db.collection("banned_emails").findOne({ email });

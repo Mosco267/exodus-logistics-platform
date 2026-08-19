@@ -8,6 +8,7 @@ import { Menu, X, Globe, Home, Info, Briefcase, Mail, MapPin, FileText, Calculat
 import { LocaleContext, type Locale } from '@/context/LocaleContext';
 import { useIntl } from 'react-intl';
 import { createPortal } from 'react-dom';
+import { useAuthAvailability } from "@/lib/useAuthAvailability";
 
 export default function Header() {
   const intl = useIntl();
@@ -16,6 +17,8 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
+
+    
 
   // ✅ Preload the logo on mount so the drawer never waits to fetch it
   useEffect(() => {
@@ -49,6 +52,8 @@ export default function Header() {
   const languages = Object.values(codeToLang) as string[];
 
   const translate = (name: string) => intl.formatMessage({ id: `Header.${name}` });
+
+  const { signUpDisabled } = useAuthAvailability();
 
   // Switching language must change the URL and fully reload the page.
   // Tawk runs one widget per page and evaluates its triggers server-side
@@ -114,7 +119,14 @@ export default function Header() {
       pathWithoutLocale.startsWith(itemPathWithoutLocale + '/');
   };
 
-  const isGetStartedActive = pathname.includes('/sign-in') || pathname.includes('/sign-up') || pathname.includes('/verify-email');
+   const isGetStartedActive = pathname.includes('/sign-in') || pathname.includes('/sign-up') || pathname.includes('/verify-email');
+
+  /* When registration is paused, "Get Started" points at the notice page
+     rather than a form that cannot succeed. Everything else is unaffected. */
+  const navHref = (item: { name: string; href: string }) =>
+    item.name === 'Sign-in' && signUpDisabled
+      ? `/${locale}/unavailable?for=signup`
+      : item.href;
 
   return (
     <>
@@ -212,8 +224,8 @@ export default function Header() {
                       transition={{ duration: 0.2 }}
                       className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl overflow-hidden z-50">
                       <div className="py-2">
-                        {navigation.map((item) => (
-                          <Link key={item.name} href={item.href} onClick={() => setNavDropdownOpen(false)}
+                                                {navigation.map((item) => (
+                          <Link key={item.name} href={navHref(item)} onClick={() => setNavDropdownOpen(false)}
                             className={`flex items-center gap-3 px-5 py-3 text-sm font-bold transition-all duration-200 ${
                               (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
                                 ? 'text-orange-500 bg-orange-50'
@@ -287,8 +299,8 @@ export default function Header() {
 
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
 
-                  {navigation.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMenuOpen(false)}
+                                    {navigation.map((item) => (
+                    <Link key={item.name} href={navHref(item)} onClick={() => setIsMenuOpen(false)}
                       className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
                         (item.name === 'Sign-in' && isGetStartedActive) || isActive(item.href)
                           ? 'text-orange-500 bg-orange-50'

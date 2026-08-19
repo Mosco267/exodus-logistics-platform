@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import PasswordInput from '@/components/PasswordInput';
+import { useAuthAvailability } from "@/lib/useAuthAvailability";
 
 const COUNTRIES = [
   { name: 'Afghanistan', code: 'AF', dial: '+93' },
@@ -714,6 +715,15 @@ function SignUpContent() {
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
   const router = useRouter();
+
+    /* Redirect away when registration is paused. The API blocks it too;
+     this just avoids showing a form that cannot succeed. */
+  const { signUpDisabled, loaded } = useAuthAvailability();
+  useEffect(() => {
+    if (loaded && signUpDisabled) {
+      router.replace(`/${locale}/unavailable?for=signup`);
+    }
+  }, [loaded, signUpDisabled, locale, router]);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
