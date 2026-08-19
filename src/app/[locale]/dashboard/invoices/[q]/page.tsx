@@ -7,7 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   AlertCircle, ArrowLeft, Calendar, MapPin, Package,
-  FileText, Truck, CreditCard, ShieldCheck, Printer,
+  FileText, Truck, CreditCard, ShieldCheck, 
 } from "lucide-react";
 import { THEMES, type ThemeId } from "@/components/AppearancePanel";
 import { useIntl } from "react-intl";
@@ -303,42 +303,7 @@ export default function DashboardInvoiceDetailPage() {
 
     return (
     <div className="max-w-4xl mx-auto pb-12 space-y-5">
-      <style jsx global>{`
-        @media print {
-          /* Hide everything, then reveal only the invoice. visibility rather
-             than display lets the invoice show through hidden ancestors. */
-          body * { visibility: hidden !important; }
-          .print-area, .print-area * { visibility: visible !important; }
-                    .print-area {
-            position: absolute; left: 0; top: 0; width: 100%;
-            max-width: none;
-            margin: 0; padding: 0;
-          }
-
-          /* The dashboard shell constrains height and scrolls internally,
-             which caps printing at one page. Release those constraints so
-             the invoice can paginate. */
-          html, body {
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-          }
-          main, [class*="overflow-y-auto"], [class*="h-screen"], [class*="min-h-screen"] {
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-          }
-          .no-print, .no-print * { visibility: hidden !important; display: none !important; }
-          #tawk-script, iframe[title*="chat" i], iframe[src*="tawk"] { display: none !important; }
-          body { background: white !important; }
-          .print-area { box-shadow: none !important; border-radius: 0 !important; }
-          /* Browsers strip backgrounds by default; the header and status
-             badges are meaningless without them. */
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-area .rounded-xl { break-inside: avoid; }
-          @page { margin: 14mm; }
-        }
-      `}</style>
+      
 
       {/* ── Top nav ─────────────────────────────────────── */}
       <div className="no-print flex flex-col sm:flex-row gap-2">
@@ -352,11 +317,7 @@ export default function DashboardInvoiceDetailPage() {
             <Truck className="w-4 h-4" /> {t("InvoiceDetail.trackShipment")}
           </Link>
         )}
-                <button onClick={() => window.print()}
-          className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:opacity-90 transition shadow-sm">
-          <Printer className="w-4 h-4" /> {t("InvoiceDetail.print")}
-        </button>
-        {status === "unpaid" || status === "overdue" ? (
+                        {status === "unpaid" || status === "overdue" ? (
           <Link href={`/${locale}/dashboard/shipments/${encodeURIComponent(shipmentId)}/payment`}
             className="cursor-pointer w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold transition shadow-sm hover:opacity-90"
             style={{ background: accentGradient }}>
