@@ -1551,5 +1551,6 @@
 "TrackDetailPublic.currentLocation": "الموقع الحالي",
 "TrackDetailPublic.location": "الموقع",
 
-"InvoiceDetail.print": "طباعة الفاتورة"
+"InvoiceDetail.print": "طباعة الفاتورة",
+"Header.SignIn": "تسجيل الدخول"
 }

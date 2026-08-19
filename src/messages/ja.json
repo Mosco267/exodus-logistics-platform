@@ -1551,5 +1551,6 @@
 "TrackDetailPublic.currentLocation": "現在地",
 "TrackDetailPublic.location": "場所",
 
-"InvoiceDetail.print": "請求書を印刷"
+"InvoiceDetail.print": "請求書を印刷",
+"Header.SignIn": "ログイン"
 }

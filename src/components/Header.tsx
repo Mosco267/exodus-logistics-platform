@@ -53,7 +53,9 @@ export default function Header() {
 
   const translate = (name: string) => intl.formatMessage({ id: `Header.${name}` });
 
-  const { signUpDisabled } = useAuthAvailability();
+    const { signInDisabled } = useAuthAvailability();
+
+    const { signUpDisabled } = useAuthAvailability();
 
   // Switching language must change the URL and fully reload the page.
   // Tawk runs one widget per page and evaluates its triggers server-side
@@ -121,11 +123,12 @@ export default function Header() {
 
    const isGetStartedActive = pathname.includes('/sign-in') || pathname.includes('/sign-up') || pathname.includes('/verify-email');
 
-  /* When registration is paused, "Get Started" points at the notice page
-     rather than a form that cannot succeed. Everything else is unaffected. */
+    /* Sign-in stays reachable even when registration is paused — existing
+     customers still need it. Only the sign-up page itself redirects, and
+     only sign-in is offered when signups are off. */
   const navHref = (item: { name: string; href: string }) =>
-    item.name === 'Sign-in' && signUpDisabled
-      ? `/${locale}/unavailable?for=signup`
+    item.name === 'Sign-in' && signInDisabled
+      ? `/${locale}/unavailable?for=signin`
       : item.href;
 
   return (
@@ -232,7 +235,7 @@ export default function Header() {
                                 : 'text-cyan-600 hover:text-orange-500 hover:bg-orange-50'
                             }`}>
                             {item.icon}
-                            <span>{item.name === 'Sign-in' ? translate('GetStarted') : translate(item.name)}</span>
+                                                        <span>{item.name === 'Sign-in' ? translate(signUpDisabled ? 'SignIn' : 'GetStarted') : translate(item.name)}</span>
                           </Link>
                         ))}
                       </div>

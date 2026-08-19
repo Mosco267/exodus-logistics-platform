@@ -1551,5 +1551,6 @@
 "TrackDetailPublic.currentLocation": "मौजूदा स्थान",
 "TrackDetailPublic.location": "स्थान",
 
-"InvoiceDetail.print": "चालान प्रिंट करें"
+"InvoiceDetail.print": "चालान प्रिंट करें",
+"Header.SignIn": "साइन इन करें"
 }

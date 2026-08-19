@@ -1551,5 +1551,6 @@
 "TrackDetailPublic.currentLocation": "Текущее местоположение",
 "TrackDetailPublic.location": "Местоположение",
 
-"InvoiceDetail.print": "Печать счёта"
+"InvoiceDetail.print": "Печать счёта",
+"Header.SignIn": "Войти"
 }

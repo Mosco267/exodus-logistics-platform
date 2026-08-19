@@ -1550,6 +1550,7 @@
 "TrackDetailPublic.currentLocation": "Aktueller Standort",
 "TrackDetailPublic.location": "Standort",
 
-"InvoiceDetail.print": "Rechnung drucken"
+"InvoiceDetail.print": "Rechnung drucken",
+"Header.SignIn": "Anmelden"
 
 }

@@ -37,14 +37,17 @@ export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
 
-    /* Redirect away when registration is paused. The API blocks it too;
-     this just avoids showing a form that cannot succeed. */
-  const { signUpDisabled, loaded } = useAuthAvailability();
+  
+
+      /* Sign-up availability only hides the "create an account" link below —
+     sign-in itself stays open so existing customers can still get in.
+     If sign-in is separately paused, redirect to the notice. */
+  const { signUpDisabled, signInDisabled, loaded } = useAuthAvailability();
   useEffect(() => {
-    if (loaded && signUpDisabled) {
-      router.replace(`/${locale}/unavailable?for=signup`);
+    if (loaded && signInDisabled) {
+      router.replace(`/${locale}/unavailable?for=signin`);
     }
-  }, [loaded, signUpDisabled, locale, router]);
+  }, [loaded, signInDisabled, locale, router]);
 
   const [callbackUrl, setCallbackUrl] = useState('');
 
@@ -463,13 +466,15 @@ return (
                         Continue with Email
                       </button>
                     </div>
-
+                    
+                    {!signUpDisabled && (
                     <p className="mt-5 text-center text-sm text-gray-500">
                       Don&apos;t have an account?{' '}
                       <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
                         Create account
                       </Link>
                     </p>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               )}

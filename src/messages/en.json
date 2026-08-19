@@ -1579,5 +1579,6 @@
 "Unavailable.backHome": "Back to home",
 "Unavailable.trackShipment": "Track a shipment",
 "Unavailable.viewInvoice": "View an invoice",
-"Unavailable.contact": "Questions? Contact <email></email>"
+"Unavailable.contact": "Questions? Contact <email></email>",
+"Header.SignIn": "Sign in"
 }

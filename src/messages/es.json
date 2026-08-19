@@ -1551,5 +1551,6 @@
 "TrackDetailPublic.currentLocation": "Ubicación actual",
 "TrackDetailPublic.location": "Ubicación",
 
-"InvoiceDetail.print": "Imprimir factura"
+"InvoiceDetail.print": "Imprimir factura",
+"Header.SignIn": "Iniciar sesión"
 }

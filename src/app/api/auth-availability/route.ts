@@ -6,7 +6,10 @@ import clientPromise from "@/lib/mongodb";
    whether to show sign-in and sign-up. Enforcement itself lives in
    middleware — hiding a button does not stop anyone typing the URL. */
 
-export const revalidate = 30;
+/* No caching. This gates account creation, so a change from admin should
+   take effect on the next page load rather than after a revalidate window. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
