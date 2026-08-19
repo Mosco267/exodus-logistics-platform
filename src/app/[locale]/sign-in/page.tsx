@@ -1,16 +1,19 @@
+// src/app/[locale]/sign-in/page.tsx
 'use client';
 
-import { useEffect, useRef, useContext, useState } from 'react';
-import { useRouter} from 'next/navigation';
+import { useEffect, useContext, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, AlertCircle, Shield, Globe, Package, Zap, Mail, ArrowLeft, Fingerprint } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useIntl } from 'react-intl';
 import { startAuthentication } from '@simplewebauthn/browser';
 import PasswordInput from '@/components/PasswordInput';
-import { useAuthAvailability } from "@/lib/useAuthAvailability";
+import { useAuthAvailability } from '@/lib/useAuthAvailability';
+import { useCompany } from '@/lib/useCompany';
 
 const REMEMBER_ENABLED_KEY = 'exodus_remember_enabled';
 const REMEMBER_EMAIL_KEY = 'exodus_remember_email';
@@ -24,22 +27,17 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const features = [
-  { icon: Globe, title: 'Global Reach', desc: '120+ countries covered worldwide' },
-  { icon: Package, title: 'Real-time Tracking', desc: 'Live updates on every shipment' },
-  { icon: Zap, title: 'Instant Invoicing', desc: 'Automated billing and receipts' },
-];
-
 type Step = 'choose' | 'email' | 'auth';
 type AuthMethod = 'password' | 'passkey' | null;
 
 export default function SignInPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const company = useCompany();
 
-  
-
-      /* Sign-up availability only hides the "create an account" link below —
+  /* Sign-up availability only hides the "create an account" prompts —
      sign-in itself stays open so existing customers can still get in.
      If sign-in is separately paused, redirect to the notice. */
   const { signUpDisabled, signInDisabled, loaded } = useAuthAvailability();
@@ -51,24 +49,30 @@ export default function SignInPage() {
 
   const [callbackUrl, setCallbackUrl] = useState('');
 
-useEffect(() => {
-  if (typeof window === 'undefined') return;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const cb = params.get('callbackUrl') || '';
-    if (cb) setCallbackUrl(cb);
-  } catch {}
-}, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const cb = params.get('callbackUrl') || '';
+      if (cb) setCallbackUrl(cb);
+    } catch {}
+  }, []);
 
- 
+  const features = [
+    { icon: Globe, title: t('SignIn.feature1Title'), desc: t('SignIn.feature1Desc') },
+    { icon: Package, title: t('SignIn.feature2Title'), desc: t('SignIn.feature2Desc') },
+    { icon: Zap, title: t('SignIn.feature3Title'), desc: t('SignIn.feature3Desc') },
+  ];
 
   const [navOpen, setNavOpen] = useState(false);
   const navItems = [
-    { name: 'Home', href: `/${locale}` },
-    { name: 'About', href: `/${locale}/about` },
-    { name: 'Services', href: `/${locale}/services` },
-    { name: 'Contact', href: `/${locale}/contact` },
-    { name: 'Get Started', href: `/${locale}/sign-up` },
+    { name: t('SignIn.navHome'), href: `/${locale}`, primary: false },
+    { name: t('SignIn.navAbout'), href: `/${locale}/about`, primary: false },
+    { name: t('SignIn.navServices'), href: `/${locale}/services`, primary: false },
+    { name: t('SignIn.navContact'), href: `/${locale}/contact`, primary: false },
+    /* Registration paused means no "Get Started" — it would only lead to a
+       page that redirects straight back here. */
+    ...(signUpDisabled ? [] : [{ name: t('SignIn.navGetStarted'), href: `/${locale}/sign-up`, primary: true }]),
   ];
 
   const [step, setStep] = useState<Step>('choose');
@@ -107,14 +111,11 @@ useEffect(() => {
     }`;
 
   const navigate = async () => {
-    
-    // If a callbackUrl was provided (e.g. from the payment cancelled
-    // email's "Retry Payment" button), honor it for non-admin users.
-    // Only allow same-origin relative paths to avoid open redirects.
+    // Honour a callbackUrl when present, but only same-origin relative
+    // paths — anything else would be an open redirect.
     if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
       const sessionRes = await fetch('/api/auth/session');
       const session = await sessionRes.json();
-      // Admins still go to admin dashboard (callbackUrl is ignored for them)
       if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
         window.location.href = `/${locale}/dashboard/admin/users`;
         return;
@@ -122,7 +123,7 @@ useEffect(() => {
       window.location.href = callbackUrl;
       return;
     }
- 
+
     const sessionRes = await fetch('/api/auth/session');
     const session = await sessionRes.json();
     if (session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN') {
@@ -133,80 +134,80 @@ useEffect(() => {
   };
 
   const handleEmailNext = async () => {
-  setEmailError('');
-  setGeneralError('');
-  if (!email.trim()) { setEmailError('Email address is required.'); return; }
-  if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setEmailError('Please enter a valid email address.'); return; }
+    setEmailError('');
+    setGeneralError('');
+    if (!email.trim()) { setEmailError(t('SignIn.errEmailRequired')); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setEmailError(t('SignIn.errEmailInvalid')); return; }
 
-  setCheckingPasskey(true);
-  try {
-    // Check email status first (banned / deleted / no account / exists)
-    const emailRes = await fetch('/api/auth/check-email', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
-    });
-    const emailData = await emailRes.json();
-
-    if (emailData.status === 'banned') {
-      setEmailError('This email is banned. Please contact support@goexoduslogistics.com.');
-      setCheckingPasskey(false);
-      return;
-    }
-    if (emailData.status === 'deleted') {
-      setEmailError('This account has been deleted. Please contact support@goexoduslogistics.com to restore it.');
-      setCheckingPasskey(false);
-      return;
-    }
-    if (emailData.status === 'available') {
-      // No account exists with this email
-      setEmailError('NO_ACCOUNT');
-      setCheckingPasskey(false);
-      return;
-    }
-
-    // Save remember me only on success
+    setCheckingPasskey(true);
     try {
-      if (rememberMe) {
-        localStorage.setItem(REMEMBER_ENABLED_KEY, '1');
-        localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim().toLowerCase());
-      } else {
-        localStorage.removeItem(REMEMBER_ENABLED_KEY);
-        localStorage.removeItem(REMEMBER_EMAIL_KEY);
-      }
-    } catch {}
+      const emailRes = await fetch('/api/auth/check-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const emailData = await emailRes.json();
 
-    // Email exists — check for passkey then proceed
-    const res = await fetch('/api/auth/check-passkey', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
-    });
-    const data = await res.json();
-    setHasPasskey(!!data.hasPasskey);
-    setStep('auth');
-  } catch {
-    setEmailError('Could not verify email. Please try again.');
-  } finally {
-    setCheckingPasskey(false);
-  }
-};
+      if (emailData.status === 'banned') {
+        setEmailError(t('SignIn.errBanned', { email: company.email }));
+        setCheckingPasskey(false);
+        return;
+      }
+      if (emailData.status === 'deleted') {
+        setEmailError(t('SignIn.errDeleted', { email: company.email }));
+        setCheckingPasskey(false);
+        return;
+      }
+      if (emailData.status === 'signup_disabled') {
+        setEmailError('NO_ACCOUNT');
+        setCheckingPasskey(false);
+        return;
+      }
+      if (emailData.status === 'available') {
+        setEmailError('NO_ACCOUNT');
+        setCheckingPasskey(false);
+        return;
+      }
+
+      // Save remember-me only once the email is known to be valid
+      try {
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ENABLED_KEY, '1');
+          localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim().toLowerCase());
+        } else {
+          localStorage.removeItem(REMEMBER_ENABLED_KEY);
+          localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+      } catch {}
+
+      const res = await fetch('/api/auth/check-passkey', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      setHasPasskey(!!data.hasPasskey);
+      setStep('auth');
+    } catch {
+      setEmailError(t('SignIn.errVerifyFailed'));
+    } finally {
+      setCheckingPasskey(false);
+    }
+  };
 
   const handlePasswordSignIn = async () => {
     setPwError(''); setGeneralError('');
-    if (!password) { setPwError('Password is required.'); return; }
+    if (!password) { setPwError(t('SignIn.errPasswordRequired')); return; }
     setIsSubmitting(true);
     try {
       const res = await signIn('credentials', {
         email: email.trim().toLowerCase(), password, redirect: false,
       });
       if (!res || res.error) {
-       const errStr = (res?.error || '').toLowerCase();
-const msg = errStr.includes('banned')
-  ? 'This email is banned. Please contact support@goexoduslogistics.com.'
-  : errStr.includes('deleted')
-  ? 'This account has been deleted. Please contact support@goexoduslogistics.com to restore it.'
-  : errStr.includes('suspended')
-  ? 'Your account has been suspended. Please contact support@goexoduslogistics.com.'
-  : 'Invalid email or password. Please try again.';
+        const errStr = (res?.error || '').toLowerCase();
+        const msg = errStr.includes('banned') ? t('SignIn.errBanned', { email: company.email })
+          : errStr.includes('deleted') ? t('SignIn.errDeleted', { email: company.email })
+          : errStr.includes('suspended') ? t('SignIn.errSuspended', { email: company.email })
+          : errStr.includes('signin_disabled') ? t('SignIn.errSignInPaused')
+          : t('SignIn.errInvalidCredentials');
         setGeneralError(msg); return;
       }
       setIsNavigating(true);
@@ -225,7 +226,7 @@ const msg = errStr.includes('banned')
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       const opts = await optRes.json();
-      if (!optRes.ok) { setGeneralError(opts.error || 'Failed to start passkey authentication'); return; }
+      if (!optRes.ok) { setGeneralError(opts.error || t('SignIn.errPasskeyStart')); return; }
 
       const credential = await startAuthentication(opts);
 
@@ -234,12 +235,12 @@ const msg = errStr.includes('banned')
         body: JSON.stringify({ email: email.trim().toLowerCase(), credential }),
       });
       const verData = await verRes.json();
-      if (!verRes.ok) { setGeneralError(verData.error || 'Passkey authentication failed'); return; }
+      if (!verRes.ok) { setGeneralError(verData.error || t('SignIn.errPasskeyFailed')); return; }
 
       const res = await signIn('credentials', {
         email: email.trim().toLowerCase(), passkeyToken: verData.token, redirect: false,
       });
-      if (!res || res.error) { setGeneralError('Sign in failed after passkey verification.'); return; }
+      if (!res || res.error) { setGeneralError(t('SignIn.errPasskeyAfterVerify')); return; }
 
       setIsNavigating(true);
       await navigate();
@@ -247,16 +248,14 @@ const msg = errStr.includes('banned')
       if (e?.name === 'NotAllowedError') {
         setPasskeyCancelled(true);
       } else {
-        setGeneralError('Passkey authentication failed. Please try your password instead.');
+        setGeneralError(t('SignIn.errPasskeyRetryPassword'));
       }
     } finally { setPasskeyLoading(false); }
   };
 
-   const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      // Pass through the original callbackUrl so the google-redirect
-      // handler can forward to it after sign-in completes.
       const base = `/${locale}/auth/google-redirect`;
       const googleCallback =
         callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
@@ -269,33 +268,34 @@ const msg = errStr.includes('banned')
   const showFullScreenLoader = isNavigating || (passkeyLoading && !passkeyCancelled);
 
   useEffect(() => {
-  if (showFullScreenLoader) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-  }
-  return () => {
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-  };
-}, [showFullScreenLoader]);
+    if (showFullScreenLoader) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [showFullScreenLoader]);
 
-return (
-  <>
-    {showFullScreenLoader && (
-  <div className="fixed inset-0 z-[99999] lg:left-[48%] xl:left-[45%] flex items-start justify-center pt-[45vh]"
-    style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
-      <p className="text-sm font-semibold text-gray-500">
-        {passkeyLoading ? 'Verifying passkey…' : 'Signing you in…'}
-      </p>
-    </div>
-  </div>
-)}
+  return (
+    <>
+      {showFullScreenLoader && (
+        <div className="fixed inset-0 z-[99999] lg:left-[48%] xl:left-[45%] flex items-start justify-center pt-[45vh]"
+          style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+            <p className="text-sm font-semibold text-gray-500">
+              {passkeyLoading ? t('SignIn.verifyingPasskey') : t('SignIn.signingIn')}
+            </p>
+          </div>
+        </div>
+      )}
+
       <style>{`@media (min-width: 1024px) { header, nav[role="navigation"] { display: none !important; } }`}</style>
       <div className="min-h-screen flex">
 
@@ -316,27 +316,31 @@ return (
             <div className="absolute top-1/2 right-24 w-1.5 h-1.5 rounded-full bg-cyan-300 opacity-50" />
             <div className="absolute top-2/3 right-16 w-1 h-1 rounded-full bg-white opacity-40" />
           </div>
+
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10">
             <Link href={`/${locale}`}>
-              <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={360} height={144} className="h-20 w-auto" priority />
+              <Image src="/logo-gradient.svg" alt={company.name || 'Exodus Logistics'} width={360} height={144} className="h-20 w-auto" priority />
             </Link>
           </motion.div>
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative z-10 space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
               <Shield className="w-3.5 h-3.5 text-orange-400" />
-              <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Secure Platform</span>
+              <span className="text-xs font-bold text-white/90 tracking-widest uppercase">{t('SignIn.securePlatform')}</span>
             </div>
+
             <div>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-                Your shipments.<br />
+                {t('SignIn.heroLine1')}<br />
                 <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  Tracked perfectly.
+                  {t('SignIn.heroLine2')}
                 </span>
               </h2>
               <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-                Manage international and domestic shipments, invoices, and real-time tracking — all in one place.
+                {t('SignIn.heroBlurb')}
               </p>
             </div>
+
             <div className="space-y-3">
               {features.map(({ icon: Icon, title, desc }, i) => (
                 <motion.div key={title} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
@@ -352,8 +356,13 @@ return (
                 </motion.div>
               ))}
             </div>
+
             <div className="grid grid-cols-3 gap-3 pt-2">
-              {[{ value: '50K+', label: 'Shipments' }, { value: '120+', label: 'Countries' }, { value: '99.9%', label: 'Uptime' }].map(({ value, label }, i) => (
+              {[
+                { value: '50K+', label: t('SignIn.statShipments') },
+                { value: '120+', label: t('SignIn.statCountries') },
+                { value: '99.9%', label: t('SignIn.statUptime') },
+              ].map(({ value, label }, i) => (
                 <motion.div key={label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, delay: 0.6 + i * 0.08 }}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm">
@@ -363,8 +372,11 @@ return (
               ))}
             </div>
           </motion.div>
+
           <div className="relative z-10">
-            <p className="text-xs text-white/30">©️ {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
+            <p className="text-xs text-white/30">
+              {t('SignIn.copyright', { year: new Date().getFullYear(), company: company.name || 'Exodus Logistics Ltd.' })}
+            </p>
           </div>
         </div>
 
@@ -373,7 +385,8 @@ return (
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
 
           <div className="hidden lg:block absolute top-6 right-6 z-20">
-            <button onClick={() => setNavOpen(v => !v)} className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
+            <button onClick={() => setNavOpen(v => !v)} aria-label={t('SignIn.openMenu')}
+              className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 hover:scale-110"
               style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
@@ -389,9 +402,10 @@ return (
                   style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                   <div className="flex items-center justify-between px-6 py-6 border-b border-white/20">
                     <Link href={`/${locale}`} onClick={() => setNavOpen(false)}>
-                      <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={240} height={96} className="h-14 w-auto" />
+                      <Image src="/logo-gradient.svg" alt={company.name || 'Exodus Logistics'} width={240} height={96} className="h-14 w-auto" />
                     </Link>
-                    <button onClick={() => setNavOpen(false)} className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition text-white">
+                    <button onClick={() => setNavOpen(false)} aria-label={t('SignIn.closeMenu')}
+                      className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
@@ -399,14 +413,16 @@ return (
                     {navItems.map((item, i) => (
                       <motion.div key={item.name} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2, delay: i * 0.05 }}>
                         <Link href={item.href} onClick={() => setNavOpen(false)}
-                          className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 ${item.name === 'Get Started' ? 'bg-orange-500 text-white hover:bg-orange-600 mt-4' : 'text-white/80 hover:text-white hover:bg-white/15'}`}>
+                          className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 ${item.primary ? 'bg-orange-500 text-white hover:bg-orange-600 mt-4' : 'text-white/80 hover:text-white hover:bg-white/15'}`}>
                           {item.name}
                         </Link>
                       </motion.div>
                     ))}
                   </div>
                   <div className="px-6 py-5 border-t border-white/20">
-                    <p className="text-xs text-white/40">©️ {new Date().getFullYear()} Exodus Logistics Ltd.</p>
+                    <p className="text-xs text-white/40">
+                      {t('SignIn.copyrightShort', { year: new Date().getFullYear(), company: company.name || 'Exodus Logistics Ltd.' })}
+                    </p>
                   </div>
                 </motion.div>
               </>
@@ -419,12 +435,12 @@ return (
             style={{ background: 'radial-gradient(circle, rgba(8,145,178,0.04) 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
           <motion.div
-  initial={{ opacity: 0, y: 12 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.4 }}
-  className="w-full max-w-[420px] relative z-10 -mt-6"
-  style={{ opacity: showFullScreenLoader ? 0 : 1 }}
->
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="w-full max-w-[420px] relative z-10 -mt-6"
+            style={{ opacity: showFullScreenLoader ? 0 : 1 }}
+          >
             <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/8 border border-gray-100/80 p-8 sm:p-9">
 
               {/* ── STEP: CHOOSE ── */}
@@ -436,8 +452,8 @@ return (
                         style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                         <Shield className="w-6 h-6 text-white" />
                       </div>
-                      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Welcome back</h1>
-                      <p className="mt-1 text-sm text-gray-500">Sign in to your Exodus Logistics account</p>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">{t('SignIn.welcomeBack')}</h1>
+                      <p className="mt-1 text-sm text-gray-500">{t('SignIn.welcomeSub')}</p>
                     </div>
 
                     {generalError && (
@@ -450,12 +466,12 @@ return (
                       <button type="button" onClick={handleGoogleSignIn} disabled={googleLoading}
                         className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200 disabled:opacity-60">
                         {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
-                        Continue with Google
+                        {t('SignIn.continueGoogle')}
                       </button>
 
                       <div className="flex items-center gap-3 py-1">
                         <div className="h-px bg-gray-100 flex-1" />
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">or</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('SignIn.or')}</span>
                         <div className="h-px bg-gray-100 flex-1" />
                       </div>
 
@@ -463,17 +479,20 @@ return (
                         className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
                         style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                         <Mail className="w-5 h-5" />
-                        Continue with Email
+                        {t('SignIn.continueEmail')}
                       </button>
                     </div>
-                    
+
                     {!signUpDisabled && (
-                    <p className="mt-5 text-center text-sm text-gray-500">
-                      Don&apos;t have an account?{' '}
-                      <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
-                        Create account
-                      </Link>
-                    </p>
+                      <p className="mt-5 text-center text-sm text-gray-500">
+                        {t('SignIn.noAccountPrompt', {
+                          link: (chunks: any) => (
+                            <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
+                              {chunks}
+                            </Link>
+                          ),
+                        })}
+                      </p>
                     )}
                   </motion.div>
                 </AnimatePresence>
@@ -485,7 +504,7 @@ return (
                   <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
                     <button onClick={() => { setStep('choose'); setEmailError(''); setGeneralError(''); }}
                       className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 cursor-pointer mb-5 transition">
-                      <ArrowLeft size={14} /> Back
+                      <ArrowLeft size={14} /> {t('SignIn.back')}
                     </button>
 
                     <div className="mb-5">
@@ -493,32 +512,42 @@ return (
                         style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                         <Mail className="w-6 h-6 text-white" />
                       </div>
-                      <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Enter your email</h1>
-                      <p className="mt-1 text-sm text-gray-500">We'll check if you have an account</p>
+                      <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{t('SignIn.enterEmail')}</h1>
+                      <p className="mt-1 text-sm text-gray-500">{t('SignIn.enterEmailSub')}</p>
                     </div>
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignIn.emailLabel')}</label>
                         <input type="email" value={email} onChange={e => { setEmail(e.target.value); setEmailError(''); }}
                           onKeyDown={e => { if (e.key === 'Enter') handleEmailNext(); }}
-                          placeholder="your@email.com" autoComplete="email" autoFocus
+                          placeholder={t('SignIn.emailPlaceholder')} autoComplete="email" autoFocus
                           style={{ fontSize: '16px' }} className={inputCls(!!emailError)} />
+
                         {emailError === 'NO_ACCOUNT' ? (
-  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5">
-    <p className="text-xs font-semibold text-amber-700 leading-relaxed">
-      <AlertCircle className="w-3 h-3 inline-block mr-1 -mt-0.5" />
-      No account with this email.{' '}
-      <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2 whitespace-nowrap">
-        Create one →
-      </Link>
-    </p>
-  </div>
-) :  emailError ? (
-  <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-    <AlertCircle className="w-3 h-3" />{emailError}
-  </p>
-) : null}
+                          <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5">
+                            <p className="text-xs font-semibold text-amber-700 leading-relaxed">
+                              <AlertCircle className="w-3 h-3 inline-block mr-1 -mt-0.5" />
+                              {signUpDisabled ? (
+                                /* Registration is paused, so offering "create one" would
+                                   send the visitor to a page that redirects back here. */
+                                t('SignIn.noAccountPaused')
+                              ) : (
+                                t('SignIn.noAccountCreate', {
+                                  link: (chunks: any) => (
+                                    <Link href={`/${locale}/sign-up`} className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-2 whitespace-nowrap">
+                                      {chunks}
+                                    </Link>
+                                  ),
+                                })
+                              )}
+                            </p>
+                          </div>
+                        ) : emailError ? (
+                          <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />{emailError}
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -533,17 +562,17 @@ return (
                               )}
                             </div>
                           </div>
-                          <span className="text-sm text-gray-600 group-hover:text-gray-800 transition">Remember me</span>
+                          <span className="text-sm text-gray-600 group-hover:text-gray-800 transition">{t('SignIn.rememberMe')}</span>
                         </label>
                         <Link href={`/${locale}/forgot-password`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
-                          Forgot password?
+                          {t('SignIn.forgotPassword')}
                         </Link>
                       </div>
 
                       <button type="button" onClick={handleEmailNext} disabled={checkingPasskey || !email}
                         className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[.98] disabled:opacity-60"
                         style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-                        {checkingPasskey ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking…</> : 'Next'}
+                        {checkingPasskey ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('SignIn.checking')}</> : t('SignIn.next')}
                       </button>
                     </div>
                   </motion.div>
@@ -556,7 +585,7 @@ return (
                   <motion.div key="auth" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
                     <button onClick={() => { setStep('email'); setGeneralError(''); setPwError(''); setPassword(''); setAuthMethod(null); setPasskeyCancelled(false); setHasPasskey(false); }}
                       className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 cursor-pointer mb-5 transition">
-                      <ArrowLeft size={14} /> Back
+                      <ArrowLeft size={14} /> {t('SignIn.back')}
                     </button>
 
                     <div className="mb-5">
@@ -564,7 +593,7 @@ return (
                         style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                         <Shield className="w-6 h-6 text-white" />
                       </div>
-                      <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Sign in</h1>
+                      <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{t('SignIn.signInTitle')}</h1>
                       <p className="mt-1 text-sm text-gray-500 truncate">{email}</p>
                     </div>
 
@@ -577,17 +606,17 @@ return (
                     {passkeyCancelled && (
                       <div className="mb-4 space-y-3">
                         <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                          <AlertCircle className="w-4 h-4 shrink-0" />Passkey was cancelled
+                          <AlertCircle className="w-4 h-4 shrink-0" />{t('SignIn.passkeyCancelled')}
                         </div>
                         <div className="flex gap-2.5">
                           <button type="button" onClick={() => { setPasskeyCancelled(false); handlePasskeySignIn(); }}
                             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-bold transition cursor-pointer"
                             style={{ borderColor: '#1d4ed8', color: '#1d4ed8' }}>
-                            <Fingerprint size={15} /> Retry Passkey
+                            <Fingerprint size={15} /> {t('SignIn.retryPasskey')}
                           </button>
                           <button type="button" onClick={() => { setPasskeyCancelled(false); setAuthMethod('password'); }}
                             className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 cursor-pointer hover:bg-gray-50 transition">
-                            Use Password
+                            {t('SignIn.usePassword')}
                           </button>
                         </div>
                       </div>
@@ -601,16 +630,16 @@ return (
                               className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:scale-[.98]"
                               style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                               <Fingerprint className="w-5 h-5" />
-                              Use Passkey
+                              {t('SignIn.usePasskey')}
                             </button>
                             <div className="flex items-center gap-3">
                               <div className="h-px bg-gray-100 flex-1" />
-                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">or</span>
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('SignIn.or')}</span>
                               <div className="h-px bg-gray-100 flex-1" />
                             </div>
                             <button type="button" onClick={() => setAuthMethod('password')}
                               className="cursor-pointer w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[.98] transition-all duration-200">
-                              Use Password instead
+                              {t('SignIn.usePasswordInstead')}
                             </button>
                           </>
                         )}
@@ -619,16 +648,16 @@ return (
                           <div className="space-y-4">
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-sm font-semibold text-gray-700">Password</label>
+                                <label className="block text-sm font-semibold text-gray-700">{t('SignIn.passwordLabel')}</label>
                                 <Link href={`/${locale}/forgot-password`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition underline-offset-2 hover:underline">
-                                  Forgot password?
+                                  {t('SignIn.forgotPassword')}
                                 </Link>
                               </div>
                               <PasswordInput
                                 value={password}
                                 onChange={v => { setPassword(v); setPwError(''); setGeneralError(''); }}
                                 onKeyDown={e => { if (e.key === 'Enter') handlePasswordSignIn(); }}
-                                placeholder="Enter your password"
+                                placeholder={t('SignIn.passwordPlaceholder')}
                                 autoComplete="current-password"
                                 autoFocus
                                 className={pwError ? 'border-red-400 focus:ring-red-400/20' : 'hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/15'}
@@ -644,15 +673,15 @@ return (
                               className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[.98] disabled:opacity-60"
                               style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                               {isSubmitting
-                                ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</>
-                                : 'Sign In'
+                                ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('SignIn.signingIn')}</>
+                                : t('SignIn.signInButton')
                               }
                             </button>
 
                             {hasPasskey && authMethod === 'password' && (
                               <button type="button" onClick={() => { setAuthMethod(null); setPassword(''); setPwError(''); setGeneralError(''); }}
                                 className="w-full text-center text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
-                                Use passkey instead
+                                {t('SignIn.usePasskeyInstead')}
                               </button>
                             )}
                           </div>
@@ -666,20 +695,20 @@ return (
             </div>
 
             {!showFullScreenLoader && (
-  <div className="mt-5 flex items-center justify-center gap-6">
-    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-      <Shield className="w-3.5 h-3.5 text-green-500" />SSL Secured
-    </div>
-    <div className="w-px h-3 bg-gray-200" />
-    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />99.9% Uptime
-    </div>
-    <div className="w-px h-3 bg-gray-200" />
-    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-      <Globe className="w-3.5 h-3.5 text-blue-400" />120+ Countries
-    </div>
-  </div>
-)}
+              <div className="mt-5 flex items-center justify-center gap-6">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                  <Shield className="w-3.5 h-3.5 text-green-500" />{t('SignIn.trustSsl')}
+                </div>
+                <div className="w-px h-3 bg-gray-200" />
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />{t('SignIn.trustUptime')}
+                </div>
+                <div className="w-px h-3 bg-gray-200" />
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                  <Globe className="w-3.5 h-3.5 text-blue-400" />{t('SignIn.trustCountries')}
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
