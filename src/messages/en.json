@@ -1568,5 +1568,16 @@
 "TrackDetailPublic.currentLocation": "Current location",
 "TrackDetailPublic.location": "Location",
 
-"InvoiceDetail.print": "Print invoice"
+"InvoiceDetail.print": "Print invoice",
+
+"Unavailable.signUpTitle": "Registration is paused",
+"Unavailable.signUpBody": "We are not accepting new accounts at the moment. Existing customers can still sign in and manage their shipments as usual.",
+"Unavailable.signInTitle": "Sign-in is temporarily unavailable",
+"Unavailable.signInBody": "We are carrying out maintenance on account access. You can still track shipments and view invoices without signing in.",
+"Unavailable.genericTitle": "Temporarily unavailable",
+"Unavailable.genericBody": "This part of the site is paused for maintenance. Everything else is working normally.",
+"Unavailable.backHome": "Back to home",
+"Unavailable.trackShipment": "Track a shipment",
+"Unavailable.viewInvoice": "View an invoice",
+"Unavailable.contact": "Questions? Contact <email></email>"
 }
