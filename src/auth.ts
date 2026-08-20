@@ -108,7 +108,13 @@ if (blocked) return '/en/auth/error?error=AccessDenied';
 const existing = await db.collection("users").findOne({ email });
 if (existing?.deleted === true) return '/en/auth/error?error=Deleted';
 
-    if (!existing) {
+           if (!existing) {
+      const authSettings: any = await db.collection("app_settings").findOne({ _id: "auth" as any });
+      console.log("GOOGLE SIGNUP CHECK:", JSON.stringify(authSettings));
+      if (authSettings?.signUpDisabled) {
+        return '/en/unavailable?for=signup';
+      }
+
       // New user — create account
       try {
         const result = await db.collection("users").insertOne({
