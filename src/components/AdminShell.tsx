@@ -22,6 +22,7 @@ import {
   Receipt,
   Headphones,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -123,6 +124,9 @@ export default function AdminShell({ children }: Props) {
       label: "Support",
       icon: <Headphones className="w-5 h-5" />,
     },
+      { href: "/dashboard/admin/messages", label: "Messages", icon: <MessageSquare className="w-5 h-5" />,
+        
+      },
     {
       href: `/${locale}/dashboard/admin/statuses`,
       label: "Shipment Timeline",
