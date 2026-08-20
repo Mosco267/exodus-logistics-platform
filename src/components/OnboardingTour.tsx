@@ -1,128 +1,44 @@
+// src/components/OnboardingTour.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useIntl, type IntlShape } from 'react-intl';
 
 type Step = {
   target: string;
-  title: string;
-  desc: string;
+  titleKey: string;
+  descKey: string;
   position: 'top' | 'bottom' | 'left' | 'right';
   mobileOnly?: boolean;
   desktopOnly?: boolean;
 };
 
+/* Steps hold translation keys rather than prose, so the tour reads in the
+   customer's own language. Several steps appear on both layouts and share
+   the same copy — only the target and position differ. */
 const STEPS: Step[] = [
   // ── Desktop only ──
-  {
-    target: '[data-tour="search"]',
-    title: 'Search Shipments',
-    desc: 'Search for any shipment using the shipment number or tracking number.',
-    position: 'bottom',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="dark-toggle"]',
-    title: 'Dark and Light Mode',
-    desc: 'Switch between dark and light mode. It also changes automatically based on time of day.',
-    position: 'bottom',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="notifications"]',
-    title: 'Notifications',
-    desc: 'Stay updated. All your shipment alerts and platform messages appear here.',
-    position: 'bottom',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="profile"]',
-    title: 'Your Profile',
-    desc: 'Access your profile, settings, appearance, language, and logout from here.',
-    position: 'bottom',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="create"]',
-    title: 'Create a Shipment',
-    desc: 'Create a new shipment and track it in real time.',
-    position: 'bottom',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="nav"]',
-    title: 'Navigation',
-    desc: 'Navigate between Track, Invoices, Support, History, Settings and Logout from here.',
-    position: 'right',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="overview"]',
-    title: 'Dashboard Overview',
-    desc: 'Your shipment stats are shown here. Total shipments, pending invoices, deliveries and more.',
-    position: 'bottom',
-    desktopOnly: true,
-  },
-  {
-    target: '[data-tour="quick-actions"]',
-    title: 'Quick Actions',
-    desc: 'Quickly track a shipment, view your invoices or check shipment history from here.',
-    position: 'top',
-    desktopOnly: true,
-  },
+  { target: '[data-tour="search"]', titleKey: 'Tour.searchTitle', descKey: 'Tour.searchDesc', position: 'bottom', desktopOnly: true },
+  { target: '[data-tour="dark-toggle"]', titleKey: 'Tour.themeTitle', descKey: 'Tour.themeDesc', position: 'bottom', desktopOnly: true },
+  { target: '[data-tour="notifications"]', titleKey: 'Tour.notificationsTitle', descKey: 'Tour.notificationsDesc', position: 'bottom', desktopOnly: true },
+  { target: '[data-tour="profile"]', titleKey: 'Tour.profileTitle', descKey: 'Tour.profileDesc', position: 'bottom', desktopOnly: true },
+  { target: '[data-tour="create"]', titleKey: 'Tour.createTitle', descKey: 'Tour.createDesc', position: 'bottom', desktopOnly: true },
+  { target: '[data-tour="nav"]', titleKey: 'Tour.navTitle', descKey: 'Tour.navDesc', position: 'right', desktopOnly: true },
+  { target: '[data-tour="overview"]', titleKey: 'Tour.overviewTitle', descKey: 'Tour.overviewDesc', position: 'bottom', desktopOnly: true },
+  { target: '[data-tour="quick-actions"]', titleKey: 'Tour.quickActionsTitle', descKey: 'Tour.quickActionsDesc', position: 'top', desktopOnly: true },
 
   // ── Mobile only — top to bottom ──
-  {
-    target: '[data-tour="mobile-menu"]',
-    title: 'Navigation Menu',
-    desc: 'Tap the menu icon to open the sidebar and navigate the app.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
-  {
-    target: '[data-tour="dark-toggle"]',
-    title: 'Dark and Light Mode',
-    desc: 'Switch between dark and light mode. It also changes automatically based on time of day.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
-  {
-    target: '[data-tour="notifications"]',
-    title: 'Notifications',
-    desc: 'Stay updated. All your shipment alerts and platform messages appear here.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
-  {
-    target: '[data-tour="profile"]',
-    title: 'Your Profile',
-    desc: 'Access your profile, settings,appearance, language, and logout from here.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
-  {
-    target: '[data-tour="mobile-search"]',
-    title: 'Search Shipments',
-    desc: 'Search for any shipment using the shipment number or tracking number.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
-  {
-    target: '[data-tour="overview"]',
-    title: 'Dashboard Overview',
-    desc: 'Your shipment stats are shown here. Total shipments, pending invoices, deliveries and more.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
-  {
-    target: '[data-tour="quick-actions"]',
-    title: 'Quick Actions',
-    desc: 'Quickly track a shipment, view your invoices or check shipment history from here.',
-    position: 'bottom',
-    mobileOnly: true,
-  },
+  { target: '[data-tour="mobile-menu"]', titleKey: 'Tour.menuTitle', descKey: 'Tour.menuDesc', position: 'bottom', mobileOnly: true },
+  { target: '[data-tour="dark-toggle"]', titleKey: 'Tour.themeTitle', descKey: 'Tour.themeDesc', position: 'bottom', mobileOnly: true },
+  { target: '[data-tour="notifications"]', titleKey: 'Tour.notificationsTitle', descKey: 'Tour.notificationsDesc', position: 'bottom', mobileOnly: true },
+  { target: '[data-tour="profile"]', titleKey: 'Tour.profileTitle', descKey: 'Tour.profileDesc', position: 'bottom', mobileOnly: true },
+  { target: '[data-tour="mobile-search"]', titleKey: 'Tour.searchTitle', descKey: 'Tour.searchDesc', position: 'bottom', mobileOnly: true },
+  { target: '[data-tour="overview"]', titleKey: 'Tour.overviewTitle', descKey: 'Tour.overviewDesc', position: 'bottom', mobileOnly: true },
+  { target: '[data-tour="quick-actions"]', titleKey: 'Tour.quickActionsTitle', descKey: 'Tour.quickActionsDesc', position: 'bottom', mobileOnly: true },
 ];
+
 const GRADIENT = 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)';
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -135,12 +51,11 @@ function getElementRect(selector: string): Rect | null {
   return { top: r.top, left: r.left, width: r.width, height: r.height };
 }
 
-// Decide if tooltip should go above or below based on element position
 function getTooltipPosition(rect: Rect, preferredPos: string): 'above' | 'below' {
   const viewH = window.innerHeight;
   const spaceBelow = viewH - (rect.top + rect.height);
   const spaceAbove = rect.top;
-  
+
   if (preferredPos === 'top' || spaceBelow < 200) {
     return spaceAbove > 200 ? 'above' : 'below';
   }
@@ -148,14 +63,7 @@ function getTooltipPosition(rect: Rect, preferredPos: string): 'above' | 'below'
 }
 
 function TooltipCard({
-  rect,
-  step,
-  stepIndex,
-  total,
-  onNext,
-  onPrev,
-  onSkip,
-  isMobile,
+  rect, step, stepIndex, total, onNext, onPrev, onSkip, isMobile, intl,
 }: {
   rect: Rect | null;
   step: Step;
@@ -165,7 +73,9 @@ function TooltipCard({
   onPrev: () => void;
   onSkip: () => void;
   isMobile: boolean;
+  intl: IntlShape;
 }) {
+  const t = (id: string) => intl.formatMessage({ id });
   const GAP = 10;
   const W = isMobile ? Math.min(window.innerWidth - 24, 340) : 280;
 
@@ -185,12 +95,10 @@ function TooltipCard({
       style.left = Math.max(12, Math.min(rect.left + rect.width / 2 - W / 2, window.innerWidth - W - 12));
     }
 
-    // Clamp vertically
     if (style.top !== undefined) {
       style.top = Math.max(60, Math.min(Number(style.top), window.innerHeight - 220));
     }
   } else {
-    // Fallback: center of screen
     style.top = '50%';
     style.left = '50%';
     style.transform = 'translate(-50%, -50%)';
@@ -206,31 +114,27 @@ function TooltipCard({
       onClick={e => e.stopPropagation()}
       className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
 
-      {/* Top gradient line */}
       <div className="h-1 w-full" style={{ background: GRADIENT }} />
 
       <div className="p-4">
-        {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: GRADIENT }}>
               <span className="text-white text-[10px] font-bold">{stepIndex + 1}</span>
             </div>
-            <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{step.title}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{t(step.titleKey)}</p>
           </div>
-          <button onClick={onSkip}
+          <button onClick={onSkip} aria-label={t('Tour.close')}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer shrink-0 p-0.5 mt-0.5">
             <X size={13} />
           </button>
         </div>
 
-        {/* Description */}
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3 pl-8">
-          {step.desc}
+          {t(step.descKey)}
         </p>
 
-        {/* Progress + buttons */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {Array.from({ length: total }).map((_, i) => (
@@ -243,20 +147,20 @@ function TooltipCard({
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={onSkip}
               className="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer font-medium px-1">
-              Skip
+              {t('Tour.skip')}
             </button>
             {stepIndex > 0 && (
               <button onClick={onPrev}
                 className="flex items-center gap-0.5 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-white/15 text-[11px] font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition cursor-pointer">
-                <ArrowLeft size={11} /> Back
+                <ArrowLeft size={11} /> {t('Tour.back')}
               </button>
             )}
             <button onClick={onNext}
               className="flex items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-white text-[11px] font-bold transition cursor-pointer"
               style={{ background: GRADIENT }}>
               {stepIndex === total - 1
-                ? <><CheckCircle2 size={11} /> Done</>
-                : <>Next <ArrowRight size={11} /></>}
+                ? <><CheckCircle2 size={11} /> {t('Tour.done')}</>
+                : <>{t('Tour.next')} <ArrowRight size={11} /></>}
             </button>
           </div>
         </div>
@@ -272,6 +176,7 @@ export default function OnboardingTour({
   active: boolean;
   onDone: () => void;
 }) {
+  const intl = useIntl();
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -283,50 +188,47 @@ export default function OnboardingTour({
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const filteredSteps = STEPS.filter(s => {
+  const filteredSteps = useMemo(() => STEPS.filter(s => {
     if (s.desktopOnly && isMobile) return false;
     if (s.mobileOnly && !isMobile) return false;
     return true;
-  });
+  }), [isMobile]);
 
   const currentStep = filteredSteps[step];
 
   useEffect(() => {
-  if (!active || !currentStep?.target) return;
+    if (!active || !currentStep?.target) return;
 
-  const el = document.querySelector(currentStep.target);
-  if (!el) return;
+    const el = document.querySelector(currentStep.target);
+    if (!el) return;
 
-  const isHeaderElement = [
-    '[data-tour="search"]',
-    '[data-tour="mobile-search"]',
-    '[data-tour="dark-toggle"]',
-    '[data-tour="notifications"]',
-    '[data-tour="profile"]',
-    '[data-tour="mobile-menu"]',
-    '[data-tour="create"]',
-  ].includes(currentStep.target);
+    const isHeaderElement = [
+      '[data-tour="search"]',
+      '[data-tour="mobile-search"]',
+      '[data-tour="dark-toggle"]',
+      '[data-tour="notifications"]',
+      '[data-tour="profile"]',
+      '[data-tour="mobile-menu"]',
+      '[data-tour="create"]',
+    ].includes(currentStep.target);
 
-  if (isHeaderElement) {
-    // Header is sticky — measure immediately, no scroll needed
-    const main = document.querySelector('main');
-    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // Measure right away since header is always visible
-    const r = getElementRect(currentStep.target);
-    setRect(r);
-  } else {
-    // Page content — scroll into view then measure
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const t = setTimeout(() => {
+    if (isHeaderElement) {
+      // Header is sticky — measure immediately, no scroll needed
+      const main = document.querySelector('main');
+      if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
       const r = getElementRect(currentStep.target);
       setRect(r);
-    }, 500);
-    return () => clearTimeout(t);
-  }
-}, [step, active, currentStep]);
+    } else {
+      // Page content — scroll into view, then measure
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const timer = setTimeout(() => {
+        const r = getElementRect(currentStep.target);
+        setRect(r);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step, active, currentStep]);
 
-  // Update on resize
   useEffect(() => {
     if (!active || !currentStep?.target) return;
     const update = () => setRect(getElementRect(currentStep.target));
@@ -392,22 +294,23 @@ export default function OnboardingTour({
         />
       )}
 
-      {/* Tooltip — only show once rect is measured */}
-<AnimatePresence mode="wait">
-  {rect && (
-    <TooltipCard
-      key={`tip-${step}`}
-      rect={rect}
-      step={currentStep}
-      stepIndex={step}
-      total={filteredSteps.length}
-      onNext={handleNext}
-      onPrev={handlePrev}
-      onSkip={onDone}
-      isMobile={isMobile}
-    />
-  )}
-</AnimatePresence>
+      {/* Tooltip — only once the rect is measured */}
+      <AnimatePresence mode="wait">
+        {rect && (
+          <TooltipCard
+            key={`tip-${step}`}
+            rect={rect}
+            step={currentStep}
+            stepIndex={step}
+            total={filteredSteps.length}
+            onNext={handleNext}
+            onPrev={handlePrev}
+            onSkip={onDone}
+            isMobile={isMobile}
+            intl={intl}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Backdrop */}
       <div className="fixed inset-0 z-[9997]" onClick={onDone} />

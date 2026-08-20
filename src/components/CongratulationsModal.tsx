@@ -1,7 +1,10 @@
+// src/components/CongratulationsModal.tsx
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
+import { useIntl } from 'react-intl';
+import { useCompany } from '@/lib/useCompany';
 
 export default function CongratulationsModal({
   open,
@@ -14,6 +17,16 @@ export default function CongratulationsModal({
   onClose: () => void;
   onStartTour: () => void;
 }) {
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const company = useCompany();
+
+  const features = [
+    t('Welcome.feature1'),
+    t('Welcome.feature2'),
+    t('Welcome.feature3'),
+  ];
+
   return (
     <AnimatePresence>
       {open && (
@@ -38,31 +51,26 @@ export default function CongratulationsModal({
 
             <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
 
-              {/* Top gradient banner */}
               <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }} />
 
               <div className="p-8 text-center">
-                {/* Icon */}
                 <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }}>
                   <CheckCircle2 className="w-8 h-8 text-white" />
                 </div>
 
-                {/* Text */}
                 <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                  Welcome to Exodus!
+                  {t('Welcome.title', { company: company.name || 'Exodus' })}
                 </h2>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                  Congratulations, <span className="font-bold text-gray-700 dark:text-gray-200">{name}</span>. Your account is all set up and ready to use.
+                  {t('Welcome.subtitle', {
+                    name,
+                    b: (chunks: any) => <span className="font-bold text-gray-700 dark:text-gray-200">{chunks}</span>,
+                  })}
                 </p>
 
-                {/* Feature highlights */}
                 <div className="mt-6 space-y-2.5 text-left">
-                  {[
-                    'Track shipments in real time',
-                    'View and manage your invoices',
-                    'Get instant notifications',
-                  ].map(feat => (
+                  {features.map(feat => (
                     <div key={feat} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-white/5">
                       <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #0b3aa4, #0e7490)' }}>
                         <CheckCircle2 className="w-3 h-3 text-white" />
@@ -72,20 +80,19 @@ export default function CongratulationsModal({
                   ))}
                 </div>
 
-                {/* Buttons */}
                 <div className="mt-6 space-y-2.5">
                   <button
                     onClick={() => { onClose(); onStartTour(); }}
                     className="cursor-pointer w-full h-11 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-[.98]"
-                   style={{ background: 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }}>
+                    style={{ background: 'linear-gradient(135deg, #0b3aa4 0%, #0c52c4 40%, #0e7490 100%)' }}>
                     <Sparkles className="w-4 h-4" />
-                    Take a quick tour
+                    {t('Welcome.takeTour')}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
                     onClick={onClose}
                     className="cursor-pointer w-full h-11 rounded-xl font-bold text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5">
-                    Skip for now
+                    {t('Welcome.skip')}
                   </button>
                 </div>
               </div>
