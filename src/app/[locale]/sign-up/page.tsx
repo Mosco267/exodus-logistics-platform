@@ -1110,14 +1110,14 @@ try {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.nameLabel')}</label>
                   <input id="input-name" value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
-                    placeholder="t('SignUp.nameLabel')" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
+                    placeholder={t('SignUp.namePlaceholder')} autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
                   {errors.name && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.emailLabel')}</label>
                   <input id="input-email" value={email} onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
-                    type="email" placeholder="t('SignUp.emailLabel')" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
+                    type="email" placeholder={t('SignUp.emailPlaceholder')} autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
                   {errors.email && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
                 </div>
 
@@ -1153,7 +1153,7 @@ try {
                   <PasswordInput
                     value={password}
                     onChange={v => { setPassword(v); setErrors(p => ({ ...p, password: '' })); }}
-                    placeholder="t('SignUp.passwordPlaceholder')"
+                    placeholder={t('SignUp.passwordPlaceholder')}
                     autoComplete="new-password"
                   />
                   {errors.password && (
@@ -1167,7 +1167,7 @@ try {
                   <PasswordInput
                     value={confirm}
                     onChange={v => { setConfirm(v); setErrors(p => ({ ...p, confirm: '' })); }}
-                    placeholder="t('SignUp.confirmPlaceholder')"
+                    placeholder={t('SignUp.confirmPlaceholder')}
                     autoComplete="new-password"
                   />
                   {errors.confirm && (

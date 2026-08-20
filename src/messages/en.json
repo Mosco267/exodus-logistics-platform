@@ -1770,5 +1770,7 @@
 "SignUp.bannedTitle": "This email is banned",
 "SignUp.bannedBody": "The address <b>{email}</b> has been banned and cannot be used to create an account. Contact support if you believe this is a mistake.",
 "SignUp.contactSupport": "Contact support",
-"SignUp.close": "Close"
+"SignUp.close": "Close",
+"SignUp.namePlaceholder": "Your full name",
+"SignUp.emailPlaceholder": "your@email.com"
 }
