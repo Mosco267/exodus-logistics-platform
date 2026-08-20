@@ -1772,5 +1772,18 @@
 "SignUp.contactSupport": "Contact support",
 "SignUp.close": "Close",
 "SignUp.namePlaceholder": "Your full name",
-"SignUp.emailPlaceholder": "your@email.com"
+"SignUp.emailPlaceholder": "your@email.com",
+
+"VerifyEmail.title": "Verify your email",
+"VerifyEmail.sentTo": "We sent a 6-digit verification code to",
+"VerifyEmail.submit": "Verify email",
+"VerifyEmail.verifying": "Verifying…",
+"VerifyEmail.takingYouIn": "Taking you in…",
+"VerifyEmail.resend": "Resend code",
+"VerifyEmail.resending": "Resending…",
+"VerifyEmail.resendIn": "Resend code in <b>{time}</b>",
+"VerifyEmail.spamHint": "If the email hasn't arrived, check your promotions or updates folder.",
+"VerifyEmail.errIncomplete": "Enter the complete 6-digit code.",
+"VerifyEmail.errInvalid": "That code isn't valid. Please check and try again.",
+"VerifyEmail.errGeneric": "Something went wrong. Please try again."
 }

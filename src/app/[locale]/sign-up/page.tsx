@@ -943,7 +943,7 @@ try {
       setGeneralError(json?.error || 'Registration failed. Please try again.');
       return;
     }
-    sessionStorage.setItem('exodus_reg_password', password);
+    
     router.push(`/${locale}/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}&locale=${locale}`);
   } catch {
      setGeneralError(t('SignUp.errGeneric'));

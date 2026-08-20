@@ -5,12 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, AlertCircle, Mail } from 'lucide-react';
 import { signIn } from 'next-auth/react';
+import { useIntl } from 'react-intl';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || '';
+   const email = searchParams.get('email') || '';
   const locale = searchParams.get('locale') || 'en';
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [startTime] = useState(() => Date.now());
@@ -67,7 +70,7 @@ function VerifyEmailContent() {
 
   const handleVerify = async () => {
     const fullCode = code.join('');
-    if (fullCode.length < 6) { setError('Please enter the complete 6-digit code.'); return; }
+        if (fullCode.length < 6) { setError(t('VerifyEmail.errIncomplete')); return; }
     setVerifying(true);
     try {
       const res = await fetch('/api/auth/verify-email', {
@@ -76,18 +79,26 @@ function VerifyEmailContent() {
         body: JSON.stringify({ email, code: fullCode }),
       });
       const json = await res.json();
-      if (!res.ok) { setError(json?.error || 'Invalid code. Please try again.'); return; }
-      // Get password from sessionStorage
-      const password = sessionStorage.getItem('exodus_reg_password') || '';
+                 if (!res.ok) { setError(t('VerifyEmail.errInvalid')); return; }
+
       setIsNavigating(true);
-      const result = await signIn('credentials', { email, password, redirect: false });
+
+      /* Sign in with the one-time token the route just issued. Falls back to
+         the stored password only for sessions that began before this change,
+         and clears it either way. */
+      const storedPassword = sessionStorage.getItem('exodus_reg_password') || '';
       sessionStorage.removeItem('exodus_reg_password');
+
+      const result = json?.signInToken
+        ? await signIn('credentials', { email, passkeyToken: json.signInToken, redirect: false })
+        : await signIn('credentials', { email, password: storedPassword, redirect: false });
+
       if (result?.ok) {
         window.location.href = `/${locale}/dashboard`;
       } else {
         window.location.href = `/${locale}/sign-in`;
       }
-    } catch { setError('Something went wrong. Please try again.'); }
+        } catch { setError(t('VerifyEmail.errGeneric')); }
     finally { setVerifying(false); }
   };
 
@@ -125,9 +136,9 @@ function VerifyEmailContent() {
             style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
             <Mail className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Verify your email</h2>
+                    <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{t('VerifyEmail.title')}</h2>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-            We've sent a 6-digit verification code to<br />
+            {t('VerifyEmail.sentTo')}<br />
             <span className="font-semibold text-gray-700 block break-all">{maskedEmail}</span>
           </p>
 
@@ -156,27 +167,28 @@ function VerifyEmailContent() {
             className="cursor-pointer mt-6 w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
             {verifying || isNavigating
-              ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{isNavigating ? 'Taking you in…' : 'Verifying...'}</span></>
-              : <span>Verify Email</span>}
+                           ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{isNavigating ? t('VerifyEmail.takingYouIn') : t('VerifyEmail.verifying')}</span></>
+              : <span>{t('VerifyEmail.submit')}</span>}
           </button>
 
           <div className="mt-5">
             {canResend ? (
               <button onClick={handleResend} disabled={resending}
                 className="cursor-pointer text-sm font-semibold text-blue-600 hover:text-blue-700 transition disabled:opacity-60">
-                {resending ? 'Resending...' : 'Resend code'}
+                                {resending ? t('VerifyEmail.resending') : t('VerifyEmail.resend')}
               </button>
             ) : (
               <p className="text-sm text-gray-400">
-                Resend code in <span className="font-bold text-gray-600 tabular-nums">
-                  {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
-                </span>
+                {t('VerifyEmail.resendIn', {
+                  time: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`,
+                  b: (chunks: any) => <span className="font-bold text-gray-600 tabular-nums">{chunks}</span>,
+                })}
               </p>
             )}
           </div>
 
           <p className="mt-3 text-xs text-gray-400">
-            If you don't see the email, please check your promotions or updates folder.
+                        {t('VerifyEmail.spamHint')}
           </p>
         </div>
       </motion.div>

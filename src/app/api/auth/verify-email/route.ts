@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { sendWelcomeEmail } from "@/lib/sendWelcomeEmail";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
@@ -41,8 +42,19 @@ export async function POST(req: Request) {
   createdAt: pending.createdAt,
 });
 
-    // Remove from pending
+       // Remove from pending
     await db.collection("pending_users").deleteMany({ email });
+
+    /* One-time sign-in token, so the browser never has to hold the
+       plaintext password in sessionStorage to complete registration.
+       Same pattern the passkey flow uses. */
+    const signInToken = crypto.randomBytes(32).toString("hex");
+    await db.collection("passkey_tokens").insertOne({
+      email,
+      token: signInToken,
+      expires: new Date(Date.now() + 2 * 60 * 1000),
+      createdAt: new Date(),
+    });
 
     // Send welcome email
     try {
@@ -51,7 +63,7 @@ export async function POST(req: Request) {
       console.error("Welcome email failed:", e);
     }
 
-    return NextResponse.json({ ok: true });
+       return NextResponse.json({ ok: true, signInToken });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: e?.message || "Server error." }, { status: 500 });
