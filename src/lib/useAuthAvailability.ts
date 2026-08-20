@@ -22,7 +22,7 @@ const EMPTY: AuthAvailability = {
    take effect without a hard refresh. */
 let cache: AuthAvailability | null = null;
 let cachedAt = 0;
-const TTL_MS = 30_000;
+const TTL_MS = 5_000;
 
 export function useAuthAvailability(): AuthAvailability {
   const [state, setState] = useState<AuthAvailability>(cache || EMPTY);

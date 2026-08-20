@@ -11,6 +11,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import PasswordInput from '@/components/PasswordInput';
 import { useAuthAvailability } from "@/lib/useAuthAvailability";
+import { useIntl, type IntlShape } from 'react-intl';
+import { useCompany } from '@/lib/useCompany';
 
 const COUNTRIES = [
   { name: 'Afghanistan', code: 'AF', dial: '+93' },
@@ -435,12 +437,14 @@ function findCountry(nameOrCode: string) {
 
 // ─── Country Dropdown ────────────────────────────────────
 function CountryDropdown({
-  value, onChange, hasError,
+  value, onChange, hasError, intl,
 }: {
   value: string;
   onChange: (c: typeof COUNTRIES[0]) => void;
   hasError: boolean;
+  intl: IntlShape;
 }) {
+  const t = (id: string) => intl.formatMessage({ id });
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -479,7 +483,7 @@ function CountryDropdown({
             <span className="flex-1 truncate text-gray-900">{selected.name}</span>
           </>
         ) : (
-          <span className="flex-1 text-gray-400">Select country</span>
+                    <span className="flex-1 text-gray-400">{t('SignUp.selectCountry')}</span>
         )}
         <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -491,14 +495,14 @@ function CountryDropdown({
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search country..."
+                            placeholder={t('SignUp.searchCountry')}
               className="w-full px-3 py-2 text-sm bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none"
               style={{ fontSize: '16px' }}
             />
           </div>
           <ul className="max-h-52 overflow-y-auto">
             {filtered.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-gray-400 text-center">No countries found</li>
+              <li className="px-4 py-3 text-sm text-gray-400 text-center">{t('SignUp.noCountries')}</li>
             ) : filtered.map(c => (
               <li key={c.code}>
                 <button
@@ -526,11 +530,13 @@ function CountryDropdown({
 
 // ─── Dial Code Picker ─────────────────────────────────────
 function DialCodePicker({
-  selected, onChange,
+  selected, onChange, intl,
 }: {
   selected: typeof COUNTRIES[0] | null;
   onChange: (c: typeof COUNTRIES[0]) => void;
+  intl: IntlShape;
 }) {
+  const t = (id: string) => intl.formatMessage({ id });
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -579,7 +585,7 @@ function DialCodePicker({
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search country..."
+                           placeholder={t('SignUp.searchCountry')}
               className="w-full px-3 py-2 text-sm bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none"
               style={{ fontSize: '16px' }}
             />
@@ -667,16 +673,17 @@ function SignUpPhoneInput({ countryCode, value, onChange, hasError }: {
   );
 }
 
-function PasswordStrength({ password }: { password: string }) {
+function PasswordStrength({ password, intl }: { password: string; intl: IntlShape }) {
+  const t = (id: string) => intl.formatMessage({ id });
   const checks = [
-    { label: 'At least 8 characters', pass: password.length >= 8 },
-    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
-    { label: 'Number', pass: /[0-9]/.test(password) },
-    { label: 'Special character', pass: /[^A-Za-z0-9]/.test(password) },
+    { label: t('SignUp.pwLength'), pass: password.length >= 8 },
+    { label: t('SignUp.pwUpper'), pass: /[A-Z]/.test(password) },
+    { label: t('SignUp.pwNumber'), pass: /[0-9]/.test(password) },
+    { label: t('SignUp.pwSpecial'), pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter(c => c.pass).length;
   const barColor = score <= 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : score === 3 ? 'bg-blue-400' : 'bg-emerald-500';
-  const label = ['', 'Weak', 'Fair', 'Good', 'Strong'][score];
+  const label = ['', t('SignUp.pwWeak'), t('SignUp.pwFair'), t('SignUp.pwGood'), t('SignUp.pwStrong')][score];
   const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-blue-600', 'text-emerald-600'][score];
   if (!password) return null;
   return (
@@ -713,8 +720,11 @@ function CustomCheckbox({ checked, onChange, error }: { checked: boolean; onChan
 
 function SignUpContent() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'en';
+    const locale = (params?.locale as string) || 'en';
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const company = useCompany();
 
     /* Redirect away when registration is paused. The API blocks it too;
      this just avoids showing a form that cannot succeed. */
@@ -745,12 +755,12 @@ const [forceCreating, setForceCreating] = useState(false);
 
   const [navOpen, setNavOpen] = useState(false);
 
-  const navItems = [
-    { name: 'Home', href: `/${locale}` },
-    { name: 'About', href: `/${locale}/about` },
-    { name: 'Services', href: `/${locale}/services` },
-    { name: 'Contact', href: `/${locale}/contact` },
-    { name: 'Get Started', href: `/${locale}/sign-up` },
+    const navItems = [
+    { name: t('SignIn.navHome'), href: `/${locale}`, primary: false },
+    { name: t('SignIn.navAbout'), href: `/${locale}/about`, primary: false },
+    { name: t('SignIn.navServices'), href: `/${locale}/services`, primary: false },
+    { name: t('SignIn.navContact'), href: `/${locale}/contact`, primary: false },
+    { name: t('SignIn.navGetStarted'), href: `/${locale}/sign-up`, primary: true },
   ];
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -801,21 +811,21 @@ const [forceCreating, setForceCreating] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Full name is required.';
-    if (!email.trim()) e.email = 'Email address is required.';
-    else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = 'Please enter a valid email address.';
-    if (!country.trim()) e.country = 'Please select your country.';
-    if (!phone.trim()) e.phone = 'Phone number is required.';
-    if (!password) e.password = 'Password is required.';
+       if (!name.trim()) e.name = t('SignUp.errName');
+    if (!email.trim()) e.email = t('SignUp.errEmail');
+    else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = t('SignUp.errEmailInvalid');
+    if (!country.trim()) e.country = t('SignUp.errCountry');
+    if (!phone.trim()) e.phone = t('SignUp.errPhone');
+    if (!password) e.password = t('SignUp.errPassword');
     else if (
       password.length < 8 ||
       !/[A-Z]/.test(password) ||
       !/[0-9]/.test(password) ||
       !/[^A-Za-z0-9]/.test(password)
-    ) e.password = 'Password must meet all requirements above.';
-    if (!confirm) e.confirm = 'Please confirm your password.';
-    else if (confirm !== password) e.confirm = 'Passwords do not match.';
-    if (!agreed) e.agreed = 'You must accept our Terms of Service and Privacy Policy to create an account.';
+    ) e.password = t('SignUp.errPasswordWeak');
+    if (!confirm) e.confirm = t('SignUp.errConfirm');
+    else if (confirm !== password) e.confirm = t('SignUp.errMismatch');
+    if (!agreed) e.agreed = t('SignUp.errTerms');
     return e;
   };
 
@@ -885,7 +895,7 @@ try {
       setShowBannedModal(true);
       return;
     }
-    setGeneralError(json?.error || 'Registration failed. Please try again.');
+        setGeneralError(json?.error === 'SIGNUP_DISABLED' ? t('SignUp.errSignupPaused') : t('SignUp.errFailed'));
     setTimeout(() => {
       const el = document.getElementById('general-error');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -895,7 +905,7 @@ try {
   sessionStorage.setItem('exodus_reg_password', submitPassword);
   router.push(`/${locale}/verify-email?email=${encodeURIComponent(submitEmail)}&locale=${locale}`);
 } catch {
-  setGeneralError('Something went wrong. Please try again.');
+   setGeneralError(t('SignUp.errGeneric'));
 } finally {
   setIsSubmitting(false);
   setForceCreating(false);
@@ -936,7 +946,7 @@ try {
     sessionStorage.setItem('exodus_reg_password', password);
     router.push(`/${locale}/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}&locale=${locale}`);
   } catch {
-    setGeneralError('Something went wrong. Please try again.');
+     setGeneralError(t('SignUp.errGeneric'));
   } finally {
     setIsSubmitting(false);
   }
@@ -977,24 +987,24 @@ try {
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative z-10 space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
               <Rocket className="w-3.5 h-3.5 text-orange-400" />
-              <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Get Started Today</span>
+              <span className="text-xs font-bold text-white/90 tracking-widest uppercase">{t('SignUp.badge')}</span>
             </div>
             <div>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-                You're one step away from smarter shipping.<br />
+                {t('SignUp.heroLine1')}<br />
                 <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  Track. Ship. Deliver.
+                  {t('SignUp.heroLine2')}
                 </span>
               </h2>
               <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-                Complete your profile and gain instant access to real-time tracking, automated invoicing, and our global logistics network.
+                {t('SignUp.heroBlurb')}
               </p>
             </div>
             <div className="space-y-3">
               {[
-                { icon: MapPin, title: 'Real-time Tracking', desc: 'Know where your shipment is at all times' },
-                { icon: Package, title: 'Automated Invoicing', desc: 'Invoices generated and sent automatically' },
-                { icon: Globe, title: 'Global Network', desc: 'Partners in 120+ countries worldwide' },
+                                { icon: MapPin, title: t('SignUp.feat1Title'), desc: t('SignUp.feat1Desc') },
+                { icon: Package, title: t('SignUp.feat2Title'), desc: t('SignUp.feat2Desc') },
+                { icon: Globe, title: t('SignUp.feat3Title'), desc: t('SignUp.feat3Desc') },
               ].map(({ icon: Icon, title, desc }, i) => (
                 <motion.div key={title} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.1 + i * 0.1 }}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
@@ -1009,7 +1019,7 @@ try {
               ))}
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {[{ value: '< 2min', label: 'Setup time' }, { value: 'Free', label: 'To start' }, { value: '24/7', label: 'Support' }].map(({ value, label }, i) => (
+                            {[{ value: '< 2min', label: t('SignUp.statSetup') }, { value: t('SignUp.statFreeValue'), label: t('SignUp.statFree') }, { value: '24/7', label: t('SignUp.statSupport') }].map(({ value, label }, i) => (
                 <motion.div key={label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.4 + i * 0.08 }}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm">
                   <p className="text-xl font-extrabold text-white">{value}</p>
@@ -1020,7 +1030,7 @@ try {
           </motion.div>
 
           <div className="relative z-10 mt-auto">
-            <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
+            <p className="text-xs text-white/30">{t('SignIn.copyright', { year: new Date().getFullYear(), company: company.name || 'Exodus Logistics Ltd.' })}</p>
           </div>
         </div>
 
@@ -1059,7 +1069,7 @@ try {
                       <motion.div key={item.name} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2, delay: i * 0.05 }}>
                         <Link href={item.href} onClick={() => setNavOpen(false)}
                           className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-                            item.name === 'Get Started'
+                                                        item.primary
                               ? 'bg-orange-500 text-white hover:bg-orange-600 mt-4'
                               : 'text-white/80 hover:text-white hover:bg-white/15'
                           }`}>
@@ -1069,7 +1079,7 @@ try {
                     ))}
                   </div>
                   <div className="px-6 py-5 border-t border-white/20">
-                    <p className="text-xs text-white/40">© {new Date().getFullYear()} Exodus Logistics Ltd.</p>
+                    <p className="text-xs text-white/40">{t('SignIn.copyrightShort', { year: new Date().getFullYear(), company: company.name || 'Exodus Logistics Ltd.' })}</p>
                   </div>
                 </motion.div>
               </>
@@ -1086,8 +1096,8 @@ try {
                 <div className="w-11 h-11 rounded-2xl mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                   <User className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">Create your account</h1>
-                <p className="mt-1 text-sm text-gray-500">Fill in your information to get started.</p>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">{t('SignUp.title')}</h1>
+                <p className="mt-1 text-sm text-gray-500">{t('SignUp.subtitle')}</p>
               </div>
 
               {generalError && (
@@ -1098,31 +1108,32 @@ try {
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.nameLabel')}</label>
                   <input id="input-name" value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
-                    placeholder="Full Name" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
+                    placeholder="t('SignUp.nameLabel')" autoComplete="name" style={{ fontSize: '16px' }} className={inputCls(!!errors.name)} />
                   {errors.name && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.emailLabel')}</label>
                   <input id="input-email" value={email} onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
-                    type="email" placeholder="Email Address" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
+                    type="email" placeholder="t('SignUp.emailLabel')" autoComplete="email" style={{ fontSize: '16px' }} className={inputCls(!!errors.email)} />
                   {errors.email && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
                 </div>
 
                 <div id="input-country">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
-                  <CountryDropdown value={country} onChange={handleCountryChange} hasError={!!errors.country} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.countryLabel')}</label>
+                                    <CountryDropdown value={country} onChange={handleCountryChange} hasError={!!errors.country} intl={intl} />
                   {errors.country && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.country}</p>}
                 </div>
 
                 <div id="input-phone">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.phoneLabel')}</label>
                   <div className="flex items-center gap-2">
                     <DialCodePicker
                       selected={dialCountry}
-                      onChange={c => { setDialCountry(c); setPhone(''); }}
+                                           onChange={c => { setDialCountry(c); setPhone(''); }}
+                      intl={intl}
                     />
                     <SignUpPhoneInput
                       countryCode={dialCountry?.code || ''}
@@ -1133,37 +1144,37 @@ try {
                   </div>
                   {errors.phone && <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
                  {dialCountry?.code === selectedCountry?.code && (
-  <p className="text-[11px] text-gray-400 mt-1">Numbers only. Dial code auto-set from your country.</p>
+  <p className="text-[11px] text-gray-400 mt-1">{t('SignUp.phoneHint')}</p>
 )}
                 </div>
 
                 <div id="input-password">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.passwordLabel')}</label>
                   <PasswordInput
                     value={password}
                     onChange={v => { setPassword(v); setErrors(p => ({ ...p, password: '' })); }}
-                    placeholder="Create a Strong Password"
+                    placeholder="t('SignUp.passwordPlaceholder')"
                     autoComplete="new-password"
                   />
                   {errors.password && (
                     <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.password}</p>
                   )}
-                  <PasswordStrength password={password} />
+                                   <PasswordStrength password={password} intl={intl} />
                 </div>
 
                 <div id="input-confirm">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.confirmLabel')}</label>
                   <PasswordInput
                     value={confirm}
                     onChange={v => { setConfirm(v); setErrors(p => ({ ...p, confirm: '' })); }}
-                    placeholder="Re-enter Your Password"
+                    placeholder="t('SignUp.confirmPlaceholder')"
                     autoComplete="new-password"
                   />
                   {errors.confirm && (
                     <p className="mt-1 text-xs text-red-600 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.confirm}</p>
                   )}
                   {confirm && confirm === password && !errors.confirm && (
-                    <p className="mt-1 text-xs text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Passwords match</p>
+                    <p className="mt-1 text-xs text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />{t('SignUp.passwordsMatch')}</p>
                   )}
                 </div>
 
@@ -1172,7 +1183,7 @@ try {
                     <div className="flex items-start gap-3">
                       <CustomCheckbox checked={emailUpdates} onChange={() => setEmailUpdates(v => !v)} />
                       <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => setEmailUpdates(v => !v)}>
-                        Keep me updated with shipment alerts, platform news, and exclusive offers from Exodus Logistics.
+                                                {t('SignUp.emailUpdates', { company: company.name || 'Exodus Logistics' })}
                       </span>
                     </div>
                   </div>
@@ -1180,11 +1191,15 @@ try {
                     <div className="flex items-start gap-3">
                       <CustomCheckbox checked={agreed} onChange={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }} error={!!errors.agreed} />
                       <span className="text-sm text-gray-600 leading-relaxed cursor-pointer" onClick={() => { setAgreed(v => !v); setErrors(p => ({ ...p, agreed: '' })); }}>
-                        I have read, understood, and agree to be bound by the{' '}
-                        <Link href={`/${locale}/terms`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Terms of Service</Link>{' '}
-                        and{' '}
-                        <Link href={`/${locale}/privacy`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">Privacy Policy</Link>{' '}
-                        of Exodus Logistics Ltd.
+                                                {t('SignUp.terms', {
+                          company: company.name || 'Exodus Logistics Ltd.',
+                          terms: (chunks: any) => (
+                            <Link href={`/${locale}/terms`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">{chunks}</Link>
+                          ),
+                          privacy: (chunks: any) => (
+                            <Link href={`/${locale}/privacy`} target="_blank" onClick={e => e.stopPropagation()} className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition">{chunks}</Link>
+                          ),
+                        })}
                       </span>
                     </div>
                     {errors.agreed && <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1 pl-8"><AlertCircle className="w-3 h-3 shrink-0" />{errors.agreed}</p>}
@@ -1194,13 +1209,16 @@ try {
                 <button type="submit" disabled={isSubmitting}
                   className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                   style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating Account...</span></> : <><span>Create Account</span></>}
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{t('SignUp.creating')}</span></> : <><span>{t('SignUp.submit')}</span></>}
                 </button>
               </form>
 
               <p className="mt-5 text-center text-sm text-gray-500">
-                Already have an account?{' '}
-                <Link href={`/${locale}/sign-in`} className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition">Sign in</Link>
+                                {t('SignUp.haveAccount', {
+                  link: (chunks: any) => (
+                    <Link href={`/${locale}/sign-in`} className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition">{chunks}</Link>
+                  ),
+                })}
               </p>
            </div>
           </motion.div>
@@ -1215,27 +1233,30 @@ try {
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-100">
               <AlertCircle className="w-6 h-6 text-amber-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 text-center">Account previously deleted</h3>
+            <h3 className="text-lg font-bold text-gray-900 text-center">{t('SignUp.deletedTitle')}</h3>
             <p className="mt-2 text-sm text-gray-500 text-center leading-relaxed">
-              An account was previously created with <strong>{email}</strong>{deletedAccountName ? ` (${deletedAccountName})` : ''} and later deleted.
-              Would you like to restore the old account, or create a new one?
+                           {t('SignUp.deletedBody', {
+                email,
+                name: deletedAccountName ? ` (${deletedAccountName})` : '',
+                b: (chunks: any) => <strong>{chunks}</strong>,
+              })}
             </p>
             <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
-              ⚠️ Creating a new account will <strong>permanently delete</strong> all data from the previous account, including past shipments and notifications.
+                            {t('SignUp.deletedWarning', { b: (chunks: any) => <strong>{chunks}</strong> })}
             </p>
             <div className="mt-6 flex flex-col gap-2.5">
-              <a href={`mailto:support@goexoduslogistics.com?subject=Restore%20my%20account&body=Hi%20Exodus%20Logistics%20support%2C%0A%0AI%20would%20like%20to%20restore%20my%20account%20associated%20with%20the%20email%3A%20${encodeURIComponent(email)}.%0A%0APlease%20review%20and%20restore%20it%20at%20your%20earliest%20convenience.%0A%0AThank%20you.`}
+                            <a href={`mailto:${company.email}?subject=Restore%20my%20account&body=I%20would%20like%20to%20restore%20my%20account%20associated%20with%20the%20email%3A%20${encodeURIComponent(email)}.`}
                 className="w-full py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer text-center hover:opacity-90 transition"
                 style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-                Restore old account (email support)
+                {t('SignUp.restoreOld')}
               </a>
               <button onClick={handleCreateNewAccount}
                 className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition">
-                Create a new account (delete old data)
+                {t('SignUp.createNew')}
               </button>
               <button onClick={() => setShowDeletedModal(false)}
                 className="w-full py-2 text-xs font-semibold text-gray-500 cursor-pointer hover:text-gray-700">
-                Cancel
+                {t('SignUp.cancel')}
               </button>
             </div>
           </div>
@@ -1243,27 +1264,26 @@ try {
       )}
 
       {/* Banned account modal */}
-      {showBannedModal && (
+            {showBannedModal && (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[14vh] overflow-y-auto">
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeletedModal(false)} />
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBannedModal(false)} />
     <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 mb-10">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-100">
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 text-center">This email is banned</h3>
+            <h3 className="text-lg font-bold text-gray-900 text-center">{t('SignUp.bannedTitle')}</h3>
             <p className="mt-2 text-sm text-gray-500 text-center leading-relaxed">
-              The email address <strong>{email}</strong> has been banned and cannot be used to create an account.
-              Please contact support if you believe this is a mistake.
+                           {t('SignUp.bannedBody', { email, b: (chunks: any) => <strong>{chunks}</strong> })}
             </p>
             <div className="mt-6 flex flex-col gap-2.5">
-              <a href={`mailto:support@goexoduslogistics.com?subject=Banned%20account%20appeal&body=Hi%20Exodus%20Logistics%20support%2C%0A%0AI%20would%20like%20to%20appeal%20the%20ban%20on%20my%20email%3A%20${encodeURIComponent(email)}.%0A%0AThank%20you.`}
+                            <a href={`mailto:${company.email}?subject=Banned%20account%20appeal&body=I%20would%20like%20to%20appeal%20the%20ban%20on%20my%20email%3A%20${encodeURIComponent(email)}.`}
                 className="w-full py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer text-center hover:opacity-90 transition"
                 style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' }}>
-                Contact support
+                {t('SignUp.contactSupport')}
               </a>
               <button onClick={() => setShowBannedModal(false)}
                 className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition">
-                Close
+                {t('SignUp.close')}
               </button>
             </div>
           </div>
