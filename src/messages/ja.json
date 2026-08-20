@@ -1552,5 +1552,15 @@
 "TrackDetailPublic.location": "場所",
 
 "InvoiceDetail.print": "請求書を印刷",
-"Header.SignIn": "ログイン"
+"Header.SignIn": "ログイン",
+"Unavailable.signUpTitle": "新規登録を停止しています",
+"Unavailable.signUpBody": "現在、新しいアカウントの受け付けを停止しております。既存のお客さまは通常どおりログインして配送を管理いただけます。",
+"Unavailable.signInTitle": "ログインを一時停止しています",
+"Unavailable.signInBody": "アカウントへのアクセスについてメンテナンスを実施中です。ログインなしで配送の追跡や請求書の確認はご利用いただけます。",
+"Unavailable.genericTitle": "一時的にご利用いただけません",
+"Unavailable.genericBody": "この機能はメンテナンスのため停止しています。その他の機能は通常どおりご利用いただけます。",
+"Unavailable.backHome": "ホームに戻る",
+"Unavailable.trackShipment": "荷物を追跡",
+"Unavailable.viewInvoice": "請求書を表示",
+"Unavailable.contact": "ご不明な点は <email></email> までご連絡ください"
 }

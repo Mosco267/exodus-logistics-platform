@@ -1552,5 +1552,15 @@
 "TrackDetailPublic.location": "स्थान",
 
 "InvoiceDetail.print": "चालान प्रिंट करें",
-"Header.SignIn": "साइन इन करें"
+"Header.SignIn": "साइन इन करें",
+"Unavailable.signUpTitle": "नया पंजीकरण रोका गया है",
+"Unavailable.signUpBody": "फ़िलहाल हम नए खाते स्वीकार नहीं कर रहे हैं। मौजूदा ग्राहक सामान्य रूप से साइन इन करके अपनी शिपमेंट संभाल सकते हैं।",
+"Unavailable.signInTitle": "साइन इन अस्थायी रूप से उपलब्ध नहीं है",
+"Unavailable.signInBody": "हम खाता पहुँच पर रखरखाव कर रहे हैं। आप बिना साइन इन किए भी शिपमेंट ट्रैक कर सकते हैं और चालान देख सकते हैं।",
+"Unavailable.genericTitle": "अस्थायी रूप से अनुपलब्ध",
+"Unavailable.genericBody": "साइट का यह हिस्सा रखरखाव के लिए रोका गया है। बाकी सब सामान्य रूप से काम कर रहा है।",
+"Unavailable.backHome": "होम पर वापस जाएँ",
+"Unavailable.trackShipment": "शिपमेंट ट्रैक करें",
+"Unavailable.viewInvoice": "चालान देखें",
+"Unavailable.contact": "कोई सवाल? <email></email> पर संपर्क करें"
 }

@@ -1552,5 +1552,15 @@
 "TrackDetailPublic.location": "Localização",
 
 "InvoiceDetail.print": "Imprimir fatura",
-"Header.SignIn": "Iniciar sessão"
+"Header.SignIn": "Iniciar sessão",
+"Unavailable.signUpTitle": "Os registos estão suspensos",
+"Unavailable.signUpBody": "De momento não estamos a aceitar novas contas. Os clientes existentes podem continuar a iniciar sessão e a gerir os seus envios normalmente.",
+"Unavailable.signInTitle": "O início de sessão está indisponível",
+"Unavailable.signInBody": "Estamos a fazer manutenção ao acesso às contas. Podes continuar a seguir envios e a consultar faturas sem iniciar sessão.",
+"Unavailable.genericTitle": "Temporariamente indisponível",
+"Unavailable.genericBody": "Esta parte do site está suspensa para manutenção. Tudo o resto funciona normalmente.",
+"Unavailable.backHome": "Voltar ao início",
+"Unavailable.trackShipment": "Seguir um envio",
+"Unavailable.viewInvoice": "Ver uma fatura",
+"Unavailable.contact": "Dúvidas? Contacta <email></email>"
 }

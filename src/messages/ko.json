@@ -1552,5 +1552,15 @@
 "TrackDetailPublic.location": "위치",
 
 "InvoiceDetail.print": "청구서 인쇄",
-"Header.SignIn": "로그인"
+"Header.SignIn": "로그인",
+"Unavailable.signUpTitle": "신규 가입을 일시 중단했습니다",
+"Unavailable.signUpBody": "현재 새 계정을 받고 있지 않습니다. 기존 고객님은 평소처럼 로그인하여 배송을 관리하실 수 있습니다.",
+"Unavailable.signInTitle": "로그인을 일시적으로 이용할 수 없습니다",
+"Unavailable.signInBody": "계정 접속 관련 점검을 진행 중입니다. 로그인 없이도 배송 조회와 청구서 확인은 가능합니다.",
+"Unavailable.genericTitle": "일시적으로 이용할 수 없습니다",
+"Unavailable.genericBody": "이 기능은 점검을 위해 중단되었습니다. 나머지 기능은 정상 이용하실 수 있습니다.",
+"Unavailable.backHome": "홈으로 돌아가기",
+"Unavailable.trackShipment": "배송 조회",
+"Unavailable.viewInvoice": "청구서 보기",
+"Unavailable.contact": "궁금한 점이 있으신가요? <email></email>(으)로 문의해 주세요"
 }

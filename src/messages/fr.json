@@ -1670,5 +1670,15 @@
 "AuthError.genericTitle": "Échec de la connexion",
 "AuthError.genericDesc": "Un problème est survenu lors de la connexion. Veuillez réessayer.",
 "AuthError.backToSignIn": "Retour à la connexion",
-"AuthError.goHome": "Aller à l'accueil"
+"AuthError.goHome": "Aller à l'accueil",
+"Unavailable.signUpTitle": "Les inscriptions sont suspendues",
+"Unavailable.signUpBody": "Nous n'acceptons pas de nouveaux comptes pour le moment. Les clients existants peuvent toujours se connecter et gérer leurs envois normalement.",
+"Unavailable.signInTitle": "La connexion est temporairement indisponible",
+"Unavailable.signInBody": "Nous effectuons une maintenance sur l'accès aux comptes. Vous pouvez toujours suivre vos envois et consulter vos factures sans vous connecter.",
+"Unavailable.genericTitle": "Temporairement indisponible",
+"Unavailable.genericBody": "Cette partie du site est suspendue pour maintenance. Tout le reste fonctionne normalement.",
+"Unavailable.backHome": "Retour à l'accueil",
+"Unavailable.trackShipment": "Suivre un envoi",
+"Unavailable.viewInvoice": "Voir une facture",
+"Unavailable.contact": "Une question ? Écrivez à <email></email>"
 }

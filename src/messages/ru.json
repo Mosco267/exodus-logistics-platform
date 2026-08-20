@@ -1552,5 +1552,15 @@
 "TrackDetailPublic.location": "Местоположение",
 
 "InvoiceDetail.print": "Печать счёта",
-"Header.SignIn": "Войти"
+"Header.SignIn": "Войти",
+"Unavailable.signUpTitle": "Регистрация приостановлена",
+"Unavailable.signUpBody": "Сейчас мы не принимаем новые аккаунты. Действующие клиенты по-прежнему могут входить и работать с отправлениями как обычно.",
+"Unavailable.signInTitle": "Вход временно недоступен",
+"Unavailable.signInBody": "Мы проводим технические работы с доступом к аккаунтам. Отслеживание отправлений и просмотр счетов доступны без входа.",
+"Unavailable.genericTitle": "Временно недоступно",
+"Unavailable.genericBody": "Этот раздел приостановлен на время технических работ. Остальное работает как обычно.",
+"Unavailable.backHome": "На главную",
+"Unavailable.trackShipment": "Отследить отправление",
+"Unavailable.viewInvoice": "Посмотреть счёт",
+"Unavailable.contact": "Есть вопросы? Напишите на <email></email>"
 }

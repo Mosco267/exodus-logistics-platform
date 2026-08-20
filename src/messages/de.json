@@ -1669,5 +1669,15 @@
 "AuthError.genericTitle": "Anmeldung fehlgeschlagen",
 "AuthError.genericDesc": "Bei der Anmeldung ist etwas schiefgelaufen. Bitte erneut versuchen.",
 "AuthError.backToSignIn": "Zurück zur Anmeldung",
-"AuthError.goHome": "Zur Startseite"
+"AuthError.goHome": "Zur Startseite",
+"Unavailable.signUpTitle": "Registrierungen sind pausiert",
+"Unavailable.signUpBody": "Wir nehmen derzeit keine neuen Konten an. Bestehende Kunden können sich weiterhin anmelden und ihre Sendungen wie gewohnt verwalten.",
+"Unavailable.signInTitle": "Die Anmeldung ist vorübergehend nicht verfügbar",
+"Unavailable.signInBody": "Wir führen Wartungsarbeiten am Kontozugang durch. Sendungsverfolgung und Rechnungen stehen Ihnen weiterhin ohne Anmeldung zur Verfügung.",
+"Unavailable.genericTitle": "Vorübergehend nicht verfügbar",
+"Unavailable.genericBody": "Dieser Bereich ist wegen Wartungsarbeiten pausiert. Alles Übrige funktioniert normal.",
+"Unavailable.backHome": "Zurück zur Startseite",
+"Unavailable.trackShipment": "Sendung verfolgen",
+"Unavailable.viewInvoice": "Rechnung ansehen",
+"Unavailable.contact": "Fragen? Wenden Sie sich an <email></email>"
 }
