@@ -6,14 +6,16 @@ export async function POST(req: Request) {
   try {
     const { email, token, password } = await req.json();
 
+        /* Errors return codes rather than prose so the page can show them in
+       the reader's language. */
     if (!email || !token || !password)
-      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+      return NextResponse.json({ error: "MISSING_FIELDS" }, { status: 400 });
 
     if (password.length < 8 ||
         !/[A-Z]/.test(password) ||
         !/[0-9]/.test(password) ||
         !/[^A-Za-z0-9]/.test(password))
-      return NextResponse.json({ error: "Password must meet all requirements." }, { status: 400 });
+      return NextResponse.json({ error: "WEAK_PASSWORD" }, { status: 400 });
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
@@ -23,22 +25,22 @@ export async function POST(req: Request) {
       token,
     });
 
-    if (!reset)
-      return NextResponse.json({ error: "Invalid or expired reset link." }, { status: 400 });
+        if (!reset)
+      return NextResponse.json({ error: "INVALID_TOKEN" }, { status: 400 });
 
     if (new Date() > new Date(reset.expiry))
-      return NextResponse.json({ error: "This reset link has expired. Please request a new one." }, { status: 400 });
+      return NextResponse.json({ error: "INVALID_TOKEN" }, { status: 400 });
 
    const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
-if (!user) return NextResponse.json({ error: "Account not found." }, { status: 404 });
+   /* Same code as a bad token, deliberately. A distinct "account not found"
+      would let this endpoint be used to check which emails are registered. */
+   if (!user) return NextResponse.json({ error: "INVALID_TOKEN" }, { status: 400 });
 
 // Check current password
 if (user.passwordHash) {
   const isSame = await bcrypt.compare(password, user.passwordHash);
   if (isSame) {
-    return NextResponse.json({
-      error: "This password has been used before. Please choose a different password."
-    }, { status: 400 });
+        return NextResponse.json({ error: "PASSWORD_REUSED" }, { status: 400 });
   }
 }
 
@@ -47,9 +49,7 @@ const history: string[] = user.passwordHistory || [];
 for (const oldHash of history) {
   const isOld = await bcrypt.compare(password, oldHash);
   if (isOld) {
-    return NextResponse.json({
-      error: "This password has been used before. Please choose a different password."
-    }, { status: 400 });
+        return NextResponse.json({ error: "PASSWORD_REUSED" }, { status: 400 });
   }
 }
 
@@ -73,6 +73,6 @@ await db.collection("password_resets").deleteMany({ email });
 return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(e);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+       return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
   }
 }

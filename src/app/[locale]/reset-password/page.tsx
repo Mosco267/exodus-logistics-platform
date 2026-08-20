@@ -1,23 +1,26 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, AlertCircle, Lock, CheckCircle2, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useIntl, type IntlShape } from 'react-intl';
 import PasswordInput from '@/components/PasswordInput';
+import { useCompany } from '@/lib/useCompany';
 
-function PasswordStrength({ password }: { password: string }) {
+function PasswordStrength({ password, intl }: { password: string; intl: IntlShape }) {
+  const t = (id: string) => intl.formatMessage({ id });
   const checks = [
-    { label: 'At least 8 characters', pass: password.length >= 8 },
-    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
-    { label: 'Number', pass: /[0-9]/.test(password) },
-    { label: 'Special character', pass: /[^A-Za-z0-9]/.test(password) },
+    { label: t('SignUp.pwLength'), pass: password.length >= 8 },
+    { label: t('SignUp.pwUpper'), pass: /[A-Z]/.test(password) },
+    { label: t('SignUp.pwNumber'), pass: /[0-9]/.test(password) },
+    { label: t('SignUp.pwSpecial'), pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter(c => c.pass).length;
   const barColor = score <= 1 ? 'bg-red-400' : score === 2 ? 'bg-amber-400' : score === 3 ? 'bg-blue-400' : 'bg-emerald-500';
-  const label = ['', 'Weak', 'Fair', 'Good', 'Strong'][score];
+  const label = ['', t('SignUp.pwWeak'), t('SignUp.pwFair'), t('SignUp.pwGood'), t('SignUp.pwStrong')][score];
   const labelColor = ['', 'text-red-500', 'text-amber-600', 'text-blue-600', 'text-emerald-600'][score];
   if (!password) return null;
   return (
@@ -42,8 +45,13 @@ function PasswordStrength({ password }: { password: string }) {
 function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+    const params = useParams();
+  const locale = (params?.locale as string) || 'en';
   const token = searchParams.get('token') || '';
   const email = searchParams.get('email') || '';
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const company = useCompany();
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -65,8 +73,8 @@ function ResetPasswordContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!isValidPassword) { setError('Password must meet all requirements above.'); return; }
-    if (password !== confirm) { setError('Passwords do not match.'); return; }
+        if (!isValidPassword) { setError(t('SignUp.errPasswordWeak')); return; }
+    if (password !== confirm) { setError(t('SignUp.errMismatch')); return; }
 
     setIsSubmitting(true);
     try {
@@ -77,16 +85,23 @@ function ResetPasswordContent() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error || 'Something went wrong. Please try again.');
+                        const code = String(json?.error || '');
+        setError(
+          code === 'INVALID_TOKEN' ? t('Reset.errInvalidToken')
+          : code === 'WEAK_PASSWORD' ? t('SignUp.errPasswordWeak')
+          : code === 'PASSWORD_REUSED' ? t('Reset.errReused')
+          : code === 'MISSING_FIELDS' ? t('Reset.errMissingFields')
+          : t('Reset.errGeneric')
+        );
         return;
       }
       setSuccess(true);
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      setTimeout(() => { router.push('/en/sign-in'); }, 3000);
+            setTimeout(() => { router.push(`/${locale}/sign-in`); }, 3000);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t('Reset.errGeneric'));
     } finally {
       setIsSubmitting(false);
     }
@@ -100,14 +115,14 @@ function ResetPasswordContent() {
             style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
             <AlertCircle className="w-7 h-7 text-white" />
           </div>
-          <h2 className="text-xl font-extrabold text-gray-900">Invalid reset link</h2>
+          <h2 className="text-xl font-extrabold text-gray-900">{t('Reset.invalidTitle')}</h2>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-            This reset link is invalid or has expired. Please request a new one.
+            {t('Reset.invalidBody')}
           </p>
-          <Link href="/en/forgot-password"
+          <Link href={`/${locale}/forgot-password`}
             className="mt-6 inline-flex items-center justify-center w-full h-11 rounded-xl font-bold text-sm text-white transition-all hover:shadow-lg hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
-            Request a new reset link
+            {t('Reset.requestNew')}
           </Link>
         </div>
       </div>
@@ -144,8 +159,8 @@ function ResetPasswordContent() {
 
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="relative z-10">
-            <Link href="/en">
-              <Image src="/logo-gradient.svg" alt="Exodus Logistics" width={240} height={96} className="h-20 w-auto" priority />
+                        <Link href={`/${locale}`}>
+              <Image src="/logo-gradient.svg" alt={company.name || 'Exodus Logistics'} width={240} height={96} className="h-20 w-auto" priority />
             </Link>
           </motion.div>
 
@@ -157,17 +172,17 @@ function ResetPasswordContent() {
             </div>
             <div>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-                Create a new<br />
+                                {t('Reset.heroLine1')}<br />
                 <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  strong password.
+                  {t('Reset.heroLine2')}
                 </span>
               </h2>
               <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-                Choose a password that is hard to guess and that you have not used before on this account.
+                                {t('Reset.heroBlurb')}
               </p>
             </div>
             <div className="space-y-3">
-              {['At least 8 characters', 'One uppercase letter', 'One number', 'One special character'].map(title => (
+              {[t('SignUp.pwLength'), t('SignUp.pwUpper'), t('SignUp.pwNumber'), t('SignUp.pwSpecial')].map(title => (
                 <div key={title} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
                   <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                   <p className="text-sm font-bold text-white">{title}</p>
@@ -177,7 +192,7 @@ function ResetPasswordContent() {
           </motion.div>
 
           <div className="relative z-10">
-            <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
+                        <p className="text-xs text-white/30">{t('SignIn.copyright', { year: new Date().getFullYear(), company: company.name || 'Exodus Logistics Ltd.' })}</p>
           </div>
         </div>
 
@@ -201,9 +216,9 @@ function ResetPasswordContent() {
                       style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                       <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Set new password</h1>
+                                        <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">{t('Reset.title')}</h1>
                     <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">
-                      Choose a strong password you haven't used before.
+                      {t('Reset.subtitle')}
                     </p>
                   </div>
 
@@ -216,26 +231,26 @@ function ResetPasswordContent() {
 
                   <form onSubmit={handleSubmit} noValidate className="space-y-5">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">New Password</label>
+                                           <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('Reset.newPassword')}</label>
                       <PasswordInput
                         value={password}
                         onChange={v => { setPassword(v); setError(''); }}
-                        placeholder="Create a strong password"
+                        placeholder={t('SignUp.passwordPlaceholder')}
                         autoComplete="new-password"
                       />
-                      <PasswordStrength password={password} />
+                      <PasswordStrength password={password} intl={intl} />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('SignUp.confirmLabel')}</label>
                       <PasswordInput
                         value={confirm}
                         onChange={v => { setConfirm(v); setError(''); }}
-                        placeholder="Re-enter your password"
+                        placeholder={t('SignUp.confirmPlaceholder')}
                         autoComplete="new-password"
                       />
                       {confirm && confirm === password && (
                         <p className="mt-1 text-xs text-emerald-600 font-medium flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />Passwords match
+                                                   <CheckCircle2 className="w-3 h-3" />{t('SignUp.passwordsMatch')}
                         </p>
                       )}
                     </div>
@@ -244,15 +259,15 @@ function ResetPasswordContent() {
                       className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                       {isSubmitting
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Updating...</span></>
-                        : <span>Update Password</span>}
+                                               ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{t('Reset.updating')}</span></>
+                        : <span>{t('Reset.submit')}</span>}
                     </button>
                   </form>
 
                   <p className="mt-6 text-center text-sm text-gray-500">
-                    <Link href="/en/sign-in"
+                                        <Link href={`/${locale}/sign-in`}
                       className="font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">
-                      Back to Sign In
+                      {t('Forgot.backToSignIn')}
                     </Link>
                   </p>
                 </>
@@ -262,10 +277,10 @@ function ResetPasswordContent() {
                     style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                     <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">Password updated!</h2>
+                                    <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">{t('Reset.successTitle')}</h2>
                   <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                    Your password has been reset successfully.<br />
-                    Redirecting you to sign in...
+                    {t('Reset.successBody')}<br />
+                    {t('Reset.redirecting')}
                   </p>
                   <div className="mt-5 flex justify-center">
                     <Loader2 className="w-5 h-5 animate-spin text-blue-600" />

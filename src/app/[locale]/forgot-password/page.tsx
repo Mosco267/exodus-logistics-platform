@@ -7,10 +7,15 @@ import { Loader2, AlertCircle, Mail } from 'lucide-react';
 import { LocaleContext } from '@/context/LocaleContext';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useIntl } from 'react-intl';
+import { useCompany } from '@/lib/useCompany';
 
 export default function ForgotPasswordPage() {
   const { locale } = useContext(LocaleContext);
   const router = useRouter();
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
+  const company = useCompany();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -19,8 +24,8 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError('');
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed) { setError('Email address is required.'); return; }
-    if (!/^\S+@\S+\.\S+$/.test(trimmed)) { setError('Please enter a valid email address.'); return; }
+        if (!trimmed) { setError(t('Forgot.errEmailRequired')); return; }
+    if (!/^\S+@\S+\.\S+$/.test(trimmed)) { setError(t('Forgot.errEmailInvalid')); return; }
 
     setIsSubmitting(true);
     try {
@@ -30,13 +35,15 @@ export default function ForgotPasswordPage() {
     body: JSON.stringify({ email: trimmed }),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-  setError(json?.error || 'No account found with this email address.');
-  window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  return;
-}
+    /* Deliberately no "no such account" branch — the response is identical
+     whether or not the email is registered, so the endpoint cannot be used
+     to enumerate customers. Genuine server errors still fall through to
+     the catch below. */
+  if (!res.ok && res.status >= 500) {
+    setError(t('Forgot.errGeneric'));
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    return;
+  }
   router.push(`/${locale}/forgot-password/sent?email=${encodeURIComponent(trimmed)}`);
 } catch {
   // Never show server error — silently redirect
@@ -77,7 +84,7 @@ export default function ForgotPasswordPage() {
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="relative z-10">
             <Link href={`/${locale}`}>
-              <Image src="/logo.svg" alt="Exodus Logistics" width={180} height={54} className="h-12 w-auto" priority />
+                            <Image src="/logo-gradient.svg" alt={company.name || 'Exodus Logistics'} width={180} height={54} className="h-12 w-auto" priority />
             </Link>
           </motion.div>
 
@@ -89,20 +96,20 @@ export default function ForgotPasswordPage() {
             </div>
             <div>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-                Forgot your<br />
+                               {t('Forgot.heroLine1')}<br />
                 <span style={{ background: 'linear-gradient(90deg, #67e8f9, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  password?
+                  {t('Forgot.heroLine2')}
                 </span>
               </h2>
               <p className="mt-4 text-white/60 text-base leading-relaxed max-w-sm">
-                No worries. Enter your registered email and we'll send you a secure link to reset your password.
+                {t('Forgot.heroBlurb')}
               </p>
             </div>
             <div className="space-y-3">
               {[
-                { title: 'Secure reset link', desc: 'Valid for 1 hour only' },
-                { title: 'Instant delivery', desc: 'Check your inbox right away' },
-                { title: 'Easy process', desc: 'Just follow the link in the email' },
+                                { title: t('Forgot.feat1Title'), desc: t('Forgot.feat1Desc') },
+                { title: t('Forgot.feat2Title'), desc: t('Forgot.feat2Desc') },
+                { title: t('Forgot.feat3Title'), desc: t('Forgot.feat3Desc') },
               ].map(({ title, desc }) => (
                 <div key={title} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
                   <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
@@ -116,7 +123,7 @@ export default function ForgotPasswordPage() {
           </motion.div>
 
           <div className="relative z-10">
-            <p className="text-xs text-white/30">© {new Date().getFullYear()} Exodus Logistics Ltd. All rights reserved.</p>
+                        <p className="text-xs text-white/30">{t('SignIn.copyright', { year: new Date().getFullYear(), company: company.name || 'Exodus Logistics Ltd.' })}</p>
           </div>
         </div>
 
@@ -138,9 +145,9 @@ export default function ForgotPasswordPage() {
                   style={{ background: 'linear-gradient(135deg, #1d4ed8, #0891b2)' }}>
                   <Mail className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Forgot password</h1>
+                                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">{t('Forgot.title')}</h1>
                 <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">
-                  Enter your email and we'll send you a reset link.
+                  {t('Forgot.subtitle')}
                 </p>
               </div>
 
@@ -155,11 +162,11 @@ export default function ForgotPasswordPage() {
 
               <form onSubmit={handleSubmit} noValidate className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('Forgot.emailLabel')}</label>
                   <input
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); }}
-                    type="email" placeholder="Enter your email address"
+                                       type="email" placeholder={t('Forgot.emailPlaceholder')}
                     autoComplete="email" style={{ fontSize: '16px' }}
                     className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:border-blue-500 focus:ring-blue-500/15 hover:border-blue-300 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                   />
@@ -168,16 +175,17 @@ export default function ForgotPasswordPage() {
                   className="cursor-pointer w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
                   style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}>
                   {isSubmitting
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Sending...</span></>
-                    : <span>Send Reset Link</span>}
+                                        ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{t('Forgot.sending')}</span></>
+                    : <span>{t('Forgot.submit')}</span>}
                 </button>
               </form>
 
               <p className="mt-6 text-center text-sm text-gray-500">
-                Remember your password?{' '}
-                <Link href={`/${locale}/sign-in`} className="font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">
-                  Sign in
-                </Link>
+                               {t('Forgot.rememberPassword', {
+                  link: (chunks: any) => (
+                    <Link href={`/${locale}/sign-in`} className="font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">{chunks}</Link>
+                  ),
+                })}
               </p>
             </div>
           </motion.div>

@@ -1,15 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, AlertCircle, Mail } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useIntl } from 'react-intl';
 
 function SentContent() {
   const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
   const email = searchParams.get('email') || '';
+  const intl = useIntl();
+  const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
   const COUNTDOWN = 60;
 const [startTime, setStartTime] = useState(() => {
@@ -73,7 +77,7 @@ const maskedEmail = localPart?.length > 7
       body: JSON.stringify({ email }),
     });
     const json = await res.json();
-    if (!res.ok) { setResendError(json?.error || 'Something went wrong.'); return; }
+        if (!res.ok) { setResendError(t('Forgot.errGeneric')); return; }
     // Reset countdown immediately
     const newStart = Date.now();
     sessionStorage.setItem('fp_countdown_start', String(newStart));
@@ -84,7 +88,7 @@ const maskedEmail = localPart?.length > 7
     // Hide success message after 3 seconds
     setTimeout(() => setResendSuccess(false), 3000);
   } catch {
-    setResendError('Something went wrong. Please try again.');
+       setResendError(t('Forgot.errGeneric'));
   } finally {
     setResending(false);
   }
@@ -101,9 +105,9 @@ const maskedEmail = localPart?.length > 7
             <Mail className="w-8 h-8 text-white" />
           </div>
 
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Check your email</h2>
+                    <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{t('Forgot.sentTitle')}</h2>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-  We've sent a password reset link to
+  {t('Forgot.sentTo')}
 </p>
 <p className="mt-1 text-sm font-semibold text-gray-700"
   style={{ 
@@ -116,9 +120,9 @@ const maskedEmail = localPart?.length > 7
 </p>
 
           <div className="mt-6 bg-blue-50 rounded-xl p-4 text-left">
-            <p className="text-xs font-semibold text-blue-800 mb-1">Didn't receive it?</p>
+                        <p className="text-xs font-semibold text-blue-800 mb-1">{t('Forgot.notReceived')}</p>
             <p className="text-xs text-blue-700 leading-relaxed">
-              If you don't see the email, please check your promotions or updates folder. The link expires in 1 hour.
+              {t('Forgot.notReceivedBody')}
             </p>
           </div>
 
@@ -129,35 +133,36 @@ const maskedEmail = localPart?.length > 7
           )}
 
           {resendSuccess && (
-            <p className="mt-3 text-xs text-emerald-600 font-medium">A new reset link has been sent.</p>
+                       <p className="mt-3 text-xs text-emerald-600 font-medium">{t('Forgot.resent')}</p>
           )}
 
           <div className="mt-5">
             {canResend ? (
               <button onClick={handleResend} disabled={resending}
                 className="cursor-pointer text-sm font-semibold text-blue-600 hover:text-blue-700 transition disabled:opacity-60">
-                {resending ? 'Resending...' : 'Resend reset link'}
+                                {resending ? t('Forgot.resending') : t('Forgot.resendLink')}
               </button>
             ) : (
               <p className="text-sm text-gray-400">
-                Resend link in <span className="font-bold text-gray-600 tabular-nums">
-                  {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
-                </span>
+                {t('Forgot.resendIn', {
+                  time: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`,
+                  b: (chunks: any) => <span className="font-bold text-gray-600 tabular-nums">{chunks}</span>,
+                })}
               </p>
             )}
           </div>
 
           <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
   <div>
-    <Link href="/en/forgot-password"
+        <Link href={`/${locale}/forgot-password`}
       className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition">
-      Use a different email?
+      {t('Forgot.differentEmail')}
     </Link>
   </div>
   <div>
-    <Link href="/en/sign-in"
+    <Link href={`/${locale}/sign-in`}
       className="text-sm font-bold text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline transition">
-      Back to Sign In
+      {t('Forgot.backToSignIn')}
     </Link>
   </div>
 </div>
