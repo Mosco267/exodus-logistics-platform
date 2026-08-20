@@ -197,7 +197,7 @@ function ResetPasswordContent() {
         </div>
 
         {/* Right Panel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:px-10 sm:py-12 relative"
+                <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:px-10 sm:py-12 relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4ff 40%, #fff7ed 100%)' }}>
 
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
