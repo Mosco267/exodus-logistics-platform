@@ -1810,5 +1810,8 @@
 "Reset.errInvalidToken": "此链接已失效,请重新申请。",
 "Reset.errReused": "您此前使用过该密码,请换一个。",
 "Reset.errMissingFields": "此请求缺少必要信息,请重新打开邮件中的链接。",
-"Reset.errGeneric": "出现了一些问题,请重试。"
+"Reset.errGeneric": "出现了一些问题,请重试。",
+
+"Legal.languageNotice": "本文件以英文发布。英文版本为准,如与译文存在任何不一致,以英文版本为准。",
+"Legal.backHome": "返回首页"
 }

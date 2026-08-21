@@ -1810,5 +1810,8 @@
 "Reset.errInvalidToken": "이 링크는 더 이상 유효하지 않습니다. 새 링크를 요청해 주세요.",
 "Reset.errReused": "이전에 사용하신 비밀번호입니다. 다른 비밀번호를 선택해 주세요.",
 "Reset.errMissingFields": "요청에 필요한 정보가 부족합니다. 메일의 링크를 다시 열어 주세요.",
-"Reset.errGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
+"Reset.errGeneric": "문제가 발생했습니다. 다시 시도해 주세요.",
+
+"Legal.languageNotice": "본 문서는 영어로 공개됩니다. 영문본이 정본이며, 번역본과 불일치가 있는 경우 영문본이 우선합니다.",
+"Legal.backHome": "홈으로 돌아가기"
 }

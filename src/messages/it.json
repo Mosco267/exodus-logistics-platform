@@ -1810,5 +1810,8 @@
 "Reset.errInvalidToken": "Questo link non è più valido. Richiedine uno nuovo.",
 "Reset.errReused": "Hai già usato questa password. Scegline un'altra.",
 "Reset.errMissingFields": "Mancano dei dati in questa richiesta. Riapri il link ricevuto per email.",
-"Reset.errGeneric": "Qualcosa è andato storto. Riprova."
+"Reset.errGeneric": "Qualcosa è andato storto. Riprova.",
+
+"Legal.languageNotice": "Questo documento è pubblicato in inglese. La versione inglese fa fede e prevale in caso di discordanza con una traduzione.",
+"Legal.backHome": "Torna alla home"
 }
