@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail, Search, RefreshCw, Trash2, CheckCheck, X, Loader2, Inbox,
-  AlertCircle, Building2, Phone, Reply, Globe, MessageSquare,
+    AlertCircle, Building2, Phone, Reply, Globe, MessageSquare, Copy, Check,
 } from "lucide-react";
 
 type Status = "new" | "read" | "replied";
@@ -177,6 +177,30 @@ export default function AdminContactMessagesPage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+   /* mailto: hands off to whatever the OS registered as the mail handler,
+     which is often not the one you actually use. Copying the address lets
+     you paste it straight into Titan. */
+  const [copied, setCopied] = useState(false);
+
+  const copyEmail = async (email: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(email);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = email;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {}
   };
 
   const replyHref = (m: Message) => {
@@ -430,6 +454,11 @@ export default function AdminContactMessagesPage() {
                     <CheckCheck size={14} /> Mark replied
                   </button>
                 )}
+                                <button onClick={() => copyEmail(open.email)}
+                  className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                  {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                  {copied ? "Copied" : "Copy email"}
+                </button>
                 <a href={replyHref(open)}
                   onClick={() => { void setStatus([open._id], "replied", true); }}
                   className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition">
