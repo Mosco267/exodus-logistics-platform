@@ -1953,5 +1953,77 @@
 "About.ctaTitle": "See what your shipment would cost",
 "About.ctaBody": "Get a full price breakdown in under a minute. No account, no obligation.",
 "About.ctaQuote": "Get a quote",
-"About.ctaContact": "Talk to us"
+"About.ctaContact": "Talk to us",
+"Services.title": "What we ship, and how",
+"Services.subtitle": "Air, sea and road freight, with customs handling, warehousing and tracking built into every shipment rather than sold as extras.",
+ 
+"Services.coreTitle": "How your goods travel",
+"Services.coreSubtitle": "Three ways to move freight. The quote page picks the right one for your route, weight and package type, and shows what each would cost.",
+ 
+"Services.airTitle": "Air freight",
+"Services.airDesc": "The fastest option for international shipments, suited to goods where timing matters more than cost per kilogram.",
+"Services.airSpeed": "2 to 14 business days",
+"Services.airF1": "Express and standard service levels",
+"Services.airF2": "Customs clearance handled for you",
+"Services.airF3": "Volumetric weight applied fairly, never twice",
+"Services.airF4": "Tracking from collection to delivery",
+ 
+"Services.seaTitle": "Sea freight",
+"Services.seaDesc": "The economical choice for heavy or bulky international freight, where a longer transit is worth the saving.",
+"Services.seaSpeed": "15 to 45 business days",
+"Services.seaF1": "Container and bulk shipments",
+"Services.seaF2": "Customs clearance handled for you",
+"Services.seaF3": "Rates that fall as weight rises",
+"Services.seaF4": "Warehousing at both ends where needed",
+ 
+"Services.roadTitle": "Road freight",
+"Services.roadDesc": "Domestic delivery within a country, run on our own vehicles rather than handed to a subcontractor.",
+"Services.roadSpeed": "Same day to 6 business days",
+"Services.roadF1": "Express and standard service levels",
+"Services.roadF2": "Door to door collection and delivery",
+"Services.roadF3": "Pricing set for each country we serve",
+"Services.roadF4": "Our drivers, our vehicles, our responsibility",
+ 
+"Services.speedNote": "Transit times are working days and depend on distance, service level and customs. The quote page gives an estimated range for your specific route before you book anything.",
+ 
+"Services.credFiataTitle": "FIATA member",
+"Services.credFiataDesc": "We are a member of FIATA, the international federation of freight forwarding associations, and work to its standards.",
+"Services.credLiabilityTitle": "Cargo liability cover",
+"Services.credLiabilityDesc": "We carry cargo liability insurance on the freight we move. Cover limits are available <link>on request</link>.",
+"Services.credFleetTitle": "Owned fleet and warehouses",
+"Services.credFleetDesc": "Our storage and road delivery run on our own vehicles and facilities, so one company answers for your shipment.",
+ 
+"Services.includedTitle": "Included with every shipment",
+"Services.includedSubtitle": "These are not add-ons. They come with the service, and they are already in the price you are quoted.",
+ 
+"Services.customsTitle": "Customs clearance",
+"Services.customsDesc": "We prepare and file the documentation for international shipments. Where a clearance fee applies, it appears on your quote before you book, not as a surprise later.",
+"Services.warehousingTitle": "Warehousing in transit",
+"Services.warehousingDesc": "Your goods pass through our own facilities rather than a rented shelf somewhere. Where a shipment needs to wait, it waits somewhere we control.",
+"Services.insuranceTitle": "Insurance on declared value",
+"Services.insuranceDesc": "Cover is calculated from the value you declare and shown as its own line on the quote, so you can see exactly what it costs.",
+"Services.trackingTitle": "Tracking without an account",
+"Services.trackingDesc": "Anyone with the tracking number can see where a shipment is, including the person receiving it. No sign up, no waiting for an update by email.",
+"Services.invoicingTitle": "Automatic invoicing",
+"Services.invoicingDesc": "An itemised invoice is generated when you book and updated as the shipment moves. Every charge is broken out rather than rolled into one figure.",
+"Services.languageTitle": "Twelve languages",
+"Services.languageDesc": "Quotes, tracking, invoices and notifications all appear in your language. Your receiver sees theirs, even if it is different from yours.",
+ 
+"Services.pricingTitle": "How the price is worked out",
+"Services.pricingPara1": "Freight pricing is usually opaque, which is why so many quotes arrive as a single number with no explanation. We show the whole calculation instead.",
+"Services.pricingPara2": "Rates are set for each country rather than applied globally, because a domestic delivery costs a different amount in each market. What you see on the quote page is what the invoice will say.",
+"Services.pricingCta": "Get a quote",
+ 
+"Services.breakdownTitle": "Every quote shows",
+"Services.breakdown1": "Base freight, calculated from distance, weight and route",
+"Services.breakdown2": "Fuel surcharge, as a percentage you can see",
+"Services.breakdown3": "Insurance, based on the value you declare",
+"Services.breakdown4": "Handling and customs clearance where they apply",
+"Services.breakdown5": "The total, in your own currency",
+"Services.breakdownNote": "Quotes hold for seven days. The final charge only changes if the package is remeasured at collection and differs from what was entered.",
+ 
+"Services.ctaTitle": "Find out what your shipment costs",
+"Services.ctaBody": "A full breakdown in under a minute. No account, no sales call, no obligation.",
+"Services.ctaQuote": "Get a quote",
+"Services.ctaContact": "Talk to us"
 }
