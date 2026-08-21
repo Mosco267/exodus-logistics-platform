@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { useIntl } from 'react-intl';
 import { Cookie, X } from 'lucide-react';
 import { useCookieConsent } from '@/lib/useCookieConsent';
@@ -28,7 +29,9 @@ export default function CookieBanner() {
 
   const show = loaded && mounted && consent === null;
 
-  return (
+   if (typeof window === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {show && (
         <motion.div
@@ -69,20 +72,20 @@ export default function CookieBanner() {
                   <div className="mt-4 flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={accept}
-                      className="cursor-pointer flex-1 sm:flex-none sm:min-w-[150px] h-11 px-5 rounded-xl text-white text-sm font-bold transition hover:shadow-lg hover:shadow-blue-500/25"
+                      className="cursor-pointer flex-1 sm:flex-none sm:min-w-[150px] py-3 px-5 rounded-xl text-white text-sm font-bold transition hover:shadow-lg hover:shadow-blue-500/25"
                       style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)' }}
                     >
                       {t('Cookies.accept')}
                     </button>
                     <button
                       onClick={reject}
-                      className="cursor-pointer flex-1 sm:flex-none sm:min-w-[150px] h-11 px-5 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
+                      className="cursor-pointer flex-1 sm:flex-none sm:min-w-[150px] py-3 px-5 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
                     >
                       {t('Cookies.reject')}
                     </button>
                     <Link
                       href={`/${locale}/cookies`}
-                      className="cursor-pointer flex-1 sm:flex-none inline-flex items-center justify-center h-11 px-5 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-800 transition"
+                      className="cursor-pointer flex-1 sm:flex-none inline-flex items-center justify-center py-3 px-5 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-800 transition"
                     >
                       {t('Cookies.learnMore')}
                     </Link>
@@ -96,7 +99,8 @@ export default function CookieBanner() {
             </div>
           </div>
         </motion.div>
-      )}
-    </AnimatePresence>
+            )}
+    </AnimatePresence>,
+    document.body
   );
 }
