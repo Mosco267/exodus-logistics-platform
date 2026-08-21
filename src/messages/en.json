@@ -2025,5 +2025,8 @@
 "Services.ctaTitle": "Find out what your shipment costs",
 "Services.ctaBody": "A full breakdown in under a minute. No account, no sales call, no obligation.",
 "Services.ctaQuote": "Get a quote",
-"Services.ctaContact": "Talk to us"
+"Services.ctaContact": "Talk to us",
+
+"Legal.languageNotice": "This document is published in English. The English version governs and prevails in the event of any inconsistency with a translation.",
+"Legal.backHome": "Back to home"
 }
