@@ -2028,5 +2028,12 @@
 "Services.ctaContact": "Talk to us",
 
 "Legal.languageNotice": "This document is published in English. The English version governs and prevails in the event of any inconsistency with a translation.",
-"Legal.backHome": "Back to home"
+"Legal.backHome": "Back to home",
+
+"Cookies.bannerLabel": "Cookie consent",
+"Cookies.title": "Cookies on this site",
+"Cookies.body": "We use essential cookies to keep you signed in and remember your language. With your permission we also load our live chat, which is provided by a third party and sets its own cookies. See our <link>Cookie Policy</link>.",
+"Cookies.accept": "Accept",
+"Cookies.reject": "Reject",
+"Cookies.learnMore": "Learn more"
 }

@@ -1,7 +1,9 @@
+// src/components/LiveChatLoader.tsx
 'use client';
 
 import { useEffect, useRef } from 'react';
 import { useParams, usePathname } from 'next/navigation';
+import { useCookieConsent } from '@/lib/useCookieConsent';
 
 /* ─────────────────────────────────────────────────────────────
    ONE WIDGET PER LANGUAGE.
@@ -14,9 +16,10 @@ import { useParams, usePathname } from 'next/navigation';
    The chat id is the last part of the widget's Direct Link:
        PROPERTY_ID/WIDGET_ID
 
-   Your property id stays the same across widgets. Only the widget
-   id changes. Locales left pointing at DEFAULT_CHAT_ID simply get
-   the English widget, so you can add languages gradually.
+   CONSENT: Tawk is a third party that sets its own cookies and
+   receives the visitor's IP and page history. The script is not
+   injected until the visitor has accepted cookies. Rejecting keeps
+   the site fully usable; only live chat is unavailable.
    ───────────────────────────────────────────────────────────── */
 
 const PROPERTY_ID = '6a8011ef8711e91d4fb54996';
@@ -24,18 +27,17 @@ const DEFAULT_CHAT_ID = `${PROPERTY_ID}/1k024c44a`;
 
 const CHAT_ID_BY_LOCALE: Record<string, string> = {
   en: DEFAULT_CHAT_ID,
-  // Replace each placeholder with the widget id you created in Tawk:
-   es: `${PROPERTY_ID}/1k028p2r4`,
-   fr: `${PROPERTY_ID}/1k0285nds`,
-   de: `${PROPERTY_ID}/1k028s7p9`,
-   zh: `${PROPERTY_ID}/1k029bg1c`,
-   it: `${PROPERTY_ID}/1k0291hoe`,
-   ar: `${PROPERTY_ID}/1k029jm3d`,
-   pt: `${PROPERTY_ID}/1k029dnfk`,
-   ru: `${PROPERTY_ID}/1k029lel3`,
-   ja: `${PROPERTY_ID}/1k029nf9d`,
-   ko: `${PROPERTY_ID}/1k029pb9e`,
-   hi: `${PROPERTY_ID}/1k029s0vm`,
+  es: `${PROPERTY_ID}/1k028p2r4`,
+  fr: `${PROPERTY_ID}/1k0285nds`,
+  de: `${PROPERTY_ID}/1k028s7p9`,
+  zh: `${PROPERTY_ID}/1k029bg1c`,
+  it: `${PROPERTY_ID}/1k0291hoe`,
+  ar: `${PROPERTY_ID}/1k029jm3d`,
+  pt: `${PROPERTY_ID}/1k029dnfk`,
+  ru: `${PROPERTY_ID}/1k029lel3`,
+  ja: `${PROPERTY_ID}/1k029nf9d`,
+  ko: `${PROPERTY_ID}/1k029pb9e`,
+  hi: `${PROPERTY_ID}/1k029s0vm`,
 };
 
 /* Routes where the public widget stays hidden, because your own
@@ -53,6 +55,7 @@ export default function LiveChatLoader() {
   const params = useParams();
   const pathname = usePathname() || '/';
   const locale = (params?.locale as string) || 'en';
+  const { consent } = useCookieConsent();
 
   const chatId = CHAT_ID_BY_LOCALE[locale] || DEFAULT_CHAT_ID;
 
@@ -68,8 +71,9 @@ export default function LiveChatLoader() {
   // Which chat id the injected script is actually running
   const loadedChatId = useRef<string | null>(null);
 
-  // Inject once, from a public route
+  // Inject once, from a public route, and only with consent
   useEffect(() => {
+    if (consent !== 'accepted') return;
     if (shouldHide) return;
     if (document.getElementById('tawk-script')) return;
 
@@ -91,7 +95,7 @@ export default function LiveChatLoader() {
     document.body.appendChild(s);
 
     loadedChatId.current = chatId;
-  }, [shouldHide, chatId]);
+  }, [consent, shouldHide, chatId]);
 
   /* Tawk supports only one active widget per page and cannot swap
      languages at runtime, so a language change needs a fresh load.
@@ -105,11 +109,12 @@ export default function LiveChatLoader() {
 
   // Show or hide as the visitor moves between public and dashboard
   useEffect(() => {
+    if (consent !== 'accepted') return;
     try {
       if (shouldHide) window.Tawk_API?.hideWidget?.();
       else window.Tawk_API?.showWidget?.();
     } catch {}
-  }, [shouldHide]);
+  }, [consent, shouldHide]);
 
   return null;
 }
