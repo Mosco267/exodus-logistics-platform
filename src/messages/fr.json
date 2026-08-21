@@ -2002,5 +2002,7 @@
 "Contact.errMessage": "Veuillez rédiger votre message.",
 "Contact.errMissingFields": "Veuillez remplir les champs obligatoires.",
 "Contact.errRateLimited": "Vous avez envoyé plusieurs messages récemment. Patientez un instant avant d'en envoyer un autre.",
-"Contact.errGeneric": "Nous n'avons pas pu envoyer votre message. Réessayez ou écrivez-nous directement."
+"Contact.errGeneric": "Nous n'avons pas pu envoyer votre message. Réessayez ou écrivez-nous directement.",
+"Legal.languageNotice": "Ce document est publié en anglais. La version anglaise fait foi et prévaut en cas de divergence avec une traduction.",
+"Legal.backHome": "Retour à l'accueil"
 }

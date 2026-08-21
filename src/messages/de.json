@@ -2002,6 +2002,6 @@
 "Contact.errMissingFields": "Bitte füllen Sie die Pflichtfelder aus.",
 "Contact.errRateLimited": "Sie haben in kurzer Zeit mehrere Nachrichten gesendet. Bitte warten Sie einen Moment, bevor Sie eine weitere senden.",
 "Contact.errGeneric": "Ihre Nachricht konnte nicht gesendet werden. Versuchen Sie es erneut oder schreiben Sie uns direkt.",
-"Legal.languageNotice": "Ce document est publié en anglais. La version anglaise fait foi et prévaut en cas de divergence avec une traduction.",
-"Legal.backHome": "Retour à l'accueil"
+"Legal.languageNotice": "Dieses Dokument wird auf Englisch veröffentlicht. Maßgeblich ist die englische Fassung; bei Abweichungen zu einer Übersetzung hat sie Vorrang.",
+"Legal.backHome": "Zurück zur Startseite"
 }
