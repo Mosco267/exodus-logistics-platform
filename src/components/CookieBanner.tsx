@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useIntl } from 'react-intl';
@@ -12,7 +12,8 @@ import { useCookieConsent } from '@/lib/useCookieConsent';
 
 export default function CookieBanner() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'en';
+    const locale = (params?.locale as string) || 'en';
+  const pathname = usePathname() || '/';
   const intl = useIntl();
   const t = (id: string, values?: any) => intl.formatMessage({ id }, values);
 
@@ -27,7 +28,12 @@ export default function CookieBanner() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const show = loaded && mounted && consent === null;
+   /* The policy page carries its own accept and reject controls, so the
+     banner would only duplicate them. Consent still stays unresolved
+     until a choice is made, and the banner returns elsewhere. */
+  const onPolicyPage = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') === '/cookies';
+
+  const show = loaded && mounted && consent === null && !onPolicyPage;
 
    if (typeof window === 'undefined') return null;
 
