@@ -2005,5 +2005,12 @@
 "Contact.errRateLimited": "Has enviado varios mensajes hace poco. Espera un momento antes de enviar otro.",
 "Contact.errGeneric": "No hemos podido enviar tu mensaje. Inténtalo de nuevo o escríbenos directamente.",
 "Legal.languageNotice": "Este documento se publica en inglés. La versión en inglés es la que rige y prevalece en caso de cualquier discrepancia con una traducción.",
-"Legal.backHome": "Volver al inicio"
+"Legal.backHome": "Volver al inicio",
+
+"Cookies.bannerLabel": "Consentimiento de cookies",
+"Cookies.title": "Cookies en este sitio",
+"Cookies.body": "Usamos cookies esenciales para mantener tu sesión y recordar tu idioma. Con tu permiso cargamos también nuestro chat en directo, que proporciona un tercero y que instala sus propias cookies. Consulta nuestra <link>Política de Cookies</link>.",
+"Cookies.accept": "Aceptar",
+"Cookies.reject": "Rechazar",
+"Cookies.learnMore": "Más información"
 }

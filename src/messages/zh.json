@@ -2005,5 +2005,12 @@
 "Contact.errMessage": "请填写留言内容。",
 "Contact.errMissingFields": "请填写必填项。",
 "Contact.errRateLimited": "您近期已发送多条留言,请稍候再发送。",
-"Contact.errGeneric": "留言未能发送。请重试,或直接给我们发邮件。"
+"Contact.errGeneric": "留言未能发送。请重试,或直接给我们发邮件。",
+
+"Cookies.bannerLabel": "Cookie 同意",
+"Cookies.title": "本站使用的 Cookie",
+"Cookies.body": "我们使用必要 Cookie 来保持您的登录状态并记住所选语言。在您同意后,我们还会加载由第三方提供的在线客服,它会设置自己的 Cookie。详见我们的<link>Cookie 政策</link>。",
+"Cookies.accept": "接受",
+"Cookies.reject": "拒绝",
+"Cookies.learnMore": "了解更多"
 }

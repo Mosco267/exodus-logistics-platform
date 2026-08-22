@@ -2004,5 +2004,12 @@
 "Contact.errMessage": "Scrivi il tuo messaggio.",
 "Contact.errMissingFields": "Compila i campi obbligatori.",
 "Contact.errRateLimited": "Hai inviato diversi messaggi di recente. Aspetta un momento prima di mandarne un altro.",
-"Contact.errGeneric": "Non siamo riusciti a inviare il messaggio. Riprova, oppure scrivici direttamente."
+"Contact.errGeneric": "Non siamo riusciti a inviare il messaggio. Riprova, oppure scrivici direttamente.",
+
+"Cookies.bannerLabel": "Consenso ai cookie",
+"Cookies.title": "Cookie su questo sito",
+"Cookies.body": "Usiamo cookie essenziali per mantenerti connesso e ricordare la tua lingua. Con il tuo permesso carichiamo anche la chat dal vivo, fornita da terzi, che imposta cookie propri. Consulta la nostra <link>Informativa sui Cookie</link>.",
+"Cookies.accept": "Accetta",
+"Cookies.reject": "Rifiuta",
+"Cookies.learnMore": "Scopri di più"
 }

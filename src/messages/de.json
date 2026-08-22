@@ -2003,5 +2003,12 @@
 "Contact.errRateLimited": "Sie haben in kurzer Zeit mehrere Nachrichten gesendet. Bitte warten Sie einen Moment, bevor Sie eine weitere senden.",
 "Contact.errGeneric": "Ihre Nachricht konnte nicht gesendet werden. Versuchen Sie es erneut oder schreiben Sie uns direkt.",
 "Legal.languageNotice": "Dieses Dokument wird auf Englisch veröffentlicht. Maßgeblich ist die englische Fassung; bei Abweichungen zu einer Übersetzung hat sie Vorrang.",
-"Legal.backHome": "Zurück zur Startseite"
+"Legal.backHome": "Zurück zur Startseite",
+
+"Cookies.bannerLabel": "Cookie-Einwilligung",
+"Cookies.title": "Cookies auf dieser Website",
+"Cookies.body": "Wir verwenden notwendige Cookies, damit Sie angemeldet bleiben und Ihre Sprache erhalten bleibt. Mit Ihrer Zustimmung laden wir zusätzlich unseren Live-Chat, der von einem Drittanbieter stammt und eigene Cookies setzt. Siehe unsere <link>Cookie-Richtlinie</link>.",
+"Cookies.accept": "Annehmen",
+"Cookies.reject": "Ablehnen",
+"Cookies.learnMore": "Mehr erfahren"
 }

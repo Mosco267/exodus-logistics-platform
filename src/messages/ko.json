@@ -2004,5 +2004,12 @@
 "Contact.errMessage": "문의 내용을 입력해 주세요.",
 "Contact.errMissingFields": "필수 항목을 입력해 주세요.",
 "Contact.errRateLimited": "최근에 여러 건의 메시지를 보내셨습니다. 잠시 후 다시 시도해 주세요.",
-"Contact.errGeneric": "메시지를 보내지 못했습니다. 다시 시도하시거나 직접 메일로 연락해 주세요."
+"Contact.errGeneric": "메시지를 보내지 못했습니다. 다시 시도하시거나 직접 메일로 연락해 주세요.",
+
+"Cookies.bannerLabel": "쿠키 동의",
+"Cookies.title": "이 사이트의 쿠키",
+"Cookies.body": "로그인 상태 유지와 언어 설정을 위해 필수 쿠키를 사용합니다. 동의하시면 실시간 채팅도 불러오며, 이는 제3자가 제공하고 자체 쿠키를 설정합니다. 자세한 내용은 <link>쿠키 정책</link>을 확인해 주세요.",
+"Cookies.accept": "동의",
+"Cookies.reject": "거부",
+"Cookies.learnMore": "자세히 보기"
 }

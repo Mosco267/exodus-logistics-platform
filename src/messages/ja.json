@@ -2004,5 +2004,12 @@
 "Contact.errMessage": "お問い合わせ内容をご入力ください。",
 "Contact.errMissingFields": "必須項目をご入力ください。",
 "Contact.errRateLimited": "短時間に複数のメッセージが送信されています。少し時間をおいてからお試しください。",
-"Contact.errGeneric": "メッセージを送信できませんでした。もう一度お試しいただくか、直接メールでご連絡ください。"
+"Contact.errGeneric": "メッセージを送信できませんでした。もう一度お試しいただくか、直接メールでご連絡ください。",
+
+"Cookies.bannerLabel": "Cookie の同意",
+"Cookies.title": "このサイトの Cookie について",
+"Cookies.body": "ログイン状態の保持と言語設定のために必要な Cookie を使用しています。お客さまの同意をいただいた場合は、第三者が提供するチャットサポートも読み込みます。このチャットは独自の Cookie を設定します。詳しくは<link>Cookie ポリシー</link>をご覧ください。",
+"Cookies.accept": "同意する",
+"Cookies.reject": "同意しない",
+"Cookies.learnMore": "詳しく見る"
 }

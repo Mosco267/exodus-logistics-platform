@@ -2004,5 +2004,12 @@
 "Contact.errMessage": "Escreve a tua mensagem.",
 "Contact.errMissingFields": "Preenche os campos obrigatórios.",
 "Contact.errRateLimited": "Enviaste várias mensagens há pouco. Espera um bocado antes de enviares outra.",
-"Contact.errGeneric": "Não conseguimos enviar a tua mensagem. Tenta de novo ou escreve-nos diretamente."
+"Contact.errGeneric": "Não conseguimos enviar a tua mensagem. Tenta de novo ou escreve-nos diretamente.",
+
+"Cookies.bannerLabel": "Consentimento de cookies",
+"Cookies.title": "Cookies neste site",
+"Cookies.body": "Usamos cookies essenciais para te manter com sessão iniciada e recordar a tua língua. Com a tua autorização carregamos também o chat em direto, fornecido por terceiros, que instala cookies próprios. Consulta a nossa <link>Política de Cookies</link>.",
+"Cookies.accept": "Aceitar",
+"Cookies.reject": "Recusar",
+"Cookies.learnMore": "Saber mais"
 }
