@@ -875,7 +875,7 @@ export default function HomeClient() {
           <p className="text-gray-600">
             {t('Home.faqMore')}{' '}
             <button
-              onClick={() => nav('/support')}
+              onClick={() => nav('/help')}
               className="font-semibold text-blue-700 hover:text-blue-800 underline underline-offset-2 cursor-pointer"
             >
               {t('Home.faqMoreLink')}
