@@ -40,7 +40,7 @@ export default function Footer() {
       links: [
         { label: t('Footer.linkAbout'), href: '/about' },
         { label: t('Footer.linkContact'), href: '/contact' },
-        { label: t('Footer.linkHelp'), href: '/support' },
+                { label: t('Footer.linkHelp'), href: '/help' },
       ],
     },
     {
@@ -167,7 +167,7 @@ export default function Footer() {
               { label: t('Footer.linkPrivacy'), href: '/privacy' },
               { label: t('Footer.linkTerms'), href: '/terms' },
               { label: t('Footer.linkCookies'), href: '/cookies' },
-              { label: t('Footer.linkStatus'), href: '/servers' },
+                           { label: t('Footer.linkStatus'), href: '/status' },
             ].map(x => (
               <Link key={x.label} href={l(x.href)}
                 className="text-xs text-gray-500 hover:text-white transition">
