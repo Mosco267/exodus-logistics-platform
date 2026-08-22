@@ -2035,5 +2035,136 @@
 "Cookies.body": "We use essential cookies to keep you signed in and remember your language. With your permission we also load our live chat, which is provided by a third party and sets its own cookies. See our <link>Cookie Policy</link>.",
 "Cookies.accept": "Accept",
 "Cookies.reject": "Reject",
-"Cookies.learnMore": "Learn more"
+"Cookies.learnMore": "Learn more",
+
+"Help.title": "How can we help?",
+"Help.subtitle": "Answers to the things customers ask us most, and the quickest way to reach a person when you need one.",
+"Help.searchPlaceholder": "Search for an answer",
+"Help.clearSearch": "Clear search",
+ 
+"Help.action_track": "Track a shipment",
+"Help.action_invoice": "View an invoice",
+"Help.action_quote": "Get a quote",
+"Help.action_contact": "Contact us",
+ 
+"Help.resultCount": "{count, plural, one {# answer found} other {# answers found}}",
+"Help.noResults": "Nothing found for \"{query}\"",
+"Help.noResultsTitle": "We could not find an answer for that",
+"Help.noResultsBody": "Try a different word, or send us a message and someone will get back to you.",
+ 
+"Help.stillStuckTitle": "Still need a hand?",
+"Help.stillStuckBody": "If your question is not answered here, send us a message. We reply to everything, usually within one business day.",
+"Help.askTeam": "Ask our team",
+"Help.startChat": "Start a live chat",
+"Help.orEmail": "Or email us directly at <email></email>",
+ 
+"Help.cat_tracking": "Tracking your shipment",
+"Help.cat_quotes": "Quotes and pricing",
+"Help.cat_shipping": "Sending a shipment",
+"Help.cat_invoices": "Invoices and payment",
+"Help.cat_customs": "Customs and documents",
+"Help.cat_problems": "When something goes wrong",
+"Help.cat_account": "Your account",
+ 
+"Help.q_track1_Q": "How do I track my shipment?",
+"Help.q_track1_A": "Enter your tracking number on the <track>tracking page</track>. You do not need an account, so you can share the number with whoever is receiving the goods and they can follow it too.",
+ 
+"Help.q_track2_Q": "Where do I find my tracking number?",
+"Help.q_track2_A": "It is in the confirmation email sent when the shipment was created, and on the invoice. It usually begins with <b>EX</b>. If you have an account, every shipment you have sent is listed in your dashboard.",
+ 
+"Help.q_track3_Q": "My tracking has not updated in a few days. Is something wrong?",
+"Help.q_track3_A": "Not necessarily. Sea freight can sit at sea for a week or more between scans, and customs clearance often produces no updates while it is in progress. If nothing has changed for longer than you would expect, <contact>send us the tracking number</contact> and we will find out where it is.",
+ 
+"Help.q_track4_Q": "What do the stages on the timeline mean?",
+"Help.q_track4_A": "Each stage marks a real handover: collected from you, arrived at our facility, in transit, going through customs, out for delivery, delivered. The timeline shows when each happened and where, so you can see the whole journey rather than just the latest status.",
+ 
+"Help.q_track5_Q": "Can the person receiving my shipment track it?",
+"Help.q_track5_A": "Yes. Anyone with the tracking number can see the shipment's progress without signing in. They will see the tracking page in their own language, which may differ from yours.",
+ 
+"Help.q_quote1_Q": "How do I get a price?",
+"Help.q_quote1_A": "Enter your origin, destination, weight and dimensions on the <quote>quote page</quote>. You get a full breakdown straight away, with no account and no sales call.",
+ 
+"Help.q_quote2_Q": "How long is a quote valid?",
+"Help.q_quote2_A": "Seven days from the date it was issued. After that, rates may have moved and you would need a fresh quote.",
+ 
+"Help.q_quote3_Q": "Why is my quote based on a weight higher than my package?",
+"Help.q_quote3_A": "Large but light packages take up space that could carry heavier freight, so carriers charge on <b>volumetric weight</b> when it exceeds actual weight. It is calculated from your dimensions. Where this applies, the quote says so, and it is never applied twice.",
+ 
+"Help.q_quote4_Q": "What is included in the price I am quoted?",
+"Help.q_quote4_A": "Base freight, fuel surcharge, insurance on your declared value, handling, and customs clearance where it applies. Each appears as its own line so you can see what you are paying for. Import duties and taxes charged by the destination country are separate and are not included.",
+ 
+"Help.q_quote5_Q": "Can the final price change after I book?",
+"Help.q_quote5_A": "Only if the package is remeasured or reweighed at collection and differs from what you entered. If that happens we tell you before going ahead. Otherwise the invoice matches the quote.",
+ 
+"Help.q_ship1_Q": "How do I send something?",
+"Help.q_ship1_A": "Get a <quote>quote</quote> first, then create an account to book. You enter the sender and receiver details, confirm the package information, and we arrange collection. Your tracking number and invoice are issued immediately.",
+ 
+"Help.q_ship2_Q": "Which countries can I ship to?",
+"Help.q_ship2_A": "We handle international shipping worldwide, and domestic shipping within a growing list of countries. The <quote>quote page</quote> shows what is available for your particular route.",
+ 
+"Help.q_ship3_Q": "How should I package my goods?",
+"Help.q_ship3_A": "Use a rigid box with room for cushioning on every side, seal it properly, and remove or cover any old labels. Fragile items need padding that stops them moving inside the box. Packaging is your responsibility, and damage caused by inadequate packaging is not covered.",
+ 
+"Help.q_ship4_Q": "What can I not ship?",
+"Help.q_ship4_A": "Illegal drugs, weapons and ammunition without licensing, hazardous materials without proper documentation, counterfeit goods, live animals without permits, and anything under embargo. Declaring goods inaccurately can mean penalties, confiscation, and closure of your account.",
+ 
+"Help.q_ship5_Q": "How long will delivery take?",
+"Help.q_ship5_A": "It depends on the route and the service level. Air freight typically runs 2 to 14 business days, sea freight 15 to 45, and domestic road anywhere from same day to 6. Your quote gives an estimate for your specific route before you book. See our <services>services page</services> for more detail.",
+ 
+"Help.q_ship6_Q": "Do you collect, or do I drop off?",
+"Help.q_ship6_A": "We collect. Door to door collection and delivery are part of the service, and the collection address is whatever you enter when creating the shipment.",
+ 
+"Help.q_inv1_Q": "How do I view my invoice?",
+"Help.q_inv1_A": "Open the <invoice>invoice page</invoice> and enter your invoice number along with the sender or receiver email address. Both are needed, which keeps invoices private. If you have an account, all your invoices are in your dashboard.",
+ 
+"Help.q_inv2_Q": "How can I pay?",
+"Help.q_inv2_A": "The payment methods available to you are shown on your invoice. Once payment is confirmed, the invoice status updates and your shipment continues without interruption.",
+ 
+"Help.q_inv3_Q": "What happens if I pay late?",
+"Help.q_inv3_A": "An unpaid invoice can hold up a shipment, and one left unpaid past its due date may lead to the shipment being cancelled. If you are having difficulty paying, <contact>tell us</contact> before the due date rather than after.",
+ 
+"Help.q_inv4_Q": "I think my invoice is wrong. What do I do?",
+"Help.q_inv4_A": "Raise it in writing within fourteen days of the invoice date, with the invoice number and what you think is incorrect. Parts of the invoice that are not disputed remain payable while we look into it.",
+ 
+"Help.q_inv5_Q": "Are duties and taxes included in my invoice?",
+"Help.q_inv5_A": "No. Import duties and taxes are set by the destination country and charged separately, usually to whoever is receiving the goods. Our invoice covers our own charges, including the customs clearance fee where one applies.",
+ 
+"Help.q_cust1_Q": "Do you handle customs for me?",
+"Help.q_cust1_A": "Yes. We prepare and file the documentation for international shipments. Where a clearance fee applies, it is shown on your quote before you book rather than appearing later.",
+ 
+"Help.q_cust2_Q": "What paperwork do I need to provide?",
+"Help.q_cust2_A": "An accurate description of the contents, their value, and the country of origin. Some goods need additional certificates or licences depending on what they are and where they are going. If your shipment needs more than the basics, we will tell you.",
+ 
+"Help.q_cust3_Q": "Why is my shipment held at customs?",
+"Help.q_cust3_A": "Usually because clearance is simply still in progress, which can take several days. It can also mean paperwork needs correcting, duties are outstanding, or the goods have been selected for inspection. We chase these and will tell you if anything is needed from you.",
+ 
+"Help.q_cust4_Q": "What happens if I declare the value incorrectly?",
+"Help.q_cust4_A": "Under-declaring is treated as misdeclaration and can result in penalties or confiscation by customs, none of which is covered by insurance. It also reduces what you could claim if the goods are lost, since cover is based on the value you declared.",
+ 
+"Help.q_prob1_Q": "My package arrived damaged. What now?",
+"Help.q_prob1_A": "Tell us within seven days of delivery, with your tracking number and photographs of both the damage and the packaging. Keep the packaging until the claim is settled, as it is often needed as evidence.",
+ 
+"Help.q_prob2_Q": "My shipment has not arrived. What should I do?",
+"Help.q_prob2_A": "Check the tracking first, since delays at customs are common and usually resolve on their own. If the shipment has passed its estimated delivery window with no movement, <contact>let us know</contact> and we will trace it. Claims for non-delivery should be raised within thirty days of the expected date.",
+ 
+"Help.q_prob3_Q": "Is my shipment insured?",
+"Help.q_prob3_A": "Insurance based on your declared value is included in every quote as its own line. We also carry cargo liability cover on the freight we move, and limits are available on request. If you need cover above those limits, arrange separate goods-in-transit insurance before shipping.",
+ 
+"Help.q_prob4_Q": "Can I cancel or change a shipment after booking?",
+"Help.q_prob4_A": "Get in touch as soon as possible. Before collection, changes are usually straightforward. Once goods are in transit, changing the destination may not be possible and can incur additional charges.",
+ 
+"Help.q_acct1_Q": "Do I need an account?",
+"Help.q_acct1_A": "Not for everything. Quotes, tracking, and viewing an invoice all work without one. You need an account to book a shipment, because we need somewhere to keep your shipment history and send updates.",
+ 
+"Help.q_acct2_Q": "I did not receive my verification code.",
+"Help.q_acct2_A": "Check your promotions or updates folder first, as verification emails often land there. The code expires after ten minutes, so if it has been longer, request a new one from the verification page.",
+ 
+"Help.q_acct3_Q": "I have forgotten my password.",
+"Help.q_acct3_A": "Use the forgot password link on the <signin>sign-in page</signin>. We send a reset link that is valid for one hour. For security, we cannot tell you whether an address is registered, so if no email arrives, check the address you entered.",
+ 
+"Help.q_acct4_Q": "How do I change the language?",
+"Help.q_acct4_A": "Use the language selector in the header. Your choice is remembered, and if you are signed in it is also used for the emails we send you.",
+ 
+"Help.q_acct5_Q": "Can I delete my account?",
+"Help.q_acct5_A": "Yes, <contact>contact us</contact> and we will action it. Shipment and invoice records are kept for seven years to meet tax and customs requirements, but your account is closed and you will receive no further emails."
 }
