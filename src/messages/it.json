@@ -2011,5 +2011,173 @@
 "Cookies.body": "Usiamo cookie essenziali per mantenerti connesso e ricordare la tua lingua. Con il tuo permesso carichiamo anche la chat dal vivo, fornita da terzi, che imposta cookie propri. Consulta la nostra <link>Informativa sui Cookie</link>.",
 "Cookies.accept": "Accetta",
 "Cookies.reject": "Rifiuta",
-"Cookies.learnMore": "Scopri di più"
+"Cookies.learnMore": "Scopri di più",
+
+"Help.title": "Come possiamo aiutarti?",
+"Help.subtitle": "Le risposte alle domande che ci arrivano più spesso, e il modo più rapido per parlare con una persona quando serve.",
+"Help.searchPlaceholder": "Cerca una risposta",
+"Help.clearSearch": "Cancella la ricerca",
+
+"Help.action_track": "Traccia una spedizione",
+"Help.action_invoice": "Vedi una fattura",
+"Help.action_quote": "Chiedi un preventivo",
+"Help.action_contact": "Contattaci",
+
+"Help.resultCount": "{count, plural, one {# risposta trovata} other {# risposte trovate}}",
+"Help.noResults": "Nessun risultato per «{query}»",
+"Help.noResultsTitle": "Non abbiamo trovato una risposta",
+"Help.noResultsBody": "Prova con un'altra parola, oppure scrivici e qualcuno ti risponderà.",
+
+"Help.stillStuckTitle": "Ti serve ancora una mano?",
+"Help.stillStuckBody": "Se la tua domanda non trova risposta qui, scrivici. Rispondiamo a tutto, di solito entro un giorno lavorativo.",
+"Help.askTeam": "Scrivi al nostro team",
+"Help.startChat": "Avvia una chat",
+"Help.orEmail": "Oppure scrivici direttamente a <email></email>",
+
+"Help.cat_tracking": "Seguire la tua spedizione",
+"Help.cat_quotes": "Preventivi e tariffe",
+"Help.cat_shipping": "Inviare una spedizione",
+"Help.cat_invoices": "Fatture e pagamenti",
+"Help.cat_customs": "Dogana e documenti",
+"Help.cat_problems": "Quando qualcosa va storto",
+"Help.cat_account": "Il tuo account",
+
+"Help.q_track1_Q": "Come traccio la mia spedizione?",
+"Help.q_track1_A": "Inserisci il numero di tracking sulla <track>pagina di tracking</track>. Non serve un account, quindi puoi passare il numero a chi riceve la merce e potrà seguirla anche lui.",
+
+"Help.q_track2_Q": "Dove trovo il numero di tracking?",
+"Help.q_track2_A": "È nell'email di conferma inviata quando la spedizione è stata creata, e sulla fattura. Di solito inizia con <b>EX</b>. Se hai un account, tutte le spedizioni che hai inviato sono elencate nella tua dashboard.",
+
+"Help.q_track3_Q": "Il tracking non si aggiorna da qualche giorno. C'è qualcosa che non va?",
+"Help.q_track3_A": "Non necessariamente. Una spedizione via mare può restare in navigazione una settimana o più fra due scansioni, e lo sdoganamento spesso non produce aggiornamenti mentre è in corso. Se il silenzio dura più del previsto, <contact>mandaci il numero di tracking</contact> e scopriamo dov'è.",
+
+"Help.q_track4_Q": "Cosa significano le fasi della cronologia?",
+"Help.q_track4_A": "Ogni fase segna un passaggio reale: ritirata da te, arrivata nelle nostre strutture, in transito, in dogana, in consegna, consegnata. La cronologia mostra quando e dove è successo, così vedi tutto il percorso e non solo l'ultimo stato.",
+
+"Help.q_track5_Q": "Chi riceve la spedizione può tracciarla?",
+"Help.q_track5_A": "Sì. Chiunque abbia il numero di tracking può vedere l'avanzamento senza accedere. Vedrà la pagina di tracking nella propria lingua, che può essere diversa dalla tua.",
+
+"Help.q_quote1_Q": "Come ottengo un prezzo?",
+"Help.q_quote1_A": "Inserisci origine, destinazione, peso e dimensioni sulla <quote>pagina preventivo</quote>. Ottieni subito il dettaglio completo, senza account e senza telefonate commerciali.",
+
+"Help.q_quote2_Q": "Quanto vale un preventivo?",
+"Help.q_quote2_A": "Sette giorni dalla data di emissione. Dopo, le tariffe potrebbero essere cambiate e servirebbe un preventivo nuovo.",
+
+"Help.q_quote3_Q": "Perché il preventivo usa un peso maggiore di quello del mio collo?",
+"Help.q_quote3_A": "I colli grandi ma leggeri occupano spazio che potrebbe portare merce più pesante, quindi i vettori tariffano sul <b>peso volumetrico</b> quando supera quello effettivo. Si calcola dalle tue dimensioni. Dove si applica il preventivo lo indica, e non viene mai conteggiato due volte.",
+
+"Help.q_quote4_Q": "Cosa è incluso nel prezzo che mi viene indicato?",
+"Help.q_quote4_A": "Nolo base, supplemento carburante, assicurazione sul valore dichiarato, gestione e sdoganamento dove si applica. Ogni voce compare per conto suo così vedi cosa stai pagando. Dazi e imposte all'importazione applicati dal paese di destinazione sono separati e non inclusi.",
+
+"Help.q_quote5_Q": "Il prezzo finale può cambiare dopo la prenotazione?",
+"Help.q_quote5_A": "Solo se il collo viene rimisurato o ripesato al ritiro e risulta diverso da quanto hai indicato. In quel caso te lo diciamo prima di procedere. Altrimenti la fattura corrisponde al preventivo.",
+
+"Help.q_ship1_Q": "Come spedisco qualcosa?",
+"Help.q_ship1_A": "Chiedi prima un <quote>preventivo</quote>, poi crea un account per prenotare. Inserisci i dati di mittente e destinatario, confermi le informazioni del collo e organizziamo il ritiro. Numero di tracking e fattura arrivano subito.",
+
+"Help.q_ship2_Q": "In quali paesi posso spedire?",
+"Help.q_ship2_A": "Gestiamo spedizioni internazionali in tutto il mondo e spedizioni nazionali in un elenco di paesi in crescita. La <quote>pagina preventivo</quote> mostra cosa è disponibile per la tua tratta.",
+
+"Help.q_ship3_Q": "Come devo imballare la merce?",
+"Help.q_ship3_A": "Usa uno scatolone rigido con spazio per l'imbottitura su ogni lato, sigillalo bene e togli o copri le vecchie etichette. Gli oggetti fragili vanno imbottiti in modo che non si muovano dentro la scatola. L'imballaggio è responsabilità tua, e i danni dovuti a un imballaggio insufficiente non sono coperti.",
+
+"Help.q_ship4_Q": "Cosa non posso spedire?",
+"Help.q_ship4_A": "Droghe illegali, armi e munizioni senza licenza, materiali pericolosi senza documentazione adeguata, merce contraffatta, animali vivi senza permessi e qualunque cosa sotto embargo. Dichiarare la merce in modo inesatto può comportare sanzioni, sequestro e chiusura dell'account.",
+
+"Help.q_ship5_Q": "Quanto tempo richiede la consegna?",
+"Help.q_ship5_A": "Dipende dalla tratta e dal livello di servizio. Il trasporto aereo va di solito dai 2 ai 14 giorni lavorativi, il marittimo dai 15 ai 45, quello su strada nazionale dalla giornata stessa a 6. Il preventivo dà una stima per la tua tratta prima di prenotare. Trovi altri dettagli sulla <services>pagina servizi</services>.",
+
+"Help.q_ship6_Q": "Ritirate voi o devo consegnare io?",
+"Help.q_ship6_A": "Ritiriamo noi. Ritiro e consegna porta a porta fanno parte del servizio, e l'indirizzo di ritiro è quello che inserisci creando la spedizione.",
+
+"Help.q_inv1_Q": "Come vedo la mia fattura?",
+"Help.q_inv1_A": "Apri la <invoice>pagina fattura</invoice> e inserisci il numero di fattura insieme all'email del mittente o del destinatario. Servono entrambi, ed è così che le fatture restano private. Se hai un account, le trovi tutte nella dashboard.",
+
+"Help.q_inv2_Q": "Come posso pagare?",
+"Help.q_inv2_A": "I metodi di pagamento disponibili sono indicati sulla tua fattura. Una volta confermato il pagamento, lo stato della fattura si aggiorna e la spedizione prosegue senza interruzioni.",
+
+"Help.q_inv3_Q": "Cosa succede se pago in ritardo?",
+"Help.q_inv3_A": "Una fattura non pagata può bloccare una spedizione, e una lasciata insoluta oltre la scadenza può portare all'annullamento della spedizione. Se hai difficoltà a pagare, <contact>dillo</contact> prima della scadenza e non dopo.",
+
+"Help.q_inv4_Q": "Penso che la mia fattura sia sbagliata. Cosa faccio?",
+"Help.q_inv4_A": "Segnalalo per iscritto entro quattordici giorni dalla data della fattura, indicando il numero e cosa ritieni non corretto. Le voci non contestate restano dovute mentre verifichiamo.",
+
+"Help.q_inv5_Q": "Dazi e imposte sono inclusi nella fattura?",
+"Help.q_inv5_A": "No. Dazi e imposte all'importazione sono stabiliti dal paese di destinazione e addebitati separatamente, di solito a chi riceve la merce. La nostra fattura copre i nostri costi, compresa la voce di sdoganamento dove si applica.",
+
+"Help.q_cust1_Q": "Vi occupate voi della dogana?",
+"Help.q_cust1_A": "Sì. Prepariamo e presentiamo la documentazione per le spedizioni internazionali. Dove si applica un onere di sdoganamento, compare sul preventivo prima della prenotazione anziché spuntare dopo.",
+
+"Help.q_cust2_Q": "Quali documenti devo fornire?",
+"Help.q_cust2_A": "Una descrizione accurata del contenuto, il suo valore e il paese di origine. Alcune merci richiedono certificati o licenze aggiuntive a seconda di cosa sono e dove vanno. Se la tua spedizione richiede più dell'essenziale, te lo diciamo noi.",
+
+"Help.q_cust3_Q": "Perché la mia spedizione è ferma in dogana?",
+"Help.q_cust3_A": "Di solito semplicemente perché lo sdoganamento è ancora in corso, e può richiedere diversi giorni. Può anche voler dire che un documento va corretto, che restano dazi da pagare, o che la merce è stata selezionata per un controllo. Noi seguiamo la pratica e ti avvisiamo se serve qualcosa da parte tua.",
+
+"Help.q_cust4_Q": "Cosa succede se dichiaro il valore in modo sbagliato?",
+"Help.q_cust4_A": "Sottodichiarare è trattato come dichiarazione infedele e può comportare sanzioni o sequestro da parte della dogana, nulla di cui è coperto dall'assicurazione. Riduce anche quanto potresti richiedere in caso di perdita, dato che la copertura si basa sul valore dichiarato.",
+
+"Help.q_prob1_Q": "Il mio pacco è arrivato danneggiato. E adesso?",
+"Help.q_prob1_A": "Segnalacelo entro sette giorni dalla consegna, con il numero di tracking e fotografie sia del danno sia dell'imballaggio. Conserva l'imballaggio finché il reclamo non è chiuso, spesso serve come prova.",
+
+"Help.q_prob2_Q": "La mia spedizione non è arrivata. Cosa devo fare?",
+"Help.q_prob2_A": "Controlla prima il tracking: i ritardi in dogana sono comuni e di solito si risolvono da soli. Se la spedizione ha superato la finestra di consegna stimata senza movimenti, <contact>faccelo sapere</contact> e la rintracciamo. I reclami per mancata consegna vanno presentati entro trenta giorni dalla data prevista.",
+
+"Help.q_prob3_Q": "La mia spedizione è assicurata?",
+"Help.q_prob3_A": "L'assicurazione basata sul valore che dichiari è inclusa in ogni preventivo come voce a sé. Abbiamo inoltre una copertura di responsabilità sulla merce che trasportiamo, con massimali disponibili su richiesta. Se ti serve una copertura superiore a quei massimali, stipula un'assicurazione merci in transito separata prima di spedire.",
+
+"Help.q_prob4_Q": "Posso annullare o modificare una spedizione dopo aver prenotato?",
+"Help.q_prob4_A": "Contattaci il prima possibile. Prima del ritiro le modifiche sono di solito semplici. Una volta che la merce è in transito, cambiare destinazione può non essere possibile e può comportare costi aggiuntivi.",
+
+"Help.q_acct1_Q": "Mi serve un account?",
+"Help.q_acct1_A": "Non per tutto. Preventivi, tracking e consultazione di una fattura funzionano senza. Serve per prenotare una spedizione, perché ci occorre un posto dove tenere il tuo storico e mandarti gli aggiornamenti.",
+
+"Help.q_acct2_Q": "Non ho ricevuto il codice di verifica.",
+"Help.q_acct2_A": "Controlla prima le cartelle promozioni o aggiornamenti, dove queste email finiscono spesso. Il codice scade dopo dieci minuti, quindi se è passato più tempo richiedine uno nuovo dalla pagina di verifica.",
+
+"Help.q_acct3_Q": "Ho dimenticato la password.",
+"Help.q_acct3_A": "Usa il link password dimenticata sulla <signin>pagina di accesso</signin>. Inviamo un link di reimpostazione valido un'ora. Per sicurezza non possiamo dirti se un indirizzo è registrato, quindi se non arriva nessuna email controlla l'indirizzo che hai inserito.",
+
+"Help.q_acct4_Q": "Come cambio lingua?",
+"Help.q_acct4_A": "Usa il selettore di lingua nell'intestazione. La tua scelta viene ricordata, e se hai effettuato l'accesso vale anche per le email che ti mandiamo.",
+
+"Help.q_acct5_Q": "Posso eliminare il mio account?",
+"Help.q_acct5_A": "Sì, <contact>scrivici</contact> e ce ne occupiamo. I dati di spedizioni e fatture restano per sette anni per obblighi fiscali e doganali, ma il tuo account viene chiuso e non riceverai più email.",
+
+"Status.title": "Stato del servizio",
+"Status.subtitle": "Stato in tempo reale della piattaforma {company}",
+"Status.checking": "Verifica dei servizi in corso…",
+
+"Status.overall_operational": "Tutti i sistemi sono operativi",
+"Status.overallBody_operational": "Tutto funziona normalmente. Se qualcosa non ti funziona, potrebbe dipendere dalla tua connessione o dal browser.",
+"Status.overall_degraded": "Alcuni sistemi sono degradati",
+"Status.overallBody_degraded": "Una parte della piattaforma è più lenta del solito o parzialmente non disponibile. Quasi tutto continua a funzionare, ma potresti notare rallentamenti.",
+"Status.overall_down": "Stiamo avendo problemi",
+"Status.overallBody_down": "Una o più parti della piattaforma non rispondono. Ne siamo a conoscenza e ci stiamo lavorando.",
+
+"Status.componentsTitle": "Componenti",
+"Status.refresh": "Aggiorna",
+"Status.lastChecked": "Ultima verifica alle {time}",
+
+"Status.component_website": "Sito web",
+"Status.componentDesc_website": "Pagine pubbliche, preventivi e accesso",
+"Status.component_tracking": "Tracking e spedizioni",
+"Status.componentDesc_tracking": "Ricerca spedizioni, fatture e dashboard",
+"Status.component_notifications": "Notifiche email",
+"Status.componentDesc_notifications": "Codici di verifica, fatture e aggiornamenti di spedizione",
+
+"Status.state_operational": "Operativo",
+"Status.state_degraded": "Degradato",
+"Status.state_down": "Non disponibile",
+
+"Status.severity_investigating": "In analisi",
+"Status.severity_identified": "Causa individuata",
+"Status.severity_monitoring": "Sotto osservazione",
+"Status.severity_maintenance": "Manutenzione programmata",
+"Status.since": "dal {time}",
+
+"Status.unreachableTitle": "Non riusciamo a raggiungere il nostro servizio di stato",
+"Status.unreachableBody": "Di solito indica un disservizio più ampio piuttosto che un problema della tua connessione. Invece di mostrarti un risultato non aggiornato, preferiamo dirtelo.",
+
+"Status.footerNote": "Questa pagina verifica i nostri sistemi ogni minuto. Se qualcosa non ti funziona e qui risulta tutto operativo, <contact>faccelo sapere</contact> e andiamo a controllare."
 }

@@ -2012,5 +2012,173 @@
 "Cookies.body": "我们使用必要 Cookie 来保持您的登录状态并记住所选语言。在您同意后,我们还会加载由第三方提供的在线客服,它会设置自己的 Cookie。详见我们的<link>Cookie 政策</link>。",
 "Cookies.accept": "接受",
 "Cookies.reject": "拒绝",
-"Cookies.learnMore": "了解更多"
+"Cookies.learnMore": "了解更多",
+
+"Help.title": "需要什么帮助?",
+"Help.subtitle": "这里有客户问得最多的问题的答案,以及在需要时最快联系到人的方式。",
+"Help.searchPlaceholder": "搜索答案",
+"Help.clearSearch": "清除搜索",
+ 
+"Help.action_track": "追踪货件",
+"Help.action_invoice": "查看发票",
+"Help.action_quote": "获取报价",
+"Help.action_contact": "联系我们",
+ 
+"Help.resultCount": "{count, plural, other {找到 # 条答案}}",
+"Help.noResults": "没有找到与「{query}」相关的内容",
+"Help.noResultsTitle": "我们没有找到相关答案",
+"Help.noResultsBody": "换个词再试试,或者给我们留言,会有人回复您。",
+ 
+"Help.stillStuckTitle": "还需要帮助吗?",
+"Help.stillStuckBody": "如果这里没有解决您的问题,请给我们留言。我们会回复每一条,通常在一个工作日内。",
+"Help.askTeam": "向我们的团队提问",
+"Help.startChat": "开始在线对话",
+"Help.orEmail": "也可以直接发邮件至 <email></email>",
+ 
+"Help.cat_tracking": "追踪您的货件",
+"Help.cat_quotes": "报价与价格",
+"Help.cat_shipping": "寄送货件",
+"Help.cat_invoices": "发票与付款",
+"Help.cat_customs": "清关与单证",
+"Help.cat_problems": "出现问题时",
+"Help.cat_account": "您的账户",
+ 
+"Help.q_track1_Q": "如何追踪我的货件?",
+"Help.q_track1_A": "在<track>追踪页面</track>输入您的追踪编号即可。无需账户,因此您可以把编号交给收货人,对方也能自行查看。",
+ 
+"Help.q_track2_Q": "在哪里可以找到追踪编号?",
+"Help.q_track2_A": "创建货件时发送的确认邮件里有,发票上也有。编号通常以 <b>EX</b> 开头。如果您有账户,所有寄出的货件都会列在面板中。",
+ 
+"Help.q_track3_Q": "追踪信息几天没有更新了,是出问题了吗?",
+"Help.q_track3_A": "不一定。海运货件在两次扫描之间可能在海上停留一周甚至更久,清关进行期间往往也没有任何更新。如果停滞时间超出您的预期,请<contact>把追踪编号发给我们</contact>,我们会去查它现在的位置。",
+ 
+"Help.q_track4_Q": "时间线上的各个阶段是什么意思?",
+"Help.q_track4_A": "每个阶段都对应一次实际交接:从您处取件、抵达我们的场地、运输途中、清关中、派送中、已送达。时间线会显示每一步发生的时间和地点,让您看到完整过程,而不只是最新状态。",
+ 
+"Help.q_track5_Q": "收件人可以追踪货件吗?",
+"Help.q_track5_A": "可以。任何持有追踪编号的人都能查看货件进度,无需登录。对方看到的追踪页面会使用其本人的语言,可能与您的不同。",
+ 
+"Help.q_quote1_Q": "怎样获取价格?",
+"Help.q_quote1_A": "在<quote>报价页面</quote>填写始发地、目的地、重量和尺寸即可。您会立即看到完整明细,无需账户,也不会有销售电话。",
+ 
+"Help.q_quote2_Q": "报价的有效期是多久?",
+"Help.q_quote2_A": "自出具之日起七天。逾期后费率可能已经变动,需要重新获取报价。",
+ 
+"Help.q_quote3_Q": "为什么报价按比我包裹更重的重量计算?",
+"Help.q_quote3_A": "体积大但重量轻的包裹会占用本可装载更重货物的空间,因此当<b>体积重量</b>超过实际重量时,承运方会按体积重量计费。它由您填写的尺寸算出。适用时报价会注明,而且绝不会重复计算。",
+ 
+"Help.q_quote4_Q": "报价里包含哪些费用?",
+"Help.q_quote4_A": "基础运费、燃油附加费、按申报价值计算的保险费、操作费,以及适用时的清关费。每一项都单独列出,让您清楚自己在为什么付费。目的地国征收的关税和进口税另计,不包含在内。",
+ 
+"Help.q_quote5_Q": "预订后最终价格还会变吗?",
+"Help.q_quote5_A": "只有在取件时复测或复称,结果与您填写的不符时才会变动。若发生这种情况,我们会在继续之前告知您。否则发票金额与报价一致。",
+ 
+"Help.q_ship1_Q": "怎样寄送货件?",
+"Help.q_ship1_A": "先获取<quote>报价</quote>,再创建账户下单。您填写寄件人和收件人信息、确认包裹资料,我们安排上门取件。追踪编号和发票会立即生成。",
+ 
+"Help.q_ship2_Q": "可以寄往哪些国家?",
+"Help.q_ship2_A": "国际运输覆盖全球,境内运输覆盖的国家名单也在持续增加。<quote>报价页面</quote>会显示您所在路线可用的选项。",
+ 
+"Help.q_ship3_Q": "货物该如何包装?",
+"Help.q_ship3_A": "请使用坚固的纸箱,各面都留出缓冲空间,封口牢固,并去除或遮盖旧标签。易碎品需要填充物固定,避免在箱内晃动。包装由您负责,因包装不当造成的损坏不在赔付范围内。",
+ 
+"Help.q_ship4_Q": "哪些物品不能寄?",
+"Help.q_ship4_A": "违禁药品、无许可的武器弹药、未按规定申报的危险品、假冒商品、无检疫许可的活体动物,以及任何受禁运的物品。申报不实可能导致罚款、货物没收以及账户被关闭。",
+ 
+"Help.q_ship5_Q": "送达需要多长时间?",
+"Help.q_ship5_A": "取决于路线和服务等级。空运通常需要 2 至 14 个工作日,海运 15 至 45 个工作日,境内公路运输从当日到 6 个工作日不等。下单前,报价会给出您所选路线的预计时间。详情请见<services>服务页面</services>。",
+ 
+"Help.q_ship6_Q": "是你们上门取件,还是我自己送?",
+"Help.q_ship6_A": "我们上门取件。门到门取件和派送包含在服务之内,取件地址就是您创建货件时填写的地址。",
+ 
+"Help.q_inv1_Q": "如何查看发票?",
+"Help.q_inv1_A": "打开<invoice>发票页面</invoice>,输入发票编号以及寄件人或收件人的邮箱。两项都需要,这样才能保证发票的私密性。如果您有账户,所有发票都在面板中。",
+ 
+"Help.q_inv2_Q": "可以怎样付款?",
+"Help.q_inv2_A": "可用的付款方式会显示在您的发票上。付款确认后,发票状态会更新,您的货件也会继续正常运送。",
+ 
+"Help.q_inv3_Q": "逾期付款会怎样?",
+"Help.q_inv3_A": "未付款的发票可能会导致货件被扣留,超过到期日仍未付款的,货件有可能被取消。如果付款有困难,请在到期日之前<contact>告诉我们</contact>,而不是之后。",
+ 
+"Help.q_inv4_Q": "我觉得发票有误,该怎么办?",
+"Help.q_inv4_A": "请在发票日期后十四天内以书面形式提出,注明发票编号以及您认为不正确的地方。在我们核实期间,发票中没有争议的部分仍需照付。",
+ 
+"Help.q_inv5_Q": "发票里包含关税和进口税吗?",
+"Help.q_inv5_A": "不包含。关税和进口税由目的地国规定并单独征收,通常向收货人收取。我们的发票只涵盖自身费用,包括适用时的清关费。",
+ 
+"Help.q_cust1_Q": "清关是你们代办吗?",
+"Help.q_cust1_A": "是的。国际货件的单证由我们准备并申报。如需缴纳清关费用,会在您下单前显示在报价上,而不是事后才出现。",
+ 
+"Help.q_cust2_Q": "我需要提供哪些文件?",
+"Help.q_cust2_A": "货物的准确描述、价值和原产国。部分货物视其性质和目的地,还需要额外的证书或许可。如果您的货件需要基本资料以外的文件,我们会告知您。",
+ 
+"Help.q_cust3_Q": "为什么我的货件被海关扣留了?",
+"Help.q_cust3_A": "通常只是清关仍在办理中,这可能需要几天时间。也可能是单证需要更正、税费尚未缴清,或货物被抽中查验。我们会持续跟进,如果需要您配合,会及时通知。",
+ 
+"Help.q_cust4_Q": "如果申报价值填错了会怎样?",
+"Help.q_cust4_A": "低报会被视为申报不实,可能招致海关罚款或没收,而这些均不在保险范围内。同时,由于保额以申报价值为准,货物丢失时您能索赔的金额也会相应减少。",
+ 
+"Help.q_prob1_Q": "包裹送到时破损了,该怎么办?",
+"Help.q_prob1_A": "请在签收后七天内联系我们,提供追踪编号以及破损部位和外包装的照片。在理赔结案前请保留外包装,它往往需要作为证据。",
+ 
+"Help.q_prob2_Q": "货件一直没到,我该怎么办?",
+"Help.q_prob2_A": "请先查看追踪信息,清关延误很常见,通常会自行解决。如果已超过预计送达时间且仍无更新,请<contact>告知我们</contact>,我们会去查找。未送达的索赔应在预计送达日起三十天内提出。",
+ 
+"Help.q_prob3_Q": "我的货件有保险吗?",
+"Help.q_prob3_A": "每份报价都单列一项按您申报价值计算的保险费。此外,我们为所承运的货物投保了责任险,保额可应要求提供。如果您需要高于该保额的保障,请在发货前另行购买货物运输险。",
+ 
+"Help.q_prob4_Q": "下单后可以取消或修改货件吗?",
+"Help.q_prob4_A": "请尽快联系我们。取件之前,修改通常比较简单。货物一旦在途,变更目的地可能无法实现,并可能产生额外费用。",
+ 
+"Help.q_acct1_Q": "我必须注册账户吗?",
+"Help.q_acct1_A": "不是所有功能都需要。报价、追踪和查看发票无需账户。下单寄件需要账户,因为我们需要一个地方保存您的货件记录并发送更新。",
+ 
+"Help.q_acct2_Q": "我没有收到验证码。",
+"Help.q_acct2_A": "请先查看促销或更新文件夹,验证邮件常常会被归到那里。验证码十分钟后失效,若已超过这个时间,请在验证页面重新获取。",
+ 
+"Help.q_acct3_Q": "我忘记密码了。",
+"Help.q_acct3_A": "请使用<signin>登录页面</signin>上的忘记密码链接。我们会发送有效期为一小时的重置链接。出于安全考虑,我们无法告知某个邮箱是否已注册,因此若未收到邮件,请检查您填写的地址。",
+ 
+"Help.q_acct4_Q": "如何切换语言?",
+"Help.q_acct4_A": "使用页面顶部的语言选择器。您的选择会被记住,如果您已登录,我们发送的邮件也会使用该语言。",
+ 
+"Help.q_acct5_Q": "可以注销我的账户吗?",
+"Help.q_acct5_A": "可以,请<contact>联系我们</contact>,我们会为您办理。货件和发票记录需保存七年以满足税务和海关要求,但您的账户会被关闭,也不会再收到任何邮件。",
+ 
+"Status.title": "服务状态",
+"Status.subtitle": "{company} 平台的实时状态",
+"Status.checking": "正在检查各项服务…",
+ 
+"Status.overall_operational": "所有系统运行正常",
+"Status.overallBody_operational": "一切运行正常。如果您这边有功能无法使用,可能与您的网络或浏览器有关。",
+"Status.overall_degraded": "部分系统运行异常",
+"Status.overallBody_degraded": "平台的部分功能比平时慢,或暂时不完全可用。大部分功能仍可使用,但您可能会感到延迟。",
+"Status.overall_down": "我们遇到了故障",
+"Status.overallBody_down": "平台有一个或多个部分没有响应。我们已经知悉,正在处理。",
+ 
+"Status.componentsTitle": "各项服务",
+"Status.refresh": "刷新",
+"Status.lastChecked": "最近检查时间 {time}",
+ 
+"Status.component_website": "网站",
+"Status.componentDesc_website": "公开页面、报价与登录",
+"Status.component_tracking": "追踪与货件",
+"Status.componentDesc_tracking": "货件查询、发票与面板",
+"Status.component_notifications": "邮件通知",
+"Status.componentDesc_notifications": "验证码、发票与货件更新",
+ 
+"Status.state_operational": "正常",
+"Status.state_degraded": "异常",
+"Status.state_down": "中断",
+ 
+"Status.severity_investigating": "排查中",
+"Status.severity_identified": "已定位原因",
+"Status.severity_monitoring": "观察中",
+"Status.severity_maintenance": "计划内维护",
+"Status.since": "始于 {time}",
+ 
+"Status.unreachableTitle": "我们无法连接自己的状态服务",
+"Status.unreachableBody": "这通常意味着较大范围的故障,而不是您这边的网络问题。与其显示过时的结果,我们更愿意如实告知。",
+ 
+"Status.footerNote": "本页面每分钟检查一次系统。如果您遇到问题而这里显示一切正常,请<contact>告诉我们</contact>,我们会去核查。"
 }
