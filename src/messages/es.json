@@ -2012,5 +2012,173 @@
 "Cookies.body": "Usamos cookies esenciales para mantener tu sesión y recordar tu idioma. Con tu permiso cargamos también nuestro chat en directo, que proporciona un tercero y que instala sus propias cookies. Consulta nuestra <link>Política de Cookies</link>.",
 "Cookies.accept": "Aceptar",
 "Cookies.reject": "Rechazar",
-"Cookies.learnMore": "Más información"
+"Cookies.learnMore": "Más información",
+
+"Help.title": "¿En qué podemos ayudarte?",
+"Help.subtitle": "Respuestas a lo que más nos preguntan, y la forma más rápida de hablar con una persona cuando hace falta.",
+"Help.searchPlaceholder": "Busca una respuesta",
+"Help.clearSearch": "Borrar búsqueda",
+ 
+"Help.action_track": "Rastrear un envío",
+"Help.action_invoice": "Ver una factura",
+"Help.action_quote": "Pedir presupuesto",
+"Help.action_contact": "Contactar",
+ 
+"Help.resultCount": "{count, plural, one {# respuesta encontrada} other {# respuestas encontradas}}",
+"Help.noResults": "No hay resultados para «{query}»",
+"Help.noResultsTitle": "No hemos encontrado una respuesta para eso",
+"Help.noResultsBody": "Prueba con otra palabra, o escríbenos y alguien te responderá.",
+ 
+"Help.stillStuckTitle": "¿Sigues necesitando ayuda?",
+"Help.stillStuckBody": "Si tu duda no está resuelta aquí, escríbenos. Respondemos a todo, normalmente en un día hábil.",
+"Help.askTeam": "Pregunta a nuestro equipo",
+"Help.startChat": "Iniciar chat en directo",
+"Help.orEmail": "O escríbenos directamente a <email></email>",
+ 
+"Help.cat_tracking": "Seguimiento de tu envío",
+"Help.cat_quotes": "Presupuestos y precios",
+"Help.cat_shipping": "Enviar un paquete",
+"Help.cat_invoices": "Facturas y pagos",
+"Help.cat_customs": "Aduanas y documentación",
+"Help.cat_problems": "Cuando algo sale mal",
+"Help.cat_account": "Tu cuenta",
+ 
+"Help.q_track1_Q": "¿Cómo rastreo mi envío?",
+"Help.q_track1_A": "Introduce tu número de seguimiento en la <track>página de rastreo</track>. No necesitas cuenta, así que puedes compartir el número con quien vaya a recibir la mercancía y también podrá seguirlo.",
+ 
+"Help.q_track2_Q": "¿Dónde encuentro mi número de seguimiento?",
+"Help.q_track2_A": "Está en el correo de confirmación que se envió al crear el envío, y en la factura. Suele empezar por <b>EX</b>. Si tienes cuenta, todos tus envíos aparecen en tu panel.",
+ 
+"Help.q_track3_Q": "Mi seguimiento lleva días sin actualizarse. ¿Pasa algo?",
+"Help.q_track3_A": "No necesariamente. Un envío marítimo puede pasar una semana o más en el mar entre registros, y el despacho de aduanas a menudo no genera actualizaciones mientras está en curso. Si lleva más tiempo del que esperarías, <contact>mándanos el número de seguimiento</contact> y averiguaremos dónde está.",
+ 
+"Help.q_track4_Q": "¿Qué significan las etapas de la cronología?",
+"Help.q_track4_A": "Cada etapa marca un traspaso real: recogido, llegada a nuestras instalaciones, en tránsito, en aduanas, en reparto, entregado. La cronología muestra cuándo ocurrió cada una y dónde, para que veas todo el recorrido y no solo el último estado.",
+ 
+"Help.q_track5_Q": "¿Puede rastrearlo la persona que recibe el envío?",
+"Help.q_track5_A": "Sí. Cualquiera con el número de seguimiento puede ver el avance del envío sin iniciar sesión. Verá la página de rastreo en su propio idioma, que puede ser distinto del tuyo.",
+ 
+"Help.q_quote1_Q": "¿Cómo consigo un precio?",
+"Help.q_quote1_A": "Introduce origen, destino, peso y dimensiones en la <quote>página de presupuesto</quote>. Obtienes el desglose completo al momento, sin cuenta y sin llamada comercial.",
+ 
+"Help.q_quote2_Q": "¿Cuánto tiempo es válido un presupuesto?",
+"Help.q_quote2_A": "Siete días desde su emisión. Después, las tarifas pueden haber cambiado y necesitarías uno nuevo.",
+ 
+"Help.q_quote3_Q": "¿Por qué mi presupuesto usa un peso mayor que el de mi paquete?",
+"Help.q_quote3_A": "Los paquetes grandes pero ligeros ocupan espacio que podría llevar carga más pesada, así que los transportistas cobran por <b>peso volumétrico</b> cuando supera al peso real. Se calcula a partir de tus dimensiones. Cuando se aplica, el presupuesto lo indica, y nunca se aplica dos veces.",
+ 
+"Help.q_quote4_Q": "¿Qué incluye el precio que me dan?",
+"Help.q_quote4_A": "Flete base, recargo por combustible, seguro sobre el valor que declaras, gestión y despacho de aduanas cuando corresponde. Cada concepto aparece en su propia línea para que veas qué estás pagando. Los aranceles e impuestos que cobra el país de destino son aparte y no están incluidos.",
+ 
+"Help.q_quote5_Q": "¿Puede cambiar el precio final después de reservar?",
+"Help.q_quote5_A": "Solo si el paquete se vuelve a medir o pesar en la recogida y difiere de lo que indicaste. Si ocurre, te avisamos antes de seguir adelante. Por lo demás, la factura coincide con el presupuesto.",
+ 
+"Help.q_ship1_Q": "¿Cómo envío algo?",
+"Help.q_ship1_A": "Primero pide un <quote>presupuesto</quote> y luego crea una cuenta para reservar. Introduces los datos del remitente y del destinatario, confirmas la información del paquete y organizamos la recogida. El número de seguimiento y la factura se emiten al instante.",
+ 
+"Help.q_ship2_Q": "¿A qué países puedo enviar?",
+"Help.q_ship2_A": "Gestionamos envíos internacionales a todo el mundo, y envíos nacionales dentro de una lista de países que sigue creciendo. La <quote>página de presupuesto</quote> muestra qué está disponible para tu ruta concreta.",
+ 
+"Help.q_ship3_Q": "¿Cómo debo embalar la mercancía?",
+"Help.q_ship3_A": "Usa una caja rígida con espacio para amortiguación por todos los lados, ciérrala bien y quita o tapa las etiquetas antiguas. Los artículos frágiles necesitan relleno que impida que se muevan dentro. El embalaje es responsabilidad tuya, y los daños causados por un embalaje insuficiente no están cubiertos.",
+ 
+"Help.q_ship4_Q": "¿Qué no puedo enviar?",
+"Help.q_ship4_A": "Drogas ilegales, armas y munición sin licencia, materiales peligrosos sin la documentación adecuada, productos falsificados, animales vivos sin permisos y cualquier cosa bajo embargo. Declarar la mercancía de forma inexacta puede acarrear sanciones, confiscación y el cierre de tu cuenta.",
+ 
+"Help.q_ship5_Q": "¿Cuánto tardará la entrega?",
+"Help.q_ship5_A": "Depende de la ruta y del nivel de servicio. El transporte aéreo suele tardar de 2 a 14 días hábiles, el marítimo de 15 a 45, y el terrestre nacional desde el mismo día hasta 6. Tu presupuesto da una estimación para tu ruta concreta antes de reservar. Tienes más detalle en la <services>página de servicios</services>.",
+ 
+"Help.q_ship6_Q": "¿Recogéis vosotros o tengo que llevarlo?",
+"Help.q_ship6_A": "Recogemos nosotros. La recogida y la entrega puerta a puerta forman parte del servicio, y la dirección de recogida es la que indiques al crear el envío.",
+ 
+"Help.q_inv1_Q": "¿Cómo veo mi factura?",
+"Help.q_inv1_A": "Abre la <invoice>página de facturas</invoice> e introduce el número de factura junto con el correo del remitente o del destinatario. Hacen falta ambos, y eso mantiene privadas las facturas. Si tienes cuenta, todas están en tu panel.",
+ 
+"Help.q_inv2_Q": "¿Cómo puedo pagar?",
+"Help.q_inv2_A": "Los métodos de pago disponibles aparecen en tu factura. Una vez confirmado el pago, el estado de la factura se actualiza y tu envío continúa sin interrupciones.",
+ 
+"Help.q_inv3_Q": "¿Qué pasa si pago tarde?",
+"Help.q_inv3_A": "Una factura impagada puede retener un envío, y si sigue impagada después de su vencimiento el envío puede acabar cancelándose. Si tienes dificultades para pagar, <contact>dínoslo</contact> antes del vencimiento y no después.",
+ 
+"Help.q_inv4_Q": "Creo que mi factura está mal. ¿Qué hago?",
+"Help.q_inv4_A": "Comunícalo por escrito dentro de los catorce días siguientes a la fecha de la factura, indicando el número y qué crees que es incorrecto. Las partes de la factura que no estén en disputa siguen siendo pagaderas mientras lo revisamos.",
+ 
+"Help.q_inv5_Q": "¿Los aranceles e impuestos están incluidos en mi factura?",
+"Help.q_inv5_A": "No. Los aranceles e impuestos de importación los fija el país de destino y se cobran aparte, normalmente a quien recibe la mercancía. Nuestra factura cubre nuestros propios cargos, incluida la tasa de despacho de aduanas cuando corresponde.",
+ 
+"Help.q_cust1_Q": "¿Os encargáis vosotros de la aduana?",
+"Help.q_cust1_A": "Sí. Preparamos y presentamos la documentación de los envíos internacionales. Cuando se aplica una tasa de despacho, aparece en tu presupuesto antes de reservar en lugar de surgir después.",
+ 
+"Help.q_cust2_Q": "¿Qué documentación tengo que aportar?",
+"Help.q_cust2_A": "Una descripción exacta del contenido, su valor y el país de origen. Algunas mercancías necesitan certificados o licencias adicionales según qué sean y adónde vayan. Si tu envío necesita algo más de lo básico, te lo diremos.",
+ 
+"Help.q_cust3_Q": "¿Por qué está retenido mi envío en la aduana?",
+"Help.q_cust3_A": "Normalmente porque el despacho sigue en curso, algo que puede tardar varios días. También puede significar que hay que corregir documentación, que quedan aranceles pendientes o que la mercancía ha sido seleccionada para inspección. Nosotros hacemos el seguimiento y te avisaremos si hace falta algo de tu parte.",
+ 
+"Help.q_cust4_Q": "¿Qué pasa si declaro mal el valor?",
+"Help.q_cust4_A": "Declarar de menos se considera declaración incorrecta y puede acarrear sanciones o confiscación por parte de la aduana, nada de lo cual cubre el seguro. Además reduce lo que podrías reclamar si la mercancía se pierde, ya que la cobertura se basa en el valor declarado.",
+ 
+"Help.q_prob1_Q": "Mi paquete ha llegado dañado. ¿Y ahora?",
+"Help.q_prob1_A": "Avísanos dentro de los siete días siguientes a la entrega, con tu número de seguimiento y fotografías tanto de los daños como del embalaje. Guarda el embalaje hasta que se resuelva la reclamación, porque a menudo se necesita como prueba.",
+ 
+"Help.q_prob2_Q": "Mi envío no ha llegado. ¿Qué hago?",
+"Help.q_prob2_A": "Consulta primero el seguimiento, ya que los retrasos en aduana son habituales y suelen resolverse solos. Si el envío ha superado su ventana de entrega estimada sin movimiento, <contact>avísanos</contact> y lo localizaremos. Las reclamaciones por no entrega deben presentarse dentro de los treinta días siguientes a la fecha prevista.",
+ 
+"Help.q_prob3_Q": "¿Mi envío está asegurado?",
+"Help.q_prob3_A": "El seguro basado en el valor que declaras va incluido en cada presupuesto como línea propia. Además contamos con un seguro de responsabilidad sobre la carga que transportamos, y los límites están disponibles a petición. Si necesitas cobertura por encima de esos límites, contrata un seguro de mercancías en tránsito aparte antes de enviar.",
+ 
+"Help.q_prob4_Q": "¿Puedo cancelar o modificar un envío después de reservar?",
+"Help.q_prob4_A": "Ponte en contacto cuanto antes. Antes de la recogida, los cambios suelen ser sencillos. Una vez que la mercancía está en tránsito, cambiar el destino puede no ser posible y puede conllevar cargos adicionales.",
+ 
+"Help.q_acct1_Q": "¿Necesito una cuenta?",
+"Help.q_acct1_A": "No para todo. Los presupuestos, el rastreo y ver una factura funcionan sin ella. Necesitas cuenta para reservar un envío, porque hace falta un sitio donde guardar tu historial y enviarte las actualizaciones.",
+ 
+"Help.q_acct2_Q": "No he recibido mi código de verificación.",
+"Help.q_acct2_A": "Revisa primero la carpeta de promociones o novedades, donde suelen acabar estos correos. El código caduca a los diez minutos, así que si ha pasado más tiempo, pide uno nuevo desde la página de verificación.",
+ 
+"Help.q_acct3_Q": "He olvidado mi contraseña.",
+"Help.q_acct3_A": "Usa el enlace de contraseña olvidada en la <signin>página de inicio de sesión</signin>. Enviamos un enlace de restablecimiento válido durante una hora. Por seguridad no podemos confirmar si una dirección está registrada, así que si no llega ningún correo, revisa la dirección que introdujiste.",
+ 
+"Help.q_acct4_Q": "¿Cómo cambio el idioma?",
+"Help.q_acct4_A": "Usa el selector de idioma de la cabecera. Tu elección se recuerda, y si has iniciado sesión también se usa para los correos que te enviamos.",
+ 
+"Help.q_acct5_Q": "¿Puedo eliminar mi cuenta?",
+"Help.q_acct5_A": "Sí, <contact>escríbenos</contact> y lo tramitaremos. Los registros de envíos y facturas se conservan siete años para cumplir requisitos fiscales y aduaneros, pero tu cuenta se cierra y no recibirás más correos.",
+ 
+"Status.title": "Estado del servicio",
+"Status.subtitle": "Estado en directo de la plataforma de {company}",
+"Status.checking": "Comprobando servicios…",
+ 
+"Status.overall_operational": "Todos los sistemas funcionan",
+"Status.overallBody_operational": "Todo funciona con normalidad. Si algo no te funciona, puede deberse a tu conexión o a tu navegador.",
+"Status.overall_degraded": "Algunos sistemas están degradados",
+"Status.overallBody_degraded": "Parte de la plataforma va más lenta de lo normal o no está del todo disponible. Casi todo sigue funcionando, pero puedes notar demoras.",
+"Status.overall_down": "Estamos teniendo problemas",
+"Status.overallBody_down": "Una o más partes de la plataforma no responden. Somos conscientes y estamos trabajando en ello.",
+ 
+"Status.componentsTitle": "Componentes",
+"Status.refresh": "Actualizar",
+"Status.lastChecked": "Última comprobación a las {time}",
+ 
+"Status.component_website": "Sitio web",
+"Status.componentDesc_website": "Páginas públicas, presupuestos e inicio de sesión",
+"Status.component_tracking": "Rastreo y envíos",
+"Status.componentDesc_tracking": "Consulta de envíos, facturas y panel",
+"Status.component_notifications": "Notificaciones por correo",
+"Status.componentDesc_notifications": "Códigos de verificación, facturas y avisos de envío",
+ 
+"Status.state_operational": "Operativo",
+"Status.state_degraded": "Degradado",
+"Status.state_down": "Caído",
+ 
+"Status.severity_investigating": "Investigando",
+"Status.severity_identified": "Causa identificada",
+"Status.severity_monitoring": "En seguimiento",
+"Status.severity_maintenance": "Mantenimiento programado",
+"Status.since": "desde el {time}",
+ 
+"Status.unreachableTitle": "No podemos acceder a nuestro propio servicio de estado",
+"Status.unreachableBody": "Esto suele indicar una incidencia general más que un problema con tu conexión. Antes que mostrarte un resultado desactualizado, preferimos decírtelo.",
+ 
+"Status.footerNote": "Esta página comprueba nuestros sistemas cada minuto. Si algo no te funciona y aquí aparece todo como operativo, <contact>dínoslo</contact> y lo revisaremos."
 }

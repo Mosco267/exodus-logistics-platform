@@ -2010,5 +2010,173 @@
 "Cookies.body": "Wir verwenden notwendige Cookies, damit Sie angemeldet bleiben und Ihre Sprache erhalten bleibt. Mit Ihrer Zustimmung laden wir zusätzlich unseren Live-Chat, der von einem Drittanbieter stammt und eigene Cookies setzt. Siehe unsere <link>Cookie-Richtlinie</link>.",
 "Cookies.accept": "Annehmen",
 "Cookies.reject": "Ablehnen",
-"Cookies.learnMore": "Mehr erfahren"
+"Cookies.learnMore": "Mehr erfahren",
+
+"Help.title": "Wie können wir helfen?",
+"Help.subtitle": "Antworten auf die Fragen, die uns am häufigsten erreichen, und der schnellste Weg zu einem Menschen, wenn Sie einen brauchen.",
+"Help.searchPlaceholder": "Nach einer Antwort suchen",
+"Help.clearSearch": "Suche zurücksetzen",
+ 
+"Help.action_track": "Sendung verfolgen",
+"Help.action_invoice": "Rechnung ansehen",
+"Help.action_quote": "Angebot einholen",
+"Help.action_contact": "Kontakt aufnehmen",
+ 
+"Help.resultCount": "{count, plural, one {# Antwort gefunden} other {# Antworten gefunden}}",
+"Help.noResults": "Keine Treffer für „{query}“",
+"Help.noResultsTitle": "Dazu haben wir keine Antwort gefunden",
+"Help.noResultsBody": "Versuchen Sie ein anderes Wort, oder schreiben Sie uns und jemand meldet sich bei Ihnen.",
+ 
+"Help.stillStuckTitle": "Kommen Sie noch nicht weiter?",
+"Help.stillStuckBody": "Wenn Ihre Frage hier nicht beantwortet ist, schreiben Sie uns. Wir antworten auf alles, in der Regel innerhalb eines Werktags.",
+"Help.askTeam": "Unser Team fragen",
+"Help.startChat": "Live-Chat starten",
+"Help.orEmail": "Oder schreiben Sie uns direkt an <email></email>",
+ 
+"Help.cat_tracking": "Ihre Sendung verfolgen",
+"Help.cat_quotes": "Angebote und Preise",
+"Help.cat_shipping": "Eine Sendung aufgeben",
+"Help.cat_invoices": "Rechnungen und Zahlung",
+"Help.cat_customs": "Zoll und Dokumente",
+"Help.cat_problems": "Wenn etwas schiefgeht",
+"Help.cat_account": "Ihr Konto",
+ 
+"Help.q_track1_Q": "Wie verfolge ich meine Sendung?",
+"Help.q_track1_A": "Geben Sie Ihre Sendungsnummer auf der <track>Verfolgungsseite</track> ein. Ein Konto ist nicht nötig, Sie können die Nummer also an den Empfänger weitergeben, der die Sendung dann ebenfalls verfolgen kann.",
+ 
+"Help.q_track2_Q": "Wo finde ich meine Sendungsnummer?",
+"Help.q_track2_A": "Sie steht in der Bestätigungs-E-Mail, die bei Erstellung der Sendung verschickt wurde, und auf der Rechnung. Sie beginnt üblicherweise mit <b>EX</b>. Wenn Sie ein Konto haben, sind alle Ihre Sendungen im Dashboard aufgeführt.",
+ 
+"Help.q_track3_Q": "Meine Sendungsverfolgung hat sich seit Tagen nicht aktualisiert. Stimmt etwas nicht?",
+"Help.q_track3_A": "Nicht zwangsläufig. Seefracht kann zwischen zwei Scans eine Woche oder länger auf See sein, und während einer laufenden Zollabfertigung gibt es oft gar keine Aktualisierungen. Wenn länger nichts passiert als Sie erwarten würden, <contact>schicken Sie uns die Sendungsnummer</contact> und wir finden heraus, wo sie ist.",
+ 
+"Help.q_track4_Q": "Was bedeuten die Stationen im Verlauf?",
+"Help.q_track4_A": "Jede Station steht für eine tatsächliche Übergabe: bei Ihnen abgeholt, in unserer Anlage eingetroffen, unterwegs, in der Zollabfertigung, in Zustellung, zugestellt. Der Verlauf zeigt, wann und wo das jeweils geschah, sodass Sie den ganzen Weg sehen und nicht nur den letzten Stand.",
+ 
+"Help.q_track5_Q": "Kann die Person, die meine Sendung erhält, sie ebenfalls verfolgen?",
+"Help.q_track5_A": "Ja. Jeder mit der Sendungsnummer kann den Verlauf ohne Anmeldung einsehen. Die Verfolgungsseite erscheint dabei in der jeweils eigenen Sprache, die sich von Ihrer unterscheiden kann.",
+ 
+"Help.q_quote1_Q": "Wie bekomme ich einen Preis?",
+"Help.q_quote1_A": "Geben Sie Abgangsort, Zielort, Gewicht und Maße auf der <quote>Angebotsseite</quote> ein. Sie erhalten sofort die vollständige Aufstellung, ohne Konto und ohne Verkaufsgespräch.",
+ 
+"Help.q_quote2_Q": "Wie lange gilt ein Angebot?",
+"Help.q_quote2_A": "Sieben Tage ab Ausstellung. Danach können sich die Sätze geändert haben und Sie bräuchten ein neues Angebot.",
+ 
+"Help.q_quote3_Q": "Warum rechnet mein Angebot mit einem höheren Gewicht als mein Paket wiegt?",
+"Help.q_quote3_A": "Große, aber leichte Pakete belegen Platz, der schwerere Fracht aufnehmen könnte. Deshalb wird nach <b>Volumengewicht</b> abgerechnet, sobald dieses das tatsächliche Gewicht übersteigt. Es ergibt sich aus Ihren Maßen. Wo das zutrifft, weist das Angebot es aus, und es wird nie doppelt angesetzt.",
+ 
+"Help.q_quote4_Q": "Was ist in dem genannten Preis enthalten?",
+"Help.q_quote4_A": "Grundfracht, Treibstoffzuschlag, Versicherung auf den von Ihnen angegebenen Wert, Abwicklung und Zollabfertigung, soweit sie anfällt. Jede Position steht für sich, damit Sie sehen, wofür Sie zahlen. Einfuhrabgaben und Steuern des Ziellandes werden separat erhoben und sind nicht enthalten.",
+ 
+"Help.q_quote5_Q": "Kann sich der Endpreis nach der Buchung ändern?",
+"Help.q_quote5_A": "Nur wenn das Paket bei der Abholung nachgemessen oder nachgewogen wird und von Ihren Angaben abweicht. In diesem Fall melden wir uns, bevor wir fortfahren. Ansonsten entspricht die Rechnung dem Angebot.",
+ 
+"Help.q_ship1_Q": "Wie verschicke ich etwas?",
+"Help.q_ship1_A": "Holen Sie zuerst ein <quote>Angebot</quote> ein und legen Sie dann ein Konto an, um zu buchen. Sie geben Absender- und Empfängerdaten ein, bestätigen die Paketangaben, und wir organisieren die Abholung. Sendungsnummer und Rechnung erhalten Sie sofort.",
+ 
+"Help.q_ship2_Q": "In welche Länder kann ich versenden?",
+"Help.q_ship2_A": "Internationalen Versand wickeln wir weltweit ab, nationalen Versand in einer wachsenden Zahl von Ländern. Die <quote>Angebotsseite</quote> zeigt, was für Ihre konkrete Strecke verfügbar ist.",
+ 
+"Help.q_ship3_Q": "Wie sollte ich meine Ware verpacken?",
+"Help.q_ship3_A": "Nehmen Sie einen stabilen Karton mit Platz für Polsterung an allen Seiten, verschließen Sie ihn ordentlich und entfernen oder überkleben Sie alte Etiketten. Zerbrechliches braucht Polstermaterial, das ein Verrutschen im Karton verhindert. Die Verpackung liegt in Ihrer Verantwortung, und Schäden durch unzureichende Verpackung sind nicht gedeckt.",
+ 
+"Help.q_ship4_Q": "Was darf ich nicht versenden?",
+"Help.q_ship4_A": "Illegale Drogen, Waffen und Munition ohne Genehmigung, Gefahrgut ohne ordnungsgemäße Dokumentation, Fälschungen, lebende Tiere ohne Genehmigung sowie alles, was einem Embargo unterliegt. Falsche Angaben zur Ware können Strafen, Beschlagnahme und die Schließung Ihres Kontos nach sich ziehen.",
+ 
+"Help.q_ship5_Q": "Wie lange dauert die Zustellung?",
+"Help.q_ship5_A": "Das hängt von der Strecke und der Servicestufe ab. Luftfracht dauert üblicherweise 2 bis 14 Werktage, Seefracht 15 bis 45, nationale Straßenfracht zwischen demselben Tag und 6 Werktagen. Ihr Angebot nennt vor der Buchung eine Schätzung für Ihre konkrete Strecke. Mehr dazu auf unserer <services>Leistungsseite</services>.",
+ 
+"Help.q_ship6_Q": "Holen Sie ab, oder muss ich abgeben?",
+"Help.q_ship6_A": "Wir holen ab. Abholung und Zustellung von Tür zu Tür gehören zur Leistung, und die Abholadresse ist die, die Sie beim Anlegen der Sendung angeben.",
+ 
+"Help.q_inv1_Q": "Wie sehe ich meine Rechnung?",
+"Help.q_inv1_A": "Öffnen Sie die <invoice>Rechnungsseite</invoice> und geben Sie Ihre Rechnungsnummer zusammen mit der E-Mail-Adresse des Absenders oder Empfängers ein. Beides ist erforderlich, was Rechnungen privat hält. Mit einem Konto finden Sie alle Rechnungen im Dashboard.",
+ 
+"Help.q_inv2_Q": "Wie kann ich bezahlen?",
+"Help.q_inv2_A": "Die für Sie verfügbaren Zahlungsmethoden stehen auf Ihrer Rechnung. Sobald die Zahlung bestätigt ist, ändert sich der Rechnungsstatus und Ihre Sendung läuft ohne Unterbrechung weiter.",
+ 
+"Help.q_inv3_Q": "Was passiert, wenn ich zu spät zahle?",
+"Help.q_inv3_A": "Eine offene Rechnung kann eine Sendung aufhalten, und eine über die Fälligkeit hinaus unbezahlte Rechnung kann zur Stornierung der Sendung führen. Wenn Sie Schwierigkeiten mit der Zahlung haben, <contact>sagen Sie uns Bescheid</contact> vor dem Fälligkeitsdatum und nicht danach.",
+ 
+"Help.q_inv4_Q": "Ich halte meine Rechnung für falsch. Was nun?",
+"Help.q_inv4_A": "Melden Sie das schriftlich innerhalb von vierzehn Tagen nach Rechnungsdatum, mit der Rechnungsnummer und der Angabe, was aus Ihrer Sicht nicht stimmt. Nicht beanstandete Teile der Rechnung bleiben zur Zahlung fällig, während wir das prüfen.",
+ 
+"Help.q_inv5_Q": "Sind Abgaben und Steuern in meiner Rechnung enthalten?",
+"Help.q_inv5_A": "Nein. Einfuhrabgaben und Steuern legt das Zielland fest und erhebt sie gesondert, meist beim Empfänger der Ware. Unsere Rechnung deckt unsere eigenen Kosten ab, einschließlich der Zollabfertigungsgebühr, sofern eine anfällt.",
+ 
+"Help.q_cust1_Q": "Übernehmen Sie die Zollabwicklung für mich?",
+"Help.q_cust1_A": "Ja. Wir erstellen und reichen die Unterlagen für internationale Sendungen ein. Fällt eine Abfertigungsgebühr an, steht sie vor der Buchung auf Ihrem Angebot, statt später aufzutauchen.",
+ 
+"Help.q_cust2_Q": "Welche Unterlagen muss ich beibringen?",
+"Help.q_cust2_A": "Eine genaue Beschreibung des Inhalts, dessen Wert und das Ursprungsland. Manche Waren brauchen zusätzliche Zertifikate oder Genehmigungen, je nachdem, worum es sich handelt und wohin es geht. Wenn Ihre Sendung mehr als die Grundangaben erfordert, sagen wir Ihnen das.",
+ 
+"Help.q_cust3_Q": "Warum hängt meine Sendung im Zoll fest?",
+"Help.q_cust3_A": "Meist einfach deshalb, weil die Abfertigung noch läuft, was mehrere Tage dauern kann. Es kann auch bedeuten, dass Unterlagen zu korrigieren sind, Abgaben offen stehen oder die Ware zur Kontrolle ausgewählt wurde. Wir hängen uns dahinter und melden uns, falls etwas von Ihnen gebraucht wird.",
+ 
+"Help.q_cust4_Q": "Was passiert, wenn ich den Wert falsch angebe?",
+"Help.q_cust4_A": "Eine zu niedrige Angabe gilt als Falschdeklaration und kann Strafen oder Beschlagnahme durch den Zoll nach sich ziehen, was die Versicherung nicht abdeckt. Sie senkt außerdem, was Sie bei Verlust geltend machen könnten, da sich die Deckung nach dem angegebenen Wert richtet.",
+ 
+"Help.q_prob1_Q": "Mein Paket ist beschädigt angekommen. Was jetzt?",
+"Help.q_prob1_A": "Melden Sie sich innerhalb von sieben Tagen nach Zustellung, mit Ihrer Sendungsnummer und Fotos sowohl des Schadens als auch der Verpackung. Heben Sie die Verpackung auf, bis der Fall geklärt ist, sie wird häufig als Nachweis gebraucht.",
+ 
+"Help.q_prob2_Q": "Meine Sendung ist nicht angekommen. Was soll ich tun?",
+"Help.q_prob2_A": "Prüfen Sie zuerst die Sendungsverfolgung, denn Verzögerungen im Zoll sind häufig und lösen sich meist von selbst. Wenn die Sendung ihr geschätztes Zustellfenster ohne Bewegung überschritten hat, <contact>sagen Sie uns Bescheid</contact> und wir gehen ihr nach. Ansprüche wegen Nichtzustellung sollten innerhalb von dreißig Tagen nach dem erwarteten Datum geltend gemacht werden.",
+ 
+"Help.q_prob3_Q": "Ist meine Sendung versichert?",
+"Help.q_prob3_A": "Eine Versicherung auf den von Ihnen angegebenen Wert ist in jedem Angebot als eigene Position enthalten. Zusätzlich unterhalten wir eine Haftpflichtversicherung für die von uns beförderte Fracht, deren Deckungssummen wir auf Anfrage nennen. Brauchen Sie mehr als diese Summen, schließen Sie vor dem Versand eine eigene Transportversicherung ab.",
+ 
+"Help.q_prob4_Q": "Kann ich eine Sendung nach der Buchung stornieren oder ändern?",
+"Help.q_prob4_A": "Melden Sie sich so früh wie möglich. Vor der Abholung sind Änderungen in der Regel unkompliziert. Sobald die Ware unterwegs ist, lässt sich das Ziel oft nicht mehr ändern, und es können Zusatzkosten entstehen.",
+ 
+"Help.q_acct1_Q": "Brauche ich ein Konto?",
+"Help.q_acct1_A": "Nicht für alles. Angebote, Sendungsverfolgung und das Ansehen einer Rechnung funktionieren ohne. Für die Buchung einer Sendung brauchen Sie eines, weil wir einen Ort für Ihre Sendungshistorie und für Aktualisierungen benötigen.",
+ 
+"Help.q_acct2_Q": "Ich habe meinen Bestätigungscode nicht erhalten.",
+"Help.q_acct2_A": "Prüfen Sie zuerst den Ordner für Werbung oder Updates, dort landen solche E-Mails häufig. Der Code läuft nach zehn Minuten ab; ist mehr Zeit vergangen, fordern Sie auf der Bestätigungsseite einen neuen an.",
+ 
+"Help.q_acct3_Q": "Ich habe mein Passwort vergessen.",
+"Help.q_acct3_A": "Nutzen Sie den Link zum Zurücksetzen auf der <signin>Anmeldeseite</signin>. Wir senden einen Link, der eine Stunde gültig ist. Aus Sicherheitsgründen können wir nicht mitteilen, ob eine Adresse registriert ist; kommt keine E-Mail an, prüfen Sie die eingegebene Adresse.",
+ 
+"Help.q_acct4_Q": "Wie ändere ich die Sprache?",
+"Help.q_acct4_A": "Nutzen Sie die Sprachauswahl in der Kopfzeile. Ihre Wahl wird gespeichert, und wenn Sie angemeldet sind, gilt sie auch für die E-Mails, die wir Ihnen schicken.",
+ 
+"Help.q_acct5_Q": "Kann ich mein Konto löschen?",
+"Help.q_acct5_A": "Ja, <contact>schreiben Sie uns</contact> und wir veranlassen es. Sendungs- und Rechnungsdaten bewahren wir sieben Jahre auf, um steuerliche und zollrechtliche Vorgaben zu erfüllen, aber Ihr Konto wird geschlossen und Sie erhalten keine weiteren E-Mails.",
+ 
+"Status.title": "Servicestatus",
+"Status.subtitle": "Aktueller Status der Plattform von {company}",
+"Status.checking": "Dienste werden geprüft…",
+ 
+"Status.overall_operational": "Alle Systeme laufen",
+"Status.overallBody_operational": "Alles läuft normal. Wenn bei Ihnen etwas nicht funktioniert, kann das an Ihrer Verbindung oder Ihrem Browser liegen.",
+"Status.overall_degraded": "Einige Systeme sind beeinträchtigt",
+"Status.overallBody_degraded": "Ein Teil der Plattform ist langsamer als gewohnt oder teilweise nicht verfügbar. Das meiste funktioniert weiterhin, aber es kann zu Verzögerungen kommen.",
+"Status.overall_down": "Wir haben Probleme",
+"Status.overallBody_down": "Ein oder mehrere Teile der Plattform antworten nicht. Wir wissen davon und arbeiten daran.",
+ 
+"Status.componentsTitle": "Komponenten",
+"Status.refresh": "Aktualisieren",
+"Status.lastChecked": "Zuletzt geprüft um {time}",
+ 
+"Status.component_website": "Website",
+"Status.componentDesc_website": "Öffentliche Seiten, Angebote und Anmeldung",
+"Status.component_tracking": "Sendungsverfolgung und Sendungen",
+"Status.componentDesc_tracking": "Sendungssuche, Rechnungen und Dashboard",
+"Status.component_notifications": "E-Mail-Benachrichtigungen",
+"Status.componentDesc_notifications": "Bestätigungscodes, Rechnungen und Sendungsupdates",
+ 
+"Status.state_operational": "Betriebsbereit",
+"Status.state_degraded": "Beeinträchtigt",
+"Status.state_down": "Ausgefallen",
+ 
+"Status.severity_investigating": "Wird untersucht",
+"Status.severity_identified": "Ursache gefunden",
+"Status.severity_monitoring": "Wird beobachtet",
+"Status.severity_maintenance": "Geplante Wartung",
+"Status.since": "seit {time}",
+ 
+"Status.unreachableTitle": "Wir erreichen unseren eigenen Statusdienst nicht",
+"Status.unreachableBody": "Das deutet meist auf eine größere Störung hin und nicht auf ein Problem bei Ihnen. Statt Ihnen ein veraltetes Ergebnis zu zeigen, sagen wir es lieber offen.",
+ 
+"Status.footerNote": "Diese Seite prüft unsere Systeme jede Minute. Wenn bei Ihnen etwas nicht funktioniert und hier alles als betriebsbereit angezeigt wird, <contact>sagen Sie uns Bescheid</contact> und wir sehen es uns an."
 }

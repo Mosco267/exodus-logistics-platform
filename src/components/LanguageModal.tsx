@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LocaleContext } from '@/context/LocaleContext';
 
 const LANGUAGES = [
-  { code: 'en', name: 'English',    countryCode: 'gb', region: 'United Kingdom' },
+  { code: 'en', name: 'English',    countryCode: 'gb', region: 'United States' },
   { code: 'es', name: 'Español',    countryCode: 'es', region: 'España' },
   { code: 'fr', name: 'Français',   countryCode: 'fr', region: 'France' },
   { code: 'de', name: 'Deutsch',    countryCode: 'de', region: 'Deutschland' },

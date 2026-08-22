@@ -2011,5 +2011,173 @@
 "Cookies.body": "Nous utilisons des cookies essentiels pour vous garder connecté et mémoriser votre langue. Avec votre accord, nous chargeons aussi notre chat en direct, fourni par un tiers, qui dépose ses propres cookies. Consultez notre <link>Politique relative aux cookies</link>.",
 "Cookies.accept": "Accepter",
 "Cookies.reject": "Refuser",
-"Cookies.learnMore": "En savoir plus"
+"Cookies.learnMore": "En savoir plus",
+
+"Help.title": "Comment pouvons-nous vous aider ?",
+"Help.subtitle": "Les réponses aux questions qu'on nous pose le plus, et le moyen le plus rapide de joindre quelqu'un si besoin.",
+"Help.searchPlaceholder": "Rechercher une réponse",
+"Help.clearSearch": "Effacer la recherche",
+ 
+"Help.action_track": "Suivre un envoi",
+"Help.action_invoice": "Voir une facture",
+"Help.action_quote": "Obtenir un devis",
+"Help.action_contact": "Nous contacter",
+ 
+"Help.resultCount": "{count, plural, one {# réponse trouvée} other {# réponses trouvées}}",
+"Help.noResults": "Aucun résultat pour « {query} »",
+"Help.noResultsTitle": "Nous n'avons pas trouvé de réponse à cela",
+"Help.noResultsBody": "Essayez un autre mot, ou envoyez-nous un message et quelqu'un vous répondra.",
+ 
+"Help.stillStuckTitle": "Toujours besoin d'aide ?",
+"Help.stillStuckBody": "Si votre question n'a pas de réponse ici, écrivez-nous. Nous répondons à tout, généralement sous un jour ouvré.",
+"Help.askTeam": "Écrire à notre équipe",
+"Help.startChat": "Démarrer une conversation",
+"Help.orEmail": "Ou écrivez-nous directement à <email></email>",
+ 
+"Help.cat_tracking": "Suivi de votre envoi",
+"Help.cat_quotes": "Devis et tarifs",
+"Help.cat_shipping": "Envoyer un colis",
+"Help.cat_invoices": "Factures et paiement",
+"Help.cat_customs": "Douane et documents",
+"Help.cat_problems": "Quand quelque chose ne va pas",
+"Help.cat_account": "Votre compte",
+ 
+"Help.q_track1_Q": "Comment suivre mon envoi ?",
+"Help.q_track1_A": "Saisissez votre numéro de suivi sur la <track>page de suivi</track>. Aucun compte n'est nécessaire, vous pouvez donc transmettre le numéro à la personne qui reçoit la marchandise et elle pourra suivre l'envoi elle aussi.",
+ 
+"Help.q_track2_Q": "Où trouver mon numéro de suivi ?",
+"Help.q_track2_A": "Il figure dans l'e-mail de confirmation envoyé à la création de l'envoi, ainsi que sur la facture. Il commence généralement par <b>EX</b>. Si vous avez un compte, tous vos envois sont listés dans votre tableau de bord.",
+ 
+"Help.q_track3_Q": "Mon suivi n'a pas bougé depuis plusieurs jours. Y a-t-il un problème ?",
+"Help.q_track3_A": "Pas nécessairement. Un envoi maritime peut rester une semaine ou plus en mer entre deux scans, et le dédouanement ne produit souvent aucune mise à jour tant qu'il est en cours. Si le silence dure plus longtemps que prévu, <contact>envoyez-nous le numéro de suivi</contact> et nous verrons où en est l'envoi.",
+ 
+"Help.q_track4_Q": "Que signifient les étapes de la chronologie ?",
+"Help.q_track4_A": "Chaque étape marque un passage réel : collecté chez vous, arrivé dans nos installations, en transit, en douane, en cours de livraison, livré. La chronologie indique quand et où chaque étape a eu lieu, pour que vous voyiez tout le parcours et pas seulement le dernier statut.",
+ 
+"Help.q_track5_Q": "Le destinataire peut-il suivre l'envoi ?",
+"Help.q_track5_A": "Oui. Toute personne disposant du numéro de suivi peut voir la progression sans se connecter. Elle verra la page de suivi dans sa propre langue, qui peut être différente de la vôtre.",
+ 
+"Help.q_quote1_Q": "Comment obtenir un prix ?",
+"Help.q_quote1_A": "Saisissez l'origine, la destination, le poids et les dimensions sur la <quote>page de devis</quote>. Vous obtenez le détail complet immédiatement, sans compte et sans appel commercial.",
+ 
+"Help.q_quote2_Q": "Combien de temps un devis reste-t-il valable ?",
+"Help.q_quote2_A": "Sept jours à compter de son émission. Passé ce délai, les tarifs peuvent avoir évolué et il faudra en établir un nouveau.",
+ 
+"Help.q_quote3_Q": "Pourquoi mon devis retient-il un poids supérieur à celui de mon colis ?",
+"Help.q_quote3_A": "Un colis volumineux mais léger occupe une place qui pourrait servir à du fret plus lourd ; les transporteurs facturent donc au <b>poids volumétrique</b> lorsqu'il dépasse le poids réel. Il se calcule à partir de vos dimensions. Quand cela s'applique, le devis l'indique, et jamais deux fois.",
+ 
+"Help.q_quote4_Q": "Qu'est-ce qui est compris dans le prix annoncé ?",
+"Help.q_quote4_A": "Le fret de base, la surcharge carburant, l'assurance sur la valeur déclarée, la manutention et le dédouanement lorsqu'il s'applique. Chaque poste figure sur sa propre ligne pour que vous voyiez ce que vous payez. Les droits et taxes à l'importation prélevés par le pays de destination sont distincts et ne sont pas inclus.",
+ 
+"Help.q_quote5_Q": "Le prix final peut-il changer après réservation ?",
+"Help.q_quote5_A": "Uniquement si le colis est remesuré ou repesé à la collecte et diffère de ce que vous avez saisi. Le cas échéant, nous vous prévenons avant de poursuivre. Sinon, la facture correspond au devis.",
+ 
+"Help.q_ship1_Q": "Comment envoyer quelque chose ?",
+"Help.q_ship1_A": "Obtenez d'abord un <quote>devis</quote>, puis créez un compte pour réserver. Vous saisissez les coordonnées de l'expéditeur et du destinataire, confirmez les informations du colis, et nous organisons la collecte. Votre numéro de suivi et votre facture sont émis immédiatement.",
+ 
+"Help.q_ship2_Q": "Vers quels pays puis-je expédier ?",
+"Help.q_ship2_A": "Nous assurons l'expédition internationale dans le monde entier, et l'expédition nationale dans une liste de pays qui s'élargit. La <quote>page de devis</quote> indique ce qui est disponible pour votre trajet précis.",
+ 
+"Help.q_ship3_Q": "Comment emballer ma marchandise ?",
+"Help.q_ship3_A": "Utilisez un carton rigide avec de la place pour du calage sur chaque face, fermez-le correctement et retirez ou masquez les anciennes étiquettes. Les objets fragiles doivent être calés de façon à ne pas bouger à l'intérieur. L'emballage relève de votre responsabilité, et les dommages dus à un emballage insuffisant ne sont pas couverts.",
+ 
+"Help.q_ship4_Q": "Que ne puis-je pas expédier ?",
+"Help.q_ship4_A": "Stupéfiants, armes et munitions sans licence, matières dangereuses sans documentation appropriée, contrefaçons, animaux vivants sans permis, et tout produit sous embargo. Une déclaration inexacte peut entraîner des sanctions, la confiscation des marchandises et la fermeture de votre compte.",
+ 
+"Help.q_ship5_Q": "Combien de temps prend la livraison ?",
+"Help.q_ship5_A": "Cela dépend du trajet et du niveau de service. Le fret aérien prend généralement de 2 à 14 jours ouvrés, le maritime de 15 à 45, et le routier national du jour même à 6 jours. Votre devis donne une estimation pour votre trajet précis avant réservation. Plus de détails sur notre <services>page services</services>.",
+ 
+"Help.q_ship6_Q": "Venez-vous collecter, ou dois-je déposer le colis ?",
+"Help.q_ship6_A": "Nous venons collecter. La collecte et la livraison porte à porte font partie du service, et l'adresse de collecte est celle que vous indiquez à la création de l'envoi.",
+ 
+"Help.q_inv1_Q": "Comment consulter ma facture ?",
+"Help.q_inv1_A": "Ouvrez la <invoice>page facture</invoice> et saisissez votre numéro de facture ainsi que l'e-mail de l'expéditeur ou du destinataire. Les deux sont nécessaires, ce qui garde les factures privées. Si vous avez un compte, toutes vos factures sont dans votre tableau de bord.",
+ 
+"Help.q_inv2_Q": "Comment puis-je payer ?",
+"Help.q_inv2_A": "Les moyens de paiement disponibles figurent sur votre facture. Une fois le paiement confirmé, le statut de la facture se met à jour et votre envoi se poursuit sans interruption.",
+ 
+"Help.q_inv3_Q": "Que se passe-t-il si je paie en retard ?",
+"Help.q_inv3_A": "Une facture impayée peut bloquer un envoi, et une facture laissée impayée au-delà de son échéance peut conduire à l'annulation de l'envoi. Si vous avez des difficultés à payer, <contact>dites-le-nous</contact> avant l'échéance plutôt qu'après.",
+ 
+"Help.q_inv4_Q": "Je pense que ma facture est erronée. Que faire ?",
+"Help.q_inv4_A": "Signalez-le par écrit dans les quatorze jours suivant la date de facture, en indiquant le numéro et ce qui vous semble incorrect. Les postes non contestés restent dus pendant que nous examinons le dossier.",
+ 
+"Help.q_inv5_Q": "Les droits et taxes sont-ils inclus dans ma facture ?",
+"Help.q_inv5_A": "Non. Les droits et taxes à l'importation sont fixés par le pays de destination et facturés séparément, généralement au destinataire. Notre facture couvre nos propres frais, y compris les frais de dédouanement lorsqu'ils s'appliquent.",
+ 
+"Help.q_cust1_Q": "Vous occupez-vous de la douane pour moi ?",
+"Help.q_cust1_A": "Oui. Nous préparons et déposons les documents des expéditions internationales. Lorsque des frais de dédouanement s'appliquent, ils figurent sur votre devis avant réservation plutôt que d'apparaître plus tard.",
+ 
+"Help.q_cust2_Q": "Quels documents dois-je fournir ?",
+"Help.q_cust2_A": "Une description exacte du contenu, sa valeur et le pays d'origine. Certaines marchandises nécessitent des certificats ou licences supplémentaires selon leur nature et leur destination. Si votre envoi demande plus que l'essentiel, nous vous le dirons.",
+ 
+"Help.q_cust3_Q": "Pourquoi mon envoi est-il bloqué en douane ?",
+"Help.q_cust3_A": "Le plus souvent parce que le dédouanement est simplement encore en cours, ce qui peut prendre plusieurs jours. Cela peut aussi signifier qu'un document doit être corrigé, que des droits restent dus, ou que la marchandise a été sélectionnée pour inspection. Nous relançons et vous prévenons si quelque chose est attendu de vous.",
+ 
+"Help.q_cust4_Q": "Que se passe-t-il si je déclare une valeur incorrecte ?",
+"Help.q_cust4_A": "Sous-déclarer est traité comme une fausse déclaration et peut entraîner des sanctions ou la confiscation par la douane, ce que l'assurance ne couvre pas. Cela réduit aussi ce que vous pourriez réclamer en cas de perte, la garantie étant fondée sur la valeur déclarée.",
+ 
+"Help.q_prob1_Q": "Mon colis est arrivé endommagé. Que faire ?",
+"Help.q_prob1_A": "Prévenez-nous dans les sept jours suivant la livraison, avec votre numéro de suivi et des photographies des dommages et de l'emballage. Conservez l'emballage jusqu'au règlement du dossier, il sert souvent de preuve.",
+ 
+"Help.q_prob2_Q": "Mon envoi n'est pas arrivé. Que dois-je faire ?",
+"Help.q_prob2_A": "Vérifiez d'abord le suivi : les retards en douane sont fréquents et se résolvent généralement d'eux-mêmes. Si l'envoi a dépassé sa fenêtre de livraison estimée sans mouvement, <contact>signalez-le-nous</contact> et nous le rechercherons. Les réclamations pour non-livraison doivent être déposées dans les trente jours suivant la date prévue.",
+ 
+"Help.q_prob3_Q": "Mon envoi est-il assuré ?",
+"Help.q_prob3_A": "Une assurance fondée sur la valeur que vous déclarez est comprise dans chaque devis, sur sa propre ligne. Nous disposons également d'une assurance responsabilité sur le fret que nous transportons, dont les limites sont communiquées sur demande. Si vous avez besoin d'une couverture supérieure à ces limites, souscrivez une assurance marchandises transportées avant l'expédition.",
+ 
+"Help.q_prob4_Q": "Puis-je annuler ou modifier un envoi après réservation ?",
+"Help.q_prob4_A": "Contactez-nous dès que possible. Avant la collecte, les modifications sont généralement simples. Une fois la marchandise en transit, changer la destination peut être impossible et entraîner des frais supplémentaires.",
+ 
+"Help.q_acct1_Q": "Ai-je besoin d'un compte ?",
+"Help.q_acct1_A": "Pas pour tout. Les devis, le suivi et la consultation d'une facture fonctionnent sans compte. Il en faut un pour réserver un envoi, car nous avons besoin d'un endroit où conserver votre historique et vous adresser les mises à jour.",
+ 
+"Help.q_acct2_Q": "Je n'ai pas reçu mon code de vérification.",
+"Help.q_acct2_A": "Vérifiez d'abord vos dossiers promotions ou mises à jour, où ces e-mails atterrissent souvent. Le code expire au bout de dix minutes ; si le délai est dépassé, demandez-en un nouveau depuis la page de vérification.",
+ 
+"Help.q_acct3_Q": "J'ai oublié mon mot de passe.",
+"Help.q_acct3_A": "Utilisez le lien mot de passe oublié sur la <signin>page de connexion</signin>. Nous envoyons un lien de réinitialisation valable une heure. Par sécurité, nous ne pouvons pas indiquer si une adresse est enregistrée ; si aucun e-mail n'arrive, vérifiez l'adresse saisie.",
+ 
+"Help.q_acct4_Q": "Comment changer de langue ?",
+"Help.q_acct4_A": "Utilisez le sélecteur de langue dans l'en-tête. Votre choix est mémorisé, et si vous êtes connecté il s'applique aussi aux e-mails que nous vous envoyons.",
+ 
+"Help.q_acct5_Q": "Puis-je supprimer mon compte ?",
+"Help.q_acct5_A": "Oui, <contact>écrivez-nous</contact> et nous nous en chargerons. Les enregistrements d'envois et de factures sont conservés sept ans pour répondre aux obligations fiscales et douanières, mais votre compte est fermé et vous ne recevrez plus d'e-mails.",
+ 
+"Status.title": "État des services",
+"Status.subtitle": "État en direct de la plateforme {company}",
+"Status.checking": "Vérification des services…",
+ 
+"Status.overall_operational": "Tous les systèmes sont opérationnels",
+"Status.overallBody_operational": "Tout fonctionne normalement. Si quelque chose ne marche pas chez vous, cela peut venir de votre connexion ou de votre navigateur.",
+"Status.overall_degraded": "Certains systèmes sont dégradés",
+"Status.overallBody_degraded": "Une partie de la plateforme est plus lente que d'habitude ou partiellement indisponible. La plupart des fonctions marchent encore, mais vous pouvez constater des lenteurs.",
+"Status.overall_down": "Nous rencontrons des difficultés",
+"Status.overallBody_down": "Une ou plusieurs parties de la plateforme ne répondent pas. Nous en avons connaissance et travaillons à les rétablir.",
+ 
+"Status.componentsTitle": "Composants",
+"Status.refresh": "Actualiser",
+"Status.lastChecked": "Dernière vérification à {time}",
+ 
+"Status.component_website": "Site web",
+"Status.componentDesc_website": "Pages publiques, devis et connexion",
+"Status.component_tracking": "Suivi et expéditions",
+"Status.componentDesc_tracking": "Recherche d'envoi, factures et tableau de bord",
+"Status.component_notifications": "Notifications par e-mail",
+"Status.componentDesc_notifications": "Codes de vérification, factures et mises à jour d'envoi",
+ 
+"Status.state_operational": "Opérationnel",
+"Status.state_degraded": "Dégradé",
+"Status.state_down": "Hors service",
+ 
+"Status.severity_investigating": "En cours d'analyse",
+"Status.severity_identified": "Cause identifiée",
+"Status.severity_monitoring": "Sous surveillance",
+"Status.severity_maintenance": "Maintenance planifiée",
+"Status.since": "depuis le {time}",
+ 
+"Status.unreachableTitle": "Nous n'arrivons pas à joindre notre propre service d'état",
+"Status.unreachableBody": "Cela indique généralement une panne plus large qu'un problème de votre côté. Plutôt que d'afficher un résultat périmé, nous préférons vous le dire.",
+ 
+"Status.footerNote": "Cette page vérifie nos systèmes chaque minute. Si quelque chose ne marche pas chez vous alors que tout est indiqué comme opérationnel, <contact>dites-le-nous</contact> et nous examinerons la situation."
 }
