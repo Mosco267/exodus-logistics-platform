@@ -2166,5 +2166,42 @@
 "Help.q_acct4_A": "Use the language selector in the header. Your choice is remembered, and if you are signed in it is also used for the emails we send you.",
  
 "Help.q_acct5_Q": "Can I delete my account?",
-"Help.q_acct5_A": "Yes, <contact>contact us</contact> and we will action it. Shipment and invoice records are kept for seven years to meet tax and customs requirements, but your account is closed and you will receive no further emails."
+"Help.q_acct5_A": "Yes, <contact>contact us</contact> and we will action it. Shipment and invoice records are kept for seven years to meet tax and customs requirements, but your account is closed and you will receive no further emails.",
+
+"Status.title": "Service status",
+"Status.subtitle": "Live status of the {company} platform",
+"Status.checking": "Checking services…",
+ 
+"Status.overall_operational": "All systems operational",
+"Status.overallBody_operational": "Everything is running normally. If something is not working for you, it may be specific to your connection or browser.",
+"Status.overall_degraded": "Some systems are degraded",
+"Status.overallBody_degraded": "Part of the platform is slower than usual or partly unavailable. Most things still work, but you may notice delays.",
+"Status.overall_down": "We are having problems",
+"Status.overallBody_down": "One or more parts of the platform are not responding. We are aware and working on it.",
+ 
+"Status.componentsTitle": "Components",
+"Status.refresh": "Refresh",
+"Status.lastChecked": "Last checked at {time}",
+ 
+"Status.component_website": "Website",
+"Status.componentDesc_website": "Public pages, quotes and sign-in",
+"Status.component_tracking": "Tracking and shipments",
+"Status.componentDesc_tracking": "Shipment lookup, invoices and the dashboard",
+"Status.component_notifications": "Email notifications",
+"Status.componentDesc_notifications": "Verification codes, invoices and shipment updates",
+ 
+"Status.state_operational": "Operational",
+"Status.state_degraded": "Degraded",
+"Status.state_down": "Down",
+ 
+"Status.severity_investigating": "Investigating",
+"Status.severity_identified": "Cause identified",
+"Status.severity_monitoring": "Monitoring",
+"Status.severity_maintenance": "Scheduled maintenance",
+"Status.since": "since {time}",
+ 
+"Status.unreachableTitle": "We cannot reach our own status service",
+"Status.unreachableBody": "This usually means a wider outage rather than a problem with your connection. Rather than show you a stale result, we would rather say so.",
+ 
+"Status.footerNote": "This page checks our systems every minute. If something is not working for you and this page shows everything as operational, <contact>tell us</contact> and we will look into it."
 }

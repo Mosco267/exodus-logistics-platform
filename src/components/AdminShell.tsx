@@ -23,6 +23,7 @@ import {
   Headphones,
   Settings,
   MessageSquare,
+  Activity,
 } from "lucide-react";
 import { Percent, Route } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -132,6 +133,7 @@ export default function AdminShell({ children }: Props) {
       label: "Shipment Timeline",
       icon: <Workflow className="w-5 h-5" />,
     },
+      { href: `/${locale}/dashboard/admin/status`, label: "Service status", icon:< Activity className="w-5 h-5" /> },
     {
       href: `/${locale}/dashboard/admin/email-templates`,
       label: "Email Templates",
